@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $outputDirectory = Join-Path $projectRoot "dist"
-$outputFile = Join-Path $outputDirectory "Suamisihat-Creative-Assets-Management-$Version.exe"
+$outputFile = Join-Path $outputDirectory "SuamiSihat-Creative-Assets-Management-$Version.exe"
 $iconFile = Join-Path $projectRoot "payload\Brand Assets\Logos\ss_favicon\favicon.ico"
 $bootstrapperSource = Join-Path $PSScriptRoot "bootstrapper\Program.cs"
 $frameworkRoot = Join-Path $env:WINDIR "Microsoft.NET"
@@ -68,10 +68,10 @@ try {
     $assemblyVersion = "$Version.0"
     $assemblyInfo = @"
 using System.Reflection;
-[assembly: AssemblyTitle("Suamisihat Creative Assets Management")]
-[assembly: AssemblyDescription("Suamisihat brand assets, font installer, and Post Haste project template creator")]
+[assembly: AssemblyTitle("SuamiSihat Creative Assets Management")]
+[assembly: AssemblyDescription("SuamiSihat brand assets, font installer, and Post Haste project template creator")]
 [assembly: AssemblyCompany("SuamiSihat")]
-[assembly: AssemblyProduct("Suamisihat Creative Assets Management")]
+[assembly: AssemblyProduct("SuamiSihat Creative Assets Management")]
 [assembly: AssemblyCopyright("Copyright (c) SuamiSihat")]
 [assembly: AssemblyVersion("$assemblyVersion")]
 [assembly: AssemblyFileVersion("$assemblyVersion")]

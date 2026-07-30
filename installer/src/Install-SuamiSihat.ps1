@@ -334,12 +334,12 @@ if ($OpenImportFiles -and -not $SkipAssets -and -not $WhatIfPreference) {
 try {
     $currentProcessExe = [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
     if ($currentProcessExe -and (Test-Path -LiteralPath $currentProcessExe -PathType Leaf) -and $currentProcessExe.EndsWith(".exe", [StringComparison]::OrdinalIgnoreCase)) {
-        $appInstallDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\Suamisihat Creative Assets Management"
+        $appInstallDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management"
         New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
-        $installedExePath = Join-Path $appInstallDir "Suamisihat-Creative-Assets-Management.exe"
+        $installedExePath = Join-Path $appInstallDir "SuamiSihat-Creative-Assets-Management.exe"
         Copy-Item -LiteralPath $currentProcessExe -Destination $installedExePath -Force
         Install-SuamiSihatShortcuts -TargetExePath $installedExePath
-        Write-Host "  Installed Windows Application shortcut: Start Menu -> Suamisihat Creative Assets Management"
+        Write-Host "  Installed Windows Application shortcut: Start Menu -> SuamiSihat Creative Assets Management"
     }
 } catch {}
 

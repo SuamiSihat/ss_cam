@@ -98,7 +98,7 @@ $darkLogoImage = [Drawing.Image]::FromFile($darkLogoFile)
 $lightLogoImage = [Drawing.Image]::FromFile($lightLogoFile)
 
 $form = New-Object Windows.Forms.Form
-$form.Text = "Suamisihat Creative Assets Management"
+$form.Text = "SuamiSihat Creative Assets Management"
 $form.ClientSize = New-Object Drawing.Size(760, 690)
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = "FixedDialog"
@@ -495,38 +495,52 @@ $presetCombo.DropDownStyle = "DropDownList"
 $presetCombo.SelectedIndex = 0
 $creatorPage.Controls.Add($presetCombo)
 
+# Year Selection
+$yearLabel = New-Label -Text "Year:" -X 27 -Y 172 -Width 80
+$yearLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$creatorPage.Controls.Add($yearLabel)
+
+$yearCombo = New-Object Windows.Forms.ComboBox
+$yearCombo.Location = New-Object Drawing.Point(27, 194)
+$yearCombo.Size = New-Object Drawing.Size(95, 28)
+$yearCombo.DropDownStyle = "DropDownList"
+$currentYrInt = [int](Get-Date).ToString("yyyy")
+(($currentYrInt - 2)..($currentYrInt + 3)) | ForEach-Object { [void]$yearCombo.Items.Add($_) }
+$yearCombo.SelectedItem = $currentYrInt
+$creatorPage.Controls.Add($yearCombo)
+
 # Sub-Brand Selection
-$brandLabel = New-Label -Text "Sub-Brand:" -X 27 -Y 172 -Width 120
+$brandLabel = New-Label -Text "Sub-Brand:" -X 135 -Y 172 -Width 110
 $brandLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($brandLabel)
 
 $subBrandCombo = New-Object Windows.Forms.ComboBox
-$subBrandCombo.Location = New-Object Drawing.Point(27, 194)
-$subBrandCombo.Size = New-Object Drawing.Size(180, 28)
+$subBrandCombo.Location = New-Object Drawing.Point(135, 194)
+$subBrandCombo.Size = New-Object Drawing.Size(125, 28)
 $subBrandCombo.DropDownStyle = "DropDownList"
 @("SS", "HEALTH", "CLINIC", "WELLNESS", "ECOM", "TECH") | ForEach-Object { [void]$subBrandCombo.Items.Add($_) }
 $subBrandCombo.SelectedIndex = 0
 $creatorPage.Controls.Add($subBrandCombo)
 
 # Job ID
-$jobLabel = New-Label -Text "Job ID (e.g. D0075):" -X 230 -Y 172 -Width 150
+$jobLabel = New-Label -Text "Job ID (e.g. D0075):" -X 272 -Y 172 -Width 130
 $jobLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($jobLabel)
 
 $jobIdText = New-Object Windows.Forms.TextBox
-$jobIdText.Location = New-Object Drawing.Point(230, 194)
-$jobIdText.Size = New-Object Drawing.Size(150, 27)
+$jobIdText.Location = New-Object Drawing.Point(272, 194)
+$jobIdText.Size = New-Object Drawing.Size(125, 27)
 $jobIdText.Text = $script:appState.NextJobNumber
 $creatorPage.Controls.Add($jobIdText)
 
 # Project Name
-$nameLabel = New-Label -Text "Project Name (e.g. POSM_Banner):" -X 400 -Y 172 -Width 280
+$nameLabel = New-Label -Text "Project Name (e.g. POSM_Banner):" -X 410 -Y 172 -Width 280
 $nameLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($nameLabel)
 
 $projectNameText = New-Object Windows.Forms.TextBox
-$projectNameText.Location = New-Object Drawing.Point(400, 194)
-$projectNameText.Size = New-Object Drawing.Size(294, 27)
+$projectNameText.Location = New-Object Drawing.Point(410, 194)
+$projectNameText.Size = New-Object Drawing.Size(284, 27)
 $projectNameText.Text = "POSM_Banner"
 $creatorPage.Controls.Add($projectNameText)
 
@@ -678,7 +692,14 @@ $appGroup.Controls.Add($settingsStatusLabel)
 
 # Event Handlers for Creator Page
 $updatePreview = {
-    $dateCode = (Get-Date).ToString("yyyyMM")
+    $selYear = if ($yearCombo.SelectedItem) { [string]$yearCombo.SelectedItem } else { (Get-Date).ToString("yyyy") }
+    $curMonth = (Get-Date).ToString("MM")
+    $dateCode = "${selYear}${curMonth}"
+
+    if ($workspacePathText.Text -match '\\Creative Workspace\\SS-\d{4}$') {
+        $workspacePathText.Text = $workspacePathText.Text -replace 'SS-\d{4}$', "SS-$selYear"
+    }
+
     $sub = ($subBrandCombo.SelectedItem -replace '\s+', '_').ToUpper()
     $job = ($jobIdText.Text.Trim() -replace '\s+', '').ToUpper()
     if (-not $job.StartsWith("D")) { $job = "D$job" }
@@ -698,6 +719,7 @@ $updatePreview = {
 }
 
 $presetCombo.Add_SelectedIndexChanged($updatePreview)
+$yearCombo.Add_SelectedIndexChanged($updatePreview)
 $subBrandCombo.Add_SelectedIndexChanged($updatePreview)
 $jobIdText.Add_TextChanged($updatePreview)
 $projectNameText.Add_TextChanged($updatePreview)
@@ -718,7 +740,8 @@ $createProjectBtn.Add_Click({
             -SubBrand $subBrandCombo.SelectedItem `
             -JobNumber $jobIdText.Text.Trim() `
             -ProjectName $projectNameText.Text.Trim() `
-            -PresetType $presetCombo.SelectedItem
+            -PresetType $presetCombo.SelectedItem `
+            -Year ([string]$yearCombo.SelectedItem)
         
         $script:appState = Get-SuamiSihatAppState
         $lastProjectLabel.Text = $result.FolderName

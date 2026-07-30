@@ -257,7 +257,8 @@ function New-SuamiSihatProjectFolder {
         [string]$JobNumber = "D0001",
         [Parameter(Mandatory = $true)]
         [string]$ProjectName,
-        [string]$PresetType = "GraphicDesign"
+        [string]$PresetType = "GraphicDesign",
+        [string]$Year = ""
     )
 
     $cleanProjectName = $ProjectName -replace '[\\/:*?"<>|]', '_' -replace '\s+', '_'
@@ -266,7 +267,11 @@ function New-SuamiSihatProjectFolder {
         throw "Project name cannot be empty."
     }
 
-    $dateCode = (Get-Date).ToString("yyyyMM")
+    if ([string]::IsNullOrWhiteSpace($Year)) {
+        $Year = (Get-Date).ToString("yyyy")
+    }
+    $currentMonth = (Get-Date).ToString("MM")
+    $dateCode = "${Year}${currentMonth}"
     $cleanSubBrand = ($SubBrand -replace '\s+', '_').ToUpper()
     $cleanJob = ($JobNumber -replace '\s+', '').ToUpper()
     if (-not $cleanJob.StartsWith("D")) {
@@ -385,27 +390,28 @@ function Install-SuamiSihatShortcuts {
         # Start Menu Shortcut
         $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\SuamiSihat"
         New-Item -ItemType Directory -Path $startMenuDir -Force | Out-Null
-        $startShortcutPath = Join-Path $startMenuDir "Suamisihat Creative Assets Management.lnk"
+        $startShortcutPath = Join-Path $startMenuDir "SuamiSihat Creative Assets Management.lnk"
         $sc = $wshell.CreateShortcut($startShortcutPath)
         $sc.TargetPath = $TargetExePath
         $sc.WorkingDirectory = Split-Path -Parent $TargetExePath
-        $sc.Description = "Suamisihat Creative Assets Management & Project Creator"
+        $sc.Description = "SuamiSihat Creative Assets Management & Project Creator"
         $sc.Save()
 
         # Desktop Shortcut
         $desktopDir = [Environment]::GetFolderPath("Desktop")
         if (-not [string]::IsNullOrWhiteSpace($desktopDir)) {
-            $desktopShortcutPath = Join-Path $desktopDir "Suamisihat Creative Assets Management.lnk"
+            $desktopShortcutPath = Join-Path $desktopDir "SuamiSihat Creative Assets Management.lnk"
             $sc2 = $wshell.CreateShortcut($desktopShortcutPath)
             $sc2.TargetPath = $TargetExePath
             $sc2.WorkingDirectory = Split-Path -Parent $TargetExePath
-            $sc2.Description = "Suamisihat Creative Assets Management & Project Creator"
+            $sc2.Description = "SuamiSihat Creative Assets Management & Project Creator"
             $sc2.Save()
         }
     } catch {
         # Shortcut creation is non-blocking
     }
 }
+
 
 
 
