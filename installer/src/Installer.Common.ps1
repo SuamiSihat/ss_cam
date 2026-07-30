@@ -292,9 +292,12 @@ function New-SuamiSihatProjectFolder {
 
     $cleanYear = if ($Year -match '^\d{4}$') { $Year } else { (Get-Date).ToString("yyyy") }
     $curMonthNum = (Get-Date).ToString("MM")
-    $curMonthName = (Get-Date).ToString("MMM").ToUpper()
-    $monthFolder = "${cleanYear}-${curMonthName}"
-    $dateCode = "${cleanYear}${curMonthNum}"
+    $curMonthFull = (Get-Culture).TextInfo.ToTitleCase((Get-Date).ToString("MMMM"))
+    $curDay = (Get-Date).ToString("dd")
+
+    $yearFolder = "SS-${cleanYear}"
+    $monthFolder = "${cleanYear}${curMonthNum}_${curMonthFull}"
+    $dateCode = "${cleanYear}${curMonthNum}${curDay}"
 
     $cleanJob = ($JobNumber -replace '\s+', '').ToUpper()
     if (-not $cleanJob.StartsWith("D")) {
@@ -302,7 +305,9 @@ function New-SuamiSihatProjectFolder {
     }
 
     $folderName = "${dateCode}_${cleanJob}_${cleanSubBrand}_${cleanProjectName}"
-    $monthlyRoot = Join-Path $RootDirectory $monthFolder
+    $yearRoot = if ($RootDirectory -match '\\SS-\d{4}$') { Split-Path -Parent $RootDirectory } else { $RootDirectory }
+    $yearPath = Join-Path $yearRoot $yearFolder
+    $monthlyRoot = Join-Path $yearPath $monthFolder
     $projectRoot = Join-Path $monthlyRoot $folderName
 
     $subFolders = switch -Wildcard ($PresetType) {

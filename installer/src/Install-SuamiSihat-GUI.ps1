@@ -963,22 +963,33 @@ $updateGroup.Controls.Add($updateStatusLabel)
 $updatePreview = {
     $selYear = if ($yearCombo.SelectedItem) { [string]$yearCombo.SelectedItem } else { (Get-Date).ToString("yyyy") }
     $curMonthNum = (Get-Date).ToString("MM")
-    $curMonthName = (Get-Date).ToString("MMM").ToUpper()
-    $monthFolder = "${selYear}-${curMonthName}"
-    $dateCode = "${selYear}${curMonthNum}"
+    $curMonthFull = (Get-Culture).TextInfo.ToTitleCase((Get-Date).ToString("MMMM"))
+    $curDay = (Get-Date).ToString("dd")
 
-    if ($workspacePathText.Text -match '\\Creative Workspace\\SS-\d{4}$') {
-        $workspacePathText.Text = $workspacePathText.Text -replace 'SS-\d{4}$', "SS-$selYear"
+    $yearFolder = "SS-${selYear}"
+    $monthFolder = "${selYear}${curMonthNum}_${curMonthFull}"
+    $dateCode = "${selYear}${curMonthNum}${curDay}"
+
+    $rootBase = $workspacePathText.Text.Trim()
+    if ($rootBase -match '\\SS-\d{4}$') {
+        $rootBase = Split-Path -Parent $rootBase
     }
 
     $sub = ($subBrandCombo.SelectedItem -replace '\s+', '_').ToUpper()
+    if ($sub -match 'SUAMISIHAT|SS') { $sub = "SS" }
+    elseif ($sub -match 'HEALTH') { $sub = "SSH" }
+    elseif ($sub -match 'CLINIC') { $sub = "SSC" }
+    elseif ($sub -match 'WELLNESS') { $sub = "SSW" }
+    elseif ($sub -match 'ECOM') { $sub = "SSE" }
+    elseif ($sub -match 'TECH') { $sub = "SST" }
+
     $job = ($jobIdText.Text.Trim() -replace '\s+', '').ToUpper()
     if (-not $job.StartsWith("D")) { $job = "D$job" }
     $proj = ($projectNameText.Text.Trim() -replace '[\\/:*?"<>|]', '_' -replace '\s+', '_').Trim('_')
     if ([string]::IsNullOrWhiteSpace($proj)) { $proj = "Project" }
     
     $folderName = "${dateCode}_${job}_${sub}_${proj}"
-    $targetPath = Join-Path (Join-Path $workspacePathText.Text.Trim() $monthFolder) $folderName
+    $targetPath = Join-Path (Join-Path (Join-Path $rootBase $yearFolder) $monthFolder) $folderName
     $previewPathLabel.Text = $targetPath
 
     # Refresh Recent Projects UI
@@ -992,10 +1003,10 @@ $updatePreview = {
     }
 
     $structureInfoLabel.Text = switch -Wildcard ($presetCombo.SelectedItem) {
-        "*Social*"  { "SuamiSihat E-Com & Social Campaign: Working Files (source PSD/AF), Source Assets (photos), Copywriting (ad text) & Final Exports (web/ad graphics)." }
-        "*Video*"   { "SuamiSihat Video Production: Project Files (PR/AE/DR NLE projects), Raw Footage, Audio/SFX, Renders & Final Exports (master MP4/MOV)." }
-        "*Brand*"   { "SuamiSihat Brand Systems: Vector Master logos (SVG/AI), Brand Guidelines PDF, Colour Palettes & Export Packages." }
-        default     { "SuamiSihat Graphic Workstation: Artwork Design (.afdesign/.psd), Artwork Mockup, Assets (raw photos) & Production print/digital exports." }
+        "*Social*"  { "+-- Working Files\ (PSD/AF source)      +-- Source Assets\ (Photos/Graphics)`r`n+-- Copywriting\ (Ad text copy)          +-- Final Exports\ (Web/Ad graphics)" }
+        "*Video*"   { "+-- Project Files\ (NLE PR/AE/DR)    +-- Footage\ (Raw video clips)`r`n+-- Audio\ (SFX and music stems)       +-- Final Exports\ (Master MP4/MOV)" }
+        "*Brand*"   { "+-- Vector Master\ (SVG/AI logos)    +-- Brand Guidelines\ (PDF)`r`n+-- Colour Palettes\ (ASE/AF)        +-- Export Packages\ (ZIP release)" }
+        default     { "+-- Artwork Design\ (Source .afdesign/.psd/.ai)    +-- Artwork Mockup\ (Previews & mockups)`r`n+-- Assets\ (Raw photos, icons & materials)         +-- Production\ (Exported PDF, PNG, SVG)" }
     }
 }
 
