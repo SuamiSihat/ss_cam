@@ -1399,6 +1399,7 @@ $timer.Add_Tick({
                 Copy-Item -LiteralPath $sourceExe -Destination $targetExePath -Force
                 Install-SuamiSihatShortcuts -TargetExePath $targetExePath
             }
+            try { Save-SuamiSihatAppState } catch {}
         } catch {}
 
         $script:setupComplete = $true

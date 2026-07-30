@@ -63,8 +63,17 @@ internal static class Program
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "SuamiSihat",
                 "app_state.json");
-            
-            bool isFirstRun = forceInstaller || !File.Exists(appDataState);
+
+            string currentExePath = Process.GetCurrentProcess().MainModule.FileName;
+            string installedExeDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Programs",
+                "SuamiSihat");
+
+            bool isInstalledLocation = !string.IsNullOrEmpty(currentExePath) &&
+                currentExePath.StartsWith(installedExeDir, StringComparison.OrdinalIgnoreCase);
+
+            bool isFirstRun = forceInstaller || (!isInstalledLocation && !File.Exists(appDataState));
 
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
@@ -73,7 +82,7 @@ internal static class Program
                     "-NoLogo -NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File " +
                     QuoteArgument(wizardPath) +
                     (isFirstRun ? " -InstallerMode" : string.Empty) +
-                    " -InstallerExePath " + QuoteArgument(Process.GetCurrentProcess().MainModule.FileName) +
+                    " -InstallerExePath " + QuoteArgument(currentExePath) +
                     (smokeTest ? " -SmokeTest" : string.Empty),
                 WorkingDirectory = Path.GetDirectoryName(wizardPath),
                 UseShellExecute = false,
