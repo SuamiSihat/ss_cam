@@ -59,10 +59,12 @@ internal static class Program
                            string.Equals(argument, "-InstallerMode", StringComparison.OrdinalIgnoreCase);
                 });
 
-            string appDataState = Path.Combine(
+            string installedExe = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Programs",
                 "SuamiSihat",
-                "app_state.json");
+                "SuamiSihat Creative Assets Management",
+                "SS-CAM.exe");
 
             string currentExePath = Process.GetCurrentProcess().MainModule.FileName;
             string installedExeDir = Path.Combine(
@@ -73,7 +75,8 @@ internal static class Program
             bool isInstalledLocation = !string.IsNullOrEmpty(currentExePath) &&
                 currentExePath.StartsWith(installedExeDir, StringComparison.OrdinalIgnoreCase);
 
-            bool isFirstRun = forceInstaller || (!isInstalledLocation && !File.Exists(appDataState));
+            bool isInstalled = File.Exists(installedExe);
+            bool isFirstRun = forceInstaller || !isInstalledLocation || !isInstalled;
 
             ProcessStartInfo startInfo = new ProcessStartInfo
             {

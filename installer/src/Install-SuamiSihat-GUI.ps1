@@ -1685,7 +1685,8 @@ $form.Add_Shown({
 
 Refresh-PCRequirements
 Refresh-SoftwareList
-if ($InstallerMode) {
+$installedInfo = Get-SuamiSihatInstalledVersion
+if ($InstallerMode -or -not $installedInfo.IsInstalled) {
     Show-Page 0
 } else {
     Show-Page $creatorPageIndex
