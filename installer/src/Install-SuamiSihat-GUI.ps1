@@ -202,6 +202,18 @@ $welcomeLogo.Size = New-Object Drawing.Size(330, 96)
 $welcomeLogo.SizeMode = "Zoom"
 $welcomeLogo.Image = $lightLogoImage
 $welcomePage.Controls.Add($welcomeLogo)
+
+# Welcome Page Installed Version Status Pill
+$installStatusBadge = New-Object Windows.Forms.Button
+$installStatusBadge.Location = New-Object Drawing.Point(470, 25)
+$installStatusBadge.Size = New-Object Drawing.Size(220, 36)
+$installStatusBadge.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$installStatusBadge.ForeColor = [Drawing.Color]::White
+$installStatusBadge.FlatStyle = "Flat"
+$installStatusBadge.FlatAppearance.BorderSize = 0
+$installStatusBadge.Enabled = $false
+$welcomePage.Controls.Add($installStatusBadge)
+
 $welcomeIntro = New-Label -Text "Prepare this Windows PC for SuamiSihat design work." -X 30 -Y 119 -Width 650 -Height 30
 $welcomeIntro.Font = New-Object Drawing.Font("Segoe UI", 12)
 $welcomeIntro.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
@@ -209,19 +221,50 @@ $welcomePage.Controls.Add($welcomeIntro)
 $welcomeBody = New-Label -Text @"
 This guided installer will:
 
-  - compare this PC with the minimum and recommended design specification;
+  - compare this PC with minimum and recommended design specifications;
   - show and record acceptance of the internal-use licence;
-  - collect basic PC information for a local Markdown report;
-  - detect Affinity, Canva, Figma, Creative Cloud, Photoshop, and Illustrator;
-  - direct you to official vendor setup when required;
-  - install the selected SuamiSihat fonts for your Windows account;
-  - create a structured brand-assets folder at your chosen location;
-  - save a standardized font inventory and workstation report.
-
-Close Affinity and Adobe applications before continuing.
-"@ -X 32 -Y 161 -Width 650 -Height 260
-$welcomeBody.Font = New-Object Drawing.Font("Segoe UI", 10)
+  - detect installed Affinity, Canva, Figma, and Adobe applications;
+  - install/update official SuamiSihat fonts and brand libraries;
+  - create and configure local creative asset management tools;
+  - launch the SuamiSihat Creative Project Folder Creator.
+"@ -X 32 -Y 155 -Width 650 -Height 215
+$welcomeBody.Font = New-Object Drawing.Font("Segoe UI", 9.5)
 $welcomePage.Controls.Add($welcomeBody)
+
+# Welcome Page Action Buttons
+$btnWelcomeLaunch = New-Object Windows.Forms.Button
+$btnWelcomeLaunch.Text = "Launch Workspace"
+$btnWelcomeLaunch.Location = New-Object Drawing.Point(32, 382)
+$btnWelcomeLaunch.Size = New-Object Drawing.Size(185, 38)
+$btnWelcomeLaunch.Font = New-Object Drawing.Font("Segoe UI Semibold", 9.5)
+$btnWelcomeLaunch.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$btnWelcomeLaunch.ForeColor = [Drawing.Color]::White
+$btnWelcomeLaunch.FlatStyle = "Flat"
+$btnWelcomeLaunch.Cursor = [Windows.Forms.Cursors]::Hand
+$welcomePage.Controls.Add($btnWelcomeLaunch)
+
+$btnWelcomeAction = New-Object Windows.Forms.Button
+$btnWelcomeAction.Text = "Update / Reinstall App"
+$btnWelcomeAction.Location = New-Object Drawing.Point(230, 382)
+$btnWelcomeAction.Size = New-Object Drawing.Size(255, 38)
+$btnWelcomeAction.Font = New-Object Drawing.Font("Segoe UI Semibold", 9.5)
+$btnWelcomeAction.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$btnWelcomeAction.ForeColor = [Drawing.Color]::White
+$btnWelcomeAction.FlatStyle = "Flat"
+$btnWelcomeAction.Cursor = [Windows.Forms.Cursors]::Hand
+$welcomePage.Controls.Add($btnWelcomeAction)
+
+$btnWelcomeUninstall = New-Object Windows.Forms.Button
+$btnWelcomeUninstall.Text = "Uninstall App"
+$btnWelcomeUninstall.Location = New-Object Drawing.Point(498, 382)
+$btnWelcomeUninstall.Size = New-Object Drawing.Size(160, 38)
+$btnWelcomeUninstall.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$btnWelcomeUninstall.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
+$btnWelcomeUninstall.ForeColor = [Drawing.Color]::FromArgb(220, 38, 38)
+$btnWelcomeUninstall.FlatStyle = "Flat"
+$btnWelcomeUninstall.Cursor = [Windows.Forms.Cursors]::Hand
+$welcomePage.Controls.Add($btnWelcomeUninstall)
+
 $welcomePrivacy = New-Label -Text "PC information remains local and is not transmitted by this installer." -X 32 -Y 442 -Width 650
 $welcomePrivacy.ForeColor = [Drawing.Color]::DimGray
 $welcomePage.Controls.Add($welcomePrivacy)
@@ -722,6 +765,17 @@ $repairFontsBtn.FlatStyle = "Flat"
 $repairFontsBtn.Cursor = [Windows.Forms.Cursors]::Hand
 $fontGroup.Controls.Add($repairFontsBtn)
 
+$uninstallSettingsBtn = New-Object Windows.Forms.Button
+$uninstallSettingsBtn.Text = "Uninstall App && Shortcuts"
+$uninstallSettingsBtn.Location = New-Object Drawing.Point(300, 56)
+$uninstallSettingsBtn.Size = New-Object Drawing.Size(220, 32)
+$uninstallSettingsBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$uninstallSettingsBtn.BackColor = [Drawing.Color]::FromArgb(220, 38, 38)
+$uninstallSettingsBtn.ForeColor = [Drawing.Color]::White
+$uninstallSettingsBtn.FlatStyle = "Flat"
+$uninstallSettingsBtn.Cursor = [Windows.Forms.Cursors]::Hand
+$fontGroup.Controls.Add($uninstallSettingsBtn)
+
 # Group 2: App & History Settings
 $appGroup = New-Object Windows.Forms.GroupBox
 $appGroup.Text = " Workspace && Sequential Counter Defaults "
@@ -969,6 +1023,61 @@ $createProjectBtn.Add_Click({
         $creatorStatusLabel.Text = "Error: $($_.Exception.Message)"
     }
 })
+
+# App Installed Version Status Refresh
+$refreshAppVersionStatus = {
+    $installedInfo = Get-SuamiSihatInstalledVersion
+    if ($installedInfo.IsInstalled) {
+        $installStatusBadge.Text = "Installed: v$($installedInfo.Version)"
+        $installStatusBadge.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
+        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Installed Version: v$($installedInfo.Version)`r`nStatus: Installed  |  Executable: $($installedInfo.ExePath)"
+        $btnWelcomeLaunch.Visible = $true
+        $btnWelcomeUninstall.Visible = $true
+        $btnWelcomeAction.Text = "Update / Reinstall App"
+        $btnWelcomeAction.Location = New-Object Drawing.Point(230, 382)
+        $btnWelcomeAction.Size = New-Object Drawing.Size(255, 38)
+    } else {
+        $installStatusBadge.Text = "Not Installed (v1.6.1 Ready)"
+        $installStatusBadge.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Status: Not Installed`r`nRun setup wizard below to install SuamiSihat brand kit & assets."
+        $btnWelcomeLaunch.Visible = $false
+        $btnWelcomeUninstall.Visible = $false
+        $btnWelcomeAction.Text = "Install SuamiSihat Creative Assets (v1.6.1)"
+        $btnWelcomeAction.Location = New-Object Drawing.Point(32, 382)
+        $btnWelcomeAction.Size = New-Object Drawing.Size(626, 38)
+    }
+}
+
+# Welcome Page Handlers
+$btnWelcomeLaunch.Add_Click({
+    Show-Page $creatorPageIndex
+})
+
+$btnWelcomeAction.Add_Click({
+    $nextButton.PerformClick()
+})
+
+$uninstallAppHandler = {
+    $confirm = [Windows.Forms.MessageBox]::Show(
+        "Are you sure you want to uninstall SuamiSihat Creative Assets Management and its shortcuts from this PC?",
+        "Uninstall SuamiSihat App",
+        [Windows.Forms.MessageBoxButtons]::YesNo,
+        [Windows.Forms.MessageBoxIcon]::Warning
+    )
+    if ($confirm -eq [Windows.Forms.DialogResult]::Yes) {
+        Uninstall-SuamiSihatApp
+        [Windows.Forms.MessageBox]::Show(
+            "SuamiSihat Creative Assets Management has been uninstalled successfully.",
+            "Uninstalled",
+            [Windows.Forms.MessageBoxButtons]::OK,
+            [Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+        &$refreshAppVersionStatus
+    }
+}
+
+$btnWelcomeUninstall.Add_Click($uninstallAppHandler)
+$uninstallSettingsBtn.Add_Click($uninstallAppHandler)
 
 # Settings Page Handlers
 $repairFontsBtn.Add_Click({
@@ -1540,6 +1649,7 @@ $form.Add_FormClosing({
 })
 
 $form.Add_Shown({
+    try { &$refreshAppVersionStatus } catch {}
     if (-not $SmokeTest) {
         $worker = New-Object System.ComponentModel.BackgroundWorker
         $worker.add_DoWork({

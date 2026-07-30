@@ -497,7 +497,10 @@ function Save-SuamiSihatAppState {
 }
 
 function Install-SuamiSihatShortcuts {
-    param([string]$TargetExePath)
+    param(
+        [string]$TargetExePath,
+        [string]$Version = "1.6.1"
+    )
 
     if (-not (Test-Path -LiteralPath $TargetExePath -PathType Leaf)) {
         return
@@ -537,15 +540,85 @@ function Install-SuamiSihatShortcuts {
         $uninstallKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SuamiSihatCreativeAssetsManagement"
         New-Item -Path $uninstallKey -Force | Out-Null
         Set-ItemProperty -Path $uninstallKey -Name "DisplayName" -Value "SuamiSihat Creative Assets Management"
-        Set-ItemProperty -Path $uninstallKey -Name "DisplayVersion" -Value "1.6.0"
+        Set-ItemProperty -Path $uninstallKey -Name "DisplayVersion" -Value $Version
         Set-ItemProperty -Path $uninstallKey -Name "Publisher" -Value "SuamiSihat"
         Set-ItemProperty -Path $uninstallKey -Name "DisplayIcon" -Value $TargetExePath
         Set-ItemProperty -Path $uninstallKey -Name "InstallLocation" -Value (Split-Path -Parent $TargetExePath)
         Set-ItemProperty -Path $uninstallKey -Name "UninstallString" -Value "`"$TargetExePath`" --installer"
         Set-ItemProperty -Path $uninstallKey -Name "NoModify" -Value 1 -PropertyType DWord
-        Set-ItemProperty -Path $uninstallKey -Name "NoRepair" -Value 1 -PropertyType DWord
+        Set-ItemProperty -Path $uninstallKey -Name "NoRepair" -Value 0 -PropertyType DWord
     } catch {
         # Shortcut creation is non-blocking
+    }
+}
+
+function Get-SuamiSihatInstalledVersion {
+    $exePath = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management\SS-CAM.exe"
+    $uninstallKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SuamiSihatCreativeAssetsManagement"
+    
+    $installed = Test-Path -LiteralPath $exePath -PathType Leaf
+    $version = ""
+    
+    if (Test-Path -Path $uninstallKey) {
+        try {
+            $regVersion = (Get-ItemProperty -Path $uninstallKey -Name "DisplayVersion" -ErrorAction SilentlyContinue).DisplayVersion
+            if (-not [string]::IsNullOrWhiteSpace($regVersion)) {
+                $version = [string]$regVersion
+            }
+        } catch {}
+    }
+
+    if ($installed -and [string]::IsNullOrWhiteSpace($version)) {
+        try {
+            $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($exePath).FileVersion
+        } catch {}
+        if ([string]::IsNullOrWhiteSpace($version)) { $version = "1.6.1" }
+    }
+
+    return [pscustomobject]@{
+        IsInstalled = $installed
+        Version     = $version
+        ExePath     = $exePath
+    }
+}
+
+function Uninstall-SuamiSihatApp {
+    param([switch]$RemoveAppState)
+
+    try {
+        Get-Process -Name "SS-CAM*" -ErrorAction SilentlyContinue | Stop-Process -Force
+    } catch {}
+
+    try {
+        $desktopLnk = Join-Path ([Environment]::GetFolderPath("Desktop")) "SuamiSihat Creative Assets Management.lnk"
+        if (Test-Path -LiteralPath $desktopLnk) { Remove-Item -LiteralPath $desktopLnk -Force -ErrorAction SilentlyContinue }
+
+        $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\SuamiSihat"
+        if (Test-Path -LiteralPath $startMenuDir) { Remove-Item -LiteralPath $startMenuDir -Recurse -Force -ErrorAction SilentlyContinue }
+
+        $appPathsKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\SS-CAM.exe"
+        if (Test-Path -Path $appPathsKey) { Remove-Item -Path $appPathsKey -Recurse -Force -ErrorAction SilentlyContinue }
+
+        $uninstallKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SuamiSihatCreativeAssetsManagement"
+        if (Test-Path -Path $uninstallKey) { Remove-Item -Path $uninstallKey -Recurse -Force -ErrorAction SilentlyContinue }
+    } catch {}
+
+    try {
+        $appInstallDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management"
+        if (Test-Path -LiteralPath $appInstallDir) {
+            Remove-Item -LiteralPath $appInstallDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        $parentDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat"
+        if ((Test-Path -LiteralPath $parentDir) -and ((Get-ChildItem -LiteralPath $parentDir).Count -eq 0)) {
+            Remove-Item -LiteralPath $parentDir -Force -ErrorAction SilentlyContinue
+        }
+    } catch {}
+
+    if ($RemoveAppState) {
+        try {
+            $stateFile = Get-SuamiSihatAppStatePath
+            if (Test-Path -LiteralPath $stateFile) { Remove-Item -LiteralPath $stateFile -Force -ErrorAction SilentlyContinue }
+        } catch {}
     }
 }
 
