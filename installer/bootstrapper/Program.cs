@@ -56,7 +56,7 @@ internal static class Program
                 FileName = powershell,
                 Arguments =
                     "-NoLogo -NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File " +
-                    QuoteArgument(wizardPath) +
+                    QuoteArgument(wizardPath) + " -InstallerMode" +
                     (smokeTest ? " -SmokeTest" : string.Empty),
                 WorkingDirectory = Path.GetDirectoryName(wizardPath),
                 UseShellExecute = false,

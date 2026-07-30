@@ -272,7 +272,21 @@ function New-SuamiSihatProjectFolder {
     }
     $currentMonth = (Get-Date).ToString("MM")
     $dateCode = "${Year}${currentMonth}"
-    $cleanSubBrand = ($SubBrand -replace '\s+', '_').ToUpper()
+    
+    $cleanSubBrand = switch -Wildcard ($SubBrand.Trim()) {
+        "*HEALTH*"   { "SSH" }
+        "*CLINIC*"   { "SSC" }
+        "*WELLNESS*" { "SSW" }
+        "*ECOM*"     { "SSE" }
+        "*TECH*"     { "SST" }
+        "SSH"        { "SSH" }
+        "SSC"        { "SSC" }
+        "SSW"        { "SSW" }
+        "SSE"        { "SSE" }
+        "SST"        { "SST" }
+        default      { "SS" }
+    }
+
     $cleanJob = ($JobNumber -replace '\s+', '').ToUpper()
     if (-not $cleanJob.StartsWith("D")) {
         $cleanJob = "D$cleanJob"

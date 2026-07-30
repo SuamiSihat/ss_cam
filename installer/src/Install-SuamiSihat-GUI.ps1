@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$SmokeTest,
+    [switch]$InstallerMode,
     [string]$PreviewPath = "",
     [ValidateRange(0, 9)]
     [int]$PreviewPage = 0
@@ -129,35 +130,13 @@ $stepLabel = New-Label -Text "" -X 263 -Y 52 -Width 250 -Height 24
 $stepLabel.ForeColor = [Drawing.Color]::FromArgb(109, 198, 236)
 $header.Controls.Add($stepLabel)
 
-# Header Mode Switcher Buttons
-$btnNavProject = New-Object Windows.Forms.Button
-$btnNavProject.Text = "Project Creator"
-$btnNavProject.Location = New-Object Drawing.Point(440, 14)
-$btnNavProject.Size = New-Object Drawing.Size(110, 60)
-$btnNavProject.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
-$btnNavProject.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
-$btnNavProject.ForeColor = [Drawing.Color]::White
-$btnNavProject.FlatStyle = "Flat"
-$btnNavProject.Cursor = [Windows.Forms.Cursors]::Hand
-$header.Controls.Add($btnNavProject)
-
-$btnNavFonts = New-Object Windows.Forms.Button
-$btnNavFonts.Text = "Assets Wizard"
-$btnNavFonts.Location = New-Object Drawing.Point(555, 14)
-$btnNavFonts.Size = New-Object Drawing.Size(95, 60)
-$btnNavFonts.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
-$btnNavFonts.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$btnNavFonts.ForeColor = [Drawing.Color]::White
-$btnNavFonts.FlatStyle = "Flat"
-$btnNavFonts.Cursor = [Windows.Forms.Cursors]::Hand
-$header.Controls.Add($btnNavFonts)
-
+# Header Settings Navigation Button
 $btnNavSettings = New-Object Windows.Forms.Button
 $btnNavSettings.Text = "Settings"
-$btnNavSettings.Location = New-Object Drawing.Point(655, 14)
-$btnNavSettings.Size = New-Object Drawing.Size(87, 60)
-$btnNavSettings.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
-$btnNavSettings.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$btnNavSettings.Location = New-Object Drawing.Point(620, 22)
+$btnNavSettings.Size = New-Object Drawing.Size(115, 42)
+$btnNavSettings.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$btnNavSettings.BackColor = [Drawing.Color]::FromArgb(15, 76, 129)
 $btnNavSettings.ForeColor = [Drawing.Color]::White
 $btnNavSettings.FlatStyle = "Flat"
 $btnNavSettings.Cursor = [Windows.Forms.Cursors]::Hand
@@ -518,7 +497,7 @@ $subBrandCombo = New-Object Windows.Forms.ComboBox
 $subBrandCombo.Location = New-Object Drawing.Point(135, 194)
 $subBrandCombo.Size = New-Object Drawing.Size(125, 28)
 $subBrandCombo.DropDownStyle = "DropDownList"
-@("SS", "HEALTH", "CLINIC", "WELLNESS", "ECOM", "TECH") | ForEach-Object { [void]$subBrandCombo.Items.Add($_) }
+@("SS", "SSH", "SSC", "SSW", "SSE", "SST") | ForEach-Object { [void]$subBrandCombo.Items.Add($_) }
 $subBrandCombo.SelectedIndex = 0
 $creatorPage.Controls.Add($subBrandCombo)
 
@@ -722,7 +701,16 @@ $presetCombo.Add_SelectedIndexChanged($updatePreview)
 $yearCombo.Add_SelectedIndexChanged($updatePreview)
 $subBrandCombo.Add_SelectedIndexChanged($updatePreview)
 $jobIdText.Add_TextChanged($updatePreview)
-$projectNameText.Add_TextChanged($updatePreview)
+$projectNameText.Add_TextChanged({
+    $cursor = $projectNameText.SelectionStart
+    $originalText = $projectNameText.Text
+    $cleaned = $originalText -replace '\s+', '_'
+    if ($originalText -ne $cleaned) {
+        $projectNameText.Text = $cleaned
+        $projectNameText.SelectionStart = [Math]::Min($cursor, $cleaned.Length)
+    }
+    &$updatePreview
+})
 $workspacePathText.Add_TextChanged($updatePreview)
 &$updatePreview
 
@@ -790,16 +778,12 @@ $saveSettingsBtn.Add_Click({
     }
 })
 
-$btnNavFonts.Add_Click({
-    Show-Page 0
-})
-
-$btnNavProject.Add_Click({
-    Show-Page $creatorPageIndex
-})
-
 $btnNavSettings.Add_Click({
-    Show-Page $settingsPageIndex
+    if ($script:pageIndex -eq $settingsPageIndex) {
+        Show-Page $creatorPageIndex
+    } else {
+        Show-Page $settingsPageIndex
+    }
 })
 
 
@@ -1016,32 +1000,32 @@ function Show-Page {
     $pages[$Index].Visible = $true
     
     if ($Index -eq $creatorPageIndex) {
+        $title.Text = "Creative Assets Management"
         $stepLabel.Text = "Creative Project Creator"
         $backButton.Visible = $false
         $nextButton.Visible = $false
         $cancelButton.Text = "Close"
         $cancelButton.Visible = $true
-        $btnNavProject.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
-        $btnNavFonts.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
-        $btnNavSettings.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+        $btnNavSettings.Text = "Settings"
+        $btnNavSettings.Visible = $true
         return
     }
 
     if ($Index -eq $settingsPageIndex) {
+        $title.Text = "Creative Assets Management"
         $stepLabel.Text = "Settings and Maintenance"
         $backButton.Visible = $false
         $nextButton.Visible = $false
         $cancelButton.Text = "Close"
         $cancelButton.Visible = $true
-        $btnNavSettings.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
-        $btnNavProject.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
-        $btnNavFonts.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+        $btnNavSettings.Text = "< Back"
+        $btnNavSettings.Visible = $true
         return
     }
 
-    $btnNavFonts.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
-    $btnNavProject.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
-    $btnNavSettings.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+    # Font Setup Installer Wizard Pages (0..7)
+    $title.Text = "Brand Kit Setup Wizard"
+    $btnNavSettings.Visible = $false
 
     $wizardPagesCount = 8
     $lastPageIndex = $wizardPagesCount - 1
@@ -1273,7 +1257,11 @@ $form.Add_FormClosing({
 
 Refresh-PCRequirements
 Refresh-SoftwareList
-Show-Page $creatorPageIndex
+if ($InstallerMode) {
+    Show-Page 0
+} else {
+    Show-Page $creatorPageIndex
+}
 
 if ($SmokeTest) {
     if (-not [string]::IsNullOrWhiteSpace($PreviewPath)) {
