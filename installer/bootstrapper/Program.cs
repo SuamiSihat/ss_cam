@@ -51,16 +51,32 @@ internal static class Program
                     return string.Equals(argument, "--smoke-test", StringComparison.OrdinalIgnoreCase);
                 });
 
+            bool forceInstaller = Array.Exists(
+                args,
+                delegate(string argument)
+                {
+                    return string.Equals(argument, "--installer", StringComparison.OrdinalIgnoreCase) ||
+                           string.Equals(argument, "-InstallerMode", StringComparison.OrdinalIgnoreCase);
+                });
+
+            string appDataState = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SuamiSihat",
+                "app_state.json");
+            
+            bool isFirstRun = forceInstaller || !File.Exists(appDataState);
+
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
                 FileName = powershell,
                 Arguments =
                     "-NoLogo -NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File " +
-                    QuoteArgument(wizardPath) + " -InstallerMode -InstallerExePath " + QuoteArgument(Process.GetCurrentProcess().MainModule.FileName) +
+                    QuoteArgument(wizardPath) +
+                    (isFirstRun ? " -InstallerMode" : string.Empty) +
+                    " -InstallerExePath " + QuoteArgument(Process.GetCurrentProcess().MainModule.FileName) +
                     (smokeTest ? " -SmokeTest" : string.Empty),
                 WorkingDirectory = Path.GetDirectoryName(wizardPath),
-                UseShellExecute = false,
-                CreateNoWindow = true
+                UseShellExecute = true
             };
 
             using (Process wizard = Process.Start(startInfo))
