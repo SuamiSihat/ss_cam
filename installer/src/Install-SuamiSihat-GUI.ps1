@@ -98,7 +98,7 @@ $darkLogoImage = [Drawing.Image]::FromFile($darkLogoFile)
 $lightLogoImage = [Drawing.Image]::FromFile($lightLogoFile)
 
 $form = New-Object Windows.Forms.Form
-$form.Text = "SuamiSihat Creative Workstation"
+$form.Text = "Suamisihat Creative Assets Management"
 $form.ClientSize = New-Object Drawing.Size(760, 690)
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = "FixedDialog"
@@ -115,17 +115,17 @@ $form.Controls.Add($header)
 
 $headerLogo = New-Object Windows.Forms.PictureBox
 $headerLogo.Location = New-Object Drawing.Point(14, 1)
-$headerLogo.Size = New-Object Drawing.Size(260, 78)
+$headerLogo.Size = New-Object Drawing.Size(240, 78)
 $headerLogo.SizeMode = "Zoom"
 $headerLogo.Image = $darkLogoImage
 $header.Controls.Add($headerLogo)
 
-$title = New-Label -Text "Creative Workstation" -X 280 -Y 12 -Width 250 -Height 34
-$title.Font = New-Object Drawing.Font("Segoe UI Semibold", 16)
+$title = New-Label -Text "Creative Assets Management" -X 260 -Y 12 -Width 260 -Height 34
+$title.Font = New-Object Drawing.Font("Segoe UI Semibold", 15)
 $title.ForeColor = [Drawing.Color]::White
 $header.Controls.Add($title)
 
-$stepLabel = New-Label -Text "" -X 283 -Y 52 -Width 240 -Height 24
+$stepLabel = New-Label -Text "" -X 263 -Y 52 -Width 250 -Height 24
 $stepLabel.ForeColor = [Drawing.Color]::FromArgb(109, 198, 236)
 $header.Controls.Add($stepLabel)
 
@@ -447,20 +447,34 @@ $creatorPage = New-Page
 [void]$pages.Add($creatorPage)
 $creatorPageIndex = $pages.IndexOf($creatorPage)
 
-$creatorTitle = New-Label -Text "Atomic Project Folder Creator" -X 24 -Y 16 -Width 670 -Height 34
-$creatorTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
+$creatorTitle = New-Label -Text "Atomic Project Template Generator" -X 24 -Y 12 -Width 670 -Height 30
+$creatorTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 16)
 $creatorTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $creatorPage.Controls.Add($creatorTitle)
 
-$creatorIntro = New-Label -Text "Create a standardized, date-coded project folder with Artwork, Assets, and Production sub-folders." -X 27 -Y 54 -Width 660 -Height 24
+$creatorIntro = New-Label -Text "Post Haste-style template presets with standardized date-coded folder structures." -X 27 -Y 44 -Width 660 -Height 22
 $creatorPage.Controls.Add($creatorIntro)
 
+# Project Preset Selector
+$presetLabel = New-Label -Text "Project Preset Template:" -X 27 -Y 72 -Width 200
+$presetLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$creatorPage.Controls.Add($presetLabel)
+
+$presetCombo = New-Object Windows.Forms.ComboBox
+$presetCombo.Location = New-Object Drawing.Point(27, 94)
+$presetCombo.Size = New-Object Drawing.Size(667, 28)
+$presetCombo.DropDownStyle = "DropDownList"
+@("Graphic & Print Design", "Social Media & E-Commerce", "Video & Motion Graphics", "Brand Identity") | ForEach-Object { [void]$presetCombo.Items.Add($_) }
+$presetCombo.SelectedIndex = 0
+$creatorPage.Controls.Add($presetCombo)
+
 # Sub-Brand Selection
-$brandLabel = New-Label -Text "Sub-Brand:" -X 27 -Y 88 -Width 120
+$brandLabel = New-Label -Text "Sub-Brand:" -X 27 -Y 130 -Width 120
 $brandLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($brandLabel)
+
 $subBrandCombo = New-Object Windows.Forms.ComboBox
-$subBrandCombo.Location = New-Object Drawing.Point(27, 110)
+$subBrandCombo.Location = New-Object Drawing.Point(27, 152)
 $subBrandCombo.Size = New-Object Drawing.Size(180, 28)
 $subBrandCombo.DropDownStyle = "DropDownList"
 @("SS", "HEALTH", "CLINIC", "WELLNESS", "ECOM", "TECH") | ForEach-Object { [void]$subBrandCombo.Items.Add($_) }
@@ -468,31 +482,34 @@ $subBrandCombo.SelectedIndex = 0
 $creatorPage.Controls.Add($subBrandCombo)
 
 # Job ID
-$jobLabel = New-Label -Text "Job ID (e.g. D0074):" -X 230 -Y 88 -Width 150
+$jobLabel = New-Label -Text "Job ID (e.g. D0074):" -X 230 -Y 130 -Width 150
 $jobLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($jobLabel)
+
 $jobIdText = New-Object Windows.Forms.TextBox
-$jobIdText.Location = New-Object Drawing.Point(230, 110)
+$jobIdText.Location = New-Object Drawing.Point(230, 152)
 $jobIdText.Size = New-Object Drawing.Size(150, 27)
 $jobIdText.Text = "D0074"
 $creatorPage.Controls.Add($jobIdText)
 
 # Project Name
-$nameLabel = New-Label -Text "Project Name (e.g. POSM_Banner):" -X 400 -Y 88 -Width 280
+$nameLabel = New-Label -Text "Project Name (e.g. POSM_Banner):" -X 400 -Y 130 -Width 280
 $nameLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($nameLabel)
+
 $projectNameText = New-Object Windows.Forms.TextBox
-$projectNameText.Location = New-Object Drawing.Point(400, 110)
+$projectNameText.Location = New-Object Drawing.Point(400, 152)
 $projectNameText.Size = New-Object Drawing.Size(294, 27)
 $projectNameText.Text = "POSM_Banner"
 $creatorPage.Controls.Add($projectNameText)
 
 # Workspace Root Location
-$workspaceLabel = New-Label -Text "Parent Workspace Directory:" -X 27 -Y 150 -Width 300
+$workspaceLabel = New-Label -Text "Parent Workspace Directory:" -X 27 -Y 188 -Width 300
 $workspaceLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($workspaceLabel)
+
 $workspacePathText = New-Object Windows.Forms.TextBox
-$workspacePathText.Location = New-Object Drawing.Point(27, 174)
+$workspacePathText.Location = New-Object Drawing.Point(27, 210)
 $workspacePathText.Size = New-Object Drawing.Size(548, 27)
 
 $currentYear = (Get-Date).ToString("yyyy")
@@ -502,46 +519,41 @@ $creatorPage.Controls.Add($workspacePathText)
 
 $workspaceBrowseBtn = New-Object Windows.Forms.Button
 $workspaceBrowseBtn.Text = "Browse..."
-$workspaceBrowseBtn.Location = New-Object Drawing.Point(587, 171)
+$workspaceBrowseBtn.Location = New-Object Drawing.Point(587, 207)
 $workspaceBrowseBtn.Size = New-Object Drawing.Size(107, 31)
 $creatorPage.Controls.Add($workspaceBrowseBtn)
 
 # Folder Path Preview Box
 $previewGroup = New-Object Windows.Forms.GroupBox
 $previewGroup.Text = " Folder Path Preview "
-$previewGroup.Location = New-Object Drawing.Point(27, 215)
-$previewGroup.Size = New-Object Drawing.Size(667, 72)
+$previewGroup.Location = New-Object Drawing.Point(27, 246)
+$previewGroup.Size = New-Object Drawing.Size(667, 65)
 $previewGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($previewGroup)
 
-$previewPathLabel = New-Label -Text "" -X 15 -Y 24 -Width 637 -Height 38
-$previewPathLabel.Font = New-Object Drawing.Font("Consolas", 9.5)
+$previewPathLabel = New-Label -Text "" -X 15 -Y 22 -Width 637 -Height 34
+$previewPathLabel.Font = New-Object Drawing.Font("Consolas", 9)
 $previewPathLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $previewGroup.Controls.Add($previewPathLabel)
 
 # Sub-folder Structure Information
 $structureGroup = New-Object Windows.Forms.GroupBox
-$structureGroup.Text = " Sub-Folders Automatically Created "
-$structureGroup.Location = New-Object Drawing.Point(27, 298)
-$structureGroup.Size = New-Object Drawing.Size(667, 110)
+$structureGroup.Text = " Sub-Folders Created for Selected Preset "
+$structureGroup.Location = New-Object Drawing.Point(27, 318)
+$structureGroup.Size = New-Object Drawing.Size(667, 108)
 $structureGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($structureGroup)
 
-$structureInfoLabel = New-Label -Text @"
-  |-- Artwork Design/      (Editable source files: .afdesign, .psd, .ai)
-  |-- Artwork Mockup/      (Previews, client mockups & presentation files)
-  |-- Assets/              (Raw images, stock photos, icons & reference files)
-  \-- Production/          (Final approved print & digital exports: PDF, PNG, SVG)
-"@ -X 15 -Y 24 -Width 637 -Height 76
+$structureInfoLabel = New-Label -Text "" -X 15 -Y 22 -Width 637 -Height 78
 $structureInfoLabel.Font = New-Object Drawing.Font("Consolas", 8.5)
 $structureInfoLabel.ForeColor = [Drawing.Color]::FromArgb(70, 75, 80)
 $structureGroup.Controls.Add($structureInfoLabel)
 
 # Create Button & Status
 $createProjectBtn = New-Object Windows.Forms.Button
-$createProjectBtn.Text = "Create Project Folder & Open in File Explorer"
-$createProjectBtn.Location = New-Object Drawing.Point(27, 420)
-$createProjectBtn.Size = New-Object Drawing.Size(370, 44)
+$createProjectBtn.Text = "Create Project Folder && Open in File Explorer"
+$createProjectBtn.Location = New-Object Drawing.Point(27, 436)
+$createProjectBtn.Size = New-Object Drawing.Size(370, 42)
 $createProjectBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 10)
 $createProjectBtn.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $createProjectBtn.ForeColor = [Drawing.Color]::White
@@ -549,7 +561,7 @@ $createProjectBtn.FlatStyle = "Flat"
 $createProjectBtn.Cursor = [Windows.Forms.Cursors]::Hand
 $creatorPage.Controls.Add($createProjectBtn)
 
-$creatorStatusLabel = New-Label -Text "" -X 410 -Y 424 -Width 284 -Height 40
+$creatorStatusLabel = New-Label -Text "" -X 410 -Y 438 -Width 284 -Height 40
 $creatorStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($creatorStatusLabel)
 
@@ -565,8 +577,16 @@ $updatePreview = {
     $folderName = "${dateCode}_${job}_${sub}_${proj}"
     $targetPath = Join-Path $workspacePathText.Text.Trim() $folderName
     $previewPathLabel.Text = $targetPath
+
+    $structureInfoLabel.Text = switch -Wildcard ($presetCombo.SelectedItem) {
+        "*Social*"  { "  |-- Working Files/      (Source graphics, PSD, Affinity files)`r`n  |-- Source Assets/      (Raw images, photos & brand assets)`r`n  |-- Copywriting/        (Post text, captions & ad copy)`r`n  \-- Final Exports/      (PNG, JPG, MP4 web/ad outputs)" }
+        "*Video*"   { "  |-- Project Files/      (Premiere, After Effects, DaVinci projects)`r`n  |-- Footage/            (Raw video clips & B-roll)`r`n  |-- Audio/              (Music, voiceover & SFX)`r`n  |-- Renders/            (Intermediate cache & motion graphics)`r`n  \-- Final Exports/      (Master MP4, MOV video files)" }
+        "*Brand*"   { "  |-- Vector Master/      (Master logo files: SVG, EPS, AI)`r`n  |-- Brand Guidelines/   (PDF brand books & usage guides)`r`n  |-- Colour Palettes/   (ASE, AFPALETTE color files)`r`n  \-- Export Packages/    (Complete client zip assets)" }
+        default     { "  |-- Artwork Design/      (Editable source files: .afdesign, .psd, .ai)`r`n  |-- Artwork Mockup/      (Previews, client mockups & presentation files)`r`n  |-- Assets/              (Raw images, stock photos, icons & reference files)`r`n  \-- Production/          (Final approved print & digital exports: PDF, PNG, SVG)" }
+    }
 }
 
+$presetCombo.Add_SelectedIndexChanged($updatePreview)
 $subBrandCombo.Add_SelectedIndexChanged($updatePreview)
 $jobIdText.Add_TextChanged($updatePreview)
 $projectNameText.Add_TextChanged($updatePreview)
@@ -586,7 +606,8 @@ $createProjectBtn.Add_Click({
             -RootDirectory $workspacePathText.Text.Trim() `
             -SubBrand $subBrandCombo.SelectedItem `
             -JobNumber $jobIdText.Text.Trim() `
-            -ProjectName $projectNameText.Text.Trim()
+            -ProjectName $projectNameText.Text.Trim() `
+            -PresetType $presetCombo.SelectedItem
         
         $creatorStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
         $creatorStatusLabel.Text = "Project Created Successfully!`r`nOpening File Explorer..."
@@ -598,6 +619,7 @@ $createProjectBtn.Add_Click({
         $creatorStatusLabel.Text = "Error: $($_.Exception.Message)"
     }
 })
+
 
 
 $btnNavFonts.Add_Click({

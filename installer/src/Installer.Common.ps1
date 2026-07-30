@@ -256,7 +256,8 @@ function New-SuamiSihatProjectFolder {
         [string]$SubBrand = "SS",
         [string]$JobNumber = "D0001",
         [Parameter(Mandatory = $true)]
-        [string]$ProjectName
+        [string]$ProjectName,
+        [string]$PresetType = "GraphicDesign"
     )
 
     $cleanProjectName = $ProjectName -replace '[\\/:*?"<>|]', '_' -replace '\s+', '_'
@@ -275,7 +276,13 @@ function New-SuamiSihatProjectFolder {
     $folderName = "${dateCode}_${cleanJob}_${cleanSubBrand}_${cleanProjectName}"
     $projectRoot = Join-Path $RootDirectory $folderName
 
-    $subFolders = @("Artwork Design", "Artwork Mockup", "Assets", "Production")
+    $subFolders = switch -Wildcard ($PresetType) {
+        "*Social*"  { @("Working Files", "Source Assets", "Copywriting", "Final Exports") }
+        "*Video*"   { @("Project Files", "Footage", "Audio", "Renders", "Final Exports") }
+        "*Brand*"   { @("Vector Master", "Brand Guidelines", "Colour Palettes", "Export Packages") }
+        default     { @("Artwork Design", "Artwork Mockup", "Assets", "Production") }
+    }
+
     foreach ($subFolder in $subFolders) {
         $path = Join-Path $projectRoot $subFolder
         New-Item -ItemType Directory -Path $path -Force | Out-Null
@@ -287,4 +294,5 @@ function New-SuamiSihatProjectFolder {
         SubFolders  = $subFolders
     }
 }
+
 

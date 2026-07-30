@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $outputDirectory = Join-Path $projectRoot "dist"
-$outputFile = Join-Path $outputDirectory "SuamiSihat-Designer-Assets-Installer-$Version.exe"
+$outputFile = Join-Path $outputDirectory "Suamisihat-Creative-Assets-Management-$Version.exe"
 $iconFile = Join-Path $projectRoot "payload\Brand Assets\Logos\ss_favicon\favicon.ico"
 $bootstrapperSource = Join-Path $PSScriptRoot "bootstrapper\Program.cs"
 $frameworkRoot = Join-Path $env:WINDIR "Microsoft.NET"
@@ -46,7 +46,7 @@ foreach ($requiredPath in $requiredPaths) {
 }
 
 try {
-    Write-Host "Building SuamiSihat Designer Assets Installer v$Version" -ForegroundColor Cyan
+    Write-Host "Building Suamisihat Creative Assets Management v$Version" -ForegroundColor Cyan
     Write-Host "Preparing the self-contained payload..."
 
     New-Item -ItemType Directory -Path (Join-Path $archiveRoot "installer\src") -Force | Out-Null
@@ -68,10 +68,10 @@ try {
     $assemblyVersion = "$Version.0"
     $assemblyInfo = @"
 using System.Reflection;
-[assembly: AssemblyTitle("SuamiSihat Designer Assets Installer")]
-[assembly: AssemblyDescription("Installs SuamiSihat fonts and designer brand assets")]
+[assembly: AssemblyTitle("Suamisihat Creative Assets Management")]
+[assembly: AssemblyDescription("Suamisihat brand assets, font installer, and Post Haste project template creator")]
 [assembly: AssemblyCompany("SuamiSihat")]
-[assembly: AssemblyProduct("SuamiSihat Designer Assets Installer")]
+[assembly: AssemblyProduct("Suamisihat Creative Assets Management")]
 [assembly: AssemblyCopyright("Copyright (c) SuamiSihat")]
 [assembly: AssemblyVersion("$assemblyVersion")]
 [assembly: AssemblyFileVersion("$assemblyVersion")]

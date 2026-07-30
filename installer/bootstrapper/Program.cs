@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 internal static class Program
 {
-    private const string ProductName = "SuamiSihat Designer Assets Installer";
+    private const string ProductName = "Suamisihat Creative Assets Management";
     private const string PayloadResource = "SuamiSihat.Payload.Zip";
 
     [STAThread]
