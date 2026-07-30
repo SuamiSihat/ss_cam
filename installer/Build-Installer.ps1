@@ -104,6 +104,29 @@ using System.Reflection;
         throw "The compiler completed but the expected EXE was not created: $outputFile"
     }
 
+    # Code-signing with SuamiSihat Digital Certificate
+    try {
+        $cert = Get-ChildItem -Path Cert:\CurrentUser\My, Cert:\LocalMachine\My -ErrorAction SilentlyContinue |
+            Where-Object { $_.Subject -like "*SuamiSihat*" -and $_.HasPrivateKey } |
+            Select-Object -First 1
+
+        if (-not $cert) {
+            Write-Host "Creating local SuamiSihat Code-Signing Certificate..." -ForegroundColor Yellow
+            $cert = New-SelfSignedCertificate `
+                -Subject "CN=SuamiSihat, O=SuamiSihat" `
+                -Type CodeSigningCert `
+                -CertStoreLocation "Cert:\CurrentUser\My" `
+                -NotAfter (Get-Date).AddYears(5)
+        }
+
+        if ($cert) {
+            Write-Host "Signing binary with SuamiSihat digital certificate..." -ForegroundColor Cyan
+            Set-AuthenticodeSignature -FilePath $outputFile -Certificate $cert -ErrorAction SilentlyContinue | Out-Null
+        }
+    } catch {
+        # Signing failure is non-blocking for build
+    }
+
     $outputInfo = Get-Item -LiteralPath $outputFile
     Write-Host ""
     Write-Host "Installer created:" -ForegroundColor Green
