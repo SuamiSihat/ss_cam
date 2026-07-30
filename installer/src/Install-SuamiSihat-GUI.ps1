@@ -1542,15 +1542,15 @@ $form.Add_FormClosing({
 $form.Add_Shown({
     if (-not $SmokeTest) {
         $worker = New-Object System.ComponentModel.BackgroundWorker
-        $worker.DoWork += {
+        $worker.add_DoWork({
             param($sender, $e)
             try {
                 $e.Result = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.1"
             } catch {
                 $e.Result = $null
             }
-        }
-        $worker.RunWorkerCompleted += {
+        })
+        $worker.add_RunWorkerCompleted({
             param($sender, $e)
             if ($null -ne $e.Result -and $e.Result.HasUpdate) {
                 $script:updateInfo = $e.Result
@@ -1568,7 +1568,7 @@ $form.Add_Shown({
                     $updateStatusLabel.Width = 310
                 }
             }
-        }
+        })
         $worker.RunWorkerAsync()
     }
 })
