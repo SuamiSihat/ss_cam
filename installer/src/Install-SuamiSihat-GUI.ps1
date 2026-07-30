@@ -788,11 +788,11 @@ $previewGroup.Controls.Add($btnCopyName)
 $structureGroup = New-Object Windows.Forms.GroupBox
 $structureGroup.Text = " Sub-Folders Created for Selected Preset "
 $structureGroup.Location = New-Object Drawing.Point(27, 418)
-$structureGroup.Size = New-Object Drawing.Size(667, 65)
+$structureGroup.Size = New-Object Drawing.Size(667, 95)
 $structureGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($structureGroup)
 
-$structureInfoLabel = New-Label -Text "" -X 15 -Y 18 -Width 637 -Height 42
+$structureInfoLabel = New-Label -Text "" -X 15 -Y 18 -Width 637 -Height 72
 $structureInfoLabel.Font = New-Object Drawing.Font("Consolas", 8)
 $structureInfoLabel.ForeColor = [Drawing.Color]::FromArgb(70, 75, 80)
 $structureGroup.Controls.Add($structureInfoLabel)
@@ -1001,12 +1001,14 @@ $updatePreview = {
         $recentInfoLabel.Text = "No recent projects yet."
         $recentOpenBtn.Enabled = $false
     }
+    $b = [char]0x251C + [char]0x2500 + [char]0x2500 + " "
+    $e = [char]0x2514 + [char]0x2500 + [char]0x2500 + " "
 
     $structureInfoLabel.Text = switch -Wildcard ($presetCombo.SelectedItem) {
-        "*Social*"  { "+-- Working Files\ (PSD/AF source)      +-- Source Assets\ (Photos/Graphics)`r`n+-- Copywriting\ (Ad text copy)          +-- Final Exports\ (Web/Ad graphics)" }
-        "*Video*"   { "+-- Project Files\ (NLE PR/AE/DR)    +-- Footage\ (Raw video clips)`r`n+-- Audio\ (SFX and music stems)       +-- Final Exports\ (Master MP4/MOV)" }
-        "*Brand*"   { "+-- Vector Master\ (SVG/AI logos)    +-- Brand Guidelines\ (PDF)`r`n+-- Colour Palettes\ (ASE/AF)        +-- Export Packages\ (ZIP release)" }
-        default     { "+-- Artwork Design\ (Source .afdesign/.psd/.ai)    +-- Artwork Mockup\ (Previews & mockups)`r`n+-- Assets\ (Raw photos, icons & materials)         +-- Production\ (Exported PDF, PNG, SVG)" }
+        "*Social*"  { "${b}Working Files\      (PSD/AF source design files)`r`n${b}Source Assets\      (Photos & reference graphics)`r`n${b}Copywriting\        (Ad text copy & caption files)`r`n${e}Final Exports\      (Exported web & social graphics)" }
+        "*Video*"   { "${b}Project Files\      (NLE PR/AE/DR timeline files)`r`n${b}Footage\            (Raw video clips & recordings)`r`n${b}Audio\              (SFX & music stems)`r`n${e}Final Exports\      (Master rendered MP4/MOV outputs)" }
+        "*Brand*"   { "${b}Vector Master\      (SVG & AI master logos)`r`n${b}Brand Guidelines\   (Brand system documentation PDF)`r`n${b}Colour Palettes\    (ASE & AF palette files)`r`n${e}Export Packages\    (ZIP distribution packages)" }
+        default     { "${b}Artwork Design\     (Working source files: .afdesign, .psd, .ai)`r`n${b}Artwork Mockup\     (Presentation mockups & client previews)`r`n${b}Assets\             (Raw photos, icons, reference materials)`r`n${e}Production\         (Exported outputs: PDF, PNG, SVG)" }
     }
 }
 
