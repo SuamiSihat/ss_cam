@@ -2,7 +2,7 @@
 param(
     [switch]$SmokeTest,
     [string]$PreviewPath = "",
-    [ValidateRange(0, 7)]
+    [ValidateRange(0, 8)]
     [int]$PreviewPage = 0
 )
 
@@ -98,7 +98,7 @@ $darkLogoImage = [Drawing.Image]::FromFile($darkLogoFile)
 $lightLogoImage = [Drawing.Image]::FromFile($lightLogoFile)
 
 $form = New-Object Windows.Forms.Form
-$form.Text = "SuamiSihat Designer Assets Installer"
+$form.Text = "SuamiSihat Creative Workstation"
 $form.ClientSize = New-Object Drawing.Size(760, 690)
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = "FixedDialog"
@@ -115,19 +115,43 @@ $form.Controls.Add($header)
 
 $headerLogo = New-Object Windows.Forms.PictureBox
 $headerLogo.Location = New-Object Drawing.Point(14, 1)
-$headerLogo.Size = New-Object Drawing.Size(294, 78)
+$headerLogo.Size = New-Object Drawing.Size(260, 78)
 $headerLogo.SizeMode = "Zoom"
 $headerLogo.Image = $darkLogoImage
 $header.Controls.Add($headerLogo)
 
-$title = New-Label -Text "Designer Assets Installer" -X 326 -Y 14 -Width 405 -Height 34
-$title.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
+$title = New-Label -Text "Creative Workstation" -X 280 -Y 12 -Width 250 -Height 34
+$title.Font = New-Object Drawing.Font("Segoe UI Semibold", 16)
 $title.ForeColor = [Drawing.Color]::White
 $header.Controls.Add($title)
 
-$stepLabel = New-Label -Text "" -X 329 -Y 54 -Width 400 -Height 24
+$stepLabel = New-Label -Text "" -X 283 -Y 52 -Width 240 -Height 24
 $stepLabel.ForeColor = [Drawing.Color]::FromArgb(109, 198, 236)
 $header.Controls.Add($stepLabel)
+
+# Header Mode Switcher Buttons
+$btnNavFonts = New-Object Windows.Forms.Button
+$btnNavFonts.Text = "Assets Wizard"
+$btnNavFonts.Location = New-Object Drawing.Point(525, 14)
+$btnNavFonts.Size = New-Object Drawing.Size(105, 60)
+$btnNavFonts.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$btnNavFonts.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$btnNavFonts.ForeColor = [Drawing.Color]::White
+$btnNavFonts.FlatStyle = "Flat"
+$btnNavFonts.Cursor = [Windows.Forms.Cursors]::Hand
+$header.Controls.Add($btnNavFonts)
+
+$btnNavProject = New-Object Windows.Forms.Button
+$btnNavProject.Text = "New Project"
+$btnNavProject.Location = New-Object Drawing.Point(637, 14)
+$btnNavProject.Size = New-Object Drawing.Size(105, 60)
+$btnNavProject.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$btnNavProject.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$btnNavProject.ForeColor = [Drawing.Color]::White
+$btnNavProject.FlatStyle = "Flat"
+$btnNavProject.Cursor = [Windows.Forms.Cursors]::Hand
+$header.Controls.Add($btnNavProject)
+
 
 $headerAccent = New-Object Windows.Forms.Panel
 $headerAccent.Location = New-Object Drawing.Point(0, 88)
@@ -136,6 +160,7 @@ $headerAccent.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
 $header.Controls.Add($headerAccent)
 
 $pages = New-Object Collections.ArrayList
+
 
 # Page 1: Welcome
 $welcomePage = New-Page
@@ -179,10 +204,8 @@ $requirementsTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $requirementsPage.Controls.Add($requirementsTitle)
 $requirementsIntro = New-Label -Text "Before accepting the licence, compare this PC with the SuamiSihat design-workstation target." -X 27 -Y 55 -Width 660 -Height 28
 $requirementsPage.Controls.Add($requirementsIntro)
-$requirementsMachine = New-Label -Text (
-    "$($systemInformation.Manufacturer) $($systemInformation.Model)`r`n" +
-    "$($systemInformation.Windows)"
-) -X 27 -Y 86 -Width 660 -Height 47
+$machineText = "$($systemInformation.Manufacturer) $($systemInformation.Model)`r`n$($systemInformation.Windows)"
+$requirementsMachine = New-Label -Text $machineText -X 27 -Y 86 -Width 660 -Height 47
 $requirementsMachine.ForeColor = [Drawing.Color]::FromArgb(55, 65, 70)
 $requirementsPage.Controls.Add($requirementsMachine)
 
@@ -419,9 +442,178 @@ $completionHint = New-Label -Text "" -X 28 -Y 446 -Width 650 -Height 32
 $completionHint.ForeColor = [Drawing.Color]::DimGray
 $progressPage.Controls.Add($completionHint)
 
+# Page 9: Atomic Project Folder Creator
+$creatorPage = New-Page
+[void]$pages.Add($creatorPage)
+$creatorPageIndex = $pages.IndexOf($creatorPage)
+
+$creatorTitle = New-Label -Text "Atomic Project Folder Creator" -X 24 -Y 16 -Width 670 -Height 34
+$creatorTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
+$creatorTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$creatorPage.Controls.Add($creatorTitle)
+
+$creatorIntro = New-Label -Text "Create a standardized, date-coded project folder with Artwork, Assets, and Production sub-folders." -X 27 -Y 54 -Width 660 -Height 24
+$creatorPage.Controls.Add($creatorIntro)
+
+# Sub-Brand Selection
+$brandLabel = New-Label -Text "Sub-Brand:" -X 27 -Y 88 -Width 120
+$brandLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$creatorPage.Controls.Add($brandLabel)
+$subBrandCombo = New-Object Windows.Forms.ComboBox
+$subBrandCombo.Location = New-Object Drawing.Point(27, 110)
+$subBrandCombo.Size = New-Object Drawing.Size(180, 28)
+$subBrandCombo.DropDownStyle = "DropDownList"
+@("SS", "HEALTH", "CLINIC", "WELLNESS", "ECOM", "TECH") | ForEach-Object { [void]$subBrandCombo.Items.Add($_) }
+$subBrandCombo.SelectedIndex = 0
+$creatorPage.Controls.Add($subBrandCombo)
+
+# Job ID
+$jobLabel = New-Label -Text "Job ID (e.g. D0074):" -X 230 -Y 88 -Width 150
+$jobLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$creatorPage.Controls.Add($jobLabel)
+$jobIdText = New-Object Windows.Forms.TextBox
+$jobIdText.Location = New-Object Drawing.Point(230, 110)
+$jobIdText.Size = New-Object Drawing.Size(150, 27)
+$jobIdText.Text = "D0074"
+$creatorPage.Controls.Add($jobIdText)
+
+# Project Name
+$nameLabel = New-Label -Text "Project Name (e.g. POSM_Banner):" -X 400 -Y 88 -Width 280
+$nameLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$creatorPage.Controls.Add($nameLabel)
+$projectNameText = New-Object Windows.Forms.TextBox
+$projectNameText.Location = New-Object Drawing.Point(400, 110)
+$projectNameText.Size = New-Object Drawing.Size(294, 27)
+$projectNameText.Text = "POSM_Banner"
+$creatorPage.Controls.Add($projectNameText)
+
+# Workspace Root Location
+$workspaceLabel = New-Label -Text "Parent Workspace Directory:" -X 27 -Y 150 -Width 300
+$workspaceLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$creatorPage.Controls.Add($workspaceLabel)
+$workspacePathText = New-Object Windows.Forms.TextBox
+$workspacePathText.Location = New-Object Drawing.Point(27, 174)
+$workspacePathText.Size = New-Object Drawing.Size(548, 27)
+
+$currentYear = (Get-Date).ToString("yyyy")
+$defaultWorkspacePath = Join-Path $documentsDirectory "Creative Workspace\SS-$currentYear"
+$workspacePathText.Text = $defaultWorkspacePath
+$creatorPage.Controls.Add($workspacePathText)
+
+$workspaceBrowseBtn = New-Object Windows.Forms.Button
+$workspaceBrowseBtn.Text = "Browse..."
+$workspaceBrowseBtn.Location = New-Object Drawing.Point(587, 171)
+$workspaceBrowseBtn.Size = New-Object Drawing.Size(107, 31)
+$creatorPage.Controls.Add($workspaceBrowseBtn)
+
+# Folder Path Preview Box
+$previewGroup = New-Object Windows.Forms.GroupBox
+$previewGroup.Text = " Folder Path Preview "
+$previewGroup.Location = New-Object Drawing.Point(27, 215)
+$previewGroup.Size = New-Object Drawing.Size(667, 72)
+$previewGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$creatorPage.Controls.Add($previewGroup)
+
+$previewPathLabel = New-Label -Text "" -X 15 -Y 24 -Width 637 -Height 38
+$previewPathLabel.Font = New-Object Drawing.Font("Consolas", 9.5)
+$previewPathLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$previewGroup.Controls.Add($previewPathLabel)
+
+# Sub-folder Structure Information
+$structureGroup = New-Object Windows.Forms.GroupBox
+$structureGroup.Text = " Sub-Folders Automatically Created "
+$structureGroup.Location = New-Object Drawing.Point(27, 298)
+$structureGroup.Size = New-Object Drawing.Size(667, 110)
+$structureGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$creatorPage.Controls.Add($structureGroup)
+
+$structureInfoLabel = New-Label -Text @"
+  |-- Artwork Design/      (Editable source files: .afdesign, .psd, .ai)
+  |-- Artwork Mockup/      (Previews, client mockups & presentation files)
+  |-- Assets/              (Raw images, stock photos, icons & reference files)
+  \-- Production/          (Final approved print & digital exports: PDF, PNG, SVG)
+"@ -X 15 -Y 24 -Width 637 -Height 76
+$structureInfoLabel.Font = New-Object Drawing.Font("Consolas", 8.5)
+$structureInfoLabel.ForeColor = [Drawing.Color]::FromArgb(70, 75, 80)
+$structureGroup.Controls.Add($structureInfoLabel)
+
+# Create Button & Status
+$createProjectBtn = New-Object Windows.Forms.Button
+$createProjectBtn.Text = "Create Project Folder & Open in File Explorer"
+$createProjectBtn.Location = New-Object Drawing.Point(27, 420)
+$createProjectBtn.Size = New-Object Drawing.Size(370, 44)
+$createProjectBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 10)
+$createProjectBtn.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$createProjectBtn.ForeColor = [Drawing.Color]::White
+$createProjectBtn.FlatStyle = "Flat"
+$createProjectBtn.Cursor = [Windows.Forms.Cursors]::Hand
+$creatorPage.Controls.Add($createProjectBtn)
+
+$creatorStatusLabel = New-Label -Text "" -X 410 -Y 424 -Width 284 -Height 40
+$creatorStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$creatorPage.Controls.Add($creatorStatusLabel)
+
+# Event Handlers for Creator Page
+$updatePreview = {
+    $dateCode = (Get-Date).ToString("yyyyMM")
+    $sub = ($subBrandCombo.SelectedItem -replace '\s+', '_').ToUpper()
+    $job = ($jobIdText.Text.Trim() -replace '\s+', '').ToUpper()
+    if (-not $job.StartsWith("D")) { $job = "D$job" }
+    $proj = ($projectNameText.Text.Trim() -replace '[\\/:*?"<>|]', '_' -replace '\s+', '_').Trim('_')
+    if ([string]::IsNullOrWhiteSpace($proj)) { $proj = "Project" }
+    
+    $folderName = "${dateCode}_${job}_${sub}_${proj}"
+    $targetPath = Join-Path $workspacePathText.Text.Trim() $folderName
+    $previewPathLabel.Text = $targetPath
+}
+
+$subBrandCombo.Add_SelectedIndexChanged($updatePreview)
+$jobIdText.Add_TextChanged($updatePreview)
+$projectNameText.Add_TextChanged($updatePreview)
+$workspacePathText.Add_TextChanged($updatePreview)
+&$updatePreview
+
+$workspaceBrowseBtn.Add_Click({
+    $folderBrowser.SelectedPath = $workspacePathText.Text
+    if ($folderBrowser.ShowDialog() -eq [Windows.Forms.DialogResult]::OK) {
+        $workspacePathText.Text = $folderBrowser.SelectedPath
+    }
+})
+
+$createProjectBtn.Add_Click({
+    try {
+        $result = New-SuamiSihatProjectFolder `
+            -RootDirectory $workspacePathText.Text.Trim() `
+            -SubBrand $subBrandCombo.SelectedItem `
+            -JobNumber $jobIdText.Text.Trim() `
+            -ProjectName $projectNameText.Text.Trim()
+        
+        $creatorStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
+        $creatorStatusLabel.Text = "Project Created Successfully!`r`nOpening File Explorer..."
+        
+        # Open in Explorer
+        Start-Process -FilePath "explorer.exe" -ArgumentList (Quote-ProcessArgument $result.ProjectPath)
+    } catch {
+        $creatorStatusLabel.ForeColor = [Drawing.Color]::Firebrick
+        $creatorStatusLabel.Text = "Error: $($_.Exception.Message)"
+    }
+})
+
+
+$btnNavFonts.Add_Click({
+    if ($script:pageIndex -eq $creatorPageIndex) {
+        Show-Page 0
+    }
+})
+
+$btnNavProject.Add_Click({
+    Show-Page $creatorPageIndex
+})
+
 foreach ($page in $pages) {
     $form.Controls.Add($page)
 }
+
 
 $backButton = New-Object Windows.Forms.Button
 $backButton.Text = "< Back"
@@ -629,10 +821,27 @@ function Show-Page {
     }
     $script:pageIndex = $Index
     $pages[$Index].Visible = $true
-    $lastPageIndex = $pages.Count - 1
-    $stepLabel.Text = "Step $($Index + 1) of $($pages.Count)"
+    
+    if ($Index -eq $creatorPageIndex) {
+        $stepLabel.Text = "Atomic Project Creator"
+        $backButton.Visible = $false
+        $nextButton.Visible = $false
+        $cancelButton.Text = "Close"
+        $cancelButton.Visible = $true
+        $btnNavProject.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+        $btnNavFonts.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+        return
+    }
+
+    $btnNavFonts.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+    $btnNavProject.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+
+    $wizardPagesCount = $pages.Count - 1
+    $lastPageIndex = $wizardPagesCount - 1
+    $stepLabel.Text = "Step $($Index + 1) of $wizardPagesCount"
     $backButton.Visible = $Index -gt 0 -and $Index -lt $lastPageIndex
     $backButton.Enabled = -not $script:installationRunning
+    $cancelButton.Text = "Cancel"
     $cancelButton.Visible = -not $script:setupComplete
     $cancelButton.Enabled = -not $script:installationRunning
     $nextButton.Visible = $Index -ne $lastPageIndex
@@ -642,6 +851,7 @@ function Show-Page {
         Update-Review
     }
 }
+
 
 function Start-Installation {
     $arguments = @(

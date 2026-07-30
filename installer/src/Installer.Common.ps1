@@ -248,3 +248,43 @@ This report was created and stored locally. The installer does not transmit work
     New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null
     Set-Content -LiteralPath $Path -Value $markdown -Encoding UTF8
 }
+
+function New-SuamiSihatProjectFolder {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RootDirectory,
+        [string]$SubBrand = "SS",
+        [string]$JobNumber = "D0001",
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectName
+    )
+
+    $cleanProjectName = $ProjectName -replace '[\\/:*?"<>|]', '_' -replace '\s+', '_'
+    $cleanProjectName = $cleanProjectName.Trim('_')
+    if ([string]::IsNullOrWhiteSpace($cleanProjectName)) {
+        throw "Project name cannot be empty."
+    }
+
+    $dateCode = (Get-Date).ToString("yyyyMM")
+    $cleanSubBrand = ($SubBrand -replace '\s+', '_').ToUpper()
+    $cleanJob = ($JobNumber -replace '\s+', '').ToUpper()
+    if (-not $cleanJob.StartsWith("D")) {
+        $cleanJob = "D$cleanJob"
+    }
+
+    $folderName = "${dateCode}_${cleanJob}_${cleanSubBrand}_${cleanProjectName}"
+    $projectRoot = Join-Path $RootDirectory $folderName
+
+    $subFolders = @("Artwork Design", "Artwork Mockup", "Assets", "Production")
+    foreach ($subFolder in $subFolders) {
+        $path = Join-Path $projectRoot $subFolder
+        New-Item -ItemType Directory -Path $path -Force | Out-Null
+    }
+
+    return @{
+        FolderName  = $folderName
+        ProjectPath = $projectRoot
+        SubFolders  = $subFolders
+    }
+}
+
