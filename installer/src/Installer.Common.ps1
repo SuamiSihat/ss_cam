@@ -258,7 +258,9 @@ function New-SuamiSihatProjectFolder {
         [Parameter(Mandatory = $true)]
         [string]$ProjectName,
         [string]$PresetType = "GraphicDesign",
-        [string]$Year = ""
+        [string]$Year = "",
+        [string[]]$ExtraSubFolders = @(),
+        [switch]$InjectTemplates
     )
 
     $cleanProjectName = $ProjectName -replace '[\\/:*?"<>|]', '_' -replace '\s+', '_'
@@ -302,9 +304,37 @@ function New-SuamiSihatProjectFolder {
         default     { @("Artwork Design", "Artwork Mockup", "Assets", "Production") }
     }
 
+    if ($ExtraSubFolders -and $ExtraSubFolders.Count -gt 0) {
+        foreach ($extra in $ExtraSubFolders) {
+            if (-not [string]::IsNullOrWhiteSpace($extra) -and $subFolders -notcontains $extra) {
+                $subFolders += $extra.Trim()
+            }
+        }
+    }
+
     foreach ($subFolder in $subFolders) {
         $path = Join-Path $projectRoot $subFolder
         New-Item -ItemType Directory -Path $path -Force | Out-Null
+    }
+
+    # Inject Starter Master Template File if requested
+    if ($InjectTemplates) {
+        $mainFolder = Join-Path $projectRoot $subFolders[0]
+        $templateNote = Join-Path $mainFolder "_STARTER_CANVAS_README.md"
+        $noteText = @"
+# SuamiSihat Master Canvas Starter File
+
+Project: $folderName
+Preset: $PresetType
+Created: $((Get-Date).ToString("yyyy-MM-dd HH:mm"))
+
+## Master Canvas Guidelines:
+1. Primary Font: Poppins (Bold / Medium / Regular)
+2. Secondary Font: Calibri / Helvetica Neue
+3. Official Brand Palette: SuamiSihat Blue (#0A192F), Cyan (#007ACC)
+4. Export specs: High resolution PNG / PDF / MP4
+"@
+        Set-Content -LiteralPath $templateNote -Value $noteText -Encoding UTF8
     }
 
     # Save created project history & auto-increment next Job ID
@@ -312,13 +342,15 @@ function New-SuamiSihatProjectFolder {
         -LastProjectPath $projectRoot `
         -LastProjectName $folderName `
         -LastJobNumber $cleanJob `
-        -DefaultWorkspace $RootDirectory
+        -DefaultWorkspace $RootDirectory `
+        -PresetType $PresetType
 
     return @{
-        FolderName   = $folderName
-        ProjectPath  = $projectRoot
-        SubFolders   = $subFolders
+        FolderName    = $folderName
+        ProjectPath   = $projectRoot
+        SubFolders    = $subFolders
         NextJobNumber = $savedState.NextJobNumber
+        RecentProjects = $savedState.RecentProjects
     }
 }
 
@@ -340,12 +372,24 @@ function Get-SuamiSihatAppState {
     if (Test-Path -LiteralPath $stateFile -PathType Leaf) {
         try {
             $json = Get-Content -LiteralPath $stateFile -Raw | ConvertFrom-Json
+            $recent = @()
+            if ($json.RecentProjects) {
+                foreach ($item in $json.RecentProjects) {
+                    $recent += @{
+                        FolderName  = [string]$item.FolderName
+                        ProjectPath = [string]$item.ProjectPath
+                        PresetType  = [string]$item.PresetType
+                        Created     = [string]$item.Created
+                    }
+                }
+            }
             return @{
                 LastProjectPath  = [string]$json.LastProjectPath
                 LastProjectName  = [string]$json.LastProjectName
                 LastJobNumber    = [string]$json.LastJobNumber
                 NextJobNumber    = if ([string]::IsNullOrWhiteSpace([string]$json.NextJobNumber)) { "D0075" } else { [string]$json.NextJobNumber }
                 DefaultWorkspace = if ([string]::IsNullOrWhiteSpace([string]$json.DefaultWorkspace)) { $defaultWorkspace } else { [string]$json.DefaultWorkspace }
+                RecentProjects   = $recent
             }
         } catch {}
     }
@@ -356,6 +400,7 @@ function Get-SuamiSihatAppState {
         LastJobNumber    = "D0074"
         NextJobNumber    = "D0075"
         DefaultWorkspace = $defaultWorkspace
+        RecentProjects   = @()
     }
 }
 
@@ -364,10 +409,12 @@ function Save-SuamiSihatAppState {
         [string]$LastProjectPath = "",
         [string]$LastProjectName = "",
         [string]$LastJobNumber = "D0074",
-        [string]$DefaultWorkspace = ""
+        [string]$DefaultWorkspace = "",
+        [string]$PresetType = "GraphicDesign"
     )
 
     $stateFile = Get-SuamiSihatAppStatePath
+    $prevState = Get-SuamiSihatAppState
     
     $nextJob = "D0075"
     if ($LastJobNumber -match '(\d+)') {
@@ -377,16 +424,35 @@ function Save-SuamiSihatAppState {
         $nextJob = "D" + $num.ToString().PadLeft($digits, '0')
     }
 
+    # Update Recent Projects list (keep top 5)
+    $recent = @()
+    if (-not [string]::IsNullOrWhiteSpace($LastProjectName) -and $LastProjectName -ne "None") {
+        $recent += @{
+            FolderName  = $LastProjectName
+            ProjectPath = $LastProjectPath
+            PresetType  = $PresetType
+            Created     = (Get-Date).ToString("yyyy-MM-dd HH:mm")
+        }
+    }
+    if ($prevState.RecentProjects) {
+        foreach ($p in $prevState.RecentProjects) {
+            if ($p.FolderName -ne $LastProjectName -and $recent.Count -lt 5) {
+                $recent += $p
+            }
+        }
+    }
+
     $state = @{
         LastProjectPath  = $LastProjectPath
         LastProjectName  = $LastProjectName
         LastJobNumber    = $LastJobNumber
         NextJobNumber    = $nextJob
         DefaultWorkspace = $DefaultWorkspace
+        RecentProjects   = $recent
         Updated          = (Get-Date).ToString("o")
     }
 
-    $json = $state | ConvertTo-Json
+    $json = $state | ConvertTo-Json -Depth 5
     Set-Content -LiteralPath $stateFile -Value $json -Encoding UTF8
     return $state
 }

@@ -440,128 +440,162 @@ $creatorPage = New-Page
 [void]$pages.Add($creatorPage)
 $creatorPageIndex = $pages.IndexOf($creatorPage)
 
-$creatorTitle = New-Label -Text "Creative Project Folder Creator" -X 24 -Y 10 -Width 670 -Height 28
+$creatorTitle = New-Label -Text "Creative Project Folder Creator" -X 24 -Y 8 -Width 670 -Height 26
 $creatorTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 15)
 $creatorTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $creatorPage.Controls.Add($creatorTitle)
 
-$creatorIntro = New-Label -Text "Post Haste-style template presets with history tracking & auto-incrementing Job IDs." -X 27 -Y 38 -Width 660 -Height 20
+$creatorIntro = New-Label -Text "Post Haste-style template presets with history tracking, Clipboard Copy, & auto-incrementing Job IDs." -X 27 -Y 34 -Width 660 -Height 18
+$creatorIntro.ForeColor = [Drawing.Color]::FromArgb(100, 110, 125)
 $creatorPage.Controls.Add($creatorIntro)
 
-# Recent Project Info Box
-$lastProjectGroup = New-Object Windows.Forms.GroupBox
-$lastProjectGroup.Text = " Last Created Project "
-$lastProjectGroup.Location = New-Object Drawing.Point(27, 60)
-$lastProjectGroup.Size = New-Object Drawing.Size(667, 50)
-$lastProjectGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
-$creatorPage.Controls.Add($lastProjectGroup)
+# Card 1: Recent Projects Quick-Launcher Box
+$recentGroup = New-Object Windows.Forms.GroupBox
+$recentGroup.Text = " Recent Active Projects "
+$recentGroup.Location = New-Object Drawing.Point(27, 52)
+$recentGroup.Size = New-Object Drawing.Size(667, 60)
+$recentGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$creatorPage.Controls.Add($recentGroup)
 
-$lastProjectLabel = New-Label -Text $(if ([string]::IsNullOrWhiteSpace($script:appState.LastProjectName)) { "None yet" } else { $script:appState.LastProjectName }) -X 15 -Y 18 -Width 637 -Height 24
-$lastProjectLabel.Font = New-Object Drawing.Font("Consolas", 9)
-$lastProjectLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$lastProjectGroup.Controls.Add($lastProjectLabel)
+$recentInfoLabel = New-Label -Text "No recent projects yet." -X 15 -Y 20 -Width 510 -Height 26
+$recentInfoLabel.Font = New-Object Drawing.Font("Consolas", 8.5)
+$recentInfoLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$recentGroup.Controls.Add($recentInfoLabel)
+
+$recentOpenBtn = New-Object Windows.Forms.Button
+$recentOpenBtn.Text = "Open Folder"
+$recentOpenBtn.Location = New-Object Drawing.Point(540, 17)
+$recentOpenBtn.Size = New-Object Drawing.Size(112, 30)
+$recentOpenBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$recentOpenBtn.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
+$recentOpenBtn.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
+$recentOpenBtn.FlatStyle = "Flat"
+$recentOpenBtn.Cursor = [Windows.Forms.Cursors]::Hand
+$recentOpenBtn.Enabled = $false
+$recentGroup.Controls.Add($recentOpenBtn)
+
+# Card 2: Template Parameters & Customization Options
+$paramGroup = New-Object Windows.Forms.GroupBox
+$paramGroup.Text = " Project Template & Folder Options "
+$paramGroup.Location = New-Object Drawing.Point(27, 117)
+$paramGroup.Size = New-Object Drawing.Size(667, 185)
+$paramGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$creatorPage.Controls.Add($paramGroup)
 
 # Project Preset Selector
-$presetLabel = New-Label -Text "Project Preset Template:" -X 27 -Y 116 -Width 200
-$presetLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
-$creatorPage.Controls.Add($presetLabel)
+$presetLabel = New-Label -Text "Project Preset Template:" -X 15 -Y 20 -Width 200
+$paramGroup.Controls.Add($presetLabel)
 
 $presetCombo = New-Object Windows.Forms.ComboBox
-$presetCombo.Location = New-Object Drawing.Point(27, 138)
-$presetCombo.Size = New-Object Drawing.Size(667, 28)
+$presetCombo.Location = New-Object Drawing.Point(15, 40)
+$presetCombo.Size = New-Object Drawing.Size(637, 26)
 $presetCombo.DropDownStyle = "DropDownList"
 @("Graphic & Print Design", "Social Media & E-Commerce", "Video & Motion Graphics", "Brand Identity") | ForEach-Object { [void]$presetCombo.Items.Add($_) }
 $presetCombo.SelectedIndex = 0
-$creatorPage.Controls.Add($presetCombo)
+$paramGroup.Controls.Add($presetCombo)
 
 # Year Selection
-$yearLabel = New-Label -Text "Year:" -X 27 -Y 172 -Width 80
-$yearLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
-$creatorPage.Controls.Add($yearLabel)
+$yearLabel = New-Label -Text "Year:" -X 15 -Y 72 -Width 75
+$paramGroup.Controls.Add($yearLabel)
 
 $yearCombo = New-Object Windows.Forms.ComboBox
-$yearCombo.Location = New-Object Drawing.Point(27, 194)
-$yearCombo.Size = New-Object Drawing.Size(95, 28)
+$yearCombo.Location = New-Object Drawing.Point(15, 92)
+$yearCombo.Size = New-Object Drawing.Size(85, 26)
 $yearCombo.DropDownStyle = "DropDownList"
 $currentYrInt = [int](Get-Date).ToString("yyyy")
 (($currentYrInt - 2)..($currentYrInt + 3)) | ForEach-Object { [void]$yearCombo.Items.Add($_) }
 $yearCombo.SelectedItem = $currentYrInt
-$creatorPage.Controls.Add($yearCombo)
+$paramGroup.Controls.Add($yearCombo)
 
 # Sub-Brand Selection
-$brandLabel = New-Label -Text "Sub-Brand:" -X 135 -Y 172 -Width 110
-$brandLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
-$creatorPage.Controls.Add($brandLabel)
+$brandLabel = New-Label -Text "Sub-Brand:" -X 110 -Y 72 -Width 100
+$paramGroup.Controls.Add($brandLabel)
 
 $subBrandCombo = New-Object Windows.Forms.ComboBox
-$subBrandCombo.Location = New-Object Drawing.Point(135, 194)
-$subBrandCombo.Size = New-Object Drawing.Size(125, 28)
+$subBrandCombo.Location = New-Object Drawing.Point(110, 92)
+$subBrandCombo.Size = New-Object Drawing.Size(105, 26)
 $subBrandCombo.DropDownStyle = "DropDownList"
 @("SS", "SSH", "SSC", "SSW", "SSE", "SST") | ForEach-Object { [void]$subBrandCombo.Items.Add($_) }
 $subBrandCombo.SelectedIndex = 0
-$creatorPage.Controls.Add($subBrandCombo)
+$paramGroup.Controls.Add($subBrandCombo)
 
 # Job ID
-$jobLabel = New-Label -Text "Job ID (e.g. D0075):" -X 272 -Y 172 -Width 130
-$jobLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
-$creatorPage.Controls.Add($jobLabel)
+$jobLabel = New-Label -Text "Job ID (e.g. D0075):" -X 225 -Y 72 -Width 130
+$paramGroup.Controls.Add($jobLabel)
 
 $jobIdText = New-Object Windows.Forms.TextBox
-$jobIdText.Location = New-Object Drawing.Point(272, 194)
-$jobIdText.Size = New-Object Drawing.Size(125, 27)
+$jobIdText.Location = New-Object Drawing.Point(225, 92)
+$jobIdText.Size = New-Object Drawing.Size(115, 25)
 $jobIdText.Text = $script:appState.NextJobNumber
-$creatorPage.Controls.Add($jobIdText)
+$paramGroup.Controls.Add($jobIdText)
 
 # Project Name
-$nameLabel = New-Label -Text "Project Name (e.g. POSM_Banner):" -X 410 -Y 172 -Width 280
-$nameLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
-$creatorPage.Controls.Add($nameLabel)
+$nameLabel = New-Label -Text "Project Name (e.g. POSM_Banner):" -X 350 -Y 72 -Width 280
+$paramGroup.Controls.Add($nameLabel)
 
 $projectNameText = New-Object Windows.Forms.TextBox
-$projectNameText.Location = New-Object Drawing.Point(410, 194)
-$projectNameText.Size = New-Object Drawing.Size(284, 27)
+$projectNameText.Location = New-Object Drawing.Point(350, 92)
+$projectNameText.Size = New-Object Drawing.Size(302, 25)
 $projectNameText.Text = "POSM_Banner"
-$creatorPage.Controls.Add($projectNameText)
+$paramGroup.Controls.Add($projectNameText)
 
-# Workspace Root Location
-$workspaceLabel = New-Label -Text "Parent Workspace Directory:" -X 27 -Y 228 -Width 300
-$workspaceLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
-$creatorPage.Controls.Add($workspaceLabel)
+# Options Checkboxes (Feature 3 & 4)
+$chkInjectTemplate = New-Object Windows.Forms.CheckBox
+$chkInjectTemplate.Text = "Inject Starter Master Canvas File (.psd / .afdesign guide)"
+$chkInjectTemplate.Location = New-Object Drawing.Point(15, 126)
+$chkInjectTemplate.Size = New-Object Drawing.Size(360, 24)
+$chkInjectTemplate.Checked = $true
+$paramGroup.Controls.Add($chkInjectTemplate)
 
+$chkExtraRevisions = New-Object Windows.Forms.CheckBox
+$chkExtraRevisions.Text = "+ Revisions Folder"
+$chkExtraRevisions.Location = New-Object Drawing.Point(380, 126)
+$chkExtraRevisions.Size = New-Object Drawing.Size(130, 24)
+$paramGroup.Controls.Add($chkExtraRevisions)
+
+$chkExtraRaw = New-Object Windows.Forms.CheckBox
+$chkExtraRaw.Text = "+ RAW Audio/3D"
+$chkExtraRaw.Location = New-Object Drawing.Point(515, 126)
+$chkExtraRaw.Size = New-Object Drawing.Size(135, 24)
+$paramGroup.Controls.Add($chkExtraRaw)
+
+# Workspace Root Location Text Box (Hidden internally, customizable via Settings)
 $workspacePathText = New-Object Windows.Forms.TextBox
-$workspacePathText.Location = New-Object Drawing.Point(27, 248)
-$workspacePathText.Size = New-Object Drawing.Size(548, 27)
 $workspacePathText.Text = $script:appState.DefaultWorkspace
-$creatorPage.Controls.Add($workspacePathText)
 
-$workspaceBrowseBtn = New-Object Windows.Forms.Button
-$workspaceBrowseBtn.Text = "Browse..."
-$workspaceBrowseBtn.Location = New-Object Drawing.Point(587, 245)
-$workspaceBrowseBtn.Size = New-Object Drawing.Size(107, 31)
-$creatorPage.Controls.Add($workspaceBrowseBtn)
-
-# Folder Path Preview Box
+# Folder Path Preview Box & 1-Click Clipboard Copy (Feature 1)
 $previewGroup = New-Object Windows.Forms.GroupBox
 $previewGroup.Text = " Folder Path Preview "
-$previewGroup.Location = New-Object Drawing.Point(27, 282)
+$previewGroup.Location = New-Object Drawing.Point(27, 307)
 $previewGroup.Size = New-Object Drawing.Size(667, 58)
 $previewGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($previewGroup)
 
-$previewPathLabel = New-Label -Text "" -X 15 -Y 20 -Width 637 -Height 30
+$previewPathLabel = New-Label -Text "" -X 15 -Y 18 -Width 515 -Height 32
 $previewPathLabel.Font = New-Object Drawing.Font("Consolas", 8.5)
 $previewPathLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $previewGroup.Controls.Add($previewPathLabel)
 
+$btnCopyName = New-Object Windows.Forms.Button
+$btnCopyName.Text = "Copy Name"
+$btnCopyName.Location = New-Object Drawing.Point(540, 16)
+$btnCopyName.Size = New-Object Drawing.Size(112, 30)
+$btnCopyName.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$btnCopyName.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
+$btnCopyName.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
+$btnCopyName.FlatStyle = "Flat"
+$btnCopyName.Cursor = [Windows.Forms.Cursors]::Hand
+$previewGroup.Controls.Add($btnCopyName)
+
 # Sub-folder Structure Information
 $structureGroup = New-Object Windows.Forms.GroupBox
 $structureGroup.Text = " Sub-Folders Created for Selected Preset "
-$structureGroup.Location = New-Object Drawing.Point(27, 344)
-$structureGroup.Size = New-Object Drawing.Size(667, 92)
+$structureGroup.Location = New-Object Drawing.Point(27, 370)
+$structureGroup.Size = New-Object Drawing.Size(667, 72)
 $structureGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($structureGroup)
 
-$structureInfoLabel = New-Label -Text "" -X 15 -Y 18 -Width 637 -Height 68
+$structureInfoLabel = New-Label -Text "" -X 15 -Y 18 -Width 637 -Height 48
 $structureInfoLabel.Font = New-Object Drawing.Font("Consolas", 8)
 $structureInfoLabel.ForeColor = [Drawing.Color]::FromArgb(70, 75, 80)
 $structureGroup.Controls.Add($structureInfoLabel)
@@ -569,8 +603,8 @@ $structureGroup.Controls.Add($structureInfoLabel)
 # Create Button & Status
 $createProjectBtn = New-Object Windows.Forms.Button
 $createProjectBtn.Text = "Create Project Folder && Open in File Explorer"
-$createProjectBtn.Location = New-Object Drawing.Point(27, 442)
-$createProjectBtn.Size = New-Object Drawing.Size(370, 42)
+$createProjectBtn.Location = New-Object Drawing.Point(27, 448)
+$createProjectBtn.Size = New-Object Drawing.Size(370, 40)
 $createProjectBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 10)
 $createProjectBtn.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $createProjectBtn.ForeColor = [Drawing.Color]::White
@@ -578,7 +612,7 @@ $createProjectBtn.FlatStyle = "Flat"
 $createProjectBtn.Cursor = [Windows.Forms.Cursors]::Hand
 $creatorPage.Controls.Add($createProjectBtn)
 
-$creatorStatusLabel = New-Label -Text "" -X 410 -Y 444 -Width 284 -Height 40
+$creatorStatusLabel = New-Label -Text "" -X 410 -Y 448 -Width 284 -Height 40
 $creatorStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($creatorStatusLabel)
 
@@ -689,6 +723,16 @@ $updatePreview = {
     $targetPath = Join-Path $workspacePathText.Text.Trim() $folderName
     $previewPathLabel.Text = $targetPath
 
+    # Refresh Recent Projects UI
+    if ($script:appState.RecentProjects -and $script:appState.RecentProjects.Count -gt 0) {
+        $firstRecent = $script:appState.RecentProjects[0]
+        $recentInfoLabel.Text = "$($firstRecent.FolderName)  ($($firstRecent.Created))"
+        $recentOpenBtn.Enabled = $true
+    } else {
+        $recentInfoLabel.Text = "No recent projects yet."
+        $recentOpenBtn.Enabled = $false
+    }
+
     $structureInfoLabel.Text = switch -Wildcard ($presetCombo.SelectedItem) {
         "*Social*"  { "  |-- Working Files/      (Source graphics, PSD, Affinity files)`r`n  |-- Source Assets/      (Raw images, photos & brand assets)`r`n  |-- Copywriting/        (Post text, captions & ad copy)`r`n  \-- Final Exports/      (PNG, JPG, MP4 web/ad outputs)" }
         "*Video*"   { "  |-- Project Files/      (Premiere, After Effects, DaVinci projects)`r`n  |-- Footage/            (Raw video clips & B-roll)`r`n  |-- Audio/              (Music, voiceover & SFX)`r`n  |-- Renders/            (Intermediate cache & motion graphics)`r`n  \-- Final Exports/      (Master MP4, MOV video files)" }
@@ -714,28 +758,70 @@ $projectNameText.Add_TextChanged({
 $workspacePathText.Add_TextChanged($updatePreview)
 &$updatePreview
 
-$workspaceBrowseBtn.Add_Click({
-    $folderBrowser.SelectedPath = $workspacePathText.Text
-    if ($folderBrowser.ShowDialog() -eq [Windows.Forms.DialogResult]::OK) {
-        $workspacePathText.Text = $folderBrowser.SelectedPath
+# Feature 1: Clipboard Copy Handler
+$btnCopyName.Add_Click({
+    $selYear = if ($yearCombo.SelectedItem) { [string]$yearCombo.SelectedItem } else { (Get-Date).ToString("yyyy") }
+    $curMonth = (Get-Date).ToString("MM")
+    $dateCode = "${selYear}${curMonth}"
+    $sub = ($subBrandCombo.SelectedItem -replace '\s+', '_').ToUpper()
+    $job = ($jobIdText.Text.Trim() -replace '\s+', '').ToUpper()
+    if (-not $job.StartsWith("D")) { $job = "D$job" }
+    $proj = ($projectNameText.Text.Trim() -replace '[\\/:*?"<>|]', '_' -replace '\s+', '_').Trim('_')
+    if ([string]::IsNullOrWhiteSpace($proj)) { $proj = "Project" }
+    $folderName = "${dateCode}_${job}_${sub}_${proj}"
+
+    try {
+        [Windows.Forms.Clipboard]::SetText($folderName)
+        $btnCopyName.Text = "Copied!"
+        $btnCopyName.BackColor = [Drawing.Color]::FromArgb(220, 252, 231)
+        $btnCopyName.ForeColor = [Drawing.Color]::FromArgb(21, 128, 61)
+        
+        # Reset copy button text after 2 seconds
+        $copyTimer = New-Object Windows.Forms.Timer
+        $copyTimer.Interval = 2000
+        $copyTimer.Add_Tick({
+            $btnCopyName.Text = "Copy Name"
+            $btnCopyName.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
+            $btnCopyName.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
+            $copyTimer.Stop()
+            $copyTimer.Dispose()
+        })
+        $copyTimer.Start()
+    } catch {}
+})
+
+# Feature 2: Recent Projects Quick-Launcher Handler
+$recentOpenBtn.Add_Click({
+    if ($script:appState.RecentProjects -and $script:appState.RecentProjects.Count -gt 0) {
+        $recentPath = $script:appState.RecentProjects[0].ProjectPath
+        if (Test-Path -LiteralPath $recentPath -PathType Container) {
+            Start-Process -FilePath "explorer.exe" -ArgumentList (Quote-ProcessArgument $recentPath)
+        }
     }
 })
 
+# Create Button Action (Feature 3 & 4 included)
 $createProjectBtn.Add_Click({
     try {
+        $extraFolders = @()
+        if ($chkExtraRevisions.Checked) { $extraFolders += "Client Revisions" }
+        if ($chkExtraRaw.Checked) { $extraFolders += "Raw Audio & 3D" }
+
         $result = New-SuamiSihatProjectFolder `
             -RootDirectory $workspacePathText.Text.Trim() `
             -SubBrand $subBrandCombo.SelectedItem `
             -JobNumber $jobIdText.Text.Trim() `
             -ProjectName $projectNameText.Text.Trim() `
             -PresetType $presetCombo.SelectedItem `
-            -Year ([string]$yearCombo.SelectedItem)
+            -Year ([string]$yearCombo.SelectedItem) `
+            -ExtraSubFolders $extraFolders `
+            -InjectTemplates:$chkInjectTemplate.Checked
         
         $script:appState = Get-SuamiSihatAppState
-        $lastProjectLabel.Text = $result.FolderName
         $lastProjSettingsLabel.Text = "Last Created Project: $($result.FolderName)"
         $jobIdText.Text = $result.NextJobNumber
         $setJobText.Text = $result.NextJobNumber
+        &$updatePreview
 
         $creatorStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
         $creatorStatusLabel.Text = "Project Created! Next Job: $($result.NextJobNumber)`r`nOpening File Explorer..."
