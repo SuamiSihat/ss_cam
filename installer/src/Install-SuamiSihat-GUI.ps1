@@ -111,8 +111,14 @@ $form.BackColor = [Drawing.Color]::FromArgb(244, 247, 251)
 $form.Font = New-Object Drawing.Font("Segoe UI", 9)
 
 # Taskbar & Form Icon Integration
-$iconFile = Join-Path $installerRoot "payload\Brand Assets\Logos\ss_favicon\favicon.ico"
-if (Test-Path -LiteralPath $iconFile -PathType Leaf) {
+$projectRoot = Split-Path $installerRoot -Parent
+$iconFileCandidates = @(
+    (Join-Path $projectRoot "payload\Brand Assets\Logos\ss_favicon\favicon.ico"),
+    (Join-Path $installerRoot "assets\app-icon.ico"),
+    (Join-Path $projectRoot "payload\Brand Assets\Logos\ss_app_icon\web\favicon.ico")
+)
+$iconFile = $iconFileCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+if ($iconFile) {
     try {
         $form.Icon = New-Object Drawing.Icon($iconFile)
     } catch {}
