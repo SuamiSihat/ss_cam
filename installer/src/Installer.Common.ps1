@@ -288,11 +288,124 @@ function New-SuamiSihatProjectFolder {
         New-Item -ItemType Directory -Path $path -Force | Out-Null
     }
 
+    # Save created project history & auto-increment next Job ID
+    $savedState = Save-SuamiSihatAppState `
+        -LastProjectPath $projectRoot `
+        -LastProjectName $folderName `
+        -LastJobNumber $cleanJob `
+        -DefaultWorkspace $RootDirectory
+
     return @{
-        FolderName  = $folderName
-        ProjectPath = $projectRoot
-        SubFolders  = $subFolders
+        FolderName   = $folderName
+        ProjectPath  = $projectRoot
+        SubFolders   = $subFolders
+        NextJobNumber = $savedState.NextJobNumber
     }
 }
+
+function Get-SuamiSihatAppStatePath {
+    $appDataDir = Join-Path $env:LOCALAPPDATA "SuamiSihat"
+    if (-not (Test-Path -LiteralPath $appDataDir)) {
+        New-Item -ItemType Directory -Path $appDataDir -Force | Out-Null
+    }
+    Join-Path $appDataDir "app_state.json"
+}
+
+function Get-SuamiSihatAppState {
+    $stateFile = Get-SuamiSihatAppStatePath
+    $currentYear = (Get-Date).ToString("yyyy")
+    $defaultDocs = [Environment]::GetFolderPath("MyDocuments")
+    if ([string]::IsNullOrWhiteSpace($defaultDocs)) { $defaultDocs = Join-Path $env:USERPROFILE "Documents" }
+    $defaultWorkspace = Join-Path $defaultDocs "Creative Workspace\SS-$currentYear"
+
+    if (Test-Path -LiteralPath $stateFile -PathType Leaf) {
+        try {
+            $json = Get-Content -LiteralPath $stateFile -Raw | ConvertFrom-Json
+            return @{
+                LastProjectPath  = [string]$json.LastProjectPath
+                LastProjectName  = [string]$json.LastProjectName
+                LastJobNumber    = [string]$json.LastJobNumber
+                NextJobNumber    = if ([string]::IsNullOrWhiteSpace([string]$json.NextJobNumber)) { "D0075" } else { [string]$json.NextJobNumber }
+                DefaultWorkspace = if ([string]::IsNullOrWhiteSpace([string]$json.DefaultWorkspace)) { $defaultWorkspace } else { [string]$json.DefaultWorkspace }
+            }
+        } catch {}
+    }
+
+    return @{
+        LastProjectPath  = ""
+        LastProjectName  = "None"
+        LastJobNumber    = "D0074"
+        NextJobNumber    = "D0075"
+        DefaultWorkspace = $defaultWorkspace
+    }
+}
+
+function Save-SuamiSihatAppState {
+    param(
+        [string]$LastProjectPath = "",
+        [string]$LastProjectName = "",
+        [string]$LastJobNumber = "D0074",
+        [string]$DefaultWorkspace = ""
+    )
+
+    $stateFile = Get-SuamiSihatAppStatePath
+    
+    $nextJob = "D0075"
+    if ($LastJobNumber -match '(\d+)') {
+        $num = [int]$matches[1] + 1
+        $digits = $matches[1].Length
+        if ($digits -lt 4) { $digits = 4 }
+        $nextJob = "D" + $num.ToString().PadLeft($digits, '0')
+    }
+
+    $state = @{
+        LastProjectPath  = $LastProjectPath
+        LastProjectName  = $LastProjectName
+        LastJobNumber    = $LastJobNumber
+        NextJobNumber    = $nextJob
+        DefaultWorkspace = $DefaultWorkspace
+        Updated          = (Get-Date).ToString("o")
+    }
+
+    $json = $state | ConvertTo-Json
+    Set-Content -LiteralPath $stateFile -Value $json -Encoding UTF8
+    return $state
+}
+
+function Install-SuamiSihatShortcuts {
+    param([string]$TargetExePath)
+
+    if (-not (Test-Path -LiteralPath $TargetExePath -PathType Leaf)) {
+        return
+    }
+
+    try {
+        $wshell = New-Object -ComObject WScript.Shell
+
+        # Start Menu Shortcut
+        $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\SuamiSihat"
+        New-Item -ItemType Directory -Path $startMenuDir -Force | Out-Null
+        $startShortcutPath = Join-Path $startMenuDir "Suamisihat Creative Assets Management.lnk"
+        $sc = $wshell.CreateShortcut($startShortcutPath)
+        $sc.TargetPath = $TargetExePath
+        $sc.WorkingDirectory = Split-Path -Parent $TargetExePath
+        $sc.Description = "Suamisihat Creative Assets Management & Project Creator"
+        $sc.Save()
+
+        # Desktop Shortcut
+        $desktopDir = [Environment]::GetFolderPath("Desktop")
+        if (-not [string]::IsNullOrWhiteSpace($desktopDir)) {
+            $desktopShortcutPath = Join-Path $desktopDir "Suamisihat Creative Assets Management.lnk"
+            $sc2 = $wshell.CreateShortcut($desktopShortcutPath)
+            $sc2.TargetPath = $TargetExePath
+            $sc2.WorkingDirectory = Split-Path -Parent $TargetExePath
+            $sc2.Description = "Suamisihat Creative Assets Management & Project Creator"
+            $sc2.Save()
+        }
+    } catch {
+        # Shortcut creation is non-blocking
+    }
+}
+
 
 

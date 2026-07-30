@@ -2,7 +2,7 @@
 param(
     [switch]$SmokeTest,
     [string]$PreviewPath = "",
-    [ValidateRange(0, 8)]
+    [ValidateRange(0, 9)]
     [int]$PreviewPage = 0
 )
 
@@ -130,27 +130,38 @@ $stepLabel.ForeColor = [Drawing.Color]::FromArgb(109, 198, 236)
 $header.Controls.Add($stepLabel)
 
 # Header Mode Switcher Buttons
+$btnNavProject = New-Object Windows.Forms.Button
+$btnNavProject.Text = "Project Creator"
+$btnNavProject.Location = New-Object Drawing.Point(440, 14)
+$btnNavProject.Size = New-Object Drawing.Size(110, 60)
+$btnNavProject.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$btnNavProject.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$btnNavProject.ForeColor = [Drawing.Color]::White
+$btnNavProject.FlatStyle = "Flat"
+$btnNavProject.Cursor = [Windows.Forms.Cursors]::Hand
+$header.Controls.Add($btnNavProject)
+
 $btnNavFonts = New-Object Windows.Forms.Button
 $btnNavFonts.Text = "Assets Wizard"
-$btnNavFonts.Location = New-Object Drawing.Point(525, 14)
-$btnNavFonts.Size = New-Object Drawing.Size(105, 60)
+$btnNavFonts.Location = New-Object Drawing.Point(555, 14)
+$btnNavFonts.Size = New-Object Drawing.Size(95, 60)
 $btnNavFonts.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
-$btnNavFonts.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$btnNavFonts.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $btnNavFonts.ForeColor = [Drawing.Color]::White
 $btnNavFonts.FlatStyle = "Flat"
 $btnNavFonts.Cursor = [Windows.Forms.Cursors]::Hand
 $header.Controls.Add($btnNavFonts)
 
-$btnNavProject = New-Object Windows.Forms.Button
-$btnNavProject.Text = "New Project"
-$btnNavProject.Location = New-Object Drawing.Point(637, 14)
-$btnNavProject.Size = New-Object Drawing.Size(105, 60)
-$btnNavProject.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
-$btnNavProject.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$btnNavProject.ForeColor = [Drawing.Color]::White
-$btnNavProject.FlatStyle = "Flat"
-$btnNavProject.Cursor = [Windows.Forms.Cursors]::Hand
-$header.Controls.Add($btnNavProject)
+$btnNavSettings = New-Object Windows.Forms.Button
+$btnNavSettings.Text = "Settings"
+$btnNavSettings.Location = New-Object Drawing.Point(655, 14)
+$btnNavSettings.Size = New-Object Drawing.Size(87, 60)
+$btnNavSettings.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$btnNavSettings.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$btnNavSettings.ForeColor = [Drawing.Color]::White
+$btnNavSettings.FlatStyle = "Flat"
+$btnNavSettings.Cursor = [Windows.Forms.Cursors]::Hand
+$header.Controls.Add($btnNavSettings)
 
 
 $headerAccent = New-Object Windows.Forms.Panel
@@ -442,26 +453,42 @@ $completionHint = New-Label -Text "" -X 28 -Y 446 -Width 650 -Height 32
 $completionHint.ForeColor = [Drawing.Color]::DimGray
 $progressPage.Controls.Add($completionHint)
 
-# Page 9: Atomic Project Folder Creator
+# Load Saved App State
+$script:appState = Get-SuamiSihatAppState
+
+# Page 9: Creative Project Folder Creator
 $creatorPage = New-Page
 [void]$pages.Add($creatorPage)
 $creatorPageIndex = $pages.IndexOf($creatorPage)
 
-$creatorTitle = New-Label -Text "Atomic Project Template Generator" -X 24 -Y 12 -Width 670 -Height 30
-$creatorTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 16)
+$creatorTitle = New-Label -Text "Creative Project Folder Creator" -X 24 -Y 10 -Width 670 -Height 28
+$creatorTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 15)
 $creatorTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $creatorPage.Controls.Add($creatorTitle)
 
-$creatorIntro = New-Label -Text "Post Haste-style template presets with standardized date-coded folder structures." -X 27 -Y 44 -Width 660 -Height 22
+$creatorIntro = New-Label -Text "Post Haste-style template presets with history tracking & auto-incrementing Job IDs." -X 27 -Y 38 -Width 660 -Height 20
 $creatorPage.Controls.Add($creatorIntro)
 
+# Recent Project Info Box
+$lastProjectGroup = New-Object Windows.Forms.GroupBox
+$lastProjectGroup.Text = " Last Created Project "
+$lastProjectGroup.Location = New-Object Drawing.Point(27, 60)
+$lastProjectGroup.Size = New-Object Drawing.Size(667, 50)
+$lastProjectGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$creatorPage.Controls.Add($lastProjectGroup)
+
+$lastProjectLabel = New-Label -Text $(if ([string]::IsNullOrWhiteSpace($script:appState.LastProjectName)) { "None yet" } else { $script:appState.LastProjectName }) -X 15 -Y 18 -Width 637 -Height 24
+$lastProjectLabel.Font = New-Object Drawing.Font("Consolas", 9)
+$lastProjectLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$lastProjectGroup.Controls.Add($lastProjectLabel)
+
 # Project Preset Selector
-$presetLabel = New-Label -Text "Project Preset Template:" -X 27 -Y 72 -Width 200
+$presetLabel = New-Label -Text "Project Preset Template:" -X 27 -Y 116 -Width 200
 $presetLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($presetLabel)
 
 $presetCombo = New-Object Windows.Forms.ComboBox
-$presetCombo.Location = New-Object Drawing.Point(27, 94)
+$presetCombo.Location = New-Object Drawing.Point(27, 138)
 $presetCombo.Size = New-Object Drawing.Size(667, 28)
 $presetCombo.DropDownStyle = "DropDownList"
 @("Graphic & Print Design", "Social Media & E-Commerce", "Video & Motion Graphics", "Brand Identity") | ForEach-Object { [void]$presetCombo.Items.Add($_) }
@@ -469,12 +496,12 @@ $presetCombo.SelectedIndex = 0
 $creatorPage.Controls.Add($presetCombo)
 
 # Sub-Brand Selection
-$brandLabel = New-Label -Text "Sub-Brand:" -X 27 -Y 130 -Width 120
+$brandLabel = New-Label -Text "Sub-Brand:" -X 27 -Y 172 -Width 120
 $brandLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($brandLabel)
 
 $subBrandCombo = New-Object Windows.Forms.ComboBox
-$subBrandCombo.Location = New-Object Drawing.Point(27, 152)
+$subBrandCombo.Location = New-Object Drawing.Point(27, 194)
 $subBrandCombo.Size = New-Object Drawing.Size(180, 28)
 $subBrandCombo.DropDownStyle = "DropDownList"
 @("SS", "HEALTH", "CLINIC", "WELLNESS", "ECOM", "TECH") | ForEach-Object { [void]$subBrandCombo.Items.Add($_) }
@@ -482,77 +509,74 @@ $subBrandCombo.SelectedIndex = 0
 $creatorPage.Controls.Add($subBrandCombo)
 
 # Job ID
-$jobLabel = New-Label -Text "Job ID (e.g. D0074):" -X 230 -Y 130 -Width 150
+$jobLabel = New-Label -Text "Job ID (e.g. D0075):" -X 230 -Y 172 -Width 150
 $jobLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($jobLabel)
 
 $jobIdText = New-Object Windows.Forms.TextBox
-$jobIdText.Location = New-Object Drawing.Point(230, 152)
+$jobIdText.Location = New-Object Drawing.Point(230, 194)
 $jobIdText.Size = New-Object Drawing.Size(150, 27)
-$jobIdText.Text = "D0074"
+$jobIdText.Text = $script:appState.NextJobNumber
 $creatorPage.Controls.Add($jobIdText)
 
 # Project Name
-$nameLabel = New-Label -Text "Project Name (e.g. POSM_Banner):" -X 400 -Y 130 -Width 280
+$nameLabel = New-Label -Text "Project Name (e.g. POSM_Banner):" -X 400 -Y 172 -Width 280
 $nameLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($nameLabel)
 
 $projectNameText = New-Object Windows.Forms.TextBox
-$projectNameText.Location = New-Object Drawing.Point(400, 152)
+$projectNameText.Location = New-Object Drawing.Point(400, 194)
 $projectNameText.Size = New-Object Drawing.Size(294, 27)
 $projectNameText.Text = "POSM_Banner"
 $creatorPage.Controls.Add($projectNameText)
 
 # Workspace Root Location
-$workspaceLabel = New-Label -Text "Parent Workspace Directory:" -X 27 -Y 188 -Width 300
+$workspaceLabel = New-Label -Text "Parent Workspace Directory:" -X 27 -Y 228 -Width 300
 $workspaceLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $creatorPage.Controls.Add($workspaceLabel)
 
 $workspacePathText = New-Object Windows.Forms.TextBox
-$workspacePathText.Location = New-Object Drawing.Point(27, 210)
+$workspacePathText.Location = New-Object Drawing.Point(27, 248)
 $workspacePathText.Size = New-Object Drawing.Size(548, 27)
-
-$currentYear = (Get-Date).ToString("yyyy")
-$defaultWorkspacePath = Join-Path $documentsDirectory "Creative Workspace\SS-$currentYear"
-$workspacePathText.Text = $defaultWorkspacePath
+$workspacePathText.Text = $script:appState.DefaultWorkspace
 $creatorPage.Controls.Add($workspacePathText)
 
 $workspaceBrowseBtn = New-Object Windows.Forms.Button
 $workspaceBrowseBtn.Text = "Browse..."
-$workspaceBrowseBtn.Location = New-Object Drawing.Point(587, 207)
+$workspaceBrowseBtn.Location = New-Object Drawing.Point(587, 245)
 $workspaceBrowseBtn.Size = New-Object Drawing.Size(107, 31)
 $creatorPage.Controls.Add($workspaceBrowseBtn)
 
 # Folder Path Preview Box
 $previewGroup = New-Object Windows.Forms.GroupBox
 $previewGroup.Text = " Folder Path Preview "
-$previewGroup.Location = New-Object Drawing.Point(27, 246)
-$previewGroup.Size = New-Object Drawing.Size(667, 65)
-$previewGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$previewGroup.Location = New-Object Drawing.Point(27, 282)
+$previewGroup.Size = New-Object Drawing.Size(667, 58)
+$previewGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($previewGroup)
 
-$previewPathLabel = New-Label -Text "" -X 15 -Y 22 -Width 637 -Height 34
-$previewPathLabel.Font = New-Object Drawing.Font("Consolas", 9)
+$previewPathLabel = New-Label -Text "" -X 15 -Y 20 -Width 637 -Height 30
+$previewPathLabel.Font = New-Object Drawing.Font("Consolas", 8.5)
 $previewPathLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $previewGroup.Controls.Add($previewPathLabel)
 
 # Sub-folder Structure Information
 $structureGroup = New-Object Windows.Forms.GroupBox
 $structureGroup.Text = " Sub-Folders Created for Selected Preset "
-$structureGroup.Location = New-Object Drawing.Point(27, 318)
-$structureGroup.Size = New-Object Drawing.Size(667, 108)
-$structureGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$structureGroup.Location = New-Object Drawing.Point(27, 344)
+$structureGroup.Size = New-Object Drawing.Size(667, 92)
+$structureGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($structureGroup)
 
-$structureInfoLabel = New-Label -Text "" -X 15 -Y 22 -Width 637 -Height 78
-$structureInfoLabel.Font = New-Object Drawing.Font("Consolas", 8.5)
+$structureInfoLabel = New-Label -Text "" -X 15 -Y 18 -Width 637 -Height 68
+$structureInfoLabel.Font = New-Object Drawing.Font("Consolas", 8)
 $structureInfoLabel.ForeColor = [Drawing.Color]::FromArgb(70, 75, 80)
 $structureGroup.Controls.Add($structureInfoLabel)
 
 # Create Button & Status
 $createProjectBtn = New-Object Windows.Forms.Button
 $createProjectBtn.Text = "Create Project Folder && Open in File Explorer"
-$createProjectBtn.Location = New-Object Drawing.Point(27, 436)
+$createProjectBtn.Location = New-Object Drawing.Point(27, 442)
 $createProjectBtn.Size = New-Object Drawing.Size(370, 42)
 $createProjectBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 10)
 $createProjectBtn.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
@@ -561,9 +585,96 @@ $createProjectBtn.FlatStyle = "Flat"
 $createProjectBtn.Cursor = [Windows.Forms.Cursors]::Hand
 $creatorPage.Controls.Add($createProjectBtn)
 
-$creatorStatusLabel = New-Label -Text "" -X 410 -Y 438 -Width 284 -Height 40
-$creatorStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$creatorStatusLabel = New-Label -Text "" -X 410 -Y 444 -Width 284 -Height 40
+$creatorStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($creatorStatusLabel)
+
+# Page 10: Settings & Maintenance Page
+$settingsPage = New-Page
+[void]$pages.Add($settingsPage)
+$settingsPageIndex = $pages.IndexOf($settingsPage)
+
+$settingsTitle = New-Label -Text "Settings && Asset Maintenance" -X 24 -Y 12 -Width 670 -Height 30
+$settingsTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 16)
+$settingsTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$settingsPage.Controls.Add($settingsTitle)
+
+$settingsIntro = New-Label -Text "Manage local workspace defaults, Job ID counters, or reinstall official brand assets && fonts." -X 27 -Y 44 -Width 660 -Height 22
+$settingsPage.Controls.Add($settingsIntro)
+
+# Group 1: Font & Asset Maintenance
+$fontGroup = New-Object Windows.Forms.GroupBox
+$fontGroup.Text = " Brand Fonts && Asset Maintenance "
+$fontGroup.Location = New-Object Drawing.Point(27, 72)
+$fontGroup.Size = New-Object Drawing.Size(667, 100)
+$fontGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$settingsPage.Controls.Add($fontGroup)
+
+$fontGroupInfo = New-Label -Text "Reinstall or repair official bundled fonts (Poppins, Calibri, Helvetica Neue, Montserrat, FontAwesome Pro, etc.) and sync design libraries." -X 15 -Y 24 -Width 637 -Height 30
+$fontGroupInfo.Font = New-Object Drawing.Font("Segoe UI", 9)
+$fontGroup.Controls.Add($fontGroupInfo)
+
+$repairFontsBtn = New-Object Windows.Forms.Button
+$repairFontsBtn.Text = "Reinstall / Repair Fonts && Brand Assets"
+$repairFontsBtn.Location = New-Object Drawing.Point(15, 56)
+$repairFontsBtn.Size = New-Object Drawing.Size(270, 32)
+$repairFontsBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$repairFontsBtn.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$repairFontsBtn.ForeColor = [Drawing.Color]::White
+$repairFontsBtn.FlatStyle = "Flat"
+$repairFontsBtn.Cursor = [Windows.Forms.Cursors]::Hand
+$fontGroup.Controls.Add($repairFontsBtn)
+
+# Group 2: App & History Settings
+$appGroup = New-Object Windows.Forms.GroupBox
+$appGroup.Text = " Workspace && Sequential Counter Defaults "
+$appGroup.Location = New-Object Drawing.Point(27, 185)
+$appGroup.Size = New-Object Drawing.Size(667, 240)
+$appGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$settingsPage.Controls.Add($appGroup)
+
+$setWorkspaceLabel = New-Label -Text "Default Parent Workspace Directory:" -X 15 -Y 24 -Width 300
+$appGroup.Controls.Add($setWorkspaceLabel)
+
+$setWorkspaceText = New-Object Windows.Forms.TextBox
+$setWorkspaceText.Location = New-Object Drawing.Point(15, 48)
+$setWorkspaceText.Size = New-Object Drawing.Size(520, 27)
+$setWorkspaceText.Text = $script:appState.DefaultWorkspace
+$appGroup.Controls.Add($setWorkspaceText)
+
+$setWorkspaceBrowseBtn = New-Object Windows.Forms.Button
+$setWorkspaceBrowseBtn.Text = "Browse..."
+$setWorkspaceBrowseBtn.Location = New-Object Drawing.Point(543, 45)
+$setWorkspaceBrowseBtn.Size = New-Object Drawing.Size(107, 31)
+$appGroup.Controls.Add($setWorkspaceBrowseBtn)
+
+$setJobLabel = New-Label -Text "Next Sequential Job ID Counter (e.g. D0075):" -X 15 -Y 88 -Width 300
+$appGroup.Controls.Add($setJobLabel)
+
+$setJobText = New-Object Windows.Forms.TextBox
+$setJobText.Location = New-Object Drawing.Point(15, 110)
+$setJobText.Size = New-Object Drawing.Size(200, 27)
+$setJobText.Text = $script:appState.NextJobNumber
+$appGroup.Controls.Add($setJobText)
+
+$lastProjSettingsLabel = New-Label -Text "Last Created Project: $(if ([string]::IsNullOrWhiteSpace($script:appState.LastProjectName)) { 'None' } else { $script:appState.LastProjectName })" -X 15 -Y 150 -Width 630 -Height 24
+$lastProjSettingsLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$appGroup.Controls.Add($lastProjSettingsLabel)
+
+$saveSettingsBtn = New-Object Windows.Forms.Button
+$saveSettingsBtn.Text = "Save Settings"
+$saveSettingsBtn.Location = New-Object Drawing.Point(15, 186)
+$saveSettingsBtn.Size = New-Object Drawing.Size(160, 34)
+$saveSettingsBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$saveSettingsBtn.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$saveSettingsBtn.ForeColor = [Drawing.Color]::White
+$saveSettingsBtn.FlatStyle = "Flat"
+$saveSettingsBtn.Cursor = [Windows.Forms.Cursors]::Hand
+$appGroup.Controls.Add($saveSettingsBtn)
+
+$settingsStatusLabel = New-Label -Text "" -X 190 -Y 190 -Width 450 -Height 24
+$settingsStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$appGroup.Controls.Add($settingsStatusLabel)
 
 # Event Handlers for Creator Page
 $updatePreview = {
@@ -609,8 +720,14 @@ $createProjectBtn.Add_Click({
             -ProjectName $projectNameText.Text.Trim() `
             -PresetType $presetCombo.SelectedItem
         
+        $script:appState = Get-SuamiSihatAppState
+        $lastProjectLabel.Text = $result.FolderName
+        $lastProjSettingsLabel.Text = "Last Created Project: $($result.FolderName)"
+        $jobIdText.Text = $result.NextJobNumber
+        $setJobText.Text = $result.NextJobNumber
+
         $creatorStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
-        $creatorStatusLabel.Text = "Project Created Successfully!`r`nOpening File Explorer..."
+        $creatorStatusLabel.Text = "Project Created! Next Job: $($result.NextJobNumber)`r`nOpening File Explorer..."
         
         # Open in Explorer
         Start-Process -FilePath "explorer.exe" -ArgumentList (Quote-ProcessArgument $result.ProjectPath)
@@ -620,17 +737,48 @@ $createProjectBtn.Add_Click({
     }
 })
 
+# Settings Page Handlers
+$repairFontsBtn.Add_Click({
+    Show-Page 0
+})
 
+$setWorkspaceBrowseBtn.Add_Click({
+    $folderBrowser.SelectedPath = $setWorkspaceText.Text
+    if ($folderBrowser.ShowDialog() -eq [Windows.Forms.DialogResult]::OK) {
+        $setWorkspaceText.Text = $folderBrowser.SelectedPath
+    }
+})
+
+$saveSettingsBtn.Add_Click({
+    try {
+        $script:appState = Save-SuamiSihatAppState `
+            -LastProjectPath $script:appState.LastProjectPath `
+            -LastProjectName $script:appState.LastProjectName `
+            -LastJobNumber $setJobText.Text.Trim() `
+            -DefaultWorkspace $setWorkspaceText.Text.Trim()
+
+        $jobIdText.Text = $script:appState.NextJobNumber
+        $workspacePathText.Text = $script:appState.DefaultWorkspace
+        $settingsStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
+        $settingsStatusLabel.Text = "Settings saved successfully!"
+    } catch {
+        $settingsStatusLabel.ForeColor = [Drawing.Color]::Firebrick
+        $settingsStatusLabel.Text = "Error saving settings: $($_.Exception.Message)"
+    }
+})
 
 $btnNavFonts.Add_Click({
-    if ($script:pageIndex -eq $creatorPageIndex) {
-        Show-Page 0
-    }
+    Show-Page 0
 })
 
 $btnNavProject.Add_Click({
     Show-Page $creatorPageIndex
 })
+
+$btnNavSettings.Add_Click({
+    Show-Page $settingsPageIndex
+})
+
 
 foreach ($page in $pages) {
     $form.Controls.Add($page)
@@ -845,20 +993,34 @@ function Show-Page {
     $pages[$Index].Visible = $true
     
     if ($Index -eq $creatorPageIndex) {
-        $stepLabel.Text = "Atomic Project Creator"
+        $stepLabel.Text = "Creative Project Creator"
         $backButton.Visible = $false
         $nextButton.Visible = $false
         $cancelButton.Text = "Close"
         $cancelButton.Visible = $true
         $btnNavProject.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
         $btnNavFonts.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+        $btnNavSettings.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+        return
+    }
+
+    if ($Index -eq $settingsPageIndex) {
+        $stepLabel.Text = "Settings and Maintenance"
+        $backButton.Visible = $false
+        $nextButton.Visible = $false
+        $cancelButton.Text = "Close"
+        $cancelButton.Visible = $true
+        $btnNavSettings.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+        $btnNavProject.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+        $btnNavFonts.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
         return
     }
 
     $btnNavFonts.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
     $btnNavProject.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+    $btnNavSettings.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
 
-    $wizardPagesCount = $pages.Count - 1
+    $wizardPagesCount = 8
     $lastPageIndex = $wizardPagesCount - 1
     $stepLabel.Text = "Step $($Index + 1) of $wizardPagesCount"
     $backButton.Visible = $Index -gt 0 -and $Index -lt $lastPageIndex
@@ -873,6 +1035,7 @@ function Show-Page {
         Update-Review
     }
 }
+
 
 
 function Start-Installation {
@@ -1087,7 +1250,7 @@ $form.Add_FormClosing({
 
 Refresh-PCRequirements
 Refresh-SoftwareList
-Show-Page 0
+Show-Page $creatorPageIndex
 
 if ($SmokeTest) {
     if (-not [string]::IsNullOrWhiteSpace($PreviewPath)) {

@@ -330,6 +330,19 @@ if ($OpenImportFiles -and -not $SkipAssets -and -not $WhatIfPreference) {
     }
 }
 
+# Install Windows App Shortcuts
+try {
+    $currentProcessExe = [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    if ($currentProcessExe -and (Test-Path -LiteralPath $currentProcessExe -PathType Leaf) -and $currentProcessExe.EndsWith(".exe", [StringComparison]::OrdinalIgnoreCase)) {
+        $appInstallDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\Suamisihat Creative Assets Management"
+        New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
+        $installedExePath = Join-Path $appInstallDir "Suamisihat-Creative-Assets-Management.exe"
+        Copy-Item -LiteralPath $currentProcessExe -Destination $installedExePath -Force
+        Install-SuamiSihatShortcuts -TargetExePath $installedExePath
+        Write-Host "  Installed Windows Application shortcut: Start Menu -> Suamisihat Creative Assets Management"
+    }
+} catch {}
+
 Write-Step "Setup complete"
 if (-not $SkipFonts) {
     Write-Host "$installedCount font files processed. Restart Affinity and Adobe apps if they were open."
@@ -344,3 +357,4 @@ if (-not $SkipWebShortcuts) {
 if (-not $OpenImportFiles -and -not $SkipAssets) {
     Write-Host "Run again with -OpenImportFiles to open the Affinity and Adobe import packs."
 }
+
