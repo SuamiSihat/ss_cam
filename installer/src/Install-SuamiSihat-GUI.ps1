@@ -198,15 +198,15 @@ $welcomePage = New-Page
 [void]$pages.Add($welcomePage)
 $welcomeLogo = New-Object Windows.Forms.PictureBox
 $welcomeLogo.Location = New-Object Drawing.Point(20, 12)
-$welcomeLogo.Size = New-Object Drawing.Size(330, 96)
+$welcomeLogo.Size = New-Object Drawing.Size(200, 80)
 $welcomeLogo.SizeMode = "Zoom"
 $welcomeLogo.Image = $lightLogoImage
 $welcomePage.Controls.Add($welcomeLogo)
 
 # Welcome Page Installed Version Status Pill
 $installStatusBadge = New-Object Windows.Forms.Button
-$installStatusBadge.Location = New-Object Drawing.Point(470, 25)
-$installStatusBadge.Size = New-Object Drawing.Size(220, 36)
+$installStatusBadge.Location = New-Object Drawing.Point(450, 18)
+$installStatusBadge.Size = New-Object Drawing.Size(240, 34)
 $installStatusBadge.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $installStatusBadge.ForeColor = [Drawing.Color]::White
 $installStatusBadge.FlatStyle = "Flat"
@@ -214,62 +214,97 @@ $installStatusBadge.FlatAppearance.BorderSize = 0
 $installStatusBadge.Enabled = $false
 $welcomePage.Controls.Add($installStatusBadge)
 
-$welcomeIntro = New-Label -Text "Prepare this Windows PC for SuamiSihat design work." -X 30 -Y 119 -Width 650 -Height 30
-$welcomeIntro.Font = New-Object Drawing.Font("Segoe UI", 12)
-$welcomeIntro.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$welcomePage.Controls.Add($welcomeIntro)
-$welcomeBody = New-Label -Text @"
-This guided installer will:
+# Selection prompt
+$welcomeSelectLabel = New-Label -Text "Select what to set up on this PC:" -X 24 -Y 96 -Width 500 -Height 22
+$welcomeSelectLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 10)
+$welcomeSelectLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$welcomePage.Controls.Add($welcomeSelectLabel)
 
-  - compare this PC with minimum and recommended design specifications;
-  - show and record acceptance of the internal-use licence;
-  - detect installed Affinity, Canva, Figma, and Adobe applications;
-  - install/update official SuamiSihat fonts and brand libraries;
-  - create and configure local creative asset management tools;
-  - launch the SuamiSihat Creative Project Folder Creator.
-"@ -X 32 -Y 155 -Width 650 -Height 215
-$welcomeBody.Font = New-Object Drawing.Font("Segoe UI", 9.5)
-$welcomePage.Controls.Add($welcomeBody)
+# --- Tile 1: Brand Kit ---
+$tileBrandKit = New-Object Windows.Forms.Panel
+$tileBrandKit.Location = New-Object Drawing.Point(24, 124)
+$tileBrandKit.Size = New-Object Drawing.Size(666, 80)
+$tileBrandKit.BorderStyle = "FixedSingle"
+$tileBrandKit.BackColor = [Drawing.Color]::FromArgb(240, 245, 255)
+$tileBrandKit.Cursor = [Windows.Forms.Cursors]::Hand
+$welcomePage.Controls.Add($tileBrandKit)
 
-# Welcome Page Action Buttons
+$chkWelcomeBrandKit = New-Object Windows.Forms.CheckBox
+$chkWelcomeBrandKit.Location = New-Object Drawing.Point(14, 29)
+$chkWelcomeBrandKit.Size = New-Object Drawing.Size(18, 18)
+$chkWelcomeBrandKit.Checked = $true
+$tileBrandKit.Controls.Add($chkWelcomeBrandKit)
+
+$tileLabel1 = New-Label -Text "Brand Kit" -X 40 -Y 10 -Width 600 -Height 24
+$tileLabel1.Font = New-Object Drawing.Font("Segoe UI Semibold", 10)
+$tileLabel1.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$tileBrandKit.Controls.Add($tileLabel1)
+
+$tileDesc1 = New-Label -Text "Fonts, design libraries, colour palettes, web shortcuts and workstation reports for SuamiSihat creative work. Detailed options on the following pages." -X 40 -Y 34 -Width 612 -Height 40
+$tileDesc1.ForeColor = [Drawing.Color]::FromArgb(70, 80, 95)
+$tileBrandKit.Controls.Add($tileDesc1)
+
+# --- Tile 2: Creative Project Management ---
+$tileCPM = New-Object Windows.Forms.Panel
+$tileCPM.Location = New-Object Drawing.Point(24, 214)
+$tileCPM.Size = New-Object Drawing.Size(666, 80)
+$tileCPM.BorderStyle = "FixedSingle"
+$tileCPM.BackColor = [Drawing.Color]::FromArgb(240, 245, 255)
+$tileCPM.Cursor = [Windows.Forms.Cursors]::Hand
+$welcomePage.Controls.Add($tileCPM)
+
+$chkWelcomeCPM = New-Object Windows.Forms.CheckBox
+$chkWelcomeCPM.Location = New-Object Drawing.Point(14, 29)
+$chkWelcomeCPM.Size = New-Object Drawing.Size(18, 18)
+$chkWelcomeCPM.Checked = $true
+$tileCPM.Controls.Add($chkWelcomeCPM)
+
+$tileLabel2 = New-Label -Text "Creative Project Management" -X 40 -Y 10 -Width 600 -Height 24
+$tileLabel2.Font = New-Object Drawing.Font("Segoe UI Semibold", 10)
+$tileLabel2.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$tileCPM.Controls.Add($tileLabel2)
+
+$tileDesc2 = New-Label -Text "SS-CAM desktop application: creative project folder creator with job ID tracking, workspace management, and Start Menu and Desktop shortcuts." -X 40 -Y 34 -Width 612 -Height 40
+$tileDesc2.ForeColor = [Drawing.Color]::FromArgb(70, 80, 95)
+$tileCPM.Controls.Add($tileDesc2)
+
+$welcomeValidation = New-Label -Text "Select at least one component above to continue." -X 24 -Y 306 -Width 550 -Height 22
+$welcomeValidation.ForeColor = [Drawing.Color]::FromArgb(194, 45, 55)
+$welcomeValidation.Visible = $false
+$welcomePage.Controls.Add($welcomeValidation)
+
+# App-mode buttons (visible only when app is already installed)
 $btnWelcomeLaunch = New-Object Windows.Forms.Button
 $btnWelcomeLaunch.Text = "Launch Workspace"
-$btnWelcomeLaunch.Location = New-Object Drawing.Point(32, 382)
+$btnWelcomeLaunch.Location = New-Object Drawing.Point(24, 362)
 $btnWelcomeLaunch.Size = New-Object Drawing.Size(185, 38)
 $btnWelcomeLaunch.Font = New-Object Drawing.Font("Segoe UI Semibold", 9.5)
 $btnWelcomeLaunch.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $btnWelcomeLaunch.ForeColor = [Drawing.Color]::White
 $btnWelcomeLaunch.FlatStyle = "Flat"
 $btnWelcomeLaunch.Cursor = [Windows.Forms.Cursors]::Hand
+$btnWelcomeLaunch.Visible = $false
 $welcomePage.Controls.Add($btnWelcomeLaunch)
-
-$btnWelcomeAction = New-Object Windows.Forms.Button
-$btnWelcomeAction.Text = "Update / Reinstall App"
-$btnWelcomeAction.Location = New-Object Drawing.Point(230, 382)
-$btnWelcomeAction.Size = New-Object Drawing.Size(255, 38)
-$btnWelcomeAction.Font = New-Object Drawing.Font("Segoe UI Semibold", 9.5)
-$btnWelcomeAction.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
-$btnWelcomeAction.ForeColor = [Drawing.Color]::White
-$btnWelcomeAction.FlatStyle = "Flat"
-$btnWelcomeAction.Cursor = [Windows.Forms.Cursors]::Hand
-$welcomePage.Controls.Add($btnWelcomeAction)
 
 $btnWelcomeUninstall = New-Object Windows.Forms.Button
 $btnWelcomeUninstall.Text = "Uninstall App"
-$btnWelcomeUninstall.Location = New-Object Drawing.Point(498, 382)
+$btnWelcomeUninstall.Location = New-Object Drawing.Point(222, 362)
 $btnWelcomeUninstall.Size = New-Object Drawing.Size(160, 38)
 $btnWelcomeUninstall.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $btnWelcomeUninstall.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
 $btnWelcomeUninstall.ForeColor = [Drawing.Color]::FromArgb(220, 38, 38)
 $btnWelcomeUninstall.FlatStyle = "Flat"
 $btnWelcomeUninstall.Cursor = [Windows.Forms.Cursors]::Hand
+$btnWelcomeUninstall.Visible = $false
 $welcomePage.Controls.Add($btnWelcomeUninstall)
 
-$welcomePrivacy = New-Label -Text "PC information remains local and is not transmitted by this installer." -X 32 -Y 442 -Width 650
+$welcomePrivacy = New-Label -Text "PC information remains local and is not transmitted by this installer." -X 24 -Y 460 -Width 650
 $welcomePrivacy.ForeColor = [Drawing.Color]::DimGray
 $welcomePage.Controls.Add($welcomePrivacy)
 
-# Page 2: PC requirements
+
+
+# Page 3: PC requirements
 $requirementsPage = New-Page
 [void]$pages.Add($requirementsPage)
 $requirementsTitle = New-Label -Text "PC compatibility check" -X 24 -Y 16 -Width 670 -Height 34
@@ -409,7 +444,9 @@ Standard
 Font files use "Family-Style.ext" names with hyphens instead of spaces and lowercase extensions. A Markdown inventory is written to the Reports folder.
 
 Fonts are installed per user and do not require administrator access.
-"@ -X 29 -Y 165 -Width 650 -Height 250
+"@
+$fontDetails.Location = New-Object Drawing.Point(29, 165)
+$fontDetails.Size = New-Object Drawing.Size(650, 250)
 $fontDetails.Font = New-Object Drawing.Font("Segoe UI", 10)
 $fontPage.Controls.Add($fontDetails)
 
@@ -447,7 +484,9 @@ The installer creates:
   Links\SuamiSihat web shortcuts
   Reports\SuamiSihat-Workstation-Report.md
   Reports\SuamiSihat-Font-Inventory.md
-"@ -X 28 -Y 190 -Width 650 -Height 145
+"@
+$folderStructure.Location = New-Object Drawing.Point(28, 190)
+$folderStructure.Size = New-Object Drawing.Size(650, 145)
 $folderStructure.Font = New-Object Drawing.Font("Consolas", 9.5)
 $assetPage.Controls.Add($folderStructure)
 $createWebShortcuts = New-Object Windows.Forms.CheckBox
@@ -464,6 +503,46 @@ $assetPage.Controls.Add($openImports)
 $reportNote = New-Label -Text "The Reports folder is local. No PC information or account password is stored or uploaded." -X 29 -Y 414 -Width 630
 $reportNote.ForeColor = [Drawing.Color]::DimGray
 $assetPage.Controls.Add($reportNote)
+
+# Page 6: Creative Project Management info (shown when CPM is selected)
+$cpmPage = New-Page
+[void]$pages.Add($cpmPage)
+
+$cpmTitle = New-Label -Text "Creative Project Management" -X 24 -Y 18 -Width 660 -Height 34
+$cpmTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
+$cpmTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$cpmPage.Controls.Add($cpmTitle)
+
+$cpmSubtitle = New-Label -Text "SS-CAM will be installed as a Windows desktop application on this PC." -X 27 -Y 60 -Width 660 -Height 22
+$cpmPage.Controls.Add($cpmSubtitle)
+
+$cpmInstallPath = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management"
+$cpmPathLabel = New-Label -Text "Installation path:  $cpmInstallPath" -X 27 -Y 88 -Width 666 -Height 20
+$cpmPathLabel.Font = New-Object Drawing.Font("Consolas", 8.5)
+$cpmPathLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$cpmPage.Controls.Add($cpmPathLabel)
+
+$cpmDetails = New-Label -Text @"
+
+What's included:
+
+  •  Creative Project Folder Creator — Post Haste-style presets for graphic, video, social and brand projects
+  •  Sequential Job ID tracking with D / V / P / S prefix and auto-increment
+  •  Recent project history with one-click Explorer launch and clipboard folder-name copy
+  •  Configurable workspace root directory and job counter via Settings
+
+Access after installation:
+
+  •  Start Menu shortcut   Programs › SuamiSihat › Creative Assets Management
+  •  Desktop shortcut created automatically
+
+No administrator rights required.
+Installs per-user and can be removed at any time from Settings.
+"@
+$cpmDetails.Location = New-Object Drawing.Point(27, 110)
+$cpmDetails.Size = New-Object Drawing.Size(666, 300)
+$cpmDetails.Font = New-Object Drawing.Font("Segoe UI", 9.5)
+$cpmPage.Controls.Add($cpmDetails)
 
 # Page 7: Review
 $reviewPage = New-Page
@@ -629,9 +708,24 @@ $projectNameText.Text = "POSM_Banner"
 $paramGroup.Controls.Add($projectNameText)
 
 # Project Description / Creative Brief Input (Saved as README.md)
-$descLabel = New-Label -Text "Project Description / Creative Brief (Markdown - saved as README.md):" -X 15 -Y 122 -Width 500
+$descLabel = New-Label -Text "Project Description / Creative Brief (Markdown - saved as README.md):" -X 15 -Y 122 -Width 490
 $descLabel.BackColor = [Drawing.Color]::Transparent
 $paramGroup.Controls.Add($descLabel)
+
+# Expand/collapse toggle for the description box
+$script:descExpanded = $false
+$btnDescToggle = New-Object Windows.Forms.Button
+$btnDescToggle.Text = [char]0x25BC  # ▼ expand
+$btnDescToggle.Location = New-Object Drawing.Point(622, 119)
+$btnDescToggle.Size = New-Object Drawing.Size(30, 20)
+$btnDescToggle.Font = New-Object Drawing.Font("Segoe UI", 7)
+$btnDescToggle.FlatStyle = "Flat"
+$btnDescToggle.FlatAppearance.BorderSize = 0
+$btnDescToggle.BackColor = [Drawing.Color]::FromArgb(230, 235, 245)
+$btnDescToggle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$btnDescToggle.Cursor = [Windows.Forms.Cursors]::Hand
+$btnDescToggle.BackColor = [Drawing.Color]::Transparent
+$paramGroup.Controls.Add($btnDescToggle)
 
 $projDescText = New-Object Windows.Forms.TextBox
 $projDescText.Multiline = $true
@@ -641,23 +735,24 @@ $projDescText.Size = New-Object Drawing.Size(637, 44)
 $projDescText.Text = "# Creative Brief`r`n- Objective: SuamiSihat Marketing Campaign`r`n- Deliverables: Brand Graphics & Digital Assets"
 $paramGroup.Controls.Add($projDescText)
 
-# Options Checkboxes (Feature 3 & 4)
+# Options Checkboxes (Feature 3 & 4) - Y position driven by $script:chkBaseY for expand support
+$script:chkBaseY = 195
 $chkInjectTemplate = New-Object Windows.Forms.CheckBox
 $chkInjectTemplate.Text = "Inject Master Canvas (.psd/.afdesign)"
-$chkInjectTemplate.Location = New-Object Drawing.Point(15, 195)
+$chkInjectTemplate.Location = New-Object Drawing.Point(15, $script:chkBaseY)
 $chkInjectTemplate.Size = New-Object Drawing.Size(260, 24)
 $chkInjectTemplate.Checked = $true
 $paramGroup.Controls.Add($chkInjectTemplate)
 
 $chkExtraRevisions = New-Object Windows.Forms.CheckBox
 $chkExtraRevisions.Text = "+ Revisions Folder"
-$chkExtraRevisions.Location = New-Object Drawing.Point(285, 195)
+$chkExtraRevisions.Location = New-Object Drawing.Point(285, $script:chkBaseY)
 $chkExtraRevisions.Size = New-Object Drawing.Size(140, 24)
 $paramGroup.Controls.Add($chkExtraRevisions)
 
 $chkExtraRaw = New-Object Windows.Forms.CheckBox
 $chkExtraRaw.Text = "+ RAW Audio/3D"
-$chkExtraRaw.Location = New-Object Drawing.Point(435, 195)
+$chkExtraRaw.Location = New-Object Drawing.Point(435, $script:chkBaseY)
 $chkExtraRaw.Size = New-Object Drawing.Size(140, 24)
 $paramGroup.Controls.Add($chkExtraRaw)
 
@@ -703,31 +798,32 @@ $structureInfoLabel.ForeColor = [Drawing.Color]::FromArgb(70, 75, 80)
 $structureGroup.Controls.Add($structureInfoLabel)
 
 # Create Button, Clear Form Button & Status
+# These are form-level controls (not inside the page panel) so they align with the Close button row
 $createProjectBtn = New-Object Windows.Forms.Button
 $createProjectBtn.Text = "Create Project Folder && Open Explorer"
-$createProjectBtn.Location = New-Object Drawing.Point(27, 488)
-$createProjectBtn.Size = New-Object Drawing.Size(315, 38)
+$createProjectBtn.Location = New-Object Drawing.Point(20, 631)
+$createProjectBtn.Size = New-Object Drawing.Size(300, 34)
 $createProjectBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 9.5)
 $createProjectBtn.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $createProjectBtn.ForeColor = [Drawing.Color]::White
 $createProjectBtn.FlatStyle = "Flat"
 $createProjectBtn.Cursor = [Windows.Forms.Cursors]::Hand
-$creatorPage.Controls.Add($createProjectBtn)
+$createProjectBtn.Visible = $false
 
 $btnClearForm = New-Object Windows.Forms.Button
 $btnClearForm.Text = "Clear Form"
-$btnClearForm.Location = New-Object Drawing.Point(350, 488)
-$btnClearForm.Size = New-Object Drawing.Size(95, 38)
+$btnClearForm.Location = New-Object Drawing.Point(328, 631)
+$btnClearForm.Size = New-Object Drawing.Size(95, 34)
 $btnClearForm.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $btnClearForm.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
 $btnClearForm.ForeColor = [Drawing.Color]::FromArgb(71, 85, 105)
 $btnClearForm.FlatStyle = "Flat"
 $btnClearForm.Cursor = [Windows.Forms.Cursors]::Hand
-$creatorPage.Controls.Add($btnClearForm)
+$btnClearForm.Visible = $false
 
-$creatorStatusLabel = New-Label -Text "" -X 455 -Y 488 -Width 238 -Height 38
+$creatorStatusLabel = New-Label -Text "" -X 430 -Y 633 -Width 195 -Height 28
 $creatorStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
-$creatorPage.Controls.Add($creatorStatusLabel)
+$creatorStatusLabel.Visible = $false
 
 # Page 10: Settings & Maintenance Page
 $settingsPage = New-Page
@@ -831,7 +927,7 @@ $updateGroup.Size = New-Object Drawing.Size(667, 125)
 $updateGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $settingsPage.Controls.Add($updateGroup)
 
-$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v1.6.0`r`nGitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 24 -Width 637 -Height 36
+$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v1.6.2`r`nGitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 24 -Width 637 -Height 36
 $aboutLabel.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $aboutLabel.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
 $updateGroup.Controls.Add($aboutLabel)
@@ -902,6 +998,35 @@ $updatePreview = {
         default     { "SuamiSihat Graphic Workstation: Artwork Design (.afdesign/.psd), Artwork Mockup, Assets (raw photos) & Production print/digital exports." }
     }
 }
+
+# Description box expand/collapse toggle handler
+# Collapsed: projDescText H=44, checkboxes Y=195, paramGroup H=235, previewGroup Y=357, structureGroup visible
+# Expanded (+80px): projDescText H=124, checkboxes Y=275, paramGroup H=315, previewGroup Y=437, structureGroup hidden
+$btnDescToggle.Add_Click({
+    if (-not $script:descExpanded) {
+        # Expand
+        $projDescText.Size       = New-Object Drawing.Size(637, 124)
+        $chkInjectTemplate.Location = New-Object Drawing.Point(15, 275)
+        $chkExtraRevisions.Location = New-Object Drawing.Point(285, 275)
+        $chkExtraRaw.Location    = New-Object Drawing.Point(435, 275)
+        $paramGroup.Size         = New-Object Drawing.Size(667, 315)
+        $previewGroup.Location   = New-Object Drawing.Point(27, 437)
+        $structureGroup.Visible  = $false
+        $btnDescToggle.Text      = [char]0x25B2   # ▲ collapse
+        $script:descExpanded     = $true
+    } else {
+        # Collapse
+        $projDescText.Size       = New-Object Drawing.Size(637, 44)
+        $chkInjectTemplate.Location = New-Object Drawing.Point(15, 195)
+        $chkExtraRevisions.Location = New-Object Drawing.Point(285, 195)
+        $chkExtraRaw.Location    = New-Object Drawing.Point(435, 195)
+        $paramGroup.Size         = New-Object Drawing.Size(667, 235)
+        $previewGroup.Location   = New-Object Drawing.Point(27, 357)
+        $structureGroup.Visible  = $true
+        $btnDescToggle.Text      = [char]0x25BC   # ▼ expand
+        $script:descExpanded     = $false
+    }
+})
 
 $presetCombo.Add_SelectedIndexChanged({
     $prefix = Get-SuamiSihatJobPrefix -PresetName $presetCombo.SelectedItem
@@ -1026,35 +1151,32 @@ $createProjectBtn.Add_Click({
 
 # App Installed Version Status Refresh
 $refreshAppVersionStatus = {
-    $installedInfo = Get-SuamiSihatInstalledVersion
-    if ($installedInfo.IsInstalled) {
-        $installStatusBadge.Text = "Installed: v$($installedInfo.Version)"
+    $script:installedInfo = Get-SuamiSihatInstalledVersion
+    $script:isNewInstall = -not $script:installedInfo.IsInstalled
+    if ($script:installedInfo.IsInstalled) {
+        $installStatusBadge.Text = "Installed: v$($script:installedInfo.Version)"
         $installStatusBadge.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
-        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Installed Version: v$($installedInfo.Version)`r`nStatus: Installed  |  Executable: $($installedInfo.ExePath)"
+        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Installed: v$($script:installedInfo.Version)`r`nStatus: Installed  |  Executable: $($script:installedInfo.ExePath)"
         $btnWelcomeLaunch.Visible = $true
         $btnWelcomeUninstall.Visible = $true
-        $btnWelcomeAction.Text = "Update / Reinstall App"
-        $btnWelcomeAction.Location = New-Object Drawing.Point(230, 382)
-        $btnWelcomeAction.Size = New-Object Drawing.Size(255, 38)
+        $chkWelcomeBrandKit.Checked = $true
+        $chkWelcomeCPM.Checked = $true
+        $tileBrandKit.BackColor = [Drawing.Color]::FromArgb(240, 245, 255)
+        $tileCPM.BackColor = [Drawing.Color]::FromArgb(240, 245, 255)
     } else {
-        $installStatusBadge.Text = "Not Installed (v1.6.1 Ready)"
+        $installStatusBadge.Text = "Not Installed  (v1.6.2 Ready)"
         $installStatusBadge.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
-        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Status: Not Installed`r`nRun setup wizard below to install SuamiSihat brand kit & assets."
+        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Status: Not Installed`r`nRun setup wizard below to install SuamiSihat brand kit && assets."
         $btnWelcomeLaunch.Visible = $false
         $btnWelcomeUninstall.Visible = $false
-        $btnWelcomeAction.Text = "Install SuamiSihat Creative Assets (v1.6.1)"
-        $btnWelcomeAction.Location = New-Object Drawing.Point(32, 382)
-        $btnWelcomeAction.Size = New-Object Drawing.Size(626, 38)
+        $chkWelcomeBrandKit.Checked = $true
+        $chkWelcomeCPM.Checked = $true
     }
 }
 
 # Welcome Page Handlers
 $btnWelcomeLaunch.Add_Click({
     Show-Page $creatorPageIndex
-})
-
-$btnWelcomeAction.Add_Click({
-    $nextButton.PerformClick()
 })
 
 $uninstallAppHandler = {
@@ -1078,6 +1200,28 @@ $uninstallAppHandler = {
 
 $btnWelcomeUninstall.Add_Click($uninstallAppHandler)
 $uninstallSettingsBtn.Add_Click($uninstallAppHandler)
+
+# Welcome tile + checkbox handlers (toggle selection, validate, sync, tile colouring)
+$tileBrandKit.Add_Click({ $chkWelcomeBrandKit.Checked = -not $chkWelcomeBrandKit.Checked })
+$tileLabel1.Add_Click({ $chkWelcomeBrandKit.Checked = -not $chkWelcomeBrandKit.Checked })
+$tileDesc1.Add_Click({ $chkWelcomeBrandKit.Checked = -not $chkWelcomeBrandKit.Checked })
+$tileCPM.Add_Click({ $chkWelcomeCPM.Checked = -not $chkWelcomeCPM.Checked })
+$tileLabel2.Add_Click({ $chkWelcomeCPM.Checked = -not $chkWelcomeCPM.Checked })
+$tileDesc2.Add_Click({ $chkWelcomeCPM.Checked = -not $chkWelcomeCPM.Checked })
+
+$script:UpdateWelcomeState = {
+    $anySelected = $chkWelcomeBrandKit.Checked -or $chkWelcomeCPM.Checked
+    $welcomeValidation.Visible = -not $anySelected
+    $tileBrandKit.BackColor = if ($chkWelcomeBrandKit.Checked) { [Drawing.Color]::FromArgb(240, 245, 255) } else { [Drawing.Color]::White }
+    $tileCPM.BackColor     = if ($chkWelcomeCPM.Checked)      { [Drawing.Color]::FromArgb(240, 245, 255) } else { [Drawing.Color]::White }
+    if ($script:pageIndex -eq 0) { $nextButton.Enabled = $anySelected }
+    # Sync Brand Kit selection with per-page asset/font controls
+    $copyAssets.Checked = $chkWelcomeBrandKit.Checked
+    if (-not $chkWelcomeBrandKit.Checked -and $fontChoice.SelectedIndex -ne 2) { $fontChoice.SelectedIndex = 2 }
+    if ($chkWelcomeBrandKit.Checked -and $fontChoice.SelectedIndex -eq 2)      { $fontChoice.SelectedIndex = 0 }
+}
+$chkWelcomeBrandKit.Add_CheckedChanged({ & $script:UpdateWelcomeState })
+$chkWelcomeCPM.Add_CheckedChanged({ & $script:UpdateWelcomeState })
 
 # Settings Page Handlers
 $repairFontsBtn.Add_Click({
@@ -1113,12 +1257,19 @@ $saveSettingsBtn.Add_Click({
 $script:updateInfo = $null
 
 $btnCheckUpdate.Add_Click({
+    $btnCheckUpdate.Enabled = $false
+    $btnCheckUpdate.Text = "Checking..."
     $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
     $updateStatusLabel.Text = "Checking GitHub Releases API..."
-    
-    $script:updateInfo = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.0"
-    
+    $btnInstallUpdate.Visible = $false
+    $updateStatusLabel.Location = New-Object Drawing.Point(185, 72)
+    $updateStatusLabel.Width = 460
+
+    $script:updateInfo = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.2"
+
     if ($script:updateInfo.HasUpdate) {
+        $btnCheckUpdate.Text = "Check for Updates"
+        $btnCheckUpdate.Enabled = $true
         $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
         $updateStatusLabel.Text = "New Version Available: v$($script:updateInfo.LatestVersion)!"
         if (-not [string]::IsNullOrWhiteSpace($script:updateInfo.DownloadUrl)) {
@@ -1128,11 +1279,12 @@ $btnCheckUpdate.Add_Click({
             $updateStatusLabel.Width = 310
         }
     } else {
-        $btnInstallUpdate.Visible = $false
-        $updateStatusLabel.Location = New-Object Drawing.Point(185, 72)
-        $updateStatusLabel.Width = 460
+        # Already on latest — disable button and mark as up to date
+        $btnCheckUpdate.Text = "Up to Date"
+        $btnCheckUpdate.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
+        $btnCheckUpdate.Enabled = $false
         $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
-        $updateStatusLabel.Text = "You are running the latest version (v1.6.0)."
+        $updateStatusLabel.Text = "You are running the latest version (v1.6.2)."
     }
 })
 
@@ -1164,7 +1316,7 @@ foreach ($page in $pages) {
     $form.Controls.Add($page)
 }
 
-
+# Form-level buttons (wizard nav + creator action row, all at Y=631)
 $backButton = New-Object Windows.Forms.Button
 $backButton.Text = "< Back"
 $backButton.Location = New-Object Drawing.Point(432, 631)
@@ -1188,6 +1340,40 @@ $form.Controls.Add($nextButton)
 $form.AcceptButton = $nextButton
 $form.CancelButton = $cancelButton
 
+# Add creator-page action buttons to form (so they sit in the same row as Close)
+$form.Controls.Add($createProjectBtn)
+$form.Controls.Add($btnClearForm)
+$form.Controls.Add($creatorStatusLabel)
+
+# Form-level Skip Fonts button (visible only on the Font page)
+$btnSkipFonts = New-Object Windows.Forms.Button
+$btnSkipFonts.Text = "Skip Fonts"
+$btnSkipFonts.Location = New-Object Drawing.Point(20, 631)
+$btnSkipFonts.Size = New-Object Drawing.Size(110, 34)
+$btnSkipFonts.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$btnSkipFonts.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
+$btnSkipFonts.ForeColor = [Drawing.Color]::FromArgb(71, 85, 105)
+$btnSkipFonts.FlatStyle = "Flat"
+$btnSkipFonts.Cursor = [Windows.Forms.Cursors]::Hand
+$btnSkipFonts.Visible = $false
+$form.Controls.Add($btnSkipFonts)
+
+# Form-level Open App button (shown at Setup Complete when CPM was installed)
+$btnOpenApp = New-Object Windows.Forms.Button
+$btnOpenApp.Text = "Open App"
+$btnOpenApp.Location = New-Object Drawing.Point(20, 631)
+$btnOpenApp.Size = New-Object Drawing.Size(130, 34)
+$btnOpenApp.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$btnOpenApp.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
+$btnOpenApp.ForeColor = [Drawing.Color]::White
+$btnOpenApp.FlatStyle = "Flat"
+$btnOpenApp.Cursor = [Windows.Forms.Cursors]::Hand
+$btnOpenApp.Visible = $false
+$form.Controls.Add($btnOpenApp)
+
+$script:installedInfo = $null
+$script:isNewInstall = $true
+
 $folderBrowser = New-Object Windows.Forms.FolderBrowserDialog
 $folderBrowser.Description = "Choose the parent folder for the SuamiSihat brand assets."
 $folderBrowser.ShowNewFolderButton = $true
@@ -1199,6 +1385,77 @@ $licencePageIndex = $pages.IndexOf($licencePage)
 $assetPageIndex = $pages.IndexOf($assetPage)
 $reviewPageIndex = $pages.IndexOf($reviewPage)
 $progressPageIndex = $pages.IndexOf($progressPage)
+$cpmPageIndex = $pages.IndexOf($cpmPage)
+$fontPageIndex = $pages.IndexOf($fontPage)
+$requirementsPageIndex = $pages.IndexOf($requirementsPage)
+$systemPageIndex = $pages.IndexOf($systemPage)
+
+# Dynamic wizard routing — navigates by component selection and install mode
+function Get-NextPageIndex {
+    param([int]$Current)
+    $brandKit = $chkWelcomeBrandKit.Checked
+    $cpm = $chkWelcomeCPM.Checked
+    $newInstall = $script:isNewInstall
+    if ($Current -eq 0)                            { return $requirementsPageIndex }
+    if ($Current -eq $requirementsPageIndex)       { return $systemPageIndex }
+    if ($Current -eq $systemPageIndex) {
+        return if ($newInstall) { $licencePageIndex } else { $fontPageIndex }
+    }
+    if ($Current -eq $licencePageIndex)            { return $fontPageIndex }
+    if ($Current -eq $fontPageIndex) {
+        if ($brandKit) { return $assetPageIndex }
+        elseif ($cpm)  { return $cpmPageIndex }
+        else           { return $reviewPageIndex }
+    }
+    if ($Current -eq $assetPageIndex) {
+        return if ($cpm) { $cpmPageIndex } else { $reviewPageIndex }
+    }
+    if ($Current -eq $cpmPageIndex)                { return $reviewPageIndex }
+    return ($Current + 1)
+}
+
+function Get-PrevPageIndex {
+    param([int]$Current)
+    $brandKit = $chkWelcomeBrandKit.Checked
+    $cpm = $chkWelcomeCPM.Checked
+    $newInstall = $script:isNewInstall
+    if ($Current -eq $requirementsPageIndex)       { return 0 }
+    if ($Current -eq $systemPageIndex)             { return $requirementsPageIndex }
+    if ($Current -eq $licencePageIndex)            { return $systemPageIndex }
+    if ($Current -eq $fontPageIndex) {
+        return if ($newInstall) { $licencePageIndex } else { $systemPageIndex }
+    }
+    if ($Current -eq $assetPageIndex)              { return $fontPageIndex }
+    if ($Current -eq $cpmPageIndex) {
+        return if ($brandKit) { $assetPageIndex } else { $fontPageIndex }
+    }
+    if ($Current -eq $reviewPageIndex) {
+        if ($cpm)           { return $cpmPageIndex }
+        elseif ($brandKit)  { return $assetPageIndex }
+        else                { return $fontPageIndex }
+    }
+    return ($Current - 1)
+}
+
+function Get-WizardStepInfo {
+    param([int]$PageIndex)
+    $brandKit = $chkWelcomeBrandKit.Checked
+    $cpm = $chkWelcomeCPM.Checked
+    $newInstall = $script:isNewInstall
+    $seq = [System.Collections.Generic.List[int]]::new()
+    $seq.Add(0)
+    $seq.Add($requirementsPageIndex)
+    $seq.Add($systemPageIndex)
+    if ($newInstall) { $seq.Add($licencePageIndex) }
+    $seq.Add($fontPageIndex)
+    if ($brandKit) { $seq.Add($assetPageIndex) }
+    if ($cpm)      { $seq.Add($cpmPageIndex) }
+    $seq.Add($reviewPageIndex)
+    $seq.Add($progressPageIndex)
+    $pos = $seq.IndexOf($PageIndex)
+    if ($pos -lt 0) { $pos = 0 }
+    return @{ Step = ($pos + 1); Total = $seq.Count }
+}
 
 function Add-RequirementChecklistItem {
     param(
@@ -1356,6 +1613,8 @@ function Update-Review {
             -Name "Web shortcuts" -Details $shortcutSummary
         Add-ReviewChecklistItem -Ready $copyAssets.Checked `
             -Name "Local reports" -Details $(if ($copyAssets.Checked) { "Workstation and font inventory Markdown files" } else { "Skipped with brand assets" })
+        Add-ReviewChecklistItem -Ready $chkCompApp.Checked `
+            -Name "Creative Project Mgmt" -Details $(if ($chkCompApp.Checked) { "SS-CAM app, Start Menu and Desktop shortcuts" } else { "Skipped by user" })
     } finally {
         $reviewChecklist.EndUpdate()
     }
@@ -1378,7 +1637,11 @@ function Show-Page {
         $backButton.Visible = $false
         $nextButton.Visible = $false
         $cancelButton.Text = "Close"
+        $cancelButton.Location = New-Object Drawing.Point(640, 631)
         $cancelButton.Visible = $true
+        $createProjectBtn.Visible = $true
+        $btnClearForm.Visible = $true
+        $creatorStatusLabel.Visible = $true
         $btnNavSettings.Text = "Settings"
         $btnNavSettings.Visible = $true
         return
@@ -1390,27 +1653,44 @@ function Show-Page {
         $backButton.Visible = $false
         $nextButton.Visible = $false
         $cancelButton.Text = "Close"
+        $cancelButton.Location = New-Object Drawing.Point(640, 631)
         $cancelButton.Visible = $true
+        $createProjectBtn.Visible = $false
+        $btnClearForm.Visible = $false
+        $creatorStatusLabel.Visible = $false
         $btnNavSettings.Text = "< Back"
         $btnNavSettings.Visible = $true
         return
     }
 
-    # Font Setup Installer Wizard Pages (0..7)
+    # Wizard pages: hide creator action buttons and reset bottom bar
+    $createProjectBtn.Visible = $false
+    $btnClearForm.Visible = $false
+    $creatorStatusLabel.Visible = $false
+    $cancelButton.Location = New-Object Drawing.Point(536, 631)
+    $btnOpenApp.Visible = $false
+
     $title.Text = "Brand Kit Setup Wizard"
     $btnNavSettings.Visible = $false
 
-    $wizardPagesCount = 8
-    $lastPageIndex = $wizardPagesCount - 1
-    $stepLabel.Text = "Step $($Index + 1) of $wizardPagesCount"
-    $backButton.Visible = $Index -gt 0 -and $Index -lt $lastPageIndex
+    # Dynamic step counter based on selected components and install type
+    $stepInfo = Get-WizardStepInfo $Index
+    $stepLabel.Text = "Step $($stepInfo.Step) of $($stepInfo.Total)"
+
+    $isLastPage = ($Index -eq $progressPageIndex)
+    $backButton.Visible = ($Index -gt 0 -and -not $isLastPage)
     $backButton.Enabled = -not $script:installationRunning
     $cancelButton.Text = "Cancel"
     $cancelButton.Visible = -not $script:setupComplete
     $cancelButton.Enabled = -not $script:installationRunning
-    $nextButton.Visible = $Index -ne $lastPageIndex
-    $nextButton.Enabled = -not $script:installationRunning
+    $nextButton.Visible = -not $isLastPage
+    $nextButton.Enabled = (-not $script:installationRunning) -and
+        ($Index -ne 0 -or ($chkWelcomeBrandKit.Checked -or $chkWelcomeCPM.Checked))
     $nextButton.Text = if ($Index -eq $reviewPageIndex) { "Install" } else { "Next >" }
+
+    # Skip Fonts button (form-level) only visible on Font page
+    $btnSkipFonts.Visible = ($Index -eq $fontPageIndex)
+
     if ($Index -eq $reviewPageIndex) {
         Update-Review
     }
@@ -1513,6 +1793,22 @@ $copyAssets.Add_CheckedChanged({
     $browseButton.Enabled = $enabled
     $openImports.Enabled = $enabled
 })
+
+# Skip Fonts button — skips font installation and advances to the next page
+$btnSkipFonts.Add_Click({
+    $fontChoice.SelectedIndex = 2   # "Do not install fonts"
+    Show-Page (Get-NextPageIndex $script:pageIndex)
+})
+
+# Open App button — launches SS-CAM after setup completes
+$btnOpenApp.Add_Click({
+    $appExe = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management\SS-CAM.exe"
+    if (Test-Path -LiteralPath $appExe -PathType Leaf) {
+        Start-Process -FilePath $appExe
+    }
+    $form.Close()
+})
+
 $browseButton.Add_Click({
     $requestedPath = $destinationBox.Text.Trim()
     if (-not [string]::IsNullOrWhiteSpace($requestedPath)) {
@@ -1532,7 +1828,7 @@ $browseButton.Add_Click({
 })
 $backButton.Add_Click({
     if (-not $script:installationRunning) {
-        Show-Page ($script:pageIndex - 1)
+        Show-Page (Get-PrevPageIndex $script:pageIndex)
     }
 })
 $cancelButton.Add_Click({
@@ -1541,6 +1837,17 @@ $cancelButton.Add_Click({
     }
 })
 $nextButton.Add_Click({
+    # Welcome page: must select at least one component
+    if ($script:pageIndex -eq 0) {
+        if (-not $chkWelcomeBrandKit.Checked -and -not $chkWelcomeCPM.Checked) {
+            $welcomeValidation.Visible = $true
+            return
+        }
+        $copyAssets.Checked = $chkWelcomeBrandKit.Checked
+        if (-not $chkWelcomeBrandKit.Checked -and $fontChoice.SelectedIndex -ne 2) { $fontChoice.SelectedIndex = 2 }
+        Show-Page (Get-NextPageIndex $script:pageIndex)
+        return
+    }
     if ($script:pageIndex -eq $licencePageIndex -and -not $acceptLicence.Checked) {
         [Windows.Forms.MessageBox]::Show(
             "You must accept the licence agreement before continuing.",
@@ -1563,7 +1870,7 @@ $nextButton.Add_Click({
     if ($script:pageIndex -eq $reviewPageIndex) {
         Start-Installation
     } else {
-        Show-Page ($script:pageIndex + 1)
+        Show-Page (Get-NextPageIndex $script:pageIndex)
     }
 })
 
@@ -1601,7 +1908,7 @@ $timer.Add_Tick({
                 [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
             }
 
-            if ($sourceExe -and (Test-Path -LiteralPath $sourceExe -PathType Leaf) -and $sourceExe.EndsWith(".exe", [StringComparison]::OrdinalIgnoreCase)) {
+            if ($chkWelcomeCPM.Checked -and $sourceExe -and (Test-Path -LiteralPath $sourceExe -PathType Leaf) -and $sourceExe.EndsWith(".exe", [StringComparison]::OrdinalIgnoreCase)) {
                 $appInstallDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management"
                 New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
                 $targetExePath = Join-Path $appInstallDir "SS-CAM.exe"
@@ -1615,13 +1922,20 @@ $timer.Add_Tick({
         $progressTitle.Text = "Setup complete"
         $progressStatus.Text = "This PC is ready for SuamiSihat design work."
         $progressStatus.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-        $completionHint.Text = "Restart any Affinity or Adobe applications that were open. Select Close to finish."
+        $completionHint.Text = "Restart any open Affinity or Adobe apps. Select Close (or Open App) to finish."
         $stepLabel.Text = "Completed successfully"
         $cancelButton.Visible = $false
         $nextButton.Visible = $true
         $nextButton.Text = "Close"
+        $nextButton.Location = New-Object Drawing.Point(640, 631)
         $nextButton.Enabled = $true
         $nextButton.Add_Click({ $form.Close() })
+        # Show Open App button if Creative Project Management was installed
+        if ($chkWelcomeCPM.Checked) {
+            $btnOpenApp.Visible = $true
+            $btnOpenApp.Location = New-Object Drawing.Point(20, 631)
+        }
+        try { & $refreshAppVersionStatus } catch {}
     } else {
         $progressTitle.Text = "Setup encountered an error"
         $progressStatus.Text = "Review the log below, then go back and try again."
@@ -1655,7 +1969,7 @@ $form.Add_Shown({
         $worker.add_DoWork({
             param($sender, $e)
             try {
-                $e.Result = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.1"
+                $e.Result = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.2"
             } catch {
                 $e.Result = $null
             }
@@ -1668,7 +1982,7 @@ $form.Add_Shown({
                 $headerUpdateBadge.Visible = $true
                 $btnNavSettings.Text = "Settings *"
                 $btnNavSettings.BackColor = [Drawing.Color]::FromArgb(194, 65, 12)
-                
+
                 $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(194, 65, 12)
                 $updateStatusLabel.Text = "New Update Available: v$($e.Result.LatestVersion)"
                 if (-not [string]::IsNullOrWhiteSpace($e.Result.DownloadUrl)) {
@@ -1677,6 +1991,13 @@ $form.Add_Shown({
                     $updateStatusLabel.Location = New-Object Drawing.Point(335, 72)
                     $updateStatusLabel.Width = 310
                 }
+            } elseif ($null -ne $e.Result -and -not $e.Result.HasUpdate) {
+                # Startup check confirmed: already on latest — mark button as up to date
+                $btnCheckUpdate.Text = "Up to Date"
+                $btnCheckUpdate.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
+                $btnCheckUpdate.Enabled = $false
+                $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
+                $updateStatusLabel.Text = "You are running the latest version (v1.6.2)."
             }
         })
         $worker.RunWorkerAsync()

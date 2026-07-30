@@ -499,7 +499,7 @@ function Save-SuamiSihatAppState {
 function Install-SuamiSihatShortcuts {
     param(
         [string]$TargetExePath,
-        [string]$Version = "1.6.1"
+        [string]$Version = "1.6.2"
     )
 
     if (-not (Test-Path -LiteralPath $TargetExePath -PathType Leaf)) {
@@ -572,7 +572,7 @@ function Get-SuamiSihatInstalledVersion {
         try {
             $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($exePath).FileVersion
         } catch {}
-        if ([string]::IsNullOrWhiteSpace($version)) { $version = "1.6.1" }
+        if ([string]::IsNullOrWhiteSpace($version)) { $version = "1.6.2" }
     }
 
     return [pscustomobject]@{
