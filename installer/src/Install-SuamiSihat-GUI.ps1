@@ -1399,7 +1399,7 @@ function Get-NextPageIndex {
     if ($Current -eq 0)                            { return $requirementsPageIndex }
     if ($Current -eq $requirementsPageIndex)       { return $systemPageIndex }
     if ($Current -eq $systemPageIndex) {
-        return if ($newInstall) { $licencePageIndex } else { $fontPageIndex }
+        if ($newInstall) { return $licencePageIndex } else { return $fontPageIndex }
     }
     if ($Current -eq $licencePageIndex)            { return $fontPageIndex }
     if ($Current -eq $fontPageIndex) {
@@ -1408,7 +1408,7 @@ function Get-NextPageIndex {
         else           { return $reviewPageIndex }
     }
     if ($Current -eq $assetPageIndex) {
-        return if ($cpm) { $cpmPageIndex } else { $reviewPageIndex }
+        if ($cpm) { return $cpmPageIndex } else { return $reviewPageIndex }
     }
     if ($Current -eq $cpmPageIndex)                { return $reviewPageIndex }
     return ($Current + 1)
@@ -1423,11 +1423,11 @@ function Get-PrevPageIndex {
     if ($Current -eq $systemPageIndex)             { return $requirementsPageIndex }
     if ($Current -eq $licencePageIndex)            { return $systemPageIndex }
     if ($Current -eq $fontPageIndex) {
-        return if ($newInstall) { $licencePageIndex } else { $systemPageIndex }
+        if ($newInstall) { return $licencePageIndex } else { return $systemPageIndex }
     }
     if ($Current -eq $assetPageIndex)              { return $fontPageIndex }
     if ($Current -eq $cpmPageIndex) {
-        return if ($brandKit) { $assetPageIndex } else { $fontPageIndex }
+        if ($brandKit) { return $assetPageIndex } else { return $fontPageIndex }
     }
     if ($Current -eq $reviewPageIndex) {
         if ($cpm)           { return $cpmPageIndex }
