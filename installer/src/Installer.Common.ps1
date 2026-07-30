@@ -492,6 +492,87 @@ function Install-SuamiSihatShortcuts {
     }
 }
 
+function Get-SuamiSihatLatestRelease {
+    param([string]$CurrentVersion = "1.6.0")
+
+    $apiUrls = @(
+        "https://api.github.com/repos/SuamiSihat/SS-Designer-Assets/releases/latest",
+        "https://api.github.com/repos/SuamiSihat/SS-Brand-Assets/releases/latest"
+    )
+
+    foreach ($url in $apiUrls) {
+        try {
+            $headers = @{ "User-Agent" = "SuamiSihat-Creative-Assets-Management" }
+            $response = Invoke-RestMethod -Uri $url -Headers $headers -TimeoutSec 5 -ErrorAction Stop
+            
+            $latestTag = [string]$response.tag_name -replace '^v', ''
+            $latestVersion = if ([string]::IsNullOrWhiteSpace($latestTag)) { "1.6.0" } else { $latestTag }
+            $htmlUrl = [string]$response.html_url
+            $releaseNotes = [string]$response.body
+            
+            $downloadUrl = ""
+            if ($response.assets) {
+                $exeAsset = $response.assets | Where-Object { $_.name -like "*.exe" } | Select-Object -First 1
+                if ($exeAsset) {
+                    $downloadUrl = $exeAsset.browser_download_url
+                }
+            }
+
+            $hasUpdate = $false
+            if ($latestVersion -and $CurrentVersion) {
+                try {
+                    $vCur = [version]$CurrentVersion
+                    $vLat = [version]$latestVersion
+                    if ($vLat -gt $vCur) { $hasUpdate = $true }
+                } catch {
+                    if ($latestVersion -ne $CurrentVersion) { $hasUpdate = $true }
+                }
+            }
+
+            return @{
+                HasUpdate      = $hasUpdate
+                CurrentVersion = $CurrentVersion
+                LatestVersion  = $latestVersion
+                ReleaseNotes   = $releaseNotes
+                DownloadUrl    = $downloadUrl
+                HtmlUrl        = $htmlUrl
+                CheckedAt      = (Get-Date).ToString("yyyy-MM-dd HH:mm")
+            }
+        } catch {}
+    }
+
+    return @{
+        HasUpdate      = $false
+        CurrentVersion = $CurrentVersion
+        LatestVersion  = $CurrentVersion
+        ReleaseNotes   = "Unable to connect to GitHub releases API."
+        DownloadUrl    = ""
+        HtmlUrl        = "https://github.com/SuamiSihat/SS-Designer-Assets/releases"
+        CheckedAt      = (Get-Date).ToString("yyyy-MM-dd HH:mm")
+    }
+}
+
+function Start-SuamiSihatAutoUpdate {
+    param([string]$DownloadUrl)
+
+    if ([string]::IsNullOrWhiteSpace($DownloadUrl)) {
+        throw "No download URL provided for auto-update."
+    }
+
+    $tempDir = Join-Path $env:TEMP "SuamiSihatUpdate"
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+    $updateExePath = Join-Path $tempDir "SuamiSihat-Creative-Assets-Management-Update.exe"
+
+    Invoke-WebRequest -Uri $DownloadUrl -OutFile $updateExePath -UseBasicParsing
+    if (-not (Test-Path -LiteralPath $updateExePath -PathType Leaf)) {
+        throw "Failed to download update package."
+    }
+
+    Start-Process -FilePath $updateExePath
+    return $updateExePath
+}
+
+
 
 
 

@@ -656,7 +656,7 @@ $fontGroup.Controls.Add($repairFontsBtn)
 $appGroup = New-Object Windows.Forms.GroupBox
 $appGroup.Text = " Workspace && Sequential Counter Defaults "
 $appGroup.Location = New-Object Drawing.Point(27, 185)
-$appGroup.Size = New-Object Drawing.Size(667, 240)
+$appGroup.Size = New-Object Drawing.Size(667, 160)
 $appGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $settingsPage.Controls.Add($appGroup)
 
@@ -675,23 +675,19 @@ $setWorkspaceBrowseBtn.Location = New-Object Drawing.Point(543, 45)
 $setWorkspaceBrowseBtn.Size = New-Object Drawing.Size(107, 31)
 $appGroup.Controls.Add($setWorkspaceBrowseBtn)
 
-$setJobLabel = New-Label -Text "Next Sequential Job ID Counter (e.g. D0075):" -X 15 -Y 88 -Width 300
+$setJobLabel = New-Label -Text "Next Sequential Job ID Counter (e.g. D0075):" -X 15 -Y 85 -Width 300
 $appGroup.Controls.Add($setJobLabel)
 
 $setJobText = New-Object Windows.Forms.TextBox
-$setJobText.Location = New-Object Drawing.Point(15, 110)
-$setJobText.Size = New-Object Drawing.Size(200, 27)
+$setJobText.Location = New-Object Drawing.Point(15, 108)
+$setJobText.Size = New-Object Drawing.Size(160, 27)
 $setJobText.Text = $script:appState.NextJobNumber
 $appGroup.Controls.Add($setJobText)
 
-$lastProjSettingsLabel = New-Label -Text "Last Created Project: $(if ([string]::IsNullOrWhiteSpace($script:appState.LastProjectName)) { 'None' } else { $script:appState.LastProjectName })" -X 15 -Y 150 -Width 630 -Height 24
-$lastProjSettingsLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$appGroup.Controls.Add($lastProjSettingsLabel)
-
 $saveSettingsBtn = New-Object Windows.Forms.Button
 $saveSettingsBtn.Text = "Save Settings"
-$saveSettingsBtn.Location = New-Object Drawing.Point(15, 186)
-$saveSettingsBtn.Size = New-Object Drawing.Size(160, 34)
+$saveSettingsBtn.Location = New-Object Drawing.Point(190, 105)
+$saveSettingsBtn.Size = New-Object Drawing.Size(130, 32)
 $saveSettingsBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $saveSettingsBtn.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
 $saveSettingsBtn.ForeColor = [Drawing.Color]::White
@@ -699,9 +695,49 @@ $saveSettingsBtn.FlatStyle = "Flat"
 $saveSettingsBtn.Cursor = [Windows.Forms.Cursors]::Hand
 $appGroup.Controls.Add($saveSettingsBtn)
 
-$settingsStatusLabel = New-Label -Text "" -X 190 -Y 190 -Width 450 -Height 24
+$settingsStatusLabel = New-Label -Text "" -X 335 -Y 110 -Width 310 -Height 24
 $settingsStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $appGroup.Controls.Add($settingsStatusLabel)
+
+# Group 3: About & Check for Updates
+$updateGroup = New-Object Windows.Forms.GroupBox
+$updateGroup.Text = " About && Software Updates "
+$updateGroup.Location = New-Object Drawing.Point(27, 355)
+$updateGroup.Size = New-Object Drawing.Size(667, 125)
+$updateGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$settingsPage.Controls.Add($updateGroup)
+
+$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v1.6.0`r`nGitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 24 -Width 637 -Height 36
+$aboutLabel.Font = New-Object Drawing.Font("Segoe UI", 8.5)
+$aboutLabel.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
+$updateGroup.Controls.Add($aboutLabel)
+
+$btnCheckUpdate = New-Object Windows.Forms.Button
+$btnCheckUpdate.Text = "Check for Updates"
+$btnCheckUpdate.Location = New-Object Drawing.Point(15, 68)
+$btnCheckUpdate.Size = New-Object Drawing.Size(160, 32)
+$btnCheckUpdate.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$btnCheckUpdate.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$btnCheckUpdate.ForeColor = [Drawing.Color]::White
+$btnCheckUpdate.FlatStyle = "Flat"
+$btnCheckUpdate.Cursor = [Windows.Forms.Cursors]::Hand
+$updateGroup.Controls.Add($btnCheckUpdate)
+
+$btnInstallUpdate = New-Object Windows.Forms.Button
+$btnInstallUpdate.Text = "Install Update"
+$btnInstallUpdate.Location = New-Object Drawing.Point(185, 68)
+$btnInstallUpdate.Size = New-Object Drawing.Size(140, 32)
+$btnInstallUpdate.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$btnInstallUpdate.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
+$btnInstallUpdate.ForeColor = [Drawing.Color]::White
+$btnInstallUpdate.FlatStyle = "Flat"
+$btnInstallUpdate.Cursor = [Windows.Forms.Cursors]::Hand
+$btnInstallUpdate.Visible = $false
+$updateGroup.Controls.Add($btnInstallUpdate)
+
+$updateStatusLabel = New-Label -Text "" -X 185 -Y 72 -Width 460 -Height 28
+$updateStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$updateGroup.Controls.Add($updateStatusLabel)
 
 # Event Handlers for Creator Page
 $updatePreview = {
@@ -818,7 +854,6 @@ $createProjectBtn.Add_Click({
             -InjectTemplates:$chkInjectTemplate.Checked
         
         $script:appState = Get-SuamiSihatAppState
-        $lastProjSettingsLabel.Text = "Last Created Project: $($result.FolderName)"
         $jobIdText.Text = $result.NextJobNumber
         $setJobText.Text = $result.NextJobNumber
         &$updatePreview
@@ -861,6 +896,48 @@ $saveSettingsBtn.Add_Click({
     } catch {
         $settingsStatusLabel.ForeColor = [Drawing.Color]::Firebrick
         $settingsStatusLabel.Text = "Error saving settings: $($_.Exception.Message)"
+    }
+})
+
+# GitHub Update Handlers
+$script:updateInfo = $null
+
+$btnCheckUpdate.Add_Click({
+    $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+    $updateStatusLabel.Text = "Checking GitHub Releases API..."
+    
+    $script:updateInfo = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.0"
+    
+    if ($script:updateInfo.HasUpdate) {
+        $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
+        $updateStatusLabel.Text = "New Version Available: v$($script:updateInfo.LatestVersion)!"
+        if (-not [string]::IsNullOrWhiteSpace($script:updateInfo.DownloadUrl)) {
+            $btnInstallUpdate.Location = New-Object Drawing.Point(185, 68)
+            $btnInstallUpdate.Visible = $true
+            $updateStatusLabel.Location = New-Object Drawing.Point(335, 72)
+            $updateStatusLabel.Width = 310
+        }
+    } else {
+        $btnInstallUpdate.Visible = $false
+        $updateStatusLabel.Location = New-Object Drawing.Point(185, 72)
+        $updateStatusLabel.Width = 460
+        $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
+        $updateStatusLabel.Text = "You are running the latest version (v1.6.0)."
+    }
+})
+
+$btnInstallUpdate.Add_Click({
+    if ($script:updateInfo -and $script:updateInfo.DownloadUrl) {
+        try {
+            $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+            $updateStatusLabel.Text = "Downloading update from GitHub..."
+            Start-SuamiSihatAutoUpdate -DownloadUrl $script:updateInfo.DownloadUrl
+            $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
+            $updateStatusLabel.Text = "Update downloaded! Launching installer..."
+        } catch {
+            $updateStatusLabel.ForeColor = [Drawing.Color]::Firebrick
+            $updateStatusLabel.Text = "Update error: $($_.Exception.Message)"
+        }
     }
 })
 
