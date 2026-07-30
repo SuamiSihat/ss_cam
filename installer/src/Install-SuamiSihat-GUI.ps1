@@ -1233,6 +1233,9 @@ function Start-Installation {
     if (-not $createWebShortcuts.Checked) {
         $arguments += "-SkipWebShortcuts"
     }
+    if (-not [string]::IsNullOrWhiteSpace($InstallerExePath)) {
+        $arguments += @("-InstallerExePath", (Quote-ProcessArgument $InstallerExePath))
+    }
 
     $startInfo = New-Object Diagnostics.ProcessStartInfo
     $startInfo.FileName = "powershell.exe"

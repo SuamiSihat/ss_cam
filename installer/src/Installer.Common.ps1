@@ -487,6 +487,24 @@ function Install-SuamiSihatShortcuts {
             $sc2.Description = "SuamiSihat Creative Assets Management & Project Creator"
             $sc2.Save()
         }
+
+        # Windows App Paths (Registered so Win+R or Search finds SS-CAM / SuamiSihat)
+        $appPathsKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\SS-CAM.exe"
+        New-Item -Path $appPathsKey -Force | Out-Null
+        Set-ItemProperty -Path $appPathsKey -Name "(Default)" -Value $TargetExePath
+        Set-ItemProperty -Path $appPathsKey -Name "Path" -Value (Split-Path -Parent $TargetExePath)
+
+        # Windows Apps & Features / Add or Remove Programs Registration
+        $uninstallKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SuamiSihatCreativeAssetsManagement"
+        New-Item -Path $uninstallKey -Force | Out-Null
+        Set-ItemProperty -Path $uninstallKey -Name "DisplayName" -Value "SuamiSihat Creative Assets Management"
+        Set-ItemProperty -Path $uninstallKey -Name "DisplayVersion" -Value "1.6.0"
+        Set-ItemProperty -Path $uninstallKey -Name "Publisher" -Value "SuamiSihat"
+        Set-ItemProperty -Path $uninstallKey -Name "DisplayIcon" -Value $TargetExePath
+        Set-ItemProperty -Path $uninstallKey -Name "InstallLocation" -Value (Split-Path -Parent $TargetExePath)
+        Set-ItemProperty -Path $uninstallKey -Name "UninstallString" -Value "`"$TargetExePath`" --installer"
+        Set-ItemProperty -Path $uninstallKey -Name "NoModify" -Value 1 -PropertyType DWord
+        Set-ItemProperty -Path $uninstallKey -Name "NoRepair" -Value 1 -PropertyType DWord
     } catch {
         # Shortcut creation is non-blocking
     }
