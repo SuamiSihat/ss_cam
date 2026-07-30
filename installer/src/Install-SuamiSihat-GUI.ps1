@@ -1381,6 +1381,22 @@ $timer.Add_Tick({
     $progressBar.Value = 100
 
     if ($exitCode -eq 0) {
+        try {
+            $sourceExe = if (-not [string]::IsNullOrWhiteSpace($InstallerExePath) -and (Test-Path -LiteralPath $InstallerExePath -PathType Leaf)) {
+                $InstallerExePath
+            } else {
+                [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+            }
+
+            if ($sourceExe -and (Test-Path -LiteralPath $sourceExe -PathType Leaf) -and $sourceExe.EndsWith(".exe", [StringComparison]::OrdinalIgnoreCase)) {
+                $appInstallDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management"
+                New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
+                $targetExePath = Join-Path $appInstallDir "SuamiSihat-Creative-Assets.exe"
+                Copy-Item -LiteralPath $sourceExe -Destination $targetExePath -Force
+                Install-SuamiSihatShortcuts -TargetExePath $targetExePath
+            }
+        } catch {}
+
         $script:setupComplete = $true
         $progressTitle.Text = "Setup complete"
         $progressStatus.Text = "This PC is ready for SuamiSihat design work."
