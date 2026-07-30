@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $outputDirectory = Join-Path $projectRoot "dist"
-$outputFile = Join-Path $outputDirectory "SuamiSihat-Creative-Assets-Management-$Version.exe"
+$outputFile = Join-Path $outputDirectory "SuamiSihat-Creative-Assets.exe"
 $iconFile = Join-Path $projectRoot "payload\Brand Assets\Logos\ss_favicon\favicon.ico"
 $bootstrapperSource = Join-Path $PSScriptRoot "bootstrapper\Program.cs"
 $frameworkRoot = Join-Path $env:WINDIR "Microsoft.NET"
@@ -102,29 +102,6 @@ using System.Reflection;
     }
     if (-not (Test-Path -LiteralPath $outputFile -PathType Leaf)) {
         throw "The compiler completed but the expected EXE was not created: $outputFile"
-    }
-
-    # Code-signing with SuamiSihat Digital Certificate
-    try {
-        $cert = Get-ChildItem -Path Cert:\CurrentUser\My, Cert:\LocalMachine\My -ErrorAction SilentlyContinue |
-            Where-Object { $_.Subject -like "*SuamiSihat*" -and $_.HasPrivateKey } |
-            Select-Object -First 1
-
-        if (-not $cert) {
-            Write-Host "Creating local SuamiSihat Code-Signing Certificate..." -ForegroundColor Yellow
-            $cert = New-SelfSignedCertificate `
-                -Subject "CN=SuamiSihat, O=SuamiSihat" `
-                -Type CodeSigningCert `
-                -CertStoreLocation "Cert:\CurrentUser\My" `
-                -NotAfter (Get-Date).AddYears(5)
-        }
-
-        if ($cert) {
-            Write-Host "Signing binary with SuamiSihat digital certificate..." -ForegroundColor Cyan
-            Set-AuthenticodeSignature -FilePath $outputFile -Certificate $cert -ErrorAction SilentlyContinue | Out-Null
-        }
-    } catch {
-        # Signing failure is non-blocking for build
     }
 
     $outputInfo = Get-Item -LiteralPath $outputFile
