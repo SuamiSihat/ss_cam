@@ -927,7 +927,7 @@ $updateGroup.Size = New-Object Drawing.Size(667, 125)
 $updateGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $settingsPage.Controls.Add($updateGroup)
 
-$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v1.6.0`r`nGitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 24 -Width 637 -Height 36
+$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v1.6.2`r`nGitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 24 -Width 637 -Height 36
 $aboutLabel.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $aboutLabel.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
 $updateGroup.Controls.Add($aboutLabel)
@@ -1265,7 +1265,7 @@ $btnCheckUpdate.Add_Click({
     $updateStatusLabel.Location = New-Object Drawing.Point(185, 72)
     $updateStatusLabel.Width = 460
 
-    $script:updateInfo = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.1"
+    $script:updateInfo = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.2"
 
     if ($script:updateInfo.HasUpdate) {
         $btnCheckUpdate.Text = "Check for Updates"
