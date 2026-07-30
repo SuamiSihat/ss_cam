@@ -289,13 +289,20 @@ function New-SuamiSihatProjectFolder {
         default      { "SS" }
     }
 
+    $cleanYear = if ($Year -match '^\d{4}$') { $Year } else { (Get-Date).ToString("yyyy") }
+    $curMonthNum = (Get-Date).ToString("MM")
+    $curMonthName = (Get-Date).ToString("MMM").ToUpper()
+    $monthFolder = "${cleanYear}-${curMonthName}"
+    $dateCode = "${cleanYear}${curMonthNum}"
+
     $cleanJob = ($JobNumber -replace '\s+', '').ToUpper()
     if (-not $cleanJob.StartsWith("D")) {
         $cleanJob = "D$cleanJob"
     }
 
     $folderName = "${dateCode}_${cleanJob}_${cleanSubBrand}_${cleanProjectName}"
-    $projectRoot = Join-Path $RootDirectory $folderName
+    $monthlyRoot = Join-Path $RootDirectory $monthFolder
+    $projectRoot = Join-Path $monthlyRoot $folderName
 
     $subFolders = switch -Wildcard ($PresetType) {
         "*Social*"  { @("Working Files", "Source Assets", "Copywriting", "Final Exports") }
@@ -387,7 +394,7 @@ function Get-SuamiSihatAppState {
                 LastProjectPath  = [string]$json.LastProjectPath
                 LastProjectName  = [string]$json.LastProjectName
                 LastJobNumber    = [string]$json.LastJobNumber
-                NextJobNumber    = if ([string]::IsNullOrWhiteSpace([string]$json.NextJobNumber)) { "D0075" } else { [string]$json.NextJobNumber }
+                NextJobNumber    = if ([string]::IsNullOrWhiteSpace([string]$json.NextJobNumber)) { "D0001" } else { [string]$json.NextJobNumber }
                 DefaultWorkspace = if ([string]::IsNullOrWhiteSpace([string]$json.DefaultWorkspace)) { $defaultWorkspace } else { [string]$json.DefaultWorkspace }
                 RecentProjects   = $recent
             }
@@ -397,8 +404,8 @@ function Get-SuamiSihatAppState {
     return @{
         LastProjectPath  = ""
         LastProjectName  = "None"
-        LastJobNumber    = "D0074"
-        NextJobNumber    = "D0075"
+        LastJobNumber    = ""
+        NextJobNumber    = "D0001"
         DefaultWorkspace = $defaultWorkspace
         RecentProjects   = @()
     }
@@ -408,7 +415,7 @@ function Save-SuamiSihatAppState {
     param(
         [string]$LastProjectPath = "",
         [string]$LastProjectName = "",
-        [string]$LastJobNumber = "D0074",
+        [string]$LastJobNumber = "D0001",
         [string]$DefaultWorkspace = "",
         [string]$PresetType = "GraphicDesign"
     )
@@ -416,7 +423,7 @@ function Save-SuamiSihatAppState {
     $stateFile = Get-SuamiSihatAppStatePath
     $prevState = Get-SuamiSihatAppState
     
-    $nextJob = "D0075"
+    $nextJob = "D0002"
     if ($LastJobNumber -match '(\d+)') {
         $num = [int]$matches[1] + 1
         $digits = $matches[1].Length

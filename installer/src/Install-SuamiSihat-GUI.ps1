@@ -22,6 +22,7 @@ $script:installationRunning = $false
 $script:setupComplete = $false
 $script:pageIndex = 0
 $script:softwareInventory = @()
+$script:copyTimer = $null
 
 $commandLineInstaller = Join-Path $PSScriptRoot "Install-SuamiSihat.ps1"
 $commonFunctions = Join-Path $PSScriptRoot "Installer.Common.ps1"
@@ -108,6 +109,27 @@ $form.MaximizeBox = $false
 $form.MinimizeBox = $true
 $form.BackColor = [Drawing.Color]::FromArgb(244, 247, 251)
 $form.Font = New-Object Drawing.Font("Segoe UI", 9)
+
+# Taskbar & Form Icon Integration
+$iconFile = Join-Path $installerRoot "payload\Brand Assets\Logos\ss_favicon\favicon.ico"
+if (Test-Path -LiteralPath $iconFile -PathType Leaf) {
+    try {
+        $form.Icon = New-Object Drawing.Icon($iconFile)
+    } catch {}
+}
+
+try {
+    $typeDefinition = @"
+using System;
+using System.Runtime.InteropServices;
+public class Win32Taskbar {
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern int SetCurrentProcessExplicitAppUserModelID(string AppID);
+}
+"@
+    Add-Type -TypeDefinition $typeDefinition -ErrorAction SilentlyContinue
+    [Win32Taskbar]::SetCurrentProcessExplicitAppUserModelID("SuamiSihat.CreativeAssetsManagement") | Out-Null
+} catch {}
 
 $header = New-Object Windows.Forms.Panel
 $header.Location = New-Object Drawing.Point(0, 0)
@@ -743,8 +765,10 @@ $updateGroup.Controls.Add($updateStatusLabel)
 # Event Handlers for Creator Page
 $updatePreview = {
     $selYear = if ($yearCombo.SelectedItem) { [string]$yearCombo.SelectedItem } else { (Get-Date).ToString("yyyy") }
-    $curMonth = (Get-Date).ToString("MM")
-    $dateCode = "${selYear}${curMonth}"
+    $curMonthNum = (Get-Date).ToString("MM")
+    $curMonthName = (Get-Date).ToString("MMM").ToUpper()
+    $monthFolder = "${selYear}-${curMonthName}"
+    $dateCode = "${selYear}${curMonthNum}"
 
     if ($workspacePathText.Text -match '\\Creative Workspace\\SS-\d{4}$') {
         $workspacePathText.Text = $workspacePathText.Text -replace 'SS-\d{4}$', "SS-$selYear"
@@ -757,7 +781,7 @@ $updatePreview = {
     if ([string]::IsNullOrWhiteSpace($proj)) { $proj = "Project" }
     
     $folderName = "${dateCode}_${job}_${sub}_${proj}"
-    $targetPath = Join-Path $workspacePathText.Text.Trim() $folderName
+    $targetPath = Join-Path (Join-Path $workspacePathText.Text.Trim() $monthFolder) $folderName
     $previewPathLabel.Text = $targetPath
 
     # Refresh Recent Projects UI
@@ -814,16 +838,22 @@ $btnCopyName.Add_Click({
         $btnCopyName.ForeColor = [Drawing.Color]::FromArgb(21, 128, 61)
         
         # Reset copy button text after 2 seconds
-        $copyTimer = New-Object Windows.Forms.Timer
-        $copyTimer.Interval = 2000
-        $copyTimer.Add_Tick({
+        if ($null -ne $script:copyTimer) {
+            try { $script:copyTimer.Stop(); $script:copyTimer.Dispose() } catch {}
+        }
+        $script:copyTimer = New-Object Windows.Forms.Timer
+        $script:copyTimer.Interval = 2000
+        $script:copyTimer.Add_Tick({
             $btnCopyName.Text = "Copy Name"
             $btnCopyName.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
             $btnCopyName.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
-            $copyTimer.Stop()
-            $copyTimer.Dispose()
+            if ($null -ne $script:copyTimer) {
+                $script:copyTimer.Stop()
+                $script:copyTimer.Dispose()
+                $script:copyTimer = $null
+            }
         })
-        $copyTimer.Start()
+        $script:copyTimer.Start()
     } catch {}
 })
 
