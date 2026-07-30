@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $outputDirectory = Join-Path $projectRoot "dist"
-$outputFile = Join-Path $outputDirectory "SuamiSihat-Creative-Assets.exe"
+$outputFile = Join-Path $outputDirectory "SS-CAM-v$Version.exe"
 $iconFile = Join-Path $projectRoot "payload\Brand Assets\Logos\ss_favicon\favicon.ico"
 $bootstrapperSource = Join-Path $PSScriptRoot "bootstrapper\Program.cs"
 $frameworkRoot = Join-Path $env:WINDIR "Microsoft.NET"

@@ -2,6 +2,7 @@
 param(
     [switch]$SmokeTest,
     [switch]$InstallerMode,
+    [string]$InstallerExePath = "",
     [string]$PreviewPath = "",
     [ValidateRange(0, 9)]
     [int]$PreviewPage = 0
@@ -1391,7 +1392,7 @@ $timer.Add_Tick({
             if ($sourceExe -and (Test-Path -LiteralPath $sourceExe -PathType Leaf) -and $sourceExe.EndsWith(".exe", [StringComparison]::OrdinalIgnoreCase)) {
                 $appInstallDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management"
                 New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
-                $targetExePath = Join-Path $appInstallDir "SuamiSihat-Creative-Assets.exe"
+                $targetExePath = Join-Path $appInstallDir "SS-CAM.exe"
                 Copy-Item -LiteralPath $sourceExe -Destination $targetExePath -Force
                 Install-SuamiSihatShortcuts -TargetExePath $targetExePath
             }

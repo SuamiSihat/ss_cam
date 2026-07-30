@@ -4,6 +4,7 @@ param(
     [string]$FontSet = "All",
 
     [string]$Destination = "",
+    [string]$InstallerExePath = "",
 
     [switch]$SkipFonts,
     [switch]$SkipAssets,
@@ -332,12 +333,17 @@ if ($OpenImportFiles -and -not $SkipAssets -and -not $WhatIfPreference) {
 
 # Install Windows App Shortcuts
 try {
-    $currentProcessExe = [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-    if ($currentProcessExe -and (Test-Path -LiteralPath $currentProcessExe -PathType Leaf) -and $currentProcessExe.EndsWith(".exe", [StringComparison]::OrdinalIgnoreCase)) {
+    $sourceExe = if (-not [string]::IsNullOrWhiteSpace($InstallerExePath) -and (Test-Path -LiteralPath $InstallerExePath -PathType Leaf)) {
+        $InstallerExePath
+    } else {
+        [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    }
+
+    if ($sourceExe -and (Test-Path -LiteralPath $sourceExe -PathType Leaf) -and $sourceExe.EndsWith(".exe", [StringComparison]::OrdinalIgnoreCase)) {
         $appInstallDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management"
         New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
-        $installedExePath = Join-Path $appInstallDir "SuamiSihat-Creative-Assets-Management.exe"
-        Copy-Item -LiteralPath $currentProcessExe -Destination $installedExePath -Force
+        $installedExePath = Join-Path $appInstallDir "SS-CAM.exe"
+        Copy-Item -LiteralPath $sourceExe -Destination $installedExePath -Force
         Install-SuamiSihatShortcuts -TargetExePath $installedExePath
         Write-Host "  Installed Windows Application shortcut: Start Menu -> SuamiSihat Creative Assets Management"
     }

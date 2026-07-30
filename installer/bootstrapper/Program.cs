@@ -76,7 +76,8 @@ internal static class Program
                     " -InstallerExePath " + QuoteArgument(Process.GetCurrentProcess().MainModule.FileName) +
                     (smokeTest ? " -SmokeTest" : string.Empty),
                 WorkingDirectory = Path.GetDirectoryName(wizardPath),
-                UseShellExecute = true
+                UseShellExecute = false,
+                CreateNoWindow = true
             };
 
             using (Process wizard = Process.Start(startInfo))
