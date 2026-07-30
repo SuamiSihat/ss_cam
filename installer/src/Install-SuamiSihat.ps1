@@ -347,6 +347,7 @@ try {
         Install-SuamiSihatShortcuts -TargetExePath $installedExePath
         Write-Host "  Installed Windows Application shortcut: Start Menu -> SuamiSihat Creative Assets Management"
     }
+} catch {}
 try { Save-SuamiSihatAppState } catch {}
 Write-Step "Setup complete"
 if (-not $SkipFonts) {
