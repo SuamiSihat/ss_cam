@@ -165,6 +165,24 @@ $btnNavSettings.FlatStyle = "Flat"
 $btnNavSettings.Cursor = [Windows.Forms.Cursors]::Hand
 $header.Controls.Add($btnNavSettings)
 
+# Header Update Notification Badge / Pill
+$headerUpdateBadge = New-Object Windows.Forms.Button
+$headerUpdateBadge.Text = "Update Available!"
+$headerUpdateBadge.Location = New-Object Drawing.Point(460, 24)
+$headerUpdateBadge.Size = New-Object Drawing.Size(150, 38)
+$headerUpdateBadge.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$headerUpdateBadge.BackColor = [Drawing.Color]::FromArgb(220, 38, 38)
+$headerUpdateBadge.ForeColor = [Drawing.Color]::White
+$headerUpdateBadge.FlatStyle = "Flat"
+$headerUpdateBadge.FlatAppearance.BorderSize = 0
+$headerUpdateBadge.Cursor = [Windows.Forms.Cursors]::Hand
+$headerUpdateBadge.Visible = $false
+$header.Controls.Add($headerUpdateBadge)
+
+$headerUpdateBadge.Add_Click({
+    Show-Page $settingsPageIndex
+})
+
 
 $headerAccent = New-Object Windows.Forms.Panel
 $headerAccent.Location = New-Object Drawing.Point(0, 88)
@@ -1466,6 +1484,40 @@ $form.Add_FormClosing({
             [Windows.Forms.MessageBoxButtons]::OK,
             [Windows.Forms.MessageBoxIcon]::Information
         ) | Out-Null
+    }
+})
+
+$form.Add_Shown({
+    if (-not $SmokeTest) {
+        $worker = New-Object System.ComponentModel.BackgroundWorker
+        $worker.DoWork += {
+            param($sender, $e)
+            try {
+                $e.Result = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.1"
+            } catch {
+                $e.Result = $null
+            }
+        }
+        $worker.RunWorkerCompleted += {
+            param($sender, $e)
+            if ($null -ne $e.Result -and $e.Result.HasUpdate) {
+                $script:updateInfo = $e.Result
+                $headerUpdateBadge.Text = "Update v$($e.Result.LatestVersion)!"
+                $headerUpdateBadge.Visible = $true
+                $btnNavSettings.Text = "Settings *"
+                $btnNavSettings.BackColor = [Drawing.Color]::FromArgb(194, 65, 12)
+                
+                $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(194, 65, 12)
+                $updateStatusLabel.Text = "New Update Available: v$($e.Result.LatestVersion)"
+                if (-not [string]::IsNullOrWhiteSpace($e.Result.DownloadUrl)) {
+                    $btnInstallUpdate.Location = New-Object Drawing.Point(185, 68)
+                    $btnInstallUpdate.Visible = $true
+                    $updateStatusLabel.Location = New-Object Drawing.Point(335, 72)
+                    $updateStatusLabel.Width = 310
+                }
+            }
+        }
+        $worker.RunWorkerAsync()
     }
 })
 
