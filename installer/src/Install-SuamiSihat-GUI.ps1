@@ -517,7 +517,7 @@ $cpmSubtitle = New-Label -Text "SS-CAM will be installed as a Windows desktop ap
 $cpmPage.Controls.Add($cpmSubtitle)
 
 $cpmInstallPath = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management"
-$cpmPathLabel = New-Label -Text "Installation path:  $cpmInstallPath" -X 27 -Y 88 -Width 666 -Height 20
+$cpmPathLabel = New-Label -Text "Installation path:  $cpmInstallPath" -X 27 -Y 85 -Width 666 -Height 36
 $cpmPathLabel.Font = New-Object Drawing.Font("Consolas", 8.5)
 $cpmPathLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $cpmPage.Controls.Add($cpmPathLabel)
@@ -526,20 +526,20 @@ $cpmDetails = New-Label -Text @"
 
 What's included:
 
-  •  Creative Project Folder Creator — Post Haste-style presets for graphic, video, social and brand projects
-  •  Sequential Job ID tracking with D / V / P / S prefix and auto-increment
-  •  Recent project history with one-click Explorer launch and clipboard folder-name copy
-  •  Configurable workspace root directory and job counter via Settings
+  -  Creative Project Folder Creator - Post Haste-style presets for graphic, video, social and brand projects
+  -  Sequential Job ID tracking with D / V / P / S prefix and auto-increment
+  -  Recent project history with one-click Explorer launch and clipboard folder-name copy
+  -  Configurable workspace root directory and job counter via Settings
 
 Access after installation:
 
-  •  Start Menu shortcut   Programs › SuamiSihat › Creative Assets Management
-  •  Desktop shortcut created automatically
+  -  Start Menu shortcut: Programs > SuamiSihat > Creative Assets Management
+  -  Desktop shortcut created automatically
 
 No administrator rights required.
 Installs per-user and can be removed at any time from Settings.
 "@
-$cpmDetails.Location = New-Object Drawing.Point(27, 110)
+$cpmDetails.Location = New-Object Drawing.Point(27, 125)
 $cpmDetails.Size = New-Object Drawing.Size(666, 300)
 $cpmDetails.Font = New-Object Drawing.Font("Segoe UI", 9.5)
 $cpmPage.Controls.Add($cpmDetails)
@@ -1624,8 +1624,8 @@ function Update-Review {
             -Name "Web shortcuts" -Details $shortcutSummary
         Add-ReviewChecklistItem -Ready $copyAssets.Checked `
             -Name "Local reports" -Details $(if ($copyAssets.Checked) { "Workstation and font inventory Markdown files" } else { "Skipped with brand assets" })
-        Add-ReviewChecklistItem -Ready $chkCompApp.Checked `
-            -Name "Creative Project Mgmt" -Details $(if ($chkCompApp.Checked) { "SS-CAM app, Start Menu and Desktop shortcuts" } else { "Skipped by user" })
+        Add-ReviewChecklistItem -Ready $chkWelcomeCPM.Checked `
+            -Name "Creative Project Mgmt" -Details $(if ($chkWelcomeCPM.Checked) { "SS-CAM app, Start Menu and Desktop shortcuts" } else { "Skipped by user" })
     } finally {
         $reviewChecklist.EndUpdate()
     }
