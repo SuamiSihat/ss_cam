@@ -259,6 +259,7 @@ function New-SuamiSihatProjectFolder {
         [string]$ProjectName,
         [string]$PresetType = "GraphicDesign",
         [string]$Year = "",
+        [string]$Description = "",
         [string[]]$ExtraSubFolders = @(),
         [switch]$InjectTemplates
     )
@@ -323,6 +324,25 @@ function New-SuamiSihatProjectFolder {
         $path = Join-Path $projectRoot $subFolder
         New-Item -ItemType Directory -Path $path -Force | Out-Null
     }
+
+    # Save Project Description / Creative Brief as README.md in project root
+    $readmeFile = Join-Path $projectRoot "README.md"
+    $readmeContent = if (-not [string]::IsNullOrWhiteSpace($Description)) {
+        $Description
+    } else {
+@"
+# Project: $folderName
+
+- **Job ID**: $cleanJob
+- **Preset**: $PresetType
+- **Sub-Brand**: $cleanSubBrand
+- **Created**: $((Get-Date).ToString("yyyy-MM-dd HH:mm"))
+
+## Description & Creative Brief
+SuamiSihat brand creative assets project directory.
+"@
+    }
+    Set-Content -LiteralPath $readmeFile -Value $readmeContent -Encoding UTF8
 
     # Inject Starter Master Template File if requested
     if ($InjectTemplates) {
@@ -411,6 +431,16 @@ function Get-SuamiSihatAppState {
     }
 }
 
+function Get-SuamiSihatJobPrefix {
+    param([string]$PresetName)
+    switch -Wildcard ($PresetName) {
+        "*Video*"   { "V" }
+        "*Brand*"   { "P" }
+        "*Social*"  { "S" }
+        default     { "D" }
+    }
+}
+
 function Save-SuamiSihatAppState {
     param(
         [string]$LastProjectPath = "",
@@ -423,12 +453,14 @@ function Save-SuamiSihatAppState {
     $stateFile = Get-SuamiSihatAppStatePath
     $prevState = Get-SuamiSihatAppState
     
+    $prefix = "D"
     $nextJob = "D0002"
-    if ($LastJobNumber -match '(\d+)') {
-        $num = [int]$matches[1] + 1
-        $digits = $matches[1].Length
+    if ($LastJobNumber -match '^([A-Za-z]+)(\d+)') {
+        $prefix = $matches[1].ToUpper()
+        $num = [int]$matches[2] + 1
+        $digits = $matches[2].Length
         if ($digits -lt 4) { $digits = 4 }
-        $nextJob = "D" + $num.ToString().PadLeft($digits, '0')
+        $nextJob = "${prefix}" + $num.ToString().PadLeft($digits, '0')
     }
 
     # Update Recent Projects list (keep top 5)
