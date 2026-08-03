@@ -1196,14 +1196,16 @@ $recentOpenBtn.Add_Click({
 })
 
 # M4: Ctrl+Enter keyboard shortcut for Create Project Folder
-$creatorPage.Add_KeyDown({
+$form.KeyPreview = $true
+$form.Add_KeyDown({
     param($s, $e)
-    if ($e.Control -and $e.KeyCode -eq [Windows.Forms.Keys]::Return) {
-        $createProjectBtn.PerformClick()
-        $e.Handled = $true
+    if ($script:pageIndex -eq $creatorPageIndex -and $e.Control -and $e.KeyCode -eq [Windows.Forms.Keys]::Return) {
+        if ($createProjectBtn.Visible -and $createProjectBtn.Enabled) {
+            $createProjectBtn.PerformClick()
+            $e.Handled = $true
+        }
     }
 })
-$creatorPage.KeyPreview = $true
 
 # Create Button Action
 $createProjectBtn.Add_Click({
@@ -2084,7 +2086,7 @@ $form.Add_Shown({
                 $btnCheckUpdate.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
                 $btnCheckUpdate.Enabled = $false
                 $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
-                $updateStatusLabel.Text = "You are running the latest version (v1.6.2)."
+                $updateStatusLabel.Text = "You are running the latest version (v$($script:AppVersion))."
             }
         })
         $worker.RunWorkerAsync()
