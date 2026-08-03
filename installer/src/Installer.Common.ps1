@@ -918,7 +918,13 @@ function Claim-NextJobID {
     }
 
     # NAS unavailable — use local pool
-    $pool = if ($AppState.LocalJobPool) { [System.Collections.ArrayList]@($AppState.LocalJobPool) } else { [System.Collections.ArrayList]@() }
+    # NOTE: do NOT assign ArrayList via if-else — PowerShell pipeline enumerates it,
+    # collapsing an empty ArrayList to $null, breaking .Count under Set-StrictMode.
+    $pool = [System.Collections.ArrayList]::new()
+    foreach ($id in @($AppState.LocalJobPool)) {
+        $sId = [string]$id
+        if (-not [string]::IsNullOrWhiteSpace($sId)) { [void]$pool.Add($sId) }
+    }
     if ($pool.Count -gt 0) {
         $jobID = $pool[0]
         $pool.RemoveAt(0)

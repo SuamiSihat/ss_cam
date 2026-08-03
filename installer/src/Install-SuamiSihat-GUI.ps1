@@ -1656,7 +1656,11 @@ $createProjectBtn.Add_Click({
             } catch {}
         } else {
             # Offline: add to pending sync queue
-            $pending = if ($script:appState.PendingSync) { [System.Collections.ArrayList]@($script:appState.PendingSync) } else { [System.Collections.ArrayList]@() }
+            # Use ::new() not if-else assignment — empty ArrayList via if-else collapses to $null
+            $pending = [System.Collections.ArrayList]::new()
+            foreach ($item in @($script:appState.PendingSync)) {
+                if ($item -and $item.JobID) { [void]$pending.Add($item) }
+            }
             [void]$pending.Add($pendingEntry)
             $script:appState.PendingSync = @($pending)
         }
