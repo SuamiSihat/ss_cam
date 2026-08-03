@@ -1086,7 +1086,7 @@ function Get-SuamiSihatInstalledVersion {
         try {
             $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($exePath).FileVersion
         } catch {}
-        if ([string]::IsNullOrWhiteSpace($version)) { $version = "1.6.2" }
+        # Don't use a hardcoded fallback — leave blank if not determinable
     }
 
     return [pscustomobject]@{

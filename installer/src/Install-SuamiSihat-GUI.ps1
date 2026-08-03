@@ -13,6 +13,13 @@ $ErrorActionPreference = "Stop"
 
 $script:AppVersion = "1.8.0"
 
+# Capture own exe path — used for self-copy to install directory
+# Must be done immediately; later in nested processes this returns powershell.exe
+$script:SelfExePath = [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+if ([string]::IsNullOrWhiteSpace($InstallerExePath)) {
+    $InstallerExePath = $script:SelfExePath
+}
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [Windows.Forms.Application]::EnableVisualStyles()
