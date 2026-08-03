@@ -11,6 +11,8 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 
+$script:AppVersion = "1.7.0"
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [Windows.Forms.Application]::EnableVisualStyles()
@@ -66,8 +68,22 @@ function New-Page {
     $page.Size = New-Object Drawing.Size(720, 500)
     $page.BackColor = [Drawing.Color]::White
     $page.Visible = $false
+    # Anchor page to all 4 edges so it stretches when the form is resized
+    $page.Anchor = [Windows.Forms.AnchorStyles]::Top -bor
+                   [Windows.Forms.AnchorStyles]::Bottom -bor
+                   [Windows.Forms.AnchorStyles]::Left -bor
+                   [Windows.Forms.AnchorStyles]::Right
     $page
 }
+
+# Anchor style shorthand aliases (used throughout to keep code readable)
+$AL   = [Windows.Forms.AnchorStyles]
+$TBLR = $AL::Top -bor $AL::Bottom -bor $AL::Left -bor $AL::Right
+$TLR  = $AL::Top  -bor $AL::Left  -bor $AL::Right
+$BLR  = $AL::Bottom -bor $AL::Left -bor $AL::Right
+$TR   = $AL::Top  -bor $AL::Right
+$BR   = $AL::Bottom -bor $AL::Right
+$BL   = $AL::Bottom -bor $AL::Left
 
 function Quote-ProcessArgument {
     param([string]$Value)
@@ -104,9 +120,11 @@ $form = New-Object Windows.Forms.Form
 $form.Text = "SuamiSihat Creative Assets Management"
 $form.ClientSize = New-Object Drawing.Size(760, 690)
 $form.StartPosition = "CenterScreen"
-$form.FormBorderStyle = "FixedDialog"
-$form.MaximizeBox = $false
+$form.FormBorderStyle = "Sizable"
+$form.MaximizeBox = $true
 $form.MinimizeBox = $true
+$form.MinimumSize = New-Object Drawing.Size(780, 660)
+$form.AutoScaleMode = [Windows.Forms.AutoScaleMode]::Dpi
 $form.BackColor = [Drawing.Color]::FromArgb(244, 247, 251)
 $form.Font = New-Object Drawing.Font("Segoe UI", 9)
 
@@ -141,6 +159,7 @@ $header = New-Object Windows.Forms.Panel
 $header.Location = New-Object Drawing.Point(0, 0)
 $header.Size = New-Object Drawing.Size(760, 92)
 $header.BackColor = [Drawing.Color]::FromArgb(2, 32, 87)
+$header.Anchor = $TLR
 $form.Controls.Add($header)
 
 $headerLogo = New-Object Windows.Forms.PictureBox
@@ -169,6 +188,7 @@ $btnNavSettings.BackColor = [Drawing.Color]::FromArgb(15, 76, 129)
 $btnNavSettings.ForeColor = [Drawing.Color]::White
 $btnNavSettings.FlatStyle = "Flat"
 $btnNavSettings.Cursor = [Windows.Forms.Cursors]::Hand
+$btnNavSettings.Anchor = $TR
 $header.Controls.Add($btnNavSettings)
 
 # Header Update Notification Badge / Pill
@@ -183,6 +203,7 @@ $headerUpdateBadge.FlatStyle = "Flat"
 $headerUpdateBadge.FlatAppearance.BorderSize = 0
 $headerUpdateBadge.Cursor = [Windows.Forms.Cursors]::Hand
 $headerUpdateBadge.Visible = $false
+$headerUpdateBadge.Anchor = $TR
 $header.Controls.Add($headerUpdateBadge)
 
 $headerUpdateBadge.Add_Click({
@@ -194,6 +215,7 @@ $headerAccent = New-Object Windows.Forms.Panel
 $headerAccent.Location = New-Object Drawing.Point(0, 88)
 $headerAccent.Size = New-Object Drawing.Size(760, 4)
 $headerAccent.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$headerAccent.Anchor = $TLR
 $header.Controls.Add($headerAccent)
 
 $pages = New-Object Collections.ArrayList
@@ -310,23 +332,38 @@ $welcomePage.Controls.Add($welcomePrivacy)
 
 
 
-# Page 3: PC requirements
-$requirementsPage = New-Page
-[void]$pages.Add($requirementsPage)
-$requirementsTitle = New-Label -Text "PC compatibility check" -X 24 -Y 16 -Width 670 -Height 34
-$requirementsTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
-$requirementsTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$requirementsPage.Controls.Add($requirementsTitle)
-$requirementsIntro = New-Label -Text "Before accepting the licence, compare this PC with the SuamiSihat design-workstation target." -X 27 -Y 55 -Width 660 -Height 28
-$requirementsPage.Controls.Add($requirementsIntro)
-$machineText = "$($systemInformation.Manufacturer) $($systemInformation.Model)`r`n$($systemInformation.Windows)"
-$requirementsMachine = New-Label -Text $machineText -X 27 -Y 86 -Width 660 -Height 47
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MERGED PAGE 2: System Check  (tabs: This PC | Design Apps)
+# ─────────────────────────────────────────────────────────────────────────────
+$systemCheckPage = New-Page
+[void]$pages.Add($systemCheckPage)
+
+$systemCheckTitle = New-Label -Text "System check" -X 24 -Y 16 -Width 670 -Height 34
+$systemCheckTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
+$systemCheckTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$systemCheckPage.Controls.Add($systemCheckTitle)
+
+$machineText = "$($systemInformation.Manufacturer) $($systemInformation.Model)  |  $($systemInformation.Windows)"
+$requirementsMachine = New-Label -Text $machineText -X 27 -Y 55 -Width 680 -Height 22
 $requirementsMachine.ForeColor = [Drawing.Color]::FromArgb(55, 65, 70)
-$requirementsPage.Controls.Add($requirementsMachine)
+$systemCheckPage.Controls.Add($requirementsMachine)
+
+$systemCheckTabs = New-Object Windows.Forms.TabControl
+$systemCheckTabs.Location = New-Object Drawing.Point(24, 82)
+$systemCheckTabs.Size = New-Object Drawing.Size(672, 398)
+$systemCheckTabs.Font = New-Object Drawing.Font("Segoe UI", 9)
+$systemCheckPage.Controls.Add($systemCheckTabs)
+
+# ── Tab 1: This PC ──────────────────────────────────────────────────────────
+$tabThisPC = New-Object Windows.Forms.TabPage
+$tabThisPC.Text = "  This PC  "
+$tabThisPC.BackColor = [Drawing.Color]::White
+[void]$systemCheckTabs.TabPages.Add($tabThisPC)
 
 $requirementsList = New-Object Windows.Forms.ListView
-$requirementsList.Location = New-Object Drawing.Point(26, 141)
-$requirementsList.Size = New-Object Drawing.Size(668, 270)
+$requirementsList.Location = New-Object Drawing.Point(4, 8)
+$requirementsList.Size = New-Object Drawing.Size(658, 300)
 $requirementsList.View = "Details"
 $requirementsList.FullRowSelect = $true
 $requirementsList.GridLines = $true
@@ -336,219 +373,198 @@ $requirementsList.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 [void]$requirementsList.Columns.Add("Status", 55)
 [void]$requirementsList.Columns.Add("Component", 105)
 [void]$requirementsList.Columns.Add("Detected", 250)
-[void]$requirementsList.Columns.Add("SuamiSihat target", 230)
-$requirementsPage.Controls.Add($requirementsList)
+[void]$requirementsList.Columns.Add("SuamiSihat target", 218)
+$tabThisPC.Controls.Add($requirementsList)
 
-$requirementsNote = New-Label -Text "Minimum: Windows 10+ 64-bit and 16 GB RAM. Recommended rows guide performance and do not block installation." -X 27 -Y 423 -Width 660 -Height 48
+$requirementsNote = New-Label -Text "Minimum: Windows 10+ 64-bit and 16 GB RAM. Recommended rows guide performance and do not block installation." -X 4 -Y 315 -Width 658 -Height 40
 $requirementsNote.ForeColor = [Drawing.Color]::DimGray
-$requirementsPage.Controls.Add($requirementsNote)
+$tabThisPC.Controls.Add($requirementsNote)
 
-# Page 3: Licence
-$licencePage = New-Page
-[void]$pages.Add($licencePage)
-$licenceTitle = New-Label -Text "Licence agreement" -X 24 -Y 18 -Width 660 -Height 34
-$licenceTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
-$licenceTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$licencePage.Controls.Add($licenceTitle)
-$licenceText = New-Object Windows.Forms.RichTextBox
-$licenceText.Location = New-Object Drawing.Point(25, 62)
-$licenceText.Size = New-Object Drawing.Size(670, 355)
-$licenceText.ReadOnly = $true
-$licenceText.BackColor = [Drawing.Color]::White
-$licenceText.Text = Get-Content -LiteralPath $licenceFile -Raw
-$licencePage.Controls.Add($licenceText)
-$acceptLicence = New-Object Windows.Forms.CheckBox
-$acceptLicence.Text = "I have read and accept the licence agreement."
-$acceptLicence.Location = New-Object Drawing.Point(27, 438)
-$acceptLicence.Size = New-Object Drawing.Size(620, 28)
-$acceptLicence.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
-$licencePage.Controls.Add($acceptLicence)
-
-# Page 4: Design software readiness
-$systemPage = New-Page
-[void]$pages.Add($systemPage)
-$systemTitle = New-Label -Text "Design-software readiness" -X 24 -Y 16 -Width 670 -Height 34
-$systemTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
-$systemTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$systemPage.Controls.Add($systemTitle)
+# ── Tab 2: Design Apps ──────────────────────────────────────────────────────
+$tabDesignApps = New-Object Windows.Forms.TabPage
+$tabDesignApps.Text = "  Design Apps  "
+$tabDesignApps.BackColor = [Drawing.Color]::White
+[void]$systemCheckTabs.TabPages.Add($tabDesignApps)
 
 $softwareList = New-Object Windows.Forms.ListView
-$softwareList.Location = New-Object Drawing.Point(26, 64)
-$softwareList.Size = New-Object Drawing.Size(668, 271)
+$softwareList.Location = New-Object Drawing.Point(4, 8)
+$softwareList.Size = New-Object Drawing.Size(658, 230)
 $softwareList.View = "Details"
 $softwareList.FullRowSelect = $true
 $softwareList.GridLines = $true
 [void]$softwareList.Columns.Add("Application", 260)
 [void]$softwareList.Columns.Add("Status", 145)
-[void]$softwareList.Columns.Add("Version", 225)
-$systemPage.Controls.Add($softwareList)
+[void]$softwareList.Columns.Add("Version", 223)
+$tabDesignApps.Controls.Add($softwareList)
 
-$softwareNote = New-Label -Text "Shared design account: branding@suamisihat.com. Request the current password and OTP from the team lead. Missing applications use their official vendor setup; sign in, then select Rescan." -X 27 -Y 338 -Width 660 -Height 48
+$softwareNote = New-Label -Text "Shared design account: branding@suamisihat.com. Request the current password and OTP from the team lead. Missing applications: use their official vendor setup, sign in, then select Rescan." -X 4 -Y 244 -Width 658 -Height 48
 $softwareNote.ForeColor = [Drawing.Color]::DimGray
-$systemPage.Controls.Add($softwareNote)
+$tabDesignApps.Controls.Add($softwareNote)
 
 $affinityDownload = New-Object Windows.Forms.Button
 $affinityDownload.Text = "Get Affinity"
-$affinityDownload.Location = New-Object Drawing.Point(27, 392)
-$affinityDownload.Size = New-Object Drawing.Size(135, 34)
-$systemPage.Controls.Add($affinityDownload)
+$affinityDownload.Location = New-Object Drawing.Point(4, 296)
+$affinityDownload.Size = New-Object Drawing.Size(120, 32)
+$tabDesignApps.Controls.Add($affinityDownload)
 
 $adobeDownload = New-Object Windows.Forms.Button
-$adobeDownload.Text = "Get Adobe apps"
-$adobeDownload.Location = New-Object Drawing.Point(172, 392)
-$adobeDownload.Size = New-Object Drawing.Size(145, 34)
-$systemPage.Controls.Add($adobeDownload)
+$adobeDownload.Text = "Get Adobe"
+$adobeDownload.Location = New-Object Drawing.Point(132, 296)
+$adobeDownload.Size = New-Object Drawing.Size(120, 32)
+$tabDesignApps.Controls.Add($adobeDownload)
 
 $canvaDownload = New-Object Windows.Forms.Button
 $canvaDownload.Text = "Get Canva"
-$canvaDownload.Location = New-Object Drawing.Point(327, 392)
-$canvaDownload.Size = New-Object Drawing.Size(115, 34)
-$systemPage.Controls.Add($canvaDownload)
+$canvaDownload.Location = New-Object Drawing.Point(260, 296)
+$canvaDownload.Size = New-Object Drawing.Size(110, 32)
+$tabDesignApps.Controls.Add($canvaDownload)
 
 $figmaDownload = New-Object Windows.Forms.Button
 $figmaDownload.Text = "Get Figma"
-$figmaDownload.Location = New-Object Drawing.Point(452, 392)
-$figmaDownload.Size = New-Object Drawing.Size(115, 34)
-$systemPage.Controls.Add($figmaDownload)
+$figmaDownload.Location = New-Object Drawing.Point(378, 296)
+$figmaDownload.Size = New-Object Drawing.Size(110, 32)
+$tabDesignApps.Controls.Add($figmaDownload)
 
 $rescanButton = New-Object Windows.Forms.Button
 $rescanButton.Text = "Rescan"
-$rescanButton.Location = New-Object Drawing.Point(588, 392)
-$rescanButton.Size = New-Object Drawing.Size(106, 34)
-$systemPage.Controls.Add($rescanButton)
+$rescanButton.Location = New-Object Drawing.Point(542, 296)
+$rescanButton.Size = New-Object Drawing.Size(116, 32)
+$tabDesignApps.Controls.Add($rescanButton)
 
-$softwareContinue = New-Label -Text "You may continue with fonts and assets even if optional design software is not installed yet." -X 27 -Y 445 -Width 660 -Height 30
+$softwareContinue = New-Label -Text "You may continue even if optional design software is not installed yet." -X 4 -Y 340 -Width 658 -Height 22
 $softwareContinue.ForeColor = [Drawing.Color]::DimGray
-$systemPage.Controls.Add($softwareContinue)
+$tabDesignApps.Controls.Add($softwareContinue)
 
-# Page 5: Fonts
-$fontPage = New-Page
-[void]$pages.Add($fontPage)
-$fontTitle = New-Label -Text "Font installation" -X 24 -Y 18 -Width 660 -Height 34
-$fontTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
-$fontTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$fontPage.Controls.Add($fontTitle)
-$fontIntro = New-Label -Text "Choose which approved typefaces should be available to the current Windows user." -X 27 -Y 64 -Width 650 -Height 28
-$fontPage.Controls.Add($fontIntro)
+# Switch to Design Apps tab when navigating forward from requirements
+$systemCheckTabs.Add_SelectedIndexChanged({
+    if ($systemCheckTabs.SelectedIndex -eq 1) {
+        $rescanButton.Enabled = $false
+        $rescanButton.Text = "Scanning..."
+        try { Refresh-SoftwareList } finally {
+            $rescanButton.Text = "Rescan"
+            $rescanButton.Enabled = $true
+        }
+    }
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MERGED PAGE 3: Licence + Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+$licenceConfigPage = New-Page
+[void]$pages.Add($licenceConfigPage)
+
+$licenceConfigTitle = New-Label -Text "Licence & configuration" -X 24 -Y 14 -Width 660 -Height 30
+$licenceConfigTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 15)
+$licenceConfigTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$licenceConfigPage.Controls.Add($licenceConfigTitle)
+
+# EULA box — slightly shorter than before to make room for config below
+$licenceText = New-Object Windows.Forms.RichTextBox
+$licenceText.Location = New-Object Drawing.Point(25, 50)
+$licenceText.Size = New-Object Drawing.Size(670, 200)
+$licenceText.ReadOnly = $true
+$licenceText.BackColor = [Drawing.Color]::White
+$licenceText.Text = Get-Content -LiteralPath $licenceFile -Raw
+$licenceConfigPage.Controls.Add($licenceText)
+
+$acceptLicence = New-Object Windows.Forms.CheckBox
+$acceptLicence.Text = "I have read and accept the licence agreement."
+$acceptLicence.Location = New-Object Drawing.Point(27, 258)
+$acceptLicence.Size = New-Object Drawing.Size(620, 24)
+$acceptLicence.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$acceptLicence.Enabled = $false   # enabled by scroll-to-bottom (M4.3)
+$licenceConfigPage.Controls.Add($acceptLicence)
+
+# Scroll-to-accept gate — enable checkbox once user reaches bottom of EULA
+$licenceText.Add_VScroll({
+    if (-not $acceptLicence.Enabled) {
+        $pos   = $licenceText.GetPositionFromCharIndex($licenceText.TextLength - 1)
+        $atEnd = ($pos.Y -le ($licenceText.Height + 40))
+        if ($atEnd) { $acceptLicence.Enabled = $true }
+    }
+})
+
+# ── Installation Options group ───────────────────────────────────────────────
+$configGroup = New-Object Windows.Forms.GroupBox
+$configGroup.Text = "  Installation Options"
+$configGroup.Location = New-Object Drawing.Point(24, 288)
+$configGroup.Size = New-Object Drawing.Size(672, 200)
+$configGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$licenceConfigPage.Controls.Add($configGroup)
+
+# Row 1: Font choice
+$fontLabel = New-Label -Text "Fonts:" -X 12 -Y 26 -Width 60 -Height 22
+$fontLabel.Font = New-Object Drawing.Font("Segoe UI", 9)
+$configGroup.Controls.Add($fontLabel)
+
 $fontChoice = New-Object Windows.Forms.ComboBox
-$fontChoice.Location = New-Object Drawing.Point(27, 108)
-$fontChoice.Size = New-Object Drawing.Size(390, 28)
+$fontChoice.Location = New-Object Drawing.Point(74, 23)
+$fontChoice.Size = New-Object Drawing.Size(310, 26)
 $fontChoice.DropDownStyle = "DropDownList"
 [void]$fontChoice.Items.Add("All bundled desktop fonts (recommended)")
 [void]$fontChoice.Items.Add("Core brand fonts only")
 [void]$fontChoice.Items.Add("Do not install fonts")
 $fontChoice.SelectedIndex = 0
-$fontPage.Controls.Add($fontChoice)
-$fontDetails = New-Label -Text @"
-Core brand fonts
-Poppins, Calibri, Helvetica Neue, and Montserrat.
+$configGroup.Controls.Add($fontChoice)
 
-All bundled fonts
-Core fonts plus approved supporting, icon, barcode, and display typefaces.
-
-Standard
-Font files use "Family-Style.ext" names with hyphens instead of spaces and lowercase extensions. A Markdown inventory is written to the Reports folder.
-
-Fonts are installed per user and do not require administrator access.
-"@
-$fontDetails.Location = New-Object Drawing.Point(29, 165)
-$fontDetails.Size = New-Object Drawing.Size(650, 250)
-$fontDetails.Font = New-Object Drawing.Font("Segoe UI", 10)
-$fontPage.Controls.Add($fontDetails)
-
-# Page 6: Brand assets destination
-$assetPage = New-Page
-[void]$pages.Add($assetPage)
-$assetTitle = New-Label -Text "Brand-assets folder" -X 24 -Y 18 -Width 660 -Height 34
-$assetTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
-$assetTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$assetPage.Controls.Add($assetTitle)
+# Row 2: Brand assets + path
 $copyAssets = New-Object Windows.Forms.CheckBox
-$copyAssets.Text = "Create and populate the SuamiSihat brand-assets folder"
-$copyAssets.Location = New-Object Drawing.Point(27, 69)
-$copyAssets.Size = New-Object Drawing.Size(620, 28)
+$copyAssets.Text = "Copy brand-assets folder to:"
+$copyAssets.Location = New-Object Drawing.Point(12, 60)
+$copyAssets.Size = New-Object Drawing.Size(210, 24)
 $copyAssets.Checked = $true
-$assetPage.Controls.Add($copyAssets)
-$destinationLabel = New-Label -Text "Suggested location:" -X 27 -Y 115 -Width 130
-$assetPage.Controls.Add($destinationLabel)
+$configGroup.Controls.Add($copyAssets)
+
 $destinationBox = New-Object Windows.Forms.TextBox
-$destinationBox.Location = New-Object Drawing.Point(27, 143)
-$destinationBox.Size = New-Object Drawing.Size(548, 27)
+$destinationBox.Location = New-Object Drawing.Point(222, 58)
+$destinationBox.Size = New-Object Drawing.Size(334, 26)
 $destinationBox.Text = $defaultDestination
-$assetPage.Controls.Add($destinationBox)
+$configGroup.Controls.Add($destinationBox)
+
 $browseButton = New-Object Windows.Forms.Button
 $browseButton.Text = "Browse..."
-$browseButton.Location = New-Object Drawing.Point(587, 140)
-$browseButton.Size = New-Object Drawing.Size(106, 31)
-$assetPage.Controls.Add($browseButton)
-$folderStructure = New-Label -Text @"
-The installer creates:
+$browseButton.Location = New-Object Drawing.Point(562, 56)
+$browseButton.Size = New-Object Drawing.Size(96, 28)
+$browseButton.Font = New-Object Drawing.Font("Segoe UI", 9)
+$configGroup.Controls.Add($browseButton)
 
-  Logos\
-  Libraries\
-  Colour Palettes\
-  Links\SuamiSihat web shortcuts
-  Reports\SuamiSihat-Workstation-Report.md
-  Reports\SuamiSihat-Font-Inventory.md
-"@
-$folderStructure.Location = New-Object Drawing.Point(28, 190)
-$folderStructure.Size = New-Object Drawing.Size(650, 145)
-$folderStructure.Font = New-Object Drawing.Font("Consolas", 9.5)
-$assetPage.Controls.Add($folderStructure)
+# Row 3: Shortcuts + open-imports
 $createWebShortcuts = New-Object Windows.Forms.CheckBox
-$createWebShortcuts.Text = "Create Service Dashboard and Internal Assets web shortcuts"
-$createWebShortcuts.Location = New-Object Drawing.Point(28, 340)
-$createWebShortcuts.Size = New-Object Drawing.Size(620, 27)
+$createWebShortcuts.Text = "Create Service Dashboard & Internal Assets web shortcuts"
+$createWebShortcuts.Location = New-Object Drawing.Point(12, 96)
+$createWebShortcuts.Size = New-Object Drawing.Size(470, 24)
 $createWebShortcuts.Checked = $true
-$assetPage.Controls.Add($createWebShortcuts)
+$configGroup.Controls.Add($createWebShortcuts)
+
 $openImports = New-Object Windows.Forms.CheckBox
-$openImports.Text = "Open Affinity and Adobe library/palette files after copying"
-$openImports.Location = New-Object Drawing.Point(28, 374)
-$openImports.Size = New-Object Drawing.Size(620, 27)
-$assetPage.Controls.Add($openImports)
-$reportNote = New-Label -Text "The Reports folder is local. No PC information or account password is stored or uploaded." -X 29 -Y 414 -Width 630
+$openImports.Text = "Open Affinity/Adobe library files after copying"
+$openImports.Location = New-Object Drawing.Point(12, 124)
+$openImports.Size = New-Object Drawing.Size(470, 24)
+$configGroup.Controls.Add($openImports)
+
+# Row 4: CPM panel (visible only when CPM selected on welcome page)
+$cpmConfigPanel = New-Object Windows.Forms.Panel
+$cpmConfigPanel.Location = New-Object Drawing.Point(12, 156)
+$cpmConfigPanel.Size = New-Object Drawing.Size(648, 32)
+$cpmConfigPanel.BackColor = [Drawing.Color]::FromArgb(240, 245, 255)
+$configGroup.Controls.Add($cpmConfigPanel)
+
+$cpmConfigLabel = New-Label -Text "SS-CAM desktop app will be installed in: $($env:LOCALAPPDATA)\Programs\SuamiSihat\SuamiSihat Creative Assets Management" -X 8 -Y 7 -Width 634 -Height 18
+$cpmConfigLabel.Font = New-Object Drawing.Font("Consolas", 7.5)
+$cpmConfigLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$cpmConfigPanel.Controls.Add($cpmConfigLabel)
+
+$reportNote = New-Label -Text "Reports folder is local. No PC information or account password is stored or uploaded." -X 27 -Y 494 -Width 630
 $reportNote.ForeColor = [Drawing.Color]::DimGray
-$assetPage.Controls.Add($reportNote)
+$licenceConfigPage.Controls.Add($reportNote)
 
-# Page 6: Creative Project Management info (shown when CPM is selected)
-$cpmPage = New-Page
-[void]$pages.Add($cpmPage)
-
-$cpmTitle = New-Label -Text "Creative Project Management" -X 24 -Y 18 -Width 660 -Height 34
-$cpmTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 18)
-$cpmTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$cpmPage.Controls.Add($cpmTitle)
-
-$cpmSubtitle = New-Label -Text "SS-CAM will be installed as a Windows desktop application on this PC." -X 27 -Y 60 -Width 660 -Height 22
-$cpmPage.Controls.Add($cpmSubtitle)
-
-$cpmInstallPath = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management"
-$cpmPathLabel = New-Label -Text "Installation path:  $cpmInstallPath" -X 27 -Y 85 -Width 666 -Height 36
-$cpmPathLabel.Font = New-Object Drawing.Font("Consolas", 8.5)
-$cpmPathLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$cpmPage.Controls.Add($cpmPathLabel)
-
-$cpmDetails = New-Label -Text @"
-
-What's included:
-
-  -  Creative Project Folder Creator - Post Haste-style presets for graphic, video, social and brand projects
-  -  Sequential Job ID tracking with D / V / P / S prefix and auto-increment
-  -  Recent project history with one-click Explorer launch and clipboard folder-name copy
-  -  Configurable workspace root directory and job counter via Settings
-
-Access after installation:
-
-  -  Start Menu shortcut: Programs > SuamiSihat > Creative Assets Management
-  -  Desktop shortcut created automatically
-
-No administrator rights required.
-Installs per-user and can be removed at any time from Settings.
-"@
-$cpmDetails.Location = New-Object Drawing.Point(27, 125)
-$cpmDetails.Size = New-Object Drawing.Size(666, 300)
-$cpmDetails.Font = New-Object Drawing.Font("Segoe UI", 9.5)
-$cpmPage.Controls.Add($cpmDetails)
+# Keep these as variables the rest of the script references
+$licencePage       = $licenceConfigPage
+$fontPage          = $licenceConfigPage
+$assetPage         = $licenceConfigPage
+$cpmPage           = $licenceConfigPage
+$requirementsPage  = $systemCheckPage
+$systemPage        = $systemCheckPage
 
 # Page 7: Review
 $reviewPage = New-Page
@@ -618,7 +634,7 @@ $creatorIntro = New-Label -Text "Post Haste-style template presets with history 
 $creatorIntro.ForeColor = [Drawing.Color]::FromArgb(100, 110, 125)
 $creatorPage.Controls.Add($creatorIntro)
 
-# Card 1: Recent Projects Quick-Launcher Box
+# Card 1: Recent Projects Quick-Launcher Box (M4: upgraded to 5-item dropdown)
 $recentGroup = New-Object Windows.Forms.GroupBox
 $recentGroup.Text = " Recent Active Projects "
 $recentGroup.Location = New-Object Drawing.Point(27, 52)
@@ -626,15 +642,23 @@ $recentGroup.Size = New-Object Drawing.Size(667, 60)
 $recentGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($recentGroup)
 
-$recentInfoLabel = New-Label -Text "No recent projects yet." -X 15 -Y 20 -Width 510 -Height 26
-$recentInfoLabel.Font = New-Object Drawing.Font("Consolas", 8.5)
-$recentInfoLabel.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$recentGroup.Controls.Add($recentInfoLabel)
+$recentCombo = New-Object Windows.Forms.ComboBox
+$recentCombo.Location = New-Object Drawing.Point(15, 18)
+$recentCombo.Size = New-Object Drawing.Size(510, 24)
+$recentCombo.DropDownStyle = "DropDownList"
+$recentCombo.Font = New-Object Drawing.Font("Consolas", 8.5)
+$recentCombo.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+[void]$recentCombo.Items.Add("No recent projects yet.")
+$recentCombo.SelectedIndex = 0
+$recentGroup.Controls.Add($recentCombo)
+
+# Keep the old label reference alive so updatePreview doesn't break
+$recentInfoLabel = $recentCombo
 
 $recentOpenBtn = New-Object Windows.Forms.Button
 $recentOpenBtn.Text = "Open Folder"
 $recentOpenBtn.Location = New-Object Drawing.Point(540, 17)
-$recentOpenBtn.Size = New-Object Drawing.Size(112, 30)
+$recentOpenBtn.Size = New-Object Drawing.Size(112, 28)
 $recentOpenBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $recentOpenBtn.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
 $recentOpenBtn.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
@@ -766,10 +790,27 @@ $paramGroup.Controls.Add($chkExtraRaw)
 $workspacePathText = New-Object Windows.Forms.TextBox
 $workspacePathText.Text = $script:appState.DefaultWorkspace
 
+# M4: Visible workspace root LinkLabel — clicking opens Explorer at root
+$workspaceRootLink = New-Object Windows.Forms.LinkLabel
+$workspaceRootLink.Location = New-Object Drawing.Point(27, 358)
+$workspaceRootLink.Size = New-Object Drawing.Size(667, 18)
+$workspaceRootLink.Font = New-Object Drawing.Font("Consolas", 7.5)
+$workspaceRootLink.ForeColor = [Drawing.Color]::FromArgb(100, 110, 125)
+$workspaceRootLink.Text = "Workspace: $($workspacePathText.Text)"
+$workspaceRootLink.LinkColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$workspaceRootLink.ActiveLinkColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$workspaceRootLink.Add_LinkClicked({
+    $root = $workspacePathText.Text.Trim()
+    if (-not [string]::IsNullOrWhiteSpace($root) -and (Test-Path -LiteralPath $root -PathType Container)) {
+        Start-Process -FilePath "explorer.exe" -ArgumentList (Quote-ProcessArgument $root)
+    }
+})
+$creatorPage.Controls.Add($workspaceRootLink)
+
 # Folder Path Preview Box & 1-Click Clipboard Copy (Feature 1)
 $previewGroup = New-Object Windows.Forms.GroupBox
 $previewGroup.Text = " Folder Path Preview "
-$previewGroup.Location = New-Object Drawing.Point(27, 357)
+$previewGroup.Location = New-Object Drawing.Point(27, 380)
 $previewGroup.Size = New-Object Drawing.Size(667, 56)
 $previewGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($previewGroup)
@@ -793,7 +834,7 @@ $previewGroup.Controls.Add($btnCopyName)
 # Sub-folder Structure Information
 $structureGroup = New-Object Windows.Forms.GroupBox
 $structureGroup.Text = " Sub-Folders Created for Selected Preset "
-$structureGroup.Location = New-Object Drawing.Point(27, 418)
+$structureGroup.Location = New-Object Drawing.Point(27, 441)
 $structureGroup.Size = New-Object Drawing.Size(667, 95)
 $structureGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($structureGroup)
@@ -933,7 +974,7 @@ $updateGroup.Size = New-Object Drawing.Size(667, 125)
 $updateGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $settingsPage.Controls.Add($updateGroup)
 
-$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v1.6.2`r`nGitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 24 -Width 637 -Height 36
+$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v$($script:AppVersion)`r`nGitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 24 -Width 637 -Height 36
 $aboutLabel.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $aboutLabel.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
 $updateGroup.Controls.Add($aboutLabel)
@@ -998,15 +1039,23 @@ $updatePreview = {
     $targetPath = Join-Path (Join-Path (Join-Path $rootBase $yearFolder) $monthFolder) $folderName
     $previewPathLabel.Text = $targetPath
 
-    # Refresh Recent Projects UI
+    # M4: Refresh Recent Projects ComboBox (shows up to 5 recent projects)
+    $recentCombo.Items.Clear()
     if ($script:appState.RecentProjects -and $script:appState.RecentProjects.Count -gt 0) {
-        $firstRecent = $script:appState.RecentProjects[0]
-        $recentInfoLabel.Text = "$($firstRecent.FolderName)  ($($firstRecent.Created))"
+        $maxRecent = [Math]::Min($script:appState.RecentProjects.Count, 5)
+        for ($i = 0; $i -lt $maxRecent; $i++) {
+            $rp = $script:appState.RecentProjects[$i]
+            [void]$recentCombo.Items.Add("$($rp.FolderName)  ($($rp.Created))")
+        }
+        $recentCombo.SelectedIndex = 0
         $recentOpenBtn.Enabled = $true
     } else {
-        $recentInfoLabel.Text = "No recent projects yet."
+        [void]$recentCombo.Items.Add("No recent projects yet.")
+        $recentCombo.SelectedIndex = 0
         $recentOpenBtn.Enabled = $false
     }
+    # M4: Update workspace root link label
+    $workspaceRootLink.Text = "Workspace: $($workspacePathText.Text)"
     $b = [char]0x251C + [char]0x2500 + [char]0x2500 + " "
     $e = [char]0x2514 + [char]0x2500 + [char]0x2500 + " "
 
@@ -1061,7 +1110,16 @@ $presetCombo.Add_SelectedIndexChanged({
 
 $yearCombo.Add_SelectedIndexChanged($updatePreview)
 $subBrandCombo.Add_SelectedIndexChanged($updatePreview)
-$jobIdText.Add_TextChanged($updatePreview)
+$jobIdText.Add_TextChanged({
+    $val = $jobIdText.Text.Trim()
+    # Valid Job ID: one uppercase letter followed by 3-5 digits (e.g. D0075, V0010)
+    if ($val -match '^[A-Z]\d{3,5}$') {
+        $jobIdText.BackColor = [Drawing.Color]::White
+    } else {
+        $jobIdText.BackColor = [Drawing.Color]::FromArgb(254, 226, 226)  # soft red
+    }
+    & $updatePreview
+})
 $projectNameText.Add_TextChanged({
     $cursor = $projectNameText.SelectionStart
     $originalText = $projectNameText.Text
@@ -1124,15 +1182,28 @@ $btnCopyName.Add_Click({
     } catch {}
 })
 
-# Feature 2: Recent Projects Quick-Launcher Handler
+# M4: Recent Projects ComboBox — open selected project in Explorer
 $recentOpenBtn.Add_Click({
     if ($script:appState.RecentProjects -and $script:appState.RecentProjects.Count -gt 0) {
-        $recentPath = $script:appState.RecentProjects[0].ProjectPath
+        $selIdx = [Math]::Max(0, $recentCombo.SelectedIndex)
+        $maxIdx = $script:appState.RecentProjects.Count - 1
+        if ($selIdx -gt $maxIdx) { $selIdx = 0 }
+        $recentPath = $script:appState.RecentProjects[$selIdx].ProjectPath
         if (Test-Path -LiteralPath $recentPath -PathType Container) {
             Start-Process -FilePath "explorer.exe" -ArgumentList (Quote-ProcessArgument $recentPath)
         }
     }
 })
+
+# M4: Ctrl+Enter keyboard shortcut for Create Project Folder
+$creatorPage.Add_KeyDown({
+    param($s, $e)
+    if ($e.Control -and $e.KeyCode -eq [Windows.Forms.Keys]::Return) {
+        $createProjectBtn.PerformClick()
+        $e.Handled = $true
+    }
+})
+$creatorPage.KeyPreview = $true
 
 # Create Button Action
 $createProjectBtn.Add_Click({
@@ -1183,7 +1254,7 @@ $refreshAppVersionStatus = {
         $tileBrandKit.BackColor = [Drawing.Color]::FromArgb(240, 245, 255)
         $tileCPM.BackColor = [Drawing.Color]::FromArgb(240, 245, 255)
     } else {
-        $installStatusBadge.Text = "Not Installed  (v1.6.2 Ready)"
+        $installStatusBadge.Text = "Not Installed  (v$($script:AppVersion) Ready)"
         $installStatusBadge.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
         $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Status: Not Installed`r`nRun setup wizard below to install SuamiSihat brand kit && assets."
         $btnWelcomeLaunch.Visible = $false
@@ -1234,17 +1305,31 @@ $script:UpdateWelcomeState = {
     $tileBrandKit.BackColor = if ($chkWelcomeBrandKit.Checked) { [Drawing.Color]::FromArgb(240, 245, 255) } else { [Drawing.Color]::White }
     $tileCPM.BackColor     = if ($chkWelcomeCPM.Checked)      { [Drawing.Color]::FromArgb(240, 245, 255) } else { [Drawing.Color]::White }
     if ($script:pageIndex -eq 0) { $nextButton.Enabled = $anySelected }
-    # Sync Brand Kit selection with per-page asset/font controls
+    # Sync Brand Kit selection with config controls on Licence+Config page
     $copyAssets.Checked = $chkWelcomeBrandKit.Checked
     if (-not $chkWelcomeBrandKit.Checked -and $fontChoice.SelectedIndex -ne 2) { $fontChoice.SelectedIndex = 2 }
     if ($chkWelcomeBrandKit.Checked -and $fontChoice.SelectedIndex -eq 2)      { $fontChoice.SelectedIndex = 0 }
+    # Show CPM install path panel only when CPM is selected
+    $cpmConfigPanel.Visible = $chkWelcomeCPM.Checked
 }
 $chkWelcomeBrandKit.Add_CheckedChanged({ & $script:UpdateWelcomeState })
 $chkWelcomeCPM.Add_CheckedChanged({ & $script:UpdateWelcomeState })
 
 # Settings Page Handlers
 $repairFontsBtn.Add_Click({
-    Show-Page 0
+    $confirm = [Windows.Forms.MessageBox]::Show(
+        "This will reinstall all bundled brand fonts and sync design libraries.`n`nProceed?",
+        "Reinstall Fonts & Brand Assets",
+        [Windows.Forms.MessageBoxButtons]::YesNo,
+        [Windows.Forms.MessageBoxIcon]::Question
+    )
+    if ($confirm -ne [Windows.Forms.DialogResult]::Yes) { return }
+    # Configure installer for font-only repair (no assets, no shortcuts)
+    $fontChoice.SelectedIndex       = 0    # All bundled fonts
+    $copyAssets.Checked             = $false
+    $createWebShortcuts.Checked     = $false
+    $openImports.Checked            = $false
+    Start-Installation
 })
 
 $setWorkspaceBrowseBtn.Add_Click({
@@ -1264,6 +1349,7 @@ $saveSettingsBtn.Add_Click({
 
         $jobIdText.Text = $script:appState.NextJobNumber
         $workspacePathText.Text = $script:appState.DefaultWorkspace
+        $workspaceRootLink.Text = "Workspace: $($script:appState.DefaultWorkspace)"  # M4: sync link label
         $settingsStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
         $settingsStatusLabel.Text = "Settings saved successfully!"
     } catch {
@@ -1284,7 +1370,7 @@ $btnCheckUpdate.Add_Click({
     $updateStatusLabel.Location = New-Object Drawing.Point(185, 72)
     $updateStatusLabel.Width = 460
 
-    $script:updateInfo = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.2"
+    $script:updateInfo = Get-SuamiSihatLatestRelease -CurrentVersion $script:AppVersion
 
     if ($script:updateInfo.HasUpdate) {
         $btnCheckUpdate.Text = "Check for Updates"
@@ -1303,7 +1389,7 @@ $btnCheckUpdate.Add_Click({
         $btnCheckUpdate.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
         $btnCheckUpdate.Enabled = $false
         $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
-        $updateStatusLabel.Text = "You are running the latest version (v1.6.2)."
+        $updateStatusLabel.Text = "You are running the latest version (v$($script:AppVersion))."
     }
 })
 
@@ -1340,12 +1426,14 @@ $backButton = New-Object Windows.Forms.Button
 $backButton.Text = "< Back"
 $backButton.Location = New-Object Drawing.Point(432, 631)
 $backButton.Size = New-Object Drawing.Size(94, 34)
+$backButton.Anchor = $BR
 $form.Controls.Add($backButton)
 
 $cancelButton = New-Object Windows.Forms.Button
 $cancelButton.Text = "Cancel"
 $cancelButton.Location = New-Object Drawing.Point(536, 631)
 $cancelButton.Size = New-Object Drawing.Size(94, 34)
+$cancelButton.Anchor = $BR
 $form.Controls.Add($cancelButton)
 
 $nextButton = New-Object Windows.Forms.Button
@@ -1355,11 +1443,15 @@ $nextButton.Size = New-Object Drawing.Size(94, 34)
 $nextButton.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $nextButton.ForeColor = [Drawing.Color]::White
 $nextButton.FlatStyle = "Flat"
+$nextButton.Anchor = $BR
 $form.Controls.Add($nextButton)
 $form.AcceptButton = $nextButton
 $form.CancelButton = $cancelButton
 
 # Add creator-page action buttons to form (so they sit in the same row as Close)
+$createProjectBtn.Anchor = $BL
+$btnClearForm.Anchor = $BL
+$creatorStatusLabel.Anchor = $BL
 $form.Controls.Add($createProjectBtn)
 $form.Controls.Add($btnClearForm)
 $form.Controls.Add($creatorStatusLabel)
@@ -1375,6 +1467,7 @@ $btnSkipFonts.ForeColor = [Drawing.Color]::FromArgb(71, 85, 105)
 $btnSkipFonts.FlatStyle = "Flat"
 $btnSkipFonts.Cursor = [Windows.Forms.Cursors]::Hand
 $btnSkipFonts.Visible = $false
+$btnSkipFonts.Anchor = $BL
 $form.Controls.Add($btnSkipFonts)
 
 # Form-level Open App button (shown at Setup Complete when CPM was installed)
@@ -1388,10 +1481,19 @@ $btnOpenApp.ForeColor = [Drawing.Color]::White
 $btnOpenApp.FlatStyle = "Flat"
 $btnOpenApp.Cursor = [Windows.Forms.Cursors]::Hand
 $btnOpenApp.Visible = $false
+$btnOpenApp.Anchor = $BL
 $form.Controls.Add($btnOpenApp)
 
 $script:installedInfo = $null
 $script:isNewInstall = $true
+
+# M3 — Resize handler: keep bottom-row wizard buttons pinned to right edge
+$form.Add_Resize({
+    $w = $form.ClientSize.Width
+    $nextButton.Left   = $w - 114
+    $cancelButton.Left = $w - 218
+    $backButton.Left   = $w - 322
+})
 
 $folderBrowser = New-Object Windows.Forms.FolderBrowserDialog
 $folderBrowser.Description = "Choose the parent folder for the SuamiSihat brand assets."
@@ -1400,78 +1502,43 @@ $folderBrowser.ShowNewFolderButton = $true
 $timer = New-Object Windows.Forms.Timer
 $timer.Interval = 400
 
-$licencePageIndex = $pages.IndexOf($licencePage)
-$assetPageIndex = $pages.IndexOf($assetPage)
-$reviewPageIndex = $pages.IndexOf($reviewPage)
-$progressPageIndex = $pages.IndexOf($progressPage)
-$cpmPageIndex = $pages.IndexOf($cpmPage)
-$fontPageIndex = $pages.IndexOf($fontPage)
-$requirementsPageIndex = $pages.IndexOf($requirementsPage)
-$systemPageIndex = $pages.IndexOf($systemPage)
+# Simplified page indices for the 5-step wizard
+# Welcome=0, SystemCheck=1, LicenceConfig=2, Review=3, Progress=4
+$systemCheckPageIndex  = $pages.IndexOf($systemCheckPage)
+$licenceConfigPageIndex = $pages.IndexOf($licenceConfigPage)
+$reviewPageIndex       = $pages.IndexOf($reviewPage)
+$progressPageIndex     = $pages.IndexOf($progressPage)
 
-# Dynamic wizard routing — navigates by component selection and install mode
+# Aliases so existing references to old page indices still resolve
+$licencePageIndex      = $licenceConfigPageIndex
+$fontPageIndex         = $licenceConfigPageIndex
+$assetPageIndex        = $licenceConfigPageIndex
+$cpmPageIndex          = $licenceConfigPageIndex
+$requirementsPageIndex = $systemCheckPageIndex
+$systemPageIndex       = $systemCheckPageIndex
+
+# Simplified wizard routing for the 5-step flow
 function Get-NextPageIndex {
     param([int]$Current)
-    $brandKit = $chkWelcomeBrandKit.Checked
-    $cpm = $chkWelcomeCPM.Checked
-    $newInstall = $script:isNewInstall
-    if ($Current -eq 0)                            { return $requirementsPageIndex }
-    if ($Current -eq $requirementsPageIndex)       { return $systemPageIndex }
-    if ($Current -eq $systemPageIndex) {
-        if ($newInstall) { return $licencePageIndex } else { return $fontPageIndex }
-    }
-    if ($Current -eq $licencePageIndex)            { return $fontPageIndex }
-    if ($Current -eq $fontPageIndex) {
-        if ($brandKit) { return $assetPageIndex }
-        elseif ($cpm)  { return $cpmPageIndex }
-        else           { return $reviewPageIndex }
-    }
-    if ($Current -eq $assetPageIndex) {
-        if ($cpm) { return $cpmPageIndex } else { return $reviewPageIndex }
-    }
-    if ($Current -eq $cpmPageIndex)                { return $reviewPageIndex }
+    if ($Current -eq 0)                         { return $systemCheckPageIndex }
+    if ($Current -eq $systemCheckPageIndex)     { return $licenceConfigPageIndex }
+    if ($Current -eq $licenceConfigPageIndex)   { return $reviewPageIndex }
     return ($Current + 1)
 }
 
 function Get-PrevPageIndex {
     param([int]$Current)
-    $brandKit = $chkWelcomeBrandKit.Checked
-    $cpm = $chkWelcomeCPM.Checked
-    $newInstall = $script:isNewInstall
-    if ($Current -eq $requirementsPageIndex)       { return 0 }
-    if ($Current -eq $systemPageIndex)             { return $requirementsPageIndex }
-    if ($Current -eq $licencePageIndex)            { return $systemPageIndex }
-    if ($Current -eq $fontPageIndex) {
-        if ($newInstall) { return $licencePageIndex } else { return $systemPageIndex }
-    }
-    if ($Current -eq $assetPageIndex)              { return $fontPageIndex }
-    if ($Current -eq $cpmPageIndex) {
-        if ($brandKit) { return $assetPageIndex } else { return $fontPageIndex }
-    }
-    if ($Current -eq $reviewPageIndex) {
-        if ($cpm)           { return $cpmPageIndex }
-        elseif ($brandKit)  { return $assetPageIndex }
-        else                { return $fontPageIndex }
-    }
+    if ($Current -eq $systemCheckPageIndex)     { return 0 }
+    if ($Current -eq $licenceConfigPageIndex)   { return $systemCheckPageIndex }
+    if ($Current -eq $reviewPageIndex)          { return $licenceConfigPageIndex }
     return ($Current - 1)
 }
 
 function Get-WizardStepInfo {
     param([int]$PageIndex)
-    $brandKit = $chkWelcomeBrandKit.Checked
-    $cpm = $chkWelcomeCPM.Checked
-    $newInstall = $script:isNewInstall
-    $seq = [System.Collections.Generic.List[int]]::new()
-    $seq.Add(0)
-    $seq.Add($requirementsPageIndex)
-    $seq.Add($systemPageIndex)
-    if ($newInstall) { $seq.Add($licencePageIndex) }
-    $seq.Add($fontPageIndex)
-    if ($brandKit) { $seq.Add($assetPageIndex) }
-    if ($cpm)      { $seq.Add($cpmPageIndex) }
-    $seq.Add($reviewPageIndex)
-    $seq.Add($progressPageIndex)
-    $pos = $seq.IndexOf($PageIndex)
+    # Fixed 5-step sequence: Welcome, System Check, Licence+Config, Review, Progress
+    $seq = @(0, $systemCheckPageIndex, $licenceConfigPageIndex, $reviewPageIndex, $progressPageIndex)
+    $pos = [Array]::IndexOf($seq, $PageIndex)
     if ($pos -lt 0) { $pos = 0 }
     return @{ Step = ($pos + 1); Total = $seq.Count }
 }
@@ -1813,7 +1880,8 @@ $copyAssets.Add_CheckedChanged({
     $openImports.Enabled = $enabled
 })
 
-# Skip Fonts button — skips font installation and advances to the next page
+# Skip Fonts button — now redundant (font dropdown lives on Licence+Config page)
+# Handler kept for compatibility with Show-Page visibility logic
 $btnSkipFonts.Add_Click({
     $fontChoice.SelectedIndex = 2   # "Do not install fonts"
     Show-Page (Get-NextPageIndex $script:pageIndex)
@@ -1867,7 +1935,7 @@ $nextButton.Add_Click({
         Show-Page (Get-NextPageIndex $script:pageIndex)
         return
     }
-    if ($script:pageIndex -eq $licencePageIndex -and -not $acceptLicence.Checked) {
+    if ($script:pageIndex -eq $licenceConfigPageIndex -and -not $acceptLicence.Checked) {
         [Windows.Forms.MessageBox]::Show(
             "You must accept the licence agreement before continuing.",
             "Licence acceptance required",
@@ -1876,7 +1944,7 @@ $nextButton.Add_Click({
         ) | Out-Null
         return
     }
-    if ($script:pageIndex -eq $assetPageIndex -and $copyAssets.Checked -and
+    if ($script:pageIndex -eq $licenceConfigPageIndex -and $copyAssets.Checked -and
         [string]::IsNullOrWhiteSpace($destinationBox.Text)) {
         [Windows.Forms.MessageBox]::Show(
             "Choose where the SuamiSihat brand-assets folder should be created.",
@@ -1988,7 +2056,7 @@ $form.Add_Shown({
         $worker.add_DoWork({
             param($sender, $e)
             try {
-                $e.Result = Get-SuamiSihatLatestRelease -CurrentVersion "1.6.2"
+                $e.Result = Get-SuamiSihatLatestRelease -CurrentVersion $script:AppVersion
             } catch {
                 $e.Result = $null
             }
