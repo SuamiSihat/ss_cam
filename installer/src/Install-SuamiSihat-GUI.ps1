@@ -667,7 +667,7 @@ $recentOpenBtn.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
 $recentOpenBtn.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
 $recentOpenBtn.FlatStyle = "Flat"
 $recentOpenBtn.Cursor = [Windows.Forms.Cursors]::Hand
-$recentOpenBtn.Enabled = $false
+$recentOpenBtn.Enabled = $true
 $recentGroup.Controls.Add($recentOpenBtn)
 
 # Card 2: Template Parameters & Customization Options
@@ -1331,7 +1331,7 @@ $updatePreview = {
     } else {
         [void]$recentCombo.Items.Add("No recent projects yet.")
         $recentCombo.SelectedIndex = 0
-        $recentOpenBtn.Enabled = $false
+        $recentOpenBtn.Enabled = $true
     }
     # M4: Update workspace root link label
     $workspaceRootLink.Text = "Workspace: $($workspacePathText.Text)"
@@ -1536,16 +1536,41 @@ $btnCopyName.Add_Click({
     } catch {}
 })
 
-# M4: Recent Projects ComboBox — open selected project in Explorer
+# M4: Recent Projects ComboBox — open selected project in Explorer (with workspace fallback)
 $recentOpenBtn.Add_Click({
-    if ($script:appState.RecentProjects -and @($script:appState.RecentProjects).Count -gt 0) {
-        $selIdx = [Math]::Max(0, $recentCombo.SelectedIndex)
-        $maxIdx = @($script:appState.RecentProjects).Count - 1
-        if ($selIdx -gt $maxIdx) { $selIdx = 0 }
-        $recentPath = $script:appState.RecentProjects[$selIdx].ProjectPath
-        if (Test-Path -LiteralPath $recentPath -PathType Container) {
-            Start-Process -FilePath "explorer.exe" -ArgumentList "`"$recentPath`""
+    try {
+        $targetPath = ""
+        if ($script:appState.RecentProjects -and @($script:appState.RecentProjects).Count -gt 0) {
+            $selIdx = [Math]::Max(0, $recentCombo.SelectedIndex)
+            $maxIdx = @($script:appState.RecentProjects).Count - 1
+            if ($selIdx -le $maxIdx -and $selIdx -ge 0) {
+                $rp = $script:appState.RecentProjects[$selIdx]
+                if ($rp) {
+                    $targetPath = if ($rp.ProjectPath) { [string]$rp.ProjectPath } elseif ($rp["ProjectPath"]) { [string]$rp["ProjectPath"] } else { "" }
+                }
+            }
         }
+        
+        # If no valid recent project path found or directory doesn't exist, fallback to workspace root
+        if ([string]::IsNullOrWhiteSpace($targetPath) -or -not (Test-Path -LiteralPath $targetPath -PathType Container)) {
+            $targetPath = $workspacePathText.Text.Trim()
+        }
+
+        # Ensure target folder exists so Explorer opens cleanly
+        if (-not [string]::IsNullOrWhiteSpace($targetPath)) {
+            if (-not (Test-Path -LiteralPath $targetPath)) {
+                New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
+            }
+            Start-Process -FilePath "explorer.exe" -ArgumentList "`"$targetPath`""
+        }
+    } catch {
+        try {
+            $fallback = $workspacePathText.Text.Trim()
+            if (-not (Test-Path -LiteralPath $fallback)) {
+                $fallback = [Environment]::GetFolderPath("MyDocuments")
+            }
+            Start-Process -FilePath "explorer.exe" -ArgumentList "`"$fallback`""
+        } catch {}
     }
 })
 
