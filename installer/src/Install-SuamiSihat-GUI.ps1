@@ -392,9 +392,12 @@ $softwareList.Size = New-Object Drawing.Size(658, 230)
 $softwareList.View = "Details"
 $softwareList.FullRowSelect = $true
 $softwareList.GridLines = $true
-[void]$softwareList.Columns.Add("Application", 260)
-[void]$softwareList.Columns.Add("Status", 145)
-[void]$softwareList.Columns.Add("Version", 223)
+$softwareList.ShowItemToolTips = $true
+$softwareList.Font = New-Object Drawing.Font("Segoe UI", 8.5)
+[void]$softwareList.Columns.Add("Application", 200)
+[void]$softwareList.Columns.Add("Status", 100)
+[void]$softwareList.Columns.Add("Installed Version", 165)
+[void]$softwareList.Columns.Add("Latest Version", 165)
 $tabDesignApps.Controls.Add($softwareList)
 
 $softwareNote = New-Label -Text "Shared design account: branding@suamisihat.com. Request the current password and OTP from the team lead. Missing applications: use their official vendor setup, sign in, then select Rescan." -X 4 -Y 244 -Width 658 -Height 48
@@ -1689,23 +1692,83 @@ function Refresh-PCRequirements {
     }
 }
 
+# Known latest versions — update these when vendors ship new releases
+$script:KnownLatestVersions = @{
+    "Affinity"             = "2.6.0"
+    "Canva"                = "1.100.0"
+    "Figma"                = "116.0.0"
+    "Adobe Creative Cloud" = "6.6.0"
+    "Adobe Photoshop"      = "26.0"
+    "Adobe Illustrator"    = "29.0"
+}
+
 function Refresh-SoftwareList {
     $softwareList.Items.Clear()
     $script:softwareInventory = @(Get-DesignSoftwareInventory)
     foreach ($software in $script:softwareInventory) {
-        $status = if ($software.Installed) { "Installed" } else { "Not detected" }
-        $version = if ([string]::IsNullOrWhiteSpace($software.Version)) { "" } else { $software.Version }
-        $item = New-Object Windows.Forms.ListViewItem($software.Name)
-        [void]$item.SubItems.Add($status)
-        [void]$item.SubItems.Add($version)
-        if ($software.Installed) {
-            $item.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
+        $installedVer = if ([string]::IsNullOrWhiteSpace($software.Version)) { "" } else { $software.Version }
+        $latestVer    = if ($script:KnownLatestVersions.ContainsKey($software.Name)) {
+                            $script:KnownLatestVersions[$software.Name]
+                        } else { "N/A" }
+
+        if (-not $software.Installed) {
+            $status      = "Not installed"
+            $rowColor    = [Drawing.Color]::FromArgb(140, 148, 160)
+            $statusColor = [Drawing.Color]::FromArgb(140, 148, 160)
         } else {
-            $item.ForeColor = [Drawing.Color]::FromArgb(189, 154, 115)
+            $isOutdated = $false
+            if ($installedVer -and $latestVer -ne "N/A") {
+                try {
+                    $vInst = [version]($installedVer -replace '[^0-9.]','')
+                    $vLat  = [version]($latestVer    -replace '[^0-9.]','')
+                    $isOutdated = $vLat -gt $vInst
+                } catch { $isOutdated = $false }
+            }
+            if ($isOutdated) {
+                $status      = "Update available"
+                $rowColor    = [Drawing.Color]::FromArgb(146, 64, 14)
+                $statusColor = [Drawing.Color]::FromArgb(194, 65, 12)
+            } else {
+                $status      = "Up to date"
+                $rowColor    = [Drawing.Color]::FromArgb(4, 51, 136)
+                $statusColor = [Drawing.Color]::FromArgb(20, 135, 75)
+            }
         }
+
+        $item = New-Object Windows.Forms.ListViewItem($software.Name)
+        $item.UseItemStyleForSubItems = $false
+        $item.ForeColor = $rowColor
+
+        $siStatus = $item.SubItems.Add($status)
+        $siStatus.ForeColor = $statusColor
+
+        $instDisplay = if ($installedVer) { "v$installedVer" } else { "-" }
+        $siInstalled = $item.SubItems.Add($instDisplay)
+        $siInstalled.ForeColor = if ($software.Installed) {
+            [Drawing.Color]::FromArgb(30, 41, 59)
+        } else {
+            [Drawing.Color]::FromArgb(160, 165, 175)
+        }
+
+        $latDisplay = if ($latestVer -ne "N/A") { "v$latestVer" } else { "-" }
+        $siLatest = $item.SubItems.Add($latDisplay)
+        $siLatest.ForeColor = if ($status -eq "Up to date") {
+            [Drawing.Color]::FromArgb(20, 135, 75)
+        } elseif ($status -eq "Update available") {
+            [Drawing.Color]::FromArgb(194, 65, 12)
+        } else {
+            [Drawing.Color]::FromArgb(160, 165, 175)
+        }
+
+        $tip = "$($software.Name) - $status"
+        if ($installedVer) { $tip += " | Installed: v$installedVer" }
+        if ($latestVer -ne "N/A") { $tip += " | Latest: v$latestVer" }
+        $item.ToolTipText = $tip
+
         [void]$softwareList.Items.Add($item)
     }
 }
+
 
 function Add-ReviewChecklistItem {
     param(
