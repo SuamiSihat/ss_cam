@@ -738,24 +738,9 @@ $projectNameText.Text = "POSM_Banner"
 $paramGroup.Controls.Add($projectNameText)
 
 # Project Description / Creative Brief Input (Saved as README.md)
-$descLabel = New-Label -Text "Project Description / Creative Brief (Markdown - saved as README.md):" -X 15 -Y 122 -Width 490
+$descLabel = New-Label -Text "Project Description / Creative Brief (Markdown - saved as README.md):" -X 15 -Y 122 -Width 610
 $descLabel.BackColor = [Drawing.Color]::Transparent
 $paramGroup.Controls.Add($descLabel)
-
-# Expand/collapse toggle for the description box
-$script:descExpanded = $false
-$btnDescToggle = New-Object Windows.Forms.Button
-$btnDescToggle.Text = [char]0x25BC  # ▼ expand
-$btnDescToggle.Location = New-Object Drawing.Point(622, 119)
-$btnDescToggle.Size = New-Object Drawing.Size(30, 20)
-$btnDescToggle.Font = New-Object Drawing.Font("Segoe UI", 7)
-$btnDescToggle.FlatStyle = "Flat"
-$btnDescToggle.FlatAppearance.BorderSize = 0
-$btnDescToggle.BackColor = [Drawing.Color]::FromArgb(230, 235, 245)
-$btnDescToggle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
-$btnDescToggle.Cursor = [Windows.Forms.Cursors]::Hand
-$btnDescToggle.BackColor = [Drawing.Color]::Transparent
-$paramGroup.Controls.Add($btnDescToggle)
 
 $projDescText = New-Object Windows.Forms.TextBox
 $projDescText.Multiline = $true
@@ -765,7 +750,17 @@ $projDescText.Size = New-Object Drawing.Size(637, 44)
 $projDescText.Text = "# Creative Brief`r`n- Objective: SuamiSihat Marketing Campaign`r`n- Deliverables: Brand Graphics & Digital Assets"
 $paramGroup.Controls.Add($projDescText)
 
-# Options Checkboxes (Feature 3 & 4) - Y position driven by $script:chkBaseY for expand support
+# Drag-to-resize handle — replaces the old expand/collapse toggle
+$descResizeHandle = New-Object Windows.Forms.Panel
+$descResizeHandle.Location = New-Object Drawing.Point(15, 188)   # directly below projDescText (142+44+2)
+$descResizeHandle.Size = New-Object Drawing.Size(637, 6)
+$descResizeHandle.BackColor = [Drawing.Color]::FromArgb(200, 210, 230)
+$descResizeHandle.Cursor = [Windows.Forms.Cursors]::SizeNS
+$paramGroup.Controls.Add($descResizeHandle)
+$script:dragStartY = 0
+$script:dragStartH = 0
+
+# Options Checkboxes — Y anchored to $script:chkBaseY so they follow the drag handle
 $script:chkBaseY = 195
 $chkInjectTemplate = New-Object Windows.Forms.CheckBox
 $chkInjectTemplate.Text = "Inject Master Canvas (.psd/.afdesign)"
@@ -970,18 +965,82 @@ $appGroup.Controls.Add($settingsStatusLabel)
 $updateGroup = New-Object Windows.Forms.GroupBox
 $updateGroup.Text = " About && Software Updates "
 $updateGroup.Location = New-Object Drawing.Point(27, 355)
-$updateGroup.Size = New-Object Drawing.Size(667, 152)
+$updateGroup.Size = New-Object Drawing.Size(667, 172)
 $updateGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $settingsPage.Controls.Add($updateGroup)
 
-$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v$($script:AppVersion)`r`nGitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 22 -Width 637 -Height 54
-$aboutLabel.Font = New-Object Drawing.Font("Segoe UI", 8.5)
+# Line 1 — Product name + installed version (updated by refreshAppVersionStatus)
+$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v$($script:AppVersion)" -X 15 -Y 22 -Width 637 -Height 18
+$aboutLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $aboutLabel.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
 $updateGroup.Controls.Add($aboutLabel)
 
+# Line 2 — Exe path (updated by refreshAppVersionStatus)
+$aboutExeLabel = New-Label -Text "GitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 40 -Width 637 -Height 16
+$aboutExeLabel.Font = New-Object Drawing.Font("Segoe UI", 8)
+$aboutExeLabel.ForeColor = [Drawing.Color]::FromArgb(100, 110, 125)
+$updateGroup.Controls.Add($aboutExeLabel)
+
+# Line 3 — Clickable GitHub link row
+$linkSep1 = New-Label -Text "|" -X 128 -Y 60 -Width 10 -Height 16
+$linkSep1.ForeColor = [Drawing.Color]::FromArgb(180, 190, 210)
+$linkSep1.Font = New-Object Drawing.Font("Segoe UI", 8)
+$updateGroup.Controls.Add($linkSep1)
+
+$linkSep2 = New-Label -Text "|" -X 248 -Y 60 -Width 10 -Height 16
+$linkSep2.ForeColor = [Drawing.Color]::FromArgb(180, 190, 210)
+$linkSep2.Font = New-Object Drawing.Font("Segoe UI", 8)
+$updateGroup.Controls.Add($linkSep2)
+
+$linkSep3 = New-Label -Text "|" -X 388 -Y 60 -Width 10 -Height 16
+$linkSep3.ForeColor = [Drawing.Color]::FromArgb(180, 190, 210)
+$linkSep3.Font = New-Object Drawing.Font("Segoe UI", 8)
+$updateGroup.Controls.Add($linkSep3)
+
+$linkGitHub = New-Object Windows.Forms.LinkLabel
+$linkGitHub.Text = "GitHub Repository"
+$linkGitHub.Location = New-Object Drawing.Point(15, 60)
+$linkGitHub.Size = New-Object Drawing.Size(112, 16)
+$linkGitHub.Font = New-Object Drawing.Font("Segoe UI Semibold", 8)
+$linkGitHub.LinkColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$linkGitHub.ActiveLinkColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$linkGitHub.Add_LinkClicked({ Start-Process "https://github.com/SuamiSihat/SS-Brand-Assets" })
+$updateGroup.Controls.Add($linkGitHub)
+
+$linkReleases = New-Object Windows.Forms.LinkLabel
+$linkReleases.Text = "Releases & Downloads"
+$linkReleases.Location = New-Object Drawing.Point(140, 60)
+$linkReleases.Size = New-Object Drawing.Size(106, 16)
+$linkReleases.Font = New-Object Drawing.Font("Segoe UI Semibold", 8)
+$linkReleases.LinkColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$linkReleases.ActiveLinkColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$linkReleases.Add_LinkClicked({ Start-Process "https://github.com/SuamiSihat/SS-Brand-Assets/releases" })
+$updateGroup.Controls.Add($linkReleases)
+
+$linkChangelog = New-Object Windows.Forms.LinkLabel
+$linkChangelog.Text = "Dev Updates & Commits"
+$linkChangelog.Location = New-Object Drawing.Point(260, 60)
+$linkChangelog.Size = New-Object Drawing.Size(126, 16)
+$linkChangelog.Font = New-Object Drawing.Font("Segoe UI Semibold", 8)
+$linkChangelog.LinkColor = [Drawing.Color]::FromArgb(4, 51, 136)
+$linkChangelog.ActiveLinkColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$linkChangelog.Add_LinkClicked({ Start-Process "https://github.com/SuamiSihat/SS-Brand-Assets/commits/SS-Master" })
+$updateGroup.Controls.Add($linkChangelog)
+
+$linkIssues = New-Object Windows.Forms.LinkLabel
+$linkIssues.Text = "Report an Issue"
+$linkIssues.Location = New-Object Drawing.Point(400, 60)
+$linkIssues.Size = New-Object Drawing.Size(100, 16)
+$linkIssues.Font = New-Object Drawing.Font("Segoe UI Semibold", 8)
+$linkIssues.LinkColor = [Drawing.Color]::FromArgb(194, 65, 12)
+$linkIssues.ActiveLinkColor = [Drawing.Color]::FromArgb(220, 100, 40)
+$linkIssues.Add_LinkClicked({ Start-Process "https://github.com/SuamiSihat/SS-Brand-Assets/issues/new" })
+$updateGroup.Controls.Add($linkIssues)
+
+# Row 4 — Update action row
 $btnCheckUpdate = New-Object Windows.Forms.Button
 $btnCheckUpdate.Text = "Check for Updates"
-$btnCheckUpdate.Location = New-Object Drawing.Point(15, 96)
+$btnCheckUpdate.Location = New-Object Drawing.Point(15, 116)
 $btnCheckUpdate.Size = New-Object Drawing.Size(160, 32)
 $btnCheckUpdate.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $btnCheckUpdate.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
@@ -992,7 +1051,7 @@ $updateGroup.Controls.Add($btnCheckUpdate)
 
 $btnInstallUpdate = New-Object Windows.Forms.Button
 $btnInstallUpdate.Text = "Install Update"
-$btnInstallUpdate.Location = New-Object Drawing.Point(185, 96)
+$btnInstallUpdate.Location = New-Object Drawing.Point(185, 116)
 $btnInstallUpdate.Size = New-Object Drawing.Size(140, 32)
 $btnInstallUpdate.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $btnInstallUpdate.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
@@ -1002,7 +1061,7 @@ $btnInstallUpdate.Cursor = [Windows.Forms.Cursors]::Hand
 $btnInstallUpdate.Visible = $false
 $updateGroup.Controls.Add($btnInstallUpdate)
 
-$updateStatusLabel = New-Label -Text "" -X 185 -Y 100 -Width 465 -Height 26
+$updateStatusLabel = New-Label -Text "" -X 185 -Y 120 -Width 465 -Height 26
 $updateStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $updateGroup.Controls.Add($updateStatusLabel)
 
@@ -1067,33 +1126,45 @@ $updatePreview = {
     }
 }
 
-# Description box expand/collapse toggle handler
-# Collapsed: projDescText H=44, checkboxes Y=195, paramGroup H=235, previewGroup Y=357, structureGroup visible
-# Expanded (+80px): projDescText H=124, checkboxes Y=275, paramGroup H=315, previewGroup Y=437, structureGroup hidden
-$btnDescToggle.Add_Click({
-    if (-not $script:descExpanded) {
-        # Expand
-        $projDescText.Size       = New-Object Drawing.Size(637, 124)
-        $chkInjectTemplate.Location = New-Object Drawing.Point(15, 275)
-        $chkExtraRevisions.Location = New-Object Drawing.Point(285, 275)
-        $chkExtraRaw.Location    = New-Object Drawing.Point(435, 275)
-        $paramGroup.Size         = New-Object Drawing.Size(667, 315)
-        $previewGroup.Location   = New-Object Drawing.Point(27, 437)
-        $structureGroup.Visible  = $false
-        $btnDescToggle.Text      = [char]0x25B2   # ▲ collapse
-        $script:descExpanded     = $true
-    } else {
-        # Collapse
-        $projDescText.Size       = New-Object Drawing.Size(637, 44)
-        $chkInjectTemplate.Location = New-Object Drawing.Point(15, 195)
-        $chkExtraRevisions.Location = New-Object Drawing.Point(285, 195)
-        $chkExtraRaw.Location    = New-Object Drawing.Point(435, 195)
-        $paramGroup.Size         = New-Object Drawing.Size(667, 235)
-        $previewGroup.Location   = New-Object Drawing.Point(27, 357)
-        $structureGroup.Visible  = $true
-        $btnDescToggle.Text      = [char]0x25BC   # ▼ expand
-        $script:descExpanded     = $false
+# Drag-to-resize description box — MouseDown/Move/Up on the grip handle
+$descResizeHandle.Add_MouseDown({
+    param($s, $e)
+    if ($e.Button -eq [Windows.Forms.MouseButtons]::Left) {
+        $script:dragStartY = [Windows.Forms.Cursor]::Position.Y
+        $script:dragStartH = $projDescText.Height
     }
+})
+
+$descResizeHandle.Add_MouseMove({
+    param($s, $e)
+    if ($e.Button -eq [Windows.Forms.MouseButtons]::Left) {
+        $curY   = [Windows.Forms.Cursor]::Position.Y
+        $delta  = $curY - $script:dragStartY
+        $newH   = [Math]::Max(28, [Math]::Min(220, $script:dragStartH + $delta))
+
+        $projDescText.Height           = $newH
+        $descResizeHandle.Top          = $projDescText.Bottom + 2
+
+        $chkY = $descResizeHandle.Bottom + 4
+        $chkInjectTemplate.Top  = $chkY
+        $chkExtraRevisions.Top  = $chkY
+        $chkExtraRaw.Top        = $chkY
+
+        $paramGroup.Height = $chkY + 30
+        $previewGroup.Top  = $creatorPage.Controls | Where-Object { $_ -eq $paramGroup } | ForEach-Object { $_.Bottom + 6 } |
+                             Select-Object -First 1
+        if ($null -eq $previewGroup.Top -or $previewGroup.Top -eq 0) {
+            $previewGroup.Top = $paramGroup.Bottom + 6
+        }
+        $workspaceRootLink.Top  = $previewGroup.Top - 20
+        $structureGroup.Top     = $previewGroup.Bottom + 4
+        $structureGroup.Visible = ($newH -le 80)
+    }
+})
+
+$descResizeHandle.Add_MouseUp({
+    param($s, $e)
+    # Snap finalize — positions already correct from MouseMove
 })
 
 $presetCombo.Add_SelectedIndexChanged({
@@ -1251,7 +1322,8 @@ $refreshAppVersionStatus = {
         # Truncate exe path to keep line 2 to one clean line
         $exeDisplay = $script:installedInfo.ExePath
         if ($exeDisplay.Length -gt 72) { $exeDisplay = $exeDisplay.Substring(0, 69) + '...' }
-        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Installed: v$($script:installedInfo.Version)`r`nExecutable: $exeDisplay"
+        $aboutLabel.Text    = "SuamiSihat Creative Assets Management  |  Installed: v$($script:installedInfo.Version)"
+        $aboutExeLabel.Text = "Executable: $exeDisplay"
         $btnWelcomeLaunch.Visible = $true
         $btnWelcomeUninstall.Visible = $true
         $chkWelcomeBrandKit.Checked = $true
@@ -1261,7 +1333,8 @@ $refreshAppVersionStatus = {
     } else {
         $installStatusBadge.Text = "Not Installed  (v$($script:AppVersion) Ready)"
         $installStatusBadge.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
-        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Not Installed`r`nRun the setup wizard below to install the SuamiSihat brand kit & assets."
+        $aboutLabel.Text    = "SuamiSihat Creative Assets Management  |  Not Installed"
+        $aboutExeLabel.Text = "Run the setup wizard below to install the SuamiSihat brand kit & assets."
         $btnWelcomeLaunch.Visible = $false
         $btnWelcomeUninstall.Visible = $false
         $chkWelcomeBrandKit.Checked = $true
@@ -1383,9 +1456,9 @@ $btnCheckUpdate.Add_Click({
         $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
         $updateStatusLabel.Text = "New Version Available: v$($script:updateInfo.LatestVersion)!"
         if (-not [string]::IsNullOrWhiteSpace($script:updateInfo.DownloadUrl)) {
-            $btnInstallUpdate.Location = New-Object Drawing.Point(185, 96)
+            $btnInstallUpdate.Location = New-Object Drawing.Point(185, 116)
             $btnInstallUpdate.Visible = $true
-            $updateStatusLabel.Location = New-Object Drawing.Point(335, 100)
+            $updateStatusLabel.Location = New-Object Drawing.Point(335, 120)
             $updateStatusLabel.Width = 315
         }
     } else {
@@ -2078,9 +2151,9 @@ $form.Add_Shown({
                 $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(194, 65, 12)
                 $updateStatusLabel.Text = "New Update Available: v$($e.Result.LatestVersion)"
                 if (-not [string]::IsNullOrWhiteSpace($e.Result.DownloadUrl)) {
-                    $btnInstallUpdate.Location = New-Object Drawing.Point(185, 96)
+                    $btnInstallUpdate.Location = New-Object Drawing.Point(185, 116)
                     $btnInstallUpdate.Visible = $true
-                    $updateStatusLabel.Location = New-Object Drawing.Point(335, 100)
+                    $updateStatusLabel.Location = New-Object Drawing.Point(335, 120)
                     $updateStatusLabel.Width = 315
                 }
             } elseif ($null -ne $e.Result -and -not $e.Result.HasUpdate) {
