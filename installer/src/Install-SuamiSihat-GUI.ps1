@@ -1313,8 +1313,8 @@ $updatePreview = {
 
     # M4: Refresh Recent Projects ComboBox (shows up to 5 recent projects)
     $recentCombo.Items.Clear()
-    if ($script:appState.RecentProjects -and $script:appState.RecentProjects.Count -gt 0) {
-        $maxRecent = [Math]::Min($script:appState.RecentProjects.Count, 5)
+    if ($script:appState.RecentProjects -and @($script:appState.RecentProjects).Count -gt 0) {
+        $maxRecent = [Math]::Min(@($script:appState.RecentProjects).Count, 5)
         for ($i = 0; $i -lt $maxRecent; $i++) {
             $rp = $script:appState.RecentProjects[$i]
             [void]$recentCombo.Items.Add("$($rp.FolderName)  ($($rp.Created))")
@@ -1531,9 +1531,9 @@ $btnCopyName.Add_Click({
 
 # M4: Recent Projects ComboBox — open selected project in Explorer
 $recentOpenBtn.Add_Click({
-    if ($script:appState.RecentProjects -and $script:appState.RecentProjects.Count -gt 0) {
+    if ($script:appState.RecentProjects -and @($script:appState.RecentProjects).Count -gt 0) {
         $selIdx = [Math]::Max(0, $recentCombo.SelectedIndex)
-        $maxIdx = $script:appState.RecentProjects.Count - 1
+        $maxIdx = @($script:appState.RecentProjects).Count - 1
         if ($selIdx -gt $maxIdx) { $selIdx = 0 }
         $recentPath = $script:appState.RecentProjects[$selIdx].ProjectPath
         if (Test-Path -LiteralPath $recentPath -PathType Container) {
@@ -2701,7 +2701,7 @@ try {
         # Refill local pool if empty
         if ((@($script:appState.LocalJobPool).Count -eq 0) -and (Test-NASAvailable -WorkspaceRoot $ws)) {
             $prefix = "D"
-            $newPool = Refill-LocalJobPool -WorkspaceRoot $ws -JobPrefix $prefix -PoolSize 5
+            $newPool = @(Refill-LocalJobPool -WorkspaceRoot $ws -JobPrefix $prefix -PoolSize 5)
             if ($newPool.Count -gt 0) {
                 $script:appState = Save-SuamiSihatAppState `
                     -LastProjectPath $script:appState.LastProjectPath `

@@ -340,7 +340,7 @@ function New-SuamiSihatProjectFolder {
         default     { @("Artwork Design", "Artwork Mockup", "Assets", "Production") }
     }
 
-    if ($ExtraSubFolders -and $ExtraSubFolders.Count -gt 0) {
+    if ($ExtraSubFolders -and @($ExtraSubFolders).Count -gt 0) {
         foreach ($extra in $ExtraSubFolders) {
             if (-not [string]::IsNullOrWhiteSpace($extra) -and $subFolders -notcontains $extra) {
                 $subFolders += $extra.Trim()
@@ -519,7 +519,7 @@ function Get-SuamiSihatAppState {
                     }
                 }
             }
-            if ($profiles.Count -eq 0) {
+            if (@($profiles).Count -eq 0) {
                 $profiles += @{
                     Name       = $defaultDesignerName
                     Department = $defaultDept
@@ -642,7 +642,7 @@ function Save-SuamiSihatAppState {
     }
     if ($prevState.RecentProjects) {
         foreach ($p in $prevState.RecentProjects) {
-            if ($p.FolderName -ne $LastProjectName -and $recent.Count -lt 5) {
+            if ($p.FolderName -ne $LastProjectName -and @($recent).Count -lt 5) {
                 $recent += $p
             }
         }
@@ -657,9 +657,9 @@ function Save-SuamiSihatAppState {
     $cleanProfilesList = @()
     $foundCur = $false
 
-    $sourceProfiles = if ($Profiles -and $Profiles.Count -gt 0) {
+    $sourceProfiles = if ($Profiles -and @($Profiles).Count -gt 0) {
         $Profiles
-    } elseif ($prevState.Profiles -and $prevState.Profiles.Count -gt 0) {
+    } elseif ($prevState.Profiles -and @($prevState.Profiles).Count -gt 0) {
         $prevState.Profiles
     } else {
         @()
@@ -875,7 +875,7 @@ function Claim-NextJobID {
             # Refill local pool if it's running low
             $currentPool = if ($AppState.LocalJobPool) { @($AppState.LocalJobPool) } else { @() }
             if ($currentPool.Count -lt 2) {
-                $newPool = Refill-LocalJobPool -WorkspaceRoot $WorkspaceRoot -JobPrefix $JobPrefix -PoolSize 5
+                $newPool = @(Refill-LocalJobPool -WorkspaceRoot $WorkspaceRoot -JobPrefix $JobPrefix -PoolSize 5)
                 $result.PoolRemaining = $newPool.Count
                 # Persist new pool to app state (caller must save)
                 $AppState.LocalJobPool = $newPool
@@ -1095,7 +1095,7 @@ function Uninstall-SuamiSihatApp {
             Remove-Item -LiteralPath $appInstallDir -Recurse -Force -ErrorAction SilentlyContinue
         }
         $parentDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat"
-        if ((Test-Path -LiteralPath $parentDir) -and ((Get-ChildItem -LiteralPath $parentDir).Count -eq 0)) {
+        if ((Test-Path -LiteralPath $parentDir) -and (@(Get-ChildItem -LiteralPath $parentDir).Count -eq 0)) {
             Remove-Item -LiteralPath $parentDir -Force -ErrorAction SilentlyContinue
         }
     } catch {}
