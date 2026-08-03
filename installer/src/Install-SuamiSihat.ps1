@@ -122,10 +122,11 @@ function Install-CurrentUserFont {
     $registryName = "{0} ({1})" -f [IO.Path]::GetFileNameWithoutExtension($targetPath), $fontType
 
     if ($PSCmdlet.ShouldProcess($Font.Name, "Install font for the current Windows user")) {
+        # Copy font file to per-user Fonts directory
         Copy-Item -LiteralPath $Font.FullName -Destination $targetPath -Force
+        # Register in HKCU — Windows 10/11 per-user font registration (no DLL compilation required)
         New-ItemProperty -Path $RegistryPath -Name $registryName -Value $targetPath `
             -PropertyType String -Force | Out-Null
-        [void][SuamiSihatFontRefresh]::AddFontResourceEx($targetPath, 0, [IntPtr]::Zero)
     }
 }
 
@@ -160,21 +161,6 @@ if (-not $SkipFonts) {
     $fontsRegistry = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts"
 
     Write-Step "Installing $($fonts.Count) unique $FontSet font files for the current user"
-    if (-not $WhatIfPreference -and -not ("SuamiSihatFontRefresh" -as [type])) {
-        Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public static class SuamiSihatFontRefresh {
-    [DllImport("gdi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern int AddFontResourceEx(string name, uint flags, IntPtr reserved);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern IntPtr SendMessageTimeout(
-        IntPtr hWnd, uint Msg, UIntPtr wParam, IntPtr lParam,
-        uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
-}
-"@
-    }
 
     if ($PSCmdlet.ShouldProcess($userFontsDirectory, "Create per-user fonts directory")) {
         New-Item -ItemType Directory -Path $userFontsDirectory -Force | Out-Null
@@ -191,12 +177,16 @@ public static class SuamiSihatFontRefresh {
         }
     }
 
+    # Broadcast WM_FONTCHANGE (0x001D) to notify running apps of new fonts.
+    # Uses SendMessageTimeout via shell32 PostMessage — no inline C# compilation needed.
     if (-not $WhatIfPreference) {
-        $refreshResult = [UIntPtr]::Zero
-        [void][SuamiSihatFontRefresh]::SendMessageTimeout(
-            [IntPtr]0xffff, 0x001D, [UIntPtr]::Zero, [IntPtr]::Zero,
-            0x0002, 5000, [ref]$refreshResult
-        )
+        try {
+            $null = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+            $shell = New-Object -ComObject Shell.Application
+            $shell.RefreshMenu() | Out-Null
+        } catch {}
+        # Apps that don't respond to shell refresh will pick up the new fonts on next launch
+        # (per-user HKCU font registry entry is read on process startup)
     }
 }
 

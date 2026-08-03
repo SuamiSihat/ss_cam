@@ -11,7 +11,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 
-$script:AppVersion = "1.7.0"
+$script:AppVersion = "1.7.1"
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -626,7 +626,7 @@ $creatorTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 15)
 $creatorTitle.ForeColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $creatorPage.Controls.Add($creatorTitle)
 
-$creatorIntro = New-Label -Text "Post Haste-style template presets with history tracking, Clipboard Copy, & auto-incrementing Job IDs." -X 27 -Y 34 -Width 660 -Height 18
+$creatorIntro = New-Label -Text "Official SuamiSihat creative project presets with automated folder structure, history tracking & Job ID management." -X 27 -Y 34 -Width 660 -Height 18
 $creatorIntro.ForeColor = [Drawing.Color]::FromArgb(100, 110, 125)
 $creatorPage.Controls.Add($creatorIntro)
 
@@ -671,27 +671,46 @@ $paramGroup.Size = New-Object Drawing.Size(667, 235)
 $paramGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($paramGroup)
 
-# Project Preset Selector
-$presetLabel = New-Label -Text "Project Preset Template:" -X 15 -Y 22 -Width 200
+# Top Row: Preset Selection & Target Platform / Specs Selection
+$presetLabel = New-Label -Text "Creative Preset:" -X 15 -Y 22 -Width 370
 $presetLabel.BackColor = [Drawing.Color]::Transparent
 $paramGroup.Controls.Add($presetLabel)
 
+$targetPlatformLabel = New-Label -Text "Target Platform / Spec:" -X 395 -Y 22 -Width 250
+$targetPlatformLabel.BackColor = [Drawing.Color]::Transparent
+$paramGroup.Controls.Add($targetPlatformLabel)
+
 $presetCombo = New-Object Windows.Forms.ComboBox
 $presetCombo.Location = New-Object Drawing.Point(15, 42)
-$presetCombo.Size = New-Object Drawing.Size(637, 26)
+$presetCombo.Size = New-Object Drawing.Size(370, 26)
 $presetCombo.DropDownStyle = "DropDownList"
 @("Graphic & Print Design", "Social Media & E-Commerce", "Video & Motion Graphics", "Brand Identity") | ForEach-Object { [void]$presetCombo.Items.Add($_) }
 $presetCombo.SelectedIndex = 0
 $paramGroup.Controls.Add($presetCombo)
 
-# Year Selection
-$yearLabel = New-Label -Text "Year:" -X 15 -Y 72 -Width 75
+$targetPlatformCombo = New-Object Windows.Forms.ComboBox
+$targetPlatformCombo.Location = New-Object Drawing.Point(395, 42)
+$targetPlatformCombo.Size = New-Object Drawing.Size(257, 26)
+$targetPlatformCombo.DropDownStyle = "DropDownList"
+@(
+    "Meta / IG Square (1:1 - 1080x1080 RGB)",
+    "TikTok / Reels / Story (9:16 - 1080x1920 RGB)",
+    "YouTube Video (16:9 - 1920x1080 / 4K RGB)",
+    "E-Commerce / Web Banner (1200x628 RGB)",
+    "POSM Print / Banner (CMYK 300 DPI)",
+    "General Asset (Custom Specs)"
+) | ForEach-Object { [void]$targetPlatformCombo.Items.Add($_) }
+$targetPlatformCombo.SelectedIndex = 0
+$paramGroup.Controls.Add($targetPlatformCombo)
+
+# Row 2: Year, Sub-Brand, Job ID, Designer Profile, Project Name
+$yearLabel = New-Label -Text "Year:" -X 15 -Y 72 -Width 70
 $yearLabel.BackColor = [Drawing.Color]::Transparent
 $paramGroup.Controls.Add($yearLabel)
 
 $yearCombo = New-Object Windows.Forms.ComboBox
 $yearCombo.Location = New-Object Drawing.Point(15, 92)
-$yearCombo.Size = New-Object Drawing.Size(85, 26)
+$yearCombo.Size = New-Object Drawing.Size(80, 26)
 $yearCombo.DropDownStyle = "DropDownList"
 $currentYrInt = [int](Get-Date).ToString("yyyy")
 (($currentYrInt - 2)..($currentYrInt + 3)) | ForEach-Object { [void]$yearCombo.Items.Add($_) }
@@ -699,37 +718,55 @@ $yearCombo.SelectedItem = $currentYrInt
 $paramGroup.Controls.Add($yearCombo)
 
 # Sub-Brand Selection
-$brandLabel = New-Label -Text "Sub-Brand:" -X 110 -Y 72 -Width 100
+$brandLabel = New-Label -Text "Sub-Brand:" -X 102 -Y 72 -Width 90
 $brandLabel.BackColor = [Drawing.Color]::Transparent
 $paramGroup.Controls.Add($brandLabel)
 
 $subBrandCombo = New-Object Windows.Forms.ComboBox
-$subBrandCombo.Location = New-Object Drawing.Point(110, 92)
-$subBrandCombo.Size = New-Object Drawing.Size(105, 26)
+$subBrandCombo.Location = New-Object Drawing.Point(102, 92)
+$subBrandCombo.Size = New-Object Drawing.Size(95, 26)
 $subBrandCombo.DropDownStyle = "DropDownList"
 @("SS", "SSH", "SSC", "SSW", "SSE", "SST") | ForEach-Object { [void]$subBrandCombo.Items.Add($_) }
 $subBrandCombo.SelectedIndex = 0
 $paramGroup.Controls.Add($subBrandCombo)
 
-# Job ID Code (D- Graphic, V- Video, P- Product/Brand, S- Social)
-$jobLabel = New-Label -Text "Job ID (D/V/P/S):" -X 225 -Y 72 -Width 130
+# Job ID Code
+$jobLabel = New-Label -Text "Job ID:" -X 204 -Y 72 -Width 90
 $jobLabel.BackColor = [Drawing.Color]::Transparent
 $paramGroup.Controls.Add($jobLabel)
 
 $jobIdText = New-Object Windows.Forms.TextBox
-$jobIdText.Location = New-Object Drawing.Point(225, 92)
-$jobIdText.Size = New-Object Drawing.Size(115, 25)
+$jobIdText.Location = New-Object Drawing.Point(204, 92)
+$jobIdText.Size = New-Object Drawing.Size(95, 25)
 $jobIdText.Text = $script:appState.NextJobNumber
 $paramGroup.Controls.Add($jobIdText)
 
+# Active Designer Profile Switcher
+$designerProfileLabel = New-Label -Text "Designer Profile:" -X 306 -Y 72 -Width 150
+$designerProfileLabel.BackColor = [Drawing.Color]::Transparent
+$paramGroup.Controls.Add($designerProfileLabel)
+
+$designerProfileCombo = New-Object Windows.Forms.ComboBox
+$designerProfileCombo.Location = New-Object Drawing.Point(306, 92)
+$designerProfileCombo.Size = New-Object Drawing.Size(165, 26)
+$designerProfileCombo.DropDownStyle = "DropDownList"
+if ($script:appState.Profiles) {
+    foreach ($prof in $script:appState.Profiles) { [void]$designerProfileCombo.Items.Add($prof.Name) }
+}
+if ($designerProfileCombo.Items.Count -eq 0) {
+    [void]$designerProfileCombo.Items.Add($script:appState.DesignerName)
+}
+$designerProfileCombo.SelectedIndex = 0
+$paramGroup.Controls.Add($designerProfileCombo)
+
 # Project Name
-$nameLabel = New-Label -Text "Project Name:" -X 350 -Y 72 -Width 280
+$nameLabel = New-Label -Text "Project Name:" -X 478 -Y 72 -Width 170
 $nameLabel.BackColor = [Drawing.Color]::Transparent
 $paramGroup.Controls.Add($nameLabel)
 
 $projectNameText = New-Object Windows.Forms.TextBox
-$projectNameText.Location = New-Object Drawing.Point(350, 92)
-$projectNameText.Size = New-Object Drawing.Size(302, 25)
+$projectNameText.Location = New-Object Drawing.Point(478, 92)
+$projectNameText.Size = New-Object Drawing.Size(174, 25)
 $projectNameText.Text = "POSM_Banner"
 $paramGroup.Controls.Add($projectNameText)
 
@@ -759,22 +796,30 @@ $script:dragStartH = 0
 # Options Checkboxes — Y anchored to $script:chkBaseY so they follow the drag handle
 $script:chkBaseY = 195
 $chkInjectTemplate = New-Object Windows.Forms.CheckBox
-$chkInjectTemplate.Text = "Inject Master Canvas (.psd/.afdesign)"
+$chkInjectTemplate.Text = "Inject Master Canvas"
 $chkInjectTemplate.Location = New-Object Drawing.Point(15, $script:chkBaseY)
-$chkInjectTemplate.Size = New-Object Drawing.Size(260, 24)
+$chkInjectTemplate.Size = New-Object Drawing.Size(145, 24)
 $chkInjectTemplate.Checked = $true
 $paramGroup.Controls.Add($chkInjectTemplate)
 
+$comboTemplateExt = New-Object Windows.Forms.ComboBox
+$comboTemplateExt.Location = New-Object Drawing.Point(162, 196)
+$comboTemplateExt.Size = New-Object Drawing.Size(100, 24)
+$comboTemplateExt.DropDownStyle = "DropDownList"
+@(".af", ".afdesign", ".psd", ".ai", ".svg") | ForEach-Object { [void]$comboTemplateExt.Items.Add($_) }
+$comboTemplateExt.SelectedIndex = 0
+$paramGroup.Controls.Add($comboTemplateExt)
+
 $chkExtraRevisions = New-Object Windows.Forms.CheckBox
 $chkExtraRevisions.Text = "+ Revisions Folder"
-$chkExtraRevisions.Location = New-Object Drawing.Point(285, $script:chkBaseY)
-$chkExtraRevisions.Size = New-Object Drawing.Size(140, 24)
+$chkExtraRevisions.Location = New-Object Drawing.Point(275, $script:chkBaseY)
+$chkExtraRevisions.Size = New-Object Drawing.Size(135, 24)
 $paramGroup.Controls.Add($chkExtraRevisions)
 
 $chkExtraRaw = New-Object Windows.Forms.CheckBox
-$chkExtraRaw.Text = "+ RAW Audio/3D"
-$chkExtraRaw.Location = New-Object Drawing.Point(435, $script:chkBaseY)
-$chkExtraRaw.Size = New-Object Drawing.Size(140, 24)
+$chkExtraRaw.Text = "+ RAW Media"
+$chkExtraRaw.Location = New-Object Drawing.Point(420, $script:chkBaseY)
+$chkExtraRaw.Size = New-Object Drawing.Size(130, 24)
 $paramGroup.Controls.Add($chkExtraRaw)
 
 # Workspace Root Location Text Box (Hidden internally, customizable via Settings)
@@ -793,7 +838,7 @@ $workspaceRootLink.ActiveLinkColor = [Drawing.Color]::FromArgb(33, 161, 247)
 $workspaceRootLink.Add_LinkClicked({
     $root = $workspacePathText.Text.Trim()
     if (-not [string]::IsNullOrWhiteSpace($root) -and (Test-Path -LiteralPath $root -PathType Container)) {
-        Start-Process -FilePath "explorer.exe" -ArgumentList (Quote-ProcessArgument $root)
+        Start-Process -FilePath "explorer.exe" -ArgumentList "`"$root`""
     }
 })
 $creatorPage.Controls.Add($workspaceRootLink)
@@ -826,11 +871,11 @@ $previewGroup.Controls.Add($btnCopyName)
 $structureGroup = New-Object Windows.Forms.GroupBox
 $structureGroup.Text = " Sub-Folders Created for Selected Preset "
 $structureGroup.Location = New-Object Drawing.Point(27, 441)
-$structureGroup.Size = New-Object Drawing.Size(667, 95)
+$structureGroup.Size = New-Object Drawing.Size(667, 125)
 $structureGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $creatorPage.Controls.Add($structureGroup)
 
-$structureInfoLabel = New-Label -Text "" -X 15 -Y 18 -Width 637 -Height 72
+$structureInfoLabel = New-Label -Text "" -X 15 -Y 18 -Width 637 -Height 100
 $structureInfoLabel.Font = New-Object Drawing.Font("Consolas", 8)
 $structureInfoLabel.ForeColor = [Drawing.Color]::FromArgb(70, 75, 80)
 $structureGroup.Controls.Add($structureInfoLabel)
@@ -879,18 +924,18 @@ $settingsPage.Controls.Add($settingsIntro)
 # Group 1: Font & Asset Maintenance
 $fontGroup = New-Object Windows.Forms.GroupBox
 $fontGroup.Text = " Brand Fonts && Asset Maintenance "
-$fontGroup.Location = New-Object Drawing.Point(27, 72)
-$fontGroup.Size = New-Object Drawing.Size(667, 100)
+$fontGroup.Location = New-Object Drawing.Point(27, 65)
+$fontGroup.Size = New-Object Drawing.Size(667, 95)
 $fontGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $settingsPage.Controls.Add($fontGroup)
 
-$fontGroupInfo = New-Label -Text "Reinstall or repair official bundled fonts (Poppins, Calibri, Helvetica Neue, Montserrat, FontAwesome Pro, etc.) and sync design libraries." -X 15 -Y 24 -Width 637 -Height 30
+$fontGroupInfo = New-Label -Text "Reinstall or repair official bundled fonts (Poppins, Calibri, Helvetica Neue, Montserrat, FontAwesome Pro, etc.) and sync design libraries." -X 15 -Y 22 -Width 637 -Height 30
 $fontGroupInfo.Font = New-Object Drawing.Font("Segoe UI", 9)
 $fontGroup.Controls.Add($fontGroupInfo)
 
 $repairFontsBtn = New-Object Windows.Forms.Button
 $repairFontsBtn.Text = "Reinstall / Repair Fonts && Brand Assets"
-$repairFontsBtn.Location = New-Object Drawing.Point(15, 56)
+$repairFontsBtn.Location = New-Object Drawing.Point(15, 52)
 $repairFontsBtn.Size = New-Object Drawing.Size(270, 32)
 $repairFontsBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $repairFontsBtn.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
@@ -901,7 +946,7 @@ $fontGroup.Controls.Add($repairFontsBtn)
 
 $uninstallSettingsBtn = New-Object Windows.Forms.Button
 $uninstallSettingsBtn.Text = "Uninstall App && Shortcuts"
-$uninstallSettingsBtn.Location = New-Object Drawing.Point(300, 56)
+$uninstallSettingsBtn.Location = New-Object Drawing.Point(300, 52)
 $uninstallSettingsBtn.Size = New-Object Drawing.Size(220, 32)
 $uninstallSettingsBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $uninstallSettingsBtn.BackColor = [Drawing.Color]::FromArgb(220, 38, 38)
@@ -913,55 +958,174 @@ $fontGroup.Controls.Add($uninstallSettingsBtn)
 # Group 2: App & History Settings
 $appGroup = New-Object Windows.Forms.GroupBox
 $appGroup.Text = " Workspace && Sequential Counter Defaults "
-$appGroup.Location = New-Object Drawing.Point(27, 185)
-$appGroup.Size = New-Object Drawing.Size(667, 160)
+$appGroup.Location = New-Object Drawing.Point(27, 165)
+$appGroup.Size = New-Object Drawing.Size(667, 125)
 $appGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $settingsPage.Controls.Add($appGroup)
 
-$setWorkspaceLabel = New-Label -Text "Default Parent Workspace Directory:" -X 15 -Y 24 -Width 300
+$setWorkspaceLabel = New-Label -Text "Default Parent Workspace Directory:" -X 15 -Y 22 -Width 300
 $appGroup.Controls.Add($setWorkspaceLabel)
 
 $setWorkspaceText = New-Object Windows.Forms.TextBox
-$setWorkspaceText.Location = New-Object Drawing.Point(15, 48)
+$setWorkspaceText.Location = New-Object Drawing.Point(15, 42)
 $setWorkspaceText.Size = New-Object Drawing.Size(520, 27)
 $setWorkspaceText.Text = $script:appState.DefaultWorkspace
 $appGroup.Controls.Add($setWorkspaceText)
 
 $setWorkspaceBrowseBtn = New-Object Windows.Forms.Button
 $setWorkspaceBrowseBtn.Text = "Browse..."
-$setWorkspaceBrowseBtn.Location = New-Object Drawing.Point(543, 45)
+$setWorkspaceBrowseBtn.Location = New-Object Drawing.Point(543, 40)
 $setWorkspaceBrowseBtn.Size = New-Object Drawing.Size(107, 31)
 $appGroup.Controls.Add($setWorkspaceBrowseBtn)
 
-$setJobLabel = New-Label -Text "Next Sequential Job ID Counter (e.g. D0075):" -X 15 -Y 85 -Width 300
+$setJobLabel = New-Label -Text "Next Job ID Counter (e.g. D0075):" -X 15 -Y 75 -Width 220
 $appGroup.Controls.Add($setJobLabel)
 
 $setJobText = New-Object Windows.Forms.TextBox
-$setJobText.Location = New-Object Drawing.Point(15, 108)
+$setJobText.Location = New-Object Drawing.Point(15, 93)
 $setJobText.Size = New-Object Drawing.Size(160, 27)
 $setJobText.Text = $script:appState.NextJobNumber
 $appGroup.Controls.Add($setJobText)
 
 $saveSettingsBtn = New-Object Windows.Forms.Button
 $saveSettingsBtn.Text = "Save Settings"
-$saveSettingsBtn.Location = New-Object Drawing.Point(190, 105)
-$saveSettingsBtn.Size = New-Object Drawing.Size(130, 32)
-$saveSettingsBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
-$saveSettingsBtn.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
+$saveSettingsBtn.Size = New-Object Drawing.Size(140, 34)
+$saveSettingsBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 9.5)
+$saveSettingsBtn.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $saveSettingsBtn.ForeColor = [Drawing.Color]::White
 $saveSettingsBtn.FlatStyle = "Flat"
 $saveSettingsBtn.Cursor = [Windows.Forms.Cursors]::Hand
-$appGroup.Controls.Add($saveSettingsBtn)
+$saveSettingsBtn.Visible = $false
+$saveSettingsBtn.Anchor = $BR
+$form.Controls.Add($saveSettingsBtn)
 
-$settingsStatusLabel = New-Label -Text "" -X 335 -Y 110 -Width 310 -Height 24
+$settingsStatusLabel = New-Label -Text "" -X 185 -Y 95 -Width 465 -Height 24
 $settingsStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $appGroup.Controls.Add($settingsStatusLabel)
 
-# Group 3: About & Check for Updates
+# Group 3: Designer Profile & Signature
+$profileGroup = New-Object Windows.Forms.GroupBox
+$profileGroup.Text = " Designer Profile && Signature "
+$profileGroup.Location = New-Object Drawing.Point(27, 295)
+$profileGroup.Size = New-Object Drawing.Size(667, 155)
+$profileGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$settingsPage.Controls.Add($profileGroup)
+
+# Designer Name
+$setDesignerNameLabel = New-Label -Text "Designer Name:" -X 15 -Y 22 -Width 180
+$profileGroup.Controls.Add($setDesignerNameLabel)
+$setDesignerNameText = New-Object Windows.Forms.TextBox
+$setDesignerNameText.Location = New-Object Drawing.Point(15, 44)
+$setDesignerNameText.Size = New-Object Drawing.Size(185, 27)
+$setDesignerNameText.Text = $script:appState.DesignerName
+$profileGroup.Controls.Add($setDesignerNameText)
+
+# Department
+$setDeptLabel = New-Label -Text "Department / Role:" -X 215 -Y 22 -Width 170
+$profileGroup.Controls.Add($setDeptLabel)
+$setDeptText = New-Object Windows.Forms.TextBox
+$setDeptText.Location = New-Object Drawing.Point(215, 44)
+$setDeptText.Size = New-Object Drawing.Size(175, 27)
+$setDeptText.Text = $script:appState.Department
+$profileGroup.Controls.Add($setDeptText)
+
+# Email Address
+$setDesignerEmailLabel = New-Label -Text "Email Address:" -X 405 -Y 22 -Width 220
+$profileGroup.Controls.Add($setDesignerEmailLabel)
+$setDesignerEmailText = New-Object Windows.Forms.TextBox
+$setDesignerEmailText.Location = New-Object Drawing.Point(405, 44)
+$setDesignerEmailText.Size = New-Object Drawing.Size(240, 27)
+$setDesignerEmailText.Text = $script:appState.DesignerEmail
+$profileGroup.Controls.Add($setDesignerEmailText)
+
+# Avatar File Path
+$setAvatarLabel = New-Label -Text "Avatar Profile Image (JPG/PNG/SVG):" -X 15 -Y 78 -Width 380
+$profileGroup.Controls.Add($setAvatarLabel)
+$setAvatarPathText = New-Object Windows.Forms.TextBox
+$setAvatarPathText.Location = New-Object Drawing.Point(15, 100)
+$setAvatarPathText.Size = New-Object Drawing.Size(400, 27)
+$setAvatarPathText.Text = $script:appState.AvatarPath
+$profileGroup.Controls.Add($setAvatarPathText)
+
+$setAvatarBrowseBtn = New-Object Windows.Forms.Button
+$setAvatarBrowseBtn.Text = "Browse..."
+$setAvatarBrowseBtn.Location = New-Object Drawing.Point(423, 98)
+$setAvatarBrowseBtn.Size = New-Object Drawing.Size(85, 29)
+$setAvatarBrowseBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
+$profileGroup.Controls.Add($setAvatarBrowseBtn)
+
+$avatarPictureBox = New-Object Windows.Forms.PictureBox
+$avatarPictureBox.Location = New-Object Drawing.Point(530, 80)
+$avatarPictureBox.Size = New-Object Drawing.Size(55, 55)
+$avatarPictureBox.SizeMode = "Zoom"
+$avatarPictureBox.BorderStyle = "FixedSingle"
+$profileGroup.Controls.Add($avatarPictureBox)
+
+if ($script:appState.AvatarPath -and (Test-Path -LiteralPath $script:appState.AvatarPath -PathType Leaf)) {
+    try { $avatarPictureBox.ImageLocation = $script:appState.AvatarPath } catch {}
+}
+
+# Auto-Save Designer Profile on change / leave
+$autoSaveProfile = {
+    try {
+        $script:appState = Save-SuamiSihatAppState `
+            -LastProjectPath $script:appState.LastProjectPath `
+            -LastProjectName $script:appState.LastProjectName `
+            -LastJobNumber $setJobText.Text.Trim() `
+            -DefaultWorkspace $setWorkspaceText.Text.Trim() `
+            -DesignerName $setDesignerNameText.Text.Trim() `
+            -Department $setDeptText.Text.Trim() `
+            -DesignerEmail $setDesignerEmailText.Text.Trim() `
+            -AvatarPath $setAvatarPathText.Text.Trim()
+    } catch {}
+}
+
+$setDesignerNameText.Add_Leave($autoSaveProfile)
+$setDeptText.Add_Leave($autoSaveProfile)
+$setDesignerEmailText.Add_Leave($autoSaveProfile)
+$setAvatarPathText.Add_Leave($autoSaveProfile)
+
+$setAvatarBrowseBtn.Add_Click({
+    $openFile = New-Object Windows.Forms.OpenFileDialog
+    $openFile.Filter = "Image Files (*.png;*.jpg;*.jpeg;*.bmp;*.ico;*.svg)|*.png;*.jpg;*.jpeg;*.bmp;*.ico;*.svg|All Files (*.*)|*.*"
+    $openFile.Title = "Select Designer Avatar Image"
+    if ($openFile.ShowDialog() -eq [Windows.Forms.DialogResult]::OK) {
+        $setAvatarPathText.Text = $openFile.FileName
+        if (Test-Path -LiteralPath $openFile.FileName -PathType Leaf) {
+            try { $avatarPictureBox.ImageLocation = $openFile.FileName } catch {}
+        }
+        & $autoSaveProfile
+    }
+})
+
+$saveSettingsBtn.Add_Click({
+    try {
+        $script:appState = Save-SuamiSihatAppState `
+            -LastProjectPath $script:appState.LastProjectPath `
+            -LastProjectName $script:appState.LastProjectName `
+            -LastJobNumber $setJobText.Text.Trim() `
+            -DefaultWorkspace $setWorkspaceText.Text.Trim() `
+            -DesignerName $setDesignerNameText.Text.Trim() `
+            -Department $setDeptText.Text.Trim() `
+            -DesignerEmail $setDesignerEmailText.Text.Trim() `
+            -AvatarPath $setAvatarPathText.Text.Trim()
+
+        $jobIdText.Text = $script:appState.NextJobNumber
+        $workspacePathText.Text = $script:appState.DefaultWorkspace
+        $workspaceRootLink.Text = "Workspace: $($script:appState.DefaultWorkspace)"
+        $settingsStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
+        $settingsStatusLabel.Text = "Settings auto-saved & applied!"
+    } catch {
+        $settingsStatusLabel.ForeColor = [Drawing.Color]::Firebrick
+        $settingsStatusLabel.Text = "Error saving settings: $($_.Exception.Message)"
+    }
+})
+
+# Group 4: About & Software Updates
 $updateGroup = New-Object Windows.Forms.GroupBox
 $updateGroup.Text = " About && Software Updates "
-$updateGroup.Location = New-Object Drawing.Point(27, 355)
-$updateGroup.Size = New-Object Drawing.Size(667, 172)
+$updateGroup.Location = New-Object Drawing.Point(27, 460)
+$updateGroup.Size = New-Object Drawing.Size(667, 160)
 $updateGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $settingsPage.Controls.Add($updateGroup)
 
@@ -1070,23 +1234,29 @@ $updatePreview = {
 
     $yearFolder = "SS-${selYear}"
     $monthFolder = "${selYear}${curMonthNum}_${curMonthFull}"
-    $dateCode = "${selYear}${curMonthNum}${curDay}"
+    $dateCode = "${selYear}${curMonthNum}"
 
     $rootBase = $workspacePathText.Text.Trim()
     if ($rootBase -match '\\SS-\d{4}$') {
         $rootBase = Split-Path -Parent $rootBase
     }
 
-    $sub = ($subBrandCombo.SelectedItem -replace '\s+', '_').ToUpper()
-    if ($sub -match 'SUAMISIHAT|SS') { $sub = "SS" }
-    elseif ($sub -match 'HEALTH') { $sub = "SSH" }
-    elseif ($sub -match 'CLINIC') { $sub = "SSC" }
-    elseif ($sub -match 'WELLNESS') { $sub = "SSW" }
-    elseif ($sub -match 'ECOM') { $sub = "SSE" }
-    elseif ($sub -match 'TECH') { $sub = "SST" }
+    $sub = switch -Wildcard ([string]$subBrandCombo.SelectedItem) {
+        "*HEALTH*"   { "SSH" }
+        "*CLINIC*"   { "SSC" }
+        "*WELLNESS*" { "SSW" }
+        "*ECOM*"     { "SSE" }
+        "*TECH*"     { "SST" }
+        "SSH"        { "SSH" }
+        "SSC"        { "SSC" }
+        "SSW"        { "SSW" }
+        "SSE"        { "SSE" }
+        "SST"        { "SST" }
+        default      { "SS" }
+    }
 
     $job = ($jobIdText.Text.Trim() -replace '\s+', '').ToUpper()
-    if (-not $job.StartsWith("D")) { $job = "D$job" }
+    if ($job -notmatch '^[A-Z]') { $job = "D$job" }
     $proj = ($projectNameText.Text.Trim() -replace '[\\/:*?"<>|]', '_' -replace '\s+', '_').Trim('_')
     if ([string]::IsNullOrWhiteSpace($proj)) { $proj = "Project" }
     
@@ -1114,12 +1284,56 @@ $updatePreview = {
     $b = [char]0x251C + [char]0x2500 + [char]0x2500 + " "
     $e = [char]0x2514 + [char]0x2500 + [char]0x2500 + " "
 
-    $structureInfoLabel.Text = switch -Wildcard ($presetCombo.SelectedItem) {
-        "*Social*"  { "${b}Working Files\      (PSD/AF source design files)`r`n${b}Source Assets\      (Photos & reference graphics)`r`n${b}Copywriting\        (Ad text copy & caption files)`r`n${e}Final Exports\      (Exported web & social graphics)" }
-        "*Video*"   { "${b}Project Files\      (NLE PR/AE/DR timeline files)`r`n${b}Footage\            (Raw video clips & recordings)`r`n${b}Audio\              (SFX & music stems)`r`n${e}Final Exports\      (Master rendered MP4/MOV outputs)" }
-        "*Brand*"   { "${b}Vector Master\      (SVG & AI master logos)`r`n${b}Brand Guidelines\   (Brand system documentation PDF)`r`n${b}Colour Palettes\    (ASE & AF palette files)`r`n${e}Export Packages\    (ZIP distribution packages)" }
-        default     { "${b}Artwork Design\     (Working source files: .afdesign, .psd, .ai)`r`n${b}Artwork Mockup\     (Presentation mockups & client previews)`r`n${b}Assets\             (Raw photos, icons, reference materials)`r`n${e}Production\         (Exported outputs: PDF, PNG, SVG)" }
+    $baseFolders = switch -Wildcard ($presetCombo.SelectedItem) {
+        "*Social*"  {
+            @("Working Files\      (PSD/AF source design files)",
+              "Source Assets\      (Photos & reference graphics)",
+              "Copywriting\        (Ad text copy & caption files)",
+              "Final Exports\      (Exported web & social graphics)")
+        }
+        "*Video*"   {
+            @("Project Files\      (NLE PR/AE/DR timeline files)",
+              "Footage\            (Raw video clips & recordings)",
+              "Audio\              (SFX & music stems)",
+              "Final Exports\      (Master rendered MP4/MOV outputs)")
+        }
+        "*Brand*"   {
+            @("Vector Master\      (SVG & AI master logos)",
+              "Brand Guidelines\   (Brand system documentation PDF)",
+              "Colour Palettes\    (ASE & AF palette files)",
+              "Export Packages\    (ZIP distribution packages)")
+        }
+        default     {
+            @("Artwork Design\     (Working source files: .afdesign, .psd, .ai)",
+              "Artwork Mockup\     (Presentation mockups & client previews)",
+              "Assets\             (Raw photos, icons, reference materials)",
+              "Production\         (Exported outputs: PDF, PNG, SVG)")
+        }
     }
+
+    $folderList = [System.Collections.Generic.List[string]]::new()
+    foreach ($f in $baseFolders) { $folderList.Add($f) }
+
+    if ($chkExtraRevisions.Checked) {
+        $folderList.Add("Client Revisions\   (Client feedback & revision iterations)")
+    }
+    if ($chkExtraRaw.Checked) {
+        $folderList.Add("RAW Media\          (Uncompressed audio stems, 3D models & raw media)")
+    }
+
+    $treeLines = @()
+    $selectedExt = if ($comboTemplateExt -and $comboTemplateExt.SelectedItem) { [string]$comboTemplateExt.SelectedItem } else { ".afdesign" }
+    for ($i = 0; $i -lt $folderList.Count; $i++) {
+        $prefixSymbol = if ($i -eq ($folderList.Count - 1)) { $e } else { $b }
+        $treeLines += "${prefixSymbol}$($folderList[$i])"
+        
+        if ($i -eq 0 -and $chkInjectTemplate.Checked) {
+            $canvasPreviewName = "${folderName}${selectedExt}"
+            $treeLines += "    ${b}${canvasPreviewName}  (Pre-configured brand starter template)"
+        }
+    }
+
+    $structureInfoLabel.Text = $treeLines -join "`r`n"
 }
 
 # Drag-to-resize description box — MouseDown/Move/Up on the grip handle
@@ -1175,11 +1389,18 @@ $presetCombo.Add_SelectedIndexChanged({
     &$updatePreview
 })
 
-$yearCombo.Add_SelectedIndexChanged($updatePreview)
 $subBrandCombo.Add_SelectedIndexChanged($updatePreview)
+$yearCombo.Add_SelectedIndexChanged($updatePreview)
+$comboTemplateExt.Add_SelectedIndexChanged($updatePreview)
+$chkInjectTemplate.Add_CheckedChanged({
+    $comboTemplateExt.Enabled = $chkInjectTemplate.Checked
+    & $updatePreview
+})
+$chkExtraRevisions.Add_CheckedChanged($updatePreview)
+$chkExtraRaw.Add_CheckedChanged($updatePreview)
 $jobIdText.Add_TextChanged({
     $val = $jobIdText.Text.Trim()
-    # Valid Job ID: one uppercase letter followed by 3-5 digits (e.g. D0075, V0010)
+    # Valid Job ID: one uppercase letter followed by 3-5 digits (e.g. D0075, S0002, V0010)
     if ($val -match '^[A-Z]\d{3,5}$') {
         $jobIdText.BackColor = [Drawing.Color]::White
     } else {
@@ -1217,7 +1438,19 @@ $btnCopyName.Add_Click({
     $selYear = if ($yearCombo.SelectedItem) { [string]$yearCombo.SelectedItem } else { (Get-Date).ToString("yyyy") }
     $curMonth = (Get-Date).ToString("MM")
     $dateCode = "${selYear}${curMonth}"
-    $sub = ($subBrandCombo.SelectedItem -replace '\s+', '_').ToUpper()
+    $sub = switch -Wildcard ([string]$subBrandCombo.SelectedItem) {
+        "*HEALTH*"   { "SSH" }
+        "*CLINIC*"   { "SSC" }
+        "*WELLNESS*" { "SSW" }
+        "*ECOM*"     { "SSE" }
+        "*TECH*"     { "SST" }
+        "SSH"        { "SSH" }
+        "SSC"        { "SSC" }
+        "SSW"        { "SSW" }
+        "SSE"        { "SSE" }
+        "SST"        { "SST" }
+        default      { "SS" }
+    }
     $job = ($jobIdText.Text.Trim() -replace '\s+', '').ToUpper()
     $proj = ($projectNameText.Text.Trim() -replace '[\\/:*?"<>|]', '_' -replace '\s+', '_').Trim('_')
     if ([string]::IsNullOrWhiteSpace($proj)) { $proj = "Project" }
@@ -1257,7 +1490,7 @@ $recentOpenBtn.Add_Click({
         if ($selIdx -gt $maxIdx) { $selIdx = 0 }
         $recentPath = $script:appState.RecentProjects[$selIdx].ProjectPath
         if (Test-Path -LiteralPath $recentPath -PathType Container) {
-            Start-Process -FilePath "explorer.exe" -ArgumentList (Quote-ProcessArgument $recentPath)
+            Start-Process -FilePath "explorer.exe" -ArgumentList "`"$recentPath`""
         }
     }
 })
@@ -1274,12 +1507,34 @@ $form.Add_KeyDown({
     }
 })
 
+$designerProfileCombo.Add_SelectedIndexChanged({
+    if ($script:appState.Profiles) {
+        $selProfName = [string]$designerProfileCombo.SelectedItem
+        $prof = $script:appState.Profiles | Where-Object { $_.Name -eq $selProfName } | Select-Object -First 1
+        if ($prof) {
+            $setDesignerNameText.Text = $prof.Name
+            $setDeptText.Text         = $prof.Department
+            $setDesignerEmailText.Text= $prof.Email
+            $setAvatarPathText.Text   = $prof.AvatarPath
+            if ($prof.AvatarPath -and (Test-Path -LiteralPath $prof.AvatarPath -PathType Leaf)) {
+                try { $avatarPictureBox.ImageLocation = $prof.AvatarPath } catch {}
+            }
+        }
+    }
+})
+
 # Create Button Action
 $createProjectBtn.Add_Click({
     try {
         $extraFolders = @()
         if ($chkExtraRevisions.Checked) { $extraFolders += "Client Revisions" }
-        if ($chkExtraRaw.Checked) { $extraFolders += "Raw Audio & 3D" }
+        if ($chkExtraRaw.Checked) { $extraFolders += "RAW Media" }
+
+        $selectedDesignerName = if ($designerProfileCombo -and $designerProfileCombo.SelectedItem) {
+            [string]$designerProfileCombo.SelectedItem
+        } else {
+            $setDesignerNameText.Text.Trim()
+        }
 
         $result = New-SuamiSihatProjectFolder `
             -RootDirectory $workspacePathText.Text.Trim() `
@@ -1290,7 +1545,11 @@ $createProjectBtn.Add_Click({
             -Year ([string]$yearCombo.SelectedItem) `
             -Description $projDescText.Text.Trim() `
             -ExtraSubFolders $extraFolders `
-            -InjectTemplates:$chkInjectTemplate.Checked
+            -InjectTemplates:$chkInjectTemplate.Checked `
+            -TemplateExtension $comboTemplateExt.SelectedItem `
+            -DesignerName $selectedDesignerName `
+            -DesignerDept $setDeptText.Text.Trim() `
+            -TargetPlatform ([string]$targetPlatformCombo.SelectedItem)
         
         $script:appState = Get-SuamiSihatAppState
         $jobIdText.Text = $result.NextJobNumber
@@ -1301,7 +1560,7 @@ $createProjectBtn.Add_Click({
         $creatorStatusLabel.Text = "Project Created! Next Job: $($result.NextJobNumber)`r`nOpening File Explorer..."
         
         # Open in Explorer
-        Start-Process -FilePath "explorer.exe" -ArgumentList (Quote-ProcessArgument $result.ProjectPath)
+        Start-Process -FilePath "explorer.exe" -ArgumentList "`"$($result.ProjectPath)`""
     } catch {
         $creatorStatusLabel.ForeColor = [Drawing.Color]::Firebrick
         $creatorStatusLabel.Text = "Error: $($_.Exception.Message)"
@@ -1419,13 +1678,32 @@ $saveSettingsBtn.Add_Click({
             -LastProjectPath $script:appState.LastProjectPath `
             -LastProjectName $script:appState.LastProjectName `
             -LastJobNumber $setJobText.Text.Trim() `
-            -DefaultWorkspace $setWorkspaceText.Text.Trim()
+            -DefaultWorkspace $setWorkspaceText.Text.Trim() `
+            -DesignerName $setDesignerNameText.Text.Trim() `
+            -Department $setDeptText.Text.Trim() `
+            -DesignerEmail $setDesignerEmailText.Text.Trim() `
+            -AvatarPath $setAvatarPathText.Text.Trim()
 
         $jobIdText.Text = $script:appState.NextJobNumber
         $workspacePathText.Text = $script:appState.DefaultWorkspace
-        $workspaceRootLink.Text = "Workspace: $($script:appState.DefaultWorkspace)"  # M4: sync link label
+        $workspaceRootLink.Text = "Workspace: $($script:appState.DefaultWorkspace)"
+
+        # Refresh Creator page Designer Profile dropdown
+        if ($designerProfileCombo) {
+            $curSel = $setDesignerNameText.Text.Trim()
+            $designerProfileCombo.Items.Clear()
+            if ($script:appState.Profiles) {
+                foreach ($prof in $script:appState.Profiles) { [void]$designerProfileCombo.Items.Add($prof.Name) }
+            }
+            if (-not [string]::IsNullOrWhiteSpace($curSel) -and $designerProfileCombo.Items.Contains($curSel)) {
+                $designerProfileCombo.SelectedItem = $curSel
+            } elseif ($designerProfileCombo.Items.Count -gt 0) {
+                $designerProfileCombo.SelectedIndex = 0
+            }
+        }
+
         $settingsStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
-        $settingsStatusLabel.Text = "Settings saved successfully!"
+        $settingsStatusLabel.Text = "Settings & Profile saved successfully!"
     } catch {
         $settingsStatusLabel.ForeColor = [Drawing.Color]::Firebrick
         $settingsStatusLabel.Text = "Error saving settings: $($_.Exception.Message)"
@@ -1556,13 +1834,45 @@ $script:installedInfo = $null
 $script:isNewInstall = $true
 
 # Resize handler: keep all three nav buttons pinned to bottom-right, perfectly aligned
-$form.Add_Resize({
+function Update-NavButtonLocations {
     $w = $form.ClientSize.Width
     $h = $form.ClientSize.Height
     $btnY = $h - 54
-    $nextButton.Location   = New-Object Drawing.Point(($w - 114), $btnY)
-    $cancelButton.Location = New-Object Drawing.Point(($w - 218), $btnY)
-    $backButton.Location   = New-Object Drawing.Point(($w - 322), $btnY)
+
+    if ($script:pageIndex -eq $settingsPageIndex) {
+        $cancelButton.Location  = New-Object Drawing.Point(($w - 114), $btnY)
+        if ($saveSettingsBtn) {
+            $saveSettingsBtn.Visible  = $true
+            $saveSettingsBtn.Location = New-Object Drawing.Point(($w - 264), $btnY)
+        }
+        $backButton.Location    = New-Object Drawing.Point(($w - 368), $btnY)
+        $nextButton.Visible     = $false
+    } elseif ($script:pageIndex -eq $creatorPageIndex) {
+        if ($saveSettingsBtn)   { $saveSettingsBtn.Visible = $false }
+        $cancelButton.Location = New-Object Drawing.Point(($w - 114), $btnY)
+        $backButton.Location   = New-Object Drawing.Point(($w - 218), $btnY)
+        $nextButton.Location   = New-Object Drawing.Point(($w - 322), $btnY)
+    } elseif ($script:pageIndex -eq $progressPageIndex -and -not $script:setupComplete) {
+        if ($saveSettingsBtn)   { $saveSettingsBtn.Visible = $false }
+        $cancelButton.Location = New-Object Drawing.Point(($w - 114), $btnY)
+        $backButton.Location   = New-Object Drawing.Point(($w - 218), $btnY)
+        $nextButton.Location   = New-Object Drawing.Point(($w - 322), $btnY)
+    } else {
+        if ($saveSettingsBtn)   { $saveSettingsBtn.Visible = $false }
+        # Wizard pages (0..3) and finished progress page
+        $nextButton.Location   = New-Object Drawing.Point(($w - 114), $btnY)
+        $cancelButton.Location = New-Object Drawing.Point(($w - 218), $btnY)
+        $backButton.Location   = New-Object Drawing.Point(($w - 322), $btnY)
+    }
+
+    if ($btnOpenApp)           { $btnOpenApp.Location       = New-Object Drawing.Point(20, $btnY) }
+    if ($btnSkipFonts)         { $btnSkipFonts.Location     = New-Object Drawing.Point(20, $btnY) }
+    if ($createProjectBtn)     { $createProjectBtn.Location = New-Object Drawing.Point(20, $btnY) }
+    if ($btnClearForm)         { $btnClearForm.Location     = New-Object Drawing.Point(328, $btnY) }
+}
+
+$form.Add_Resize({
+    Update-NavButtonLocations
 })
 
 $folderBrowser = New-Object Windows.Forms.FolderBrowserDialog
@@ -1769,6 +2079,21 @@ function Refresh-SoftwareList {
 
         [void]$softwareList.Items.Add($item)
     }
+
+    # Auto-detect installed design app extension for Master Canvas
+    $hasAffinity = $script:softwareInventory | Where-Object { $_.Name -like "*Affinity*" -and $_.Installed }
+    $hasPhotoshop = $script:softwareInventory | Where-Object { $_.Name -like "*Photoshop*" -and $_.Installed }
+    $hasIllustrator = $script:softwareInventory | Where-Object { $_.Name -like "*Illustrator*" -and $_.Installed }
+
+    if ($comboTemplateExt) {
+        if ($hasAffinity) {
+            $comboTemplateExt.SelectedItem = ".af"
+        } elseif ($hasPhotoshop) {
+            $comboTemplateExt.SelectedItem = ".psd"
+        } elseif ($hasIllustrator) {
+            $comboTemplateExt.SelectedItem = ".ai"
+        }
+    }
 }
 
 
@@ -1866,13 +2191,13 @@ function Show-Page {
         $backButton.Visible = $false
         $nextButton.Visible = $false
         $cancelButton.Text = "Close"
-        $cancelButton.Location = New-Object Drawing.Point(640, 631)
         $cancelButton.Visible = $true
         $createProjectBtn.Visible = $true
         $btnClearForm.Visible = $true
         $creatorStatusLabel.Visible = $true
         $btnNavSettings.Text = "Settings"
         $btnNavSettings.Visible = $true
+        Update-NavButtonLocations
         return
     }
 
@@ -1882,13 +2207,13 @@ function Show-Page {
         $backButton.Visible = $false
         $nextButton.Visible = $false
         $cancelButton.Text = "Close"
-        $cancelButton.Location = New-Object Drawing.Point(640, 631)
         $cancelButton.Visible = $true
         $createProjectBtn.Visible = $false
         $btnClearForm.Visible = $false
         $creatorStatusLabel.Visible = $false
         $btnNavSettings.Text = "< Back"
         $btnNavSettings.Visible = $true
+        Update-NavButtonLocations
         return
     }
 
@@ -1896,7 +2221,6 @@ function Show-Page {
     $createProjectBtn.Visible = $false
     $btnClearForm.Visible = $false
     $creatorStatusLabel.Visible = $false
-    $cancelButton.Location = New-Object Drawing.Point(536, 631)
     $btnOpenApp.Visible = $false
 
     $title.Text = "Brand Kit Setup Wizard"
@@ -1919,6 +2243,8 @@ function Show-Page {
 
     # Skip Fonts button (form-level) only visible on Font page
     $btnSkipFonts.Visible = ($Index -eq $fontPageIndex)
+
+    Update-NavButtonLocations
 
     if ($Index -eq $reviewPageIndex) {
         Update-Review
@@ -2146,14 +2472,13 @@ $timer.Add_Tick({
         $cancelButton.Visible = $false
         $nextButton.Visible = $true
         $nextButton.Text = "Close"
-        $nextButton.Location = New-Object Drawing.Point(640, 631)
         $nextButton.Enabled = $true
         $nextButton.Add_Click({ $form.Close() })
         # Show Open App button if Creative Project Management was installed
         if ($chkWelcomeCPM.Checked) {
             $btnOpenApp.Visible = $true
-            $btnOpenApp.Location = New-Object Drawing.Point(20, 631)
         }
+        Update-NavButtonLocations
         try { & $refreshAppVersionStatus } catch {}
     } else {
         $progressTitle.Text = "Setup encountered an error"

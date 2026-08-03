@@ -280,7 +280,11 @@ function New-SuamiSihatProjectFolder {
         [string]$Year = "",
         [string]$Description = "",
         [string[]]$ExtraSubFolders = @(),
-        [switch]$InjectTemplates
+        [switch]$InjectTemplates,
+        [string]$TemplateExtension = ".af",
+        [string]$DesignerName = "",
+        [string]$DesignerDept = "",
+        [string]$TargetPlatform = "Meta / IG Square (1:1 - 1080x1080 RGB)"
     )
 
     $cleanProjectName = $ProjectName -replace '[\\/:*?"<>|]', '_' -replace '\s+', '_'
@@ -316,10 +320,10 @@ function New-SuamiSihatProjectFolder {
 
     $yearFolder = "SS-${cleanYear}"
     $monthFolder = "${cleanYear}${curMonthNum}_${curMonthFull}"
-    $dateCode = "${cleanYear}${curMonthNum}${curDay}"
+    $dateCode = "${cleanYear}${curMonthNum}"
 
     $cleanJob = ($JobNumber -replace '\s+', '').ToUpper()
-    if (-not $cleanJob.StartsWith("D")) {
+    if ($cleanJob -notmatch '^[A-Z]') {
         $cleanJob = "D$cleanJob"
     }
 
@@ -349,9 +353,51 @@ function New-SuamiSihatProjectFolder {
         New-Item -ItemType Directory -Path $path -Force | Out-Null
     }
 
+    $appState = Get-SuamiSihatAppState
+    $cleanDesigner = if (-not [string]::IsNullOrWhiteSpace($DesignerName)) {
+        $DesignerName.Trim()
+    } elseif ($appState.DesignerName) {
+        $appState.DesignerName
+    } else {
+        $env:USERNAME
+    }
+
+    $cleanDept = if (-not [string]::IsNullOrWhiteSpace($DesignerDept)) {
+        $DesignerDept.Trim()
+    } elseif ($appState.Department) {
+        $appState.Department
+    } else {
+        "Creative & Brand"
+    }
+
+    $targetSpecInfo = switch -Wildcard ($TargetPlatform) {
+        "*9:16*"       { @{ Ratio = "9:16"; Resolution = "1080 x 1920 px"; ColorSpace = "RGB 72 DPI"; Type = "Vertical Video / Story / Reels" } }
+        "*1:1*"        { @{ Ratio = "1:1"; Resolution = "1080 x 1080 px"; ColorSpace = "RGB 72 DPI"; Type = "Square Social Post / Feed" } }
+        "*16:9*"       { @{ Ratio = "16:9"; Resolution = "1920 x 1080 px / 4K"; ColorSpace = "RGB 72 DPI"; Type = "Horizontal Video / YouTube" } }
+        "*Print*"      { @{ Ratio = "Custom Print"; Resolution = "300 DPI Vector/PDF"; ColorSpace = "CMYK 300 DPI"; Type = "Physical POSM / Print Banner" } }
+        "*E-Commerce*" { @{ Ratio = "Banner"; Resolution = "1200 x 628 px"; ColorSpace = "RGB 72 DPI"; Type = "Web & E-Commerce Header" } }
+        default        { @{ Ratio = "Flexible"; Resolution = "Vector / High-Res"; ColorSpace = "RGB 72 DPI"; Type = "General Asset" } }
+    }
+
+    $frontmatter = @"
+---
+filename: $folderName
+date: $((Get-Date).ToString("yyyy-MM-dd HH:mm"))
+Job ID: $cleanJob
+Brand: $cleanSubBrand
+Project Name: $cleanProjectName
+Designer: $cleanDesigner
+Department: $cleanDept
+Target Platform: $TargetPlatform
+Target Ratio: $($targetSpecInfo.Ratio)
+Target Resolution: $($targetSpecInfo.Resolution)
+Color Profile: $($targetSpecInfo.ColorSpace)
+---
+"@
+
     # Save Project Description / Creative Brief as README.md in project root
     $readmeFile = Join-Path $projectRoot "README.md"
-    $readmeContent = if (-not [string]::IsNullOrWhiteSpace($Description)) {
+    $readmeBody = if (-not [string]::IsNullOrWhiteSpace($Description)) {
         $Description
     } else {
 @"
@@ -360,24 +406,48 @@ function New-SuamiSihatProjectFolder {
 - **Job ID**: $cleanJob
 - **Preset**: $PresetType
 - **Sub-Brand**: $cleanSubBrand
+- **Designer**: $cleanDesigner ($cleanDept)
 - **Created**: $((Get-Date).ToString("yyyy-MM-dd HH:mm"))
+
+## Target Specifications
+- **Platform / Format**: $($targetSpecInfo.Type)
+- **Aspect Ratio**: $($targetSpecInfo.Ratio)
+- **Canvas Resolution**: $($targetSpecInfo.Resolution)
+- **Color Profile**: $($targetSpecInfo.ColorSpace)
 
 ## Description & Creative Brief
 SuamiSihat brand creative assets project directory.
 "@
     }
+    $readmeContent = "${frontmatter}`r`n`r`n${readmeBody}"
     Set-Content -LiteralPath $readmeFile -Value $readmeContent -Encoding UTF8
 
     # Inject Starter Master Template File if requested
     if ($InjectTemplates) {
         $mainFolder = Join-Path $projectRoot $subFolders[0]
+        $ext = if ($TemplateExtension.StartsWith(".")) { $TemplateExtension } else { ".$TemplateExtension" }
+        $canvasFileName = "${folderName}${ext}"
+        $canvasFile = Join-Path $mainFolder $canvasFileName
+        if (-not (Test-Path -LiteralPath $canvasFile)) {
+            New-Item -ItemType File -Path $canvasFile -Force | Out-Null
+        }
         $templateNote = Join-Path $mainFolder "_STARTER_CANVAS_README.md"
         $noteText = @"
+${frontmatter}
+
 # SuamiSihat Master Canvas Starter File
 
 Project: $folderName
 Preset: $PresetType
+Master Canvas: $canvasFileName
+Designer: $cleanDesigner ($cleanDept)
 Created: $((Get-Date).ToString("yyyy-MM-dd HH:mm"))
+
+## Target Specifications:
+- **Platform / Format**: $($targetSpecInfo.Type)
+- **Aspect Ratio**: $($targetSpecInfo.Ratio)
+- **Canvas Resolution**: $($targetSpecInfo.Resolution)
+- **Color Profile**: $($targetSpecInfo.ColorSpace)
 
 ## Master Canvas Guidelines:
 1. Primary Font: Poppins (Bold / Medium / Regular)
@@ -420,6 +490,10 @@ function Get-SuamiSihatAppState {
     if ([string]::IsNullOrWhiteSpace($defaultDocs)) { $defaultDocs = Join-Path $env:USERPROFILE "Documents" }
     $defaultWorkspace = Join-Path $defaultDocs "Creative Workspace\SS-$currentYear"
 
+    $defaultDesignerName = if ([string]::IsNullOrWhiteSpace($env:USERNAME)) { "SuamiSihat Designer" } else { (Get-Culture).TextInfo.ToTitleCase($env:USERNAME.ToLower()) }
+    $defaultDept = "Creative & Brand"
+    $defaultEmail = "branding@suamisihat.com"
+
     if (Test-Path -LiteralPath $stateFile -PathType Leaf) {
         try {
             $json = Get-Content -LiteralPath $stateFile -Raw | ConvertFrom-Json
@@ -434,16 +508,49 @@ function Get-SuamiSihatAppState {
                     }
                 }
             }
+            $profiles = @()
+            if ($json.Profiles) {
+                foreach ($prof in $json.Profiles) {
+                    $profiles += @{
+                        Name       = [string]$prof.Name
+                        Department = [string]$prof.Department
+                        Email      = [string]$prof.Email
+                        AvatarPath = [string]$prof.AvatarPath
+                    }
+                }
+            }
+            if ($profiles.Count -eq 0) {
+                $profiles += @{
+                    Name       = $defaultDesignerName
+                    Department = $defaultDept
+                    Email      = $defaultEmail
+                    AvatarPath = ""
+                }
+            }
             return @{
                 LastProjectPath  = [string]$json.LastProjectPath
                 LastProjectName  = [string]$json.LastProjectName
                 LastJobNumber    = [string]$json.LastJobNumber
                 NextJobNumber    = if ([string]::IsNullOrWhiteSpace([string]$json.NextJobNumber)) { "D0001" } else { [string]$json.NextJobNumber }
                 DefaultWorkspace = if ([string]::IsNullOrWhiteSpace([string]$json.DefaultWorkspace)) { $defaultWorkspace } else { [string]$json.DefaultWorkspace }
+                DesignerName     = if ([string]::IsNullOrWhiteSpace([string]$json.DesignerName)) { $defaultDesignerName } else { [string]$json.DesignerName }
+                Department       = if ([string]::IsNullOrWhiteSpace([string]$json.Department)) { $defaultDept } else { [string]$json.Department }
+                DesignerEmail    = if ([string]::IsNullOrWhiteSpace([string]$json.DesignerEmail)) { $defaultEmail } else { [string]$json.DesignerEmail }
+                AvatarPath       = if ([string]::IsNullOrWhiteSpace([string]$json.AvatarPath)) { "" } else { [string]$json.AvatarPath }
+                Profiles         = $profiles
                 RecentProjects   = $recent
             }
         } catch {}
     }
+
+    $defaultProfiles = @(
+        @{
+            Name       = $defaultDesignerName
+            Department = $defaultDept
+            Email      = $defaultEmail
+            AvatarPath = ""
+        }
+    )
 
     return @{
         LastProjectPath  = ""
@@ -451,6 +558,11 @@ function Get-SuamiSihatAppState {
         LastJobNumber    = ""
         NextJobNumber    = "D0001"
         DefaultWorkspace = $defaultWorkspace
+        DesignerName     = $defaultDesignerName
+        Department       = $defaultDept
+        DesignerEmail    = $defaultEmail
+        AvatarPath       = ""
+        Profiles         = $defaultProfiles
         RecentProjects   = @()
     }
 }
@@ -471,7 +583,12 @@ function Save-SuamiSihatAppState {
         [string]$LastProjectName = "",
         [string]$LastJobNumber = "D0001",
         [string]$DefaultWorkspace = "",
-        [string]$PresetType = "GraphicDesign"
+        [string]$PresetType = "GraphicDesign",
+        [string]$DesignerName = "",
+        [string]$Department = "",
+        [string]$DesignerEmail = "",
+        [string]$AvatarPath = "",
+        [object[]]$Profiles = $null
     )
 
     $stateFile = Get-SuamiSihatAppStatePath
@@ -479,7 +596,7 @@ function Save-SuamiSihatAppState {
     
     $prefix = "D"
     $nextJob = "D0002"
-    if ($LastJobNumber -match '^([A-Za-z]+)(\d+)') {
+    if ($LastJobNumber -match '^([A-Za-z\-]+)(\d+)') {
         $prefix = $matches[1].ToUpper()
         $num = [int]$matches[2] + 1
         $digits = $matches[2].Length
@@ -505,12 +622,64 @@ function Save-SuamiSihatAppState {
         }
     }
 
+    $finalDesignerName = if (-not [string]::IsNullOrWhiteSpace($DesignerName)) { $DesignerName } elseif ($prevState.DesignerName) { $prevState.DesignerName } else { $env:USERNAME }
+    $finalDepartment   = if (-not [string]::IsNullOrWhiteSpace($Department)) { $Department } elseif ($prevState.Department) { $prevState.Department } else { "Creative & Brand" }
+    $finalEmail        = if (-not [string]::IsNullOrWhiteSpace($DesignerEmail)) { $DesignerEmail } elseif ($prevState.DesignerEmail) { $prevState.DesignerEmail } else { "branding@suamisihat.com" }
+    $finalAvatar       = if ($null -ne $AvatarPath) { $AvatarPath } else { [string]$prevState.AvatarPath }
+
+    # Sync profiles list as clean array of hashtables
+    $cleanProfilesList = @()
+    $foundCur = $false
+
+    $sourceProfiles = if ($Profiles -and $Profiles.Count -gt 0) {
+        $Profiles
+    } elseif ($prevState.Profiles -and $prevState.Profiles.Count -gt 0) {
+        $prevState.Profiles
+    } else {
+        @()
+    }
+
+    foreach ($p in $sourceProfiles) {
+        $pName = [string]$p.Name
+        if ([string]::IsNullOrWhiteSpace($pName)) { continue }
+        if ($pName -eq $finalDesignerName) {
+            $cleanProfilesList += @{
+                Name       = $finalDesignerName
+                Department = $finalDepartment
+                Email      = $finalEmail
+                AvatarPath = $finalAvatar
+            }
+            $foundCur = $true
+        } else {
+            $cleanProfilesList += @{
+                Name       = $pName
+                Department = [string]$p.Department
+                Email      = [string]$p.Email
+                AvatarPath = [string]$p.AvatarPath
+            }
+        }
+    }
+
+    if (-not $foundCur -and -not [string]::IsNullOrWhiteSpace($finalDesignerName)) {
+        $cleanProfilesList += @{
+            Name       = $finalDesignerName
+            Department = $finalDepartment
+            Email      = $finalEmail
+            AvatarPath = $finalAvatar
+        }
+    }
+
     $state = @{
         LastProjectPath  = $LastProjectPath
         LastProjectName  = $LastProjectName
         LastJobNumber    = $LastJobNumber
         NextJobNumber    = $nextJob
-        DefaultWorkspace = $DefaultWorkspace
+        DefaultWorkspace = if (-not [string]::IsNullOrWhiteSpace($DefaultWorkspace)) { $DefaultWorkspace } else { $prevState.DefaultWorkspace }
+        DesignerName     = $finalDesignerName
+        Department       = $finalDepartment
+        DesignerEmail    = $finalEmail
+        AvatarPath       = $finalAvatar
+        Profiles         = $cleanProfilesList
         RecentProjects   = $recent
         Updated          = (Get-Date).ToString("o")
     }
