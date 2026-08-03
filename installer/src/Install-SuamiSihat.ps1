@@ -334,7 +334,7 @@ try {
         New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
         $installedExePath = Join-Path $appInstallDir "SS-CAM.exe"
         Copy-Item -LiteralPath $sourceExe -Destination $installedExePath -Force
-        Install-SuamiSihatShortcuts -TargetExePath $installedExePath
+        Install-SuamiSihatShortcuts -TargetExePath $installedExePath -Version "1.8.0"
         Write-Host "  Installed Windows Application shortcut: Start Menu -> SuamiSihat Creative Assets Management"
     }
 } catch {}

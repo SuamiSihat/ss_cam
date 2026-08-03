@@ -2613,7 +2613,7 @@ $timer.Add_Tick({
                 New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
                 $targetExePath = Join-Path $appInstallDir "SS-CAM.exe"
                 Copy-Item -LiteralPath $sourceExe -Destination $targetExePath -Force
-                Install-SuamiSihatShortcuts -TargetExePath $targetExePath
+                Install-SuamiSihatShortcuts -TargetExePath $targetExePath -Version $script:AppVersion
             }
             try { Save-SuamiSihatAppState } catch {}
         } catch {}

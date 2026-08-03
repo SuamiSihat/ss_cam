@@ -1019,7 +1019,7 @@ function Sync-PendingProjects {
 function Install-SuamiSihatShortcuts {
     param(
         [string]$TargetExePath,
-        [string]$Version = "1.6.2"
+        [string]$Version = "1.8.0"
     )
 
     if (-not (Test-Path -LiteralPath $TargetExePath -PathType Leaf)) {
