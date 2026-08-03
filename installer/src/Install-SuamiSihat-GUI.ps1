@@ -1498,26 +1498,20 @@ foreach ($page in $pages) {
 # Form-level buttons (wizard nav + creator action row, all at Y=631)
 $backButton = New-Object Windows.Forms.Button
 $backButton.Text = "< Back"
-$backButton.Location = New-Object Drawing.Point(432, 631)
 $backButton.Size = New-Object Drawing.Size(94, 34)
-$backButton.Anchor = $BR
 $form.Controls.Add($backButton)
 
 $cancelButton = New-Object Windows.Forms.Button
 $cancelButton.Text = "Cancel"
-$cancelButton.Location = New-Object Drawing.Point(536, 631)
 $cancelButton.Size = New-Object Drawing.Size(94, 34)
-$cancelButton.Anchor = $BR
 $form.Controls.Add($cancelButton)
 
 $nextButton = New-Object Windows.Forms.Button
 $nextButton.Text = "Next >"
-$nextButton.Location = New-Object Drawing.Point(640, 631)
 $nextButton.Size = New-Object Drawing.Size(94, 34)
 $nextButton.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $nextButton.ForeColor = [Drawing.Color]::White
 $nextButton.FlatStyle = "Flat"
-$nextButton.Anchor = $BR
 $form.Controls.Add($nextButton)
 $form.AcceptButton = $nextButton
 $form.CancelButton = $cancelButton
@@ -1561,12 +1555,14 @@ $form.Controls.Add($btnOpenApp)
 $script:installedInfo = $null
 $script:isNewInstall = $true
 
-# M3 — Resize handler: keep bottom-row wizard buttons pinned to right edge
+# Resize handler: keep all three nav buttons pinned to bottom-right, perfectly aligned
 $form.Add_Resize({
     $w = $form.ClientSize.Width
-    $nextButton.Left   = $w - 114
-    $cancelButton.Left = $w - 218
-    $backButton.Left   = $w - 322
+    $h = $form.ClientSize.Height
+    $btnY = $h - 54
+    $nextButton.Location   = New-Object Drawing.Point(($w - 114), $btnY)
+    $cancelButton.Location = New-Object Drawing.Point(($w - 218), $btnY)
+    $backButton.Location   = New-Object Drawing.Point(($w - 322), $btnY)
 })
 
 $folderBrowser = New-Object Windows.Forms.FolderBrowserDialog
