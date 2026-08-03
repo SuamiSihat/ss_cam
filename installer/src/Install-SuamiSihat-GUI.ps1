@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [switch]$SmokeTest,
     [switch]$InstallerMode,
@@ -11,7 +11,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 
-$script:AppVersion = "1.7.1"
+$script:AppVersion = "1.8.0"
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -843,6 +843,38 @@ $workspaceRootLink.Add_LinkClicked({
 })
 $creatorPage.Controls.Add($workspaceRootLink)
 
+# NAS / Team Registry status indicator
+$nasStatusDot = New-Label -Text "●" -X 27 -Y 378 -Width 16 -Height 18
+$nasStatusDot.Font = New-Object Drawing.Font("Segoe UI", 9)
+$nasStatusDot.ForeColor = [Drawing.Color]::FromArgb(160, 165, 175)
+$creatorPage.Controls.Add($nasStatusDot)
+
+$nasStatusLabel = New-Label -Text "NAS: checking..." -X 45 -Y 378 -Width 280 -Height 18
+$nasStatusLabel.Font = New-Object Drawing.Font("Segoe UI", 7.5)
+$nasStatusLabel.ForeColor = [Drawing.Color]::FromArgb(120, 125, 135)
+$creatorPage.Controls.Add($nasStatusLabel)
+
+$script:UpdateNASStatus = {
+    $ws = $workspacePathText.Text.Trim()
+    if (Test-NASAvailable -WorkspaceRoot $ws) {
+        $nasStatusDot.ForeColor  = [Drawing.Color]::FromArgb(20, 135, 75)   # green
+        $poolCount = if ($script:appState.LocalJobPool) { $script:appState.LocalJobPool.Count } else { 0 }
+        $nasStatusLabel.Text = if ($poolCount -gt 0) { "NAS: Online  •  Local pool: $poolCount IDs" } else { "NAS: Online" }
+    } else {
+        $poolCount = if ($script:appState.LocalJobPool) { $script:appState.LocalJobPool.Count } else { 0 }
+        $nasStatusDot.ForeColor  = if ($poolCount -gt 0) {
+            [Drawing.Color]::FromArgb(194, 115, 12)  # orange: offline but pool available
+        } else {
+            [Drawing.Color]::FromArgb(194, 45, 55)   # red: offline, no pool
+        }
+        $nasStatusLabel.Text = if ($poolCount -gt 0) {
+            "NAS: Offline  •  Pool: $poolCount IDs remaining"
+        } else {
+            "NAS: Offline  -  No local pool. Connect NAS to continue."
+        }
+    }
+}
+
 # Folder Path Preview Box & 1-Click Clipboard Copy (Feature 1)
 $previewGroup = New-Object Windows.Forms.GroupBox
 $previewGroup.Text = " Folder Path Preview "
@@ -1007,55 +1039,67 @@ $appGroup.Controls.Add($settingsStatusLabel)
 $profileGroup = New-Object Windows.Forms.GroupBox
 $profileGroup.Text = " Designer Profile && Signature "
 $profileGroup.Location = New-Object Drawing.Point(27, 295)
-$profileGroup.Size = New-Object Drawing.Size(667, 155)
+$profileGroup.Size = New-Object Drawing.Size(667, 185)
 $profileGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $settingsPage.Controls.Add($profileGroup)
 
+# Row 1: Staff ID | Designer Name | Department | Email
+$setStaffIDLabel = New-Label -Text "Staff ID:" -X 15 -Y 22 -Width 70
+$profileGroup.Controls.Add($setStaffIDLabel)
+$setStaffIDText = New-Object Windows.Forms.TextBox
+$setStaffIDText.Location = New-Object Drawing.Point(15, 44)
+$setStaffIDText.Size = New-Object Drawing.Size(65, 27)
+$setStaffIDText.CharacterCasing = "Upper"
+$setStaffIDText.MaxLength = 5
+$setStaffIDText.Text = $script:appState.StaffID
+$setStaffIDText.Font = New-Object Drawing.Font("Consolas", 10, [Drawing.FontStyle]::Bold)
+$profileGroup.Controls.Add($setStaffIDText)
+
 # Designer Name
-$setDesignerNameLabel = New-Label -Text "Designer Name:" -X 15 -Y 22 -Width 180
+$setDesignerNameLabel = New-Label -Text "Designer Name:" -X 95 -Y 22 -Width 160
 $profileGroup.Controls.Add($setDesignerNameLabel)
 $setDesignerNameText = New-Object Windows.Forms.TextBox
-$setDesignerNameText.Location = New-Object Drawing.Point(15, 44)
-$setDesignerNameText.Size = New-Object Drawing.Size(185, 27)
+$setDesignerNameText.Location = New-Object Drawing.Point(95, 44)
+$setDesignerNameText.Size = New-Object Drawing.Size(175, 27)
 $setDesignerNameText.Text = $script:appState.DesignerName
 $profileGroup.Controls.Add($setDesignerNameText)
 
 # Department
-$setDeptLabel = New-Label -Text "Department / Role:" -X 215 -Y 22 -Width 170
+$setDeptLabel = New-Label -Text "Department / Role:" -X 285 -Y 22 -Width 150
 $profileGroup.Controls.Add($setDeptLabel)
 $setDeptText = New-Object Windows.Forms.TextBox
-$setDeptText.Location = New-Object Drawing.Point(215, 44)
-$setDeptText.Size = New-Object Drawing.Size(175, 27)
+$setDeptText.Location = New-Object Drawing.Point(285, 44)
+$setDeptText.Size = New-Object Drawing.Size(150, 27)
 $setDeptText.Text = $script:appState.Department
 $profileGroup.Controls.Add($setDeptText)
 
 # Email Address
-$setDesignerEmailLabel = New-Label -Text "Email Address:" -X 405 -Y 22 -Width 220
+$setDesignerEmailLabel = New-Label -Text "Email Address:" -X 448 -Y 22 -Width 200
 $profileGroup.Controls.Add($setDesignerEmailLabel)
 $setDesignerEmailText = New-Object Windows.Forms.TextBox
-$setDesignerEmailText.Location = New-Object Drawing.Point(405, 44)
-$setDesignerEmailText.Size = New-Object Drawing.Size(240, 27)
+$setDesignerEmailText.Location = New-Object Drawing.Point(448, 44)
+$setDesignerEmailText.Size = New-Object Drawing.Size(200, 27)
 $setDesignerEmailText.Text = $script:appState.DesignerEmail
 $profileGroup.Controls.Add($setDesignerEmailText)
 
-# Avatar File Path
-$setAvatarLabel = New-Label -Text "Avatar Profile Image (JPG/PNG/SVG):" -X 15 -Y 78 -Width 380
+# Avatar File Path (row 2)
+$setAvatarLabel = New-Label -Text "Avatar Profile Image (JPG/PNG/SVG):" -X 15 -Y 108 -Width 380
 $profileGroup.Controls.Add($setAvatarLabel)
 $setAvatarPathText = New-Object Windows.Forms.TextBox
-$setAvatarPathText.Location = New-Object Drawing.Point(15, 100)
+$setAvatarPathText.Location = New-Object Drawing.Point(15, 130)
 $setAvatarPathText.Size = New-Object Drawing.Size(400, 27)
 $setAvatarPathText.Text = $script:appState.AvatarPath
 $profileGroup.Controls.Add($setAvatarPathText)
 
 $setAvatarBrowseBtn = New-Object Windows.Forms.Button
 $setAvatarBrowseBtn.Text = "Browse..."
-$setAvatarBrowseBtn.Location = New-Object Drawing.Point(423, 98)
+$setAvatarBrowseBtn.Location = New-Object Drawing.Point(423, 128)
 $setAvatarBrowseBtn.Size = New-Object Drawing.Size(85, 29)
 $setAvatarBrowseBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $profileGroup.Controls.Add($setAvatarBrowseBtn)
 
 $avatarPictureBox = New-Object Windows.Forms.PictureBox
-$avatarPictureBox.Location = New-Object Drawing.Point(530, 80)
+$avatarPictureBox.Location = New-Object Drawing.Point(530, 108)
 $avatarPictureBox.Size = New-Object Drawing.Size(55, 55)
 $avatarPictureBox.SizeMode = "Zoom"
 $avatarPictureBox.BorderStyle = "FixedSingle"
@@ -1076,10 +1120,12 @@ $autoSaveProfile = {
             -DesignerName $setDesignerNameText.Text.Trim() `
             -Department $setDeptText.Text.Trim() `
             -DesignerEmail $setDesignerEmailText.Text.Trim() `
-            -AvatarPath $setAvatarPathText.Text.Trim()
+            -AvatarPath $setAvatarPathText.Text.Trim() `
+            -StaffID $setStaffIDText.Text.Trim()
     } catch {}
 }
 
+$setStaffIDText.Add_Leave($autoSaveProfile)
 $setDesignerNameText.Add_Leave($autoSaveProfile)
 $setDeptText.Add_Leave($autoSaveProfile)
 $setDesignerEmailText.Add_Leave($autoSaveProfile)
@@ -1108,7 +1154,8 @@ $saveSettingsBtn.Add_Click({
             -DesignerName $setDesignerNameText.Text.Trim() `
             -Department $setDeptText.Text.Trim() `
             -DesignerEmail $setDesignerEmailText.Text.Trim() `
-            -AvatarPath $setAvatarPathText.Text.Trim()
+            -AvatarPath $setAvatarPathText.Text.Trim() `
+            -StaffID $setStaffIDText.Text.Trim()
 
         $jobIdText.Text = $script:appState.NextJobNumber
         $workspacePathText.Text = $script:appState.DefaultWorkspace
@@ -1536,10 +1583,34 @@ $createProjectBtn.Add_Click({
             $setDesignerNameText.Text.Trim()
         }
 
+        # Resolve StaffID for project subfolder routing
+        $activeStaffID = $script:appState.StaffID
+        if ([string]::IsNullOrWhiteSpace($activeStaffID)) { $activeStaffID = $null }
+
+        # Claim next job ID from NAS or local pool
+        $prefix = Get-SuamiSihatJobPrefix -PresetName ([string]$presetCombo.SelectedItem)
+        $claimResult = Claim-NextJobID `
+            -WorkspaceRoot $workspacePathText.Text.Trim() `
+            -JobPrefix $prefix `
+            -AppState $script:appState
+
+        if ([string]::IsNullOrWhiteSpace($claimResult.JobID)) {
+            throw "Unable to claim a Job ID. Connect to the NAS or wait for pool to refill."
+        }
+
+        $jobIdText.Text = $claimResult.JobID
+        & $script:UpdateNASStatus
+
+        # Build root path: WorkspaceRoot\{StaffID}\ if StaffID set, else WorkspaceRoot\
+        $rootForProject = $workspacePathText.Text.Trim()
+        if (-not [string]::IsNullOrWhiteSpace($activeStaffID)) {
+            $rootForProject = Join-Path $rootForProject $activeStaffID
+        }
+
         $result = New-SuamiSihatProjectFolder `
-            -RootDirectory $workspacePathText.Text.Trim() `
+            -RootDirectory $rootForProject `
             -SubBrand $subBrandCombo.SelectedItem `
-            -JobNumber $jobIdText.Text.Trim() `
+            -JobNumber $claimResult.JobID `
             -ProjectName $projectNameText.Text.Trim() `
             -PresetType $presetCombo.SelectedItem `
             -Year ([string]$yearCombo.SelectedItem) `
@@ -1550,15 +1621,63 @@ $createProjectBtn.Add_Click({
             -DesignerName $selectedDesignerName `
             -DesignerDept $setDeptText.Text.Trim() `
             -TargetPlatform ([string]$targetPlatformCombo.SelectedItem)
-        
-        $script:appState = Get-SuamiSihatAppState
-        $jobIdText.Text = $result.NextJobNumber
-        $setJobText.Text = $result.NextJobNumber
-        &$updatePreview
 
+        # Register project in team registry (or queue for offline sync)
+        $pendingEntry = @{
+            JobID      = $claimResult.JobID
+            StaffID    = if ($activeStaffID) { $activeStaffID } else { "" }
+            FolderName = $result.FolderName
+            Path       = $result.ProjectPath
+            PresetType = ([string]$presetCombo.SelectedItem)
+            Created    = (Get-Date).ToString("o")
+        }
+        if ($claimResult.Source -eq "NAS") {
+            # Write directly to team registry
+            try {
+                $reg = Read-TeamRegistry -WorkspaceRoot $workspacePathText.Text.Trim()
+                $reg.Projects += $pendingEntry
+                Write-TeamRegistry -WorkspaceRoot $workspacePathText.Text.Trim() -Registry $reg
+                # Ensure designer is registered on NAS
+                if (-not [string]::IsNullOrWhiteSpace($activeStaffID)) {
+                    Register-TeamDesigner `
+                        -WorkspaceRoot $workspacePathText.Text.Trim() `
+                        -StaffID $activeStaffID `
+                        -Name $setDesignerNameText.Text.Trim() `
+                        -Department $setDeptText.Text.Trim() `
+                        -Email $setDesignerEmailText.Text.Trim()
+                }
+            } catch {}
+        } else {
+            # Offline: add to pending sync queue
+            $pending = if ($script:appState.PendingSync) { [System.Collections.ArrayList]@($script:appState.PendingSync) } else { [System.Collections.ArrayList]@() }
+            [void]$pending.Add($pendingEntry)
+            $script:appState.PendingSync = @($pending)
+        }
+
+        # Save updated app state (pool, pending)
+        $script:appState = Save-SuamiSihatAppState `
+            -LastProjectPath $result.ProjectPath `
+            -LastProjectName $result.FolderName `
+            -LastJobNumber $claimResult.JobID `
+            -DefaultWorkspace $workspacePathText.Text.Trim() `
+            -DesignerName $setDesignerNameText.Text.Trim() `
+            -Department $setDeptText.Text.Trim() `
+            -DesignerEmail $setDesignerEmailText.Text.Trim() `
+            -AvatarPath $setAvatarPathText.Text.Trim() `
+            -StaffID $activeStaffID `
+            -LocalJobPool $script:appState.LocalJobPool `
+            -PendingSync $script:appState.PendingSync
+
+        $nextPreviewID = $prefix + ([int]($claimResult.JobID -replace '[^0-9]','') + 1).ToString().PadLeft(4,'0')
+        $jobIdText.Text = $nextPreviewID
+        $setJobText.Text = $nextPreviewID
+        & $updatePreview
+
+        $offlineNote = if ($claimResult.Source -ne "NAS") { "  (Offline — will sync when NAS reconnects)" } else { "" }
         $creatorStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
-        $creatorStatusLabel.Text = "Project Created! Next Job: $($result.NextJobNumber)`r`nOpening File Explorer..."
-        
+        $creatorStatusLabel.Text = "Project Created: $($claimResult.JobID)$offlineNote"
+        & $script:UpdateNASStatus
+
         # Open in Explorer
         Start-Process -FilePath "explorer.exe" -ArgumentList "`"$($result.ProjectPath)`""
     } catch {
@@ -2551,6 +2670,55 @@ $form.Add_Shown({
 Refresh-PCRequirements
 Refresh-SoftwareList
 $installedInfo = Get-SuamiSihatInstalledVersion
+
+# v1.8.0: Auto-sync pending offline projects and refresh NAS status on startup
+try {
+    $ws = $script:appState.DefaultWorkspace
+    if (-not [string]::IsNullOrWhiteSpace($ws)) {
+        $syncCount = Sync-PendingProjects -WorkspaceRoot $ws -AppState $script:appState
+        if ($syncCount -gt 0) {
+            $script:appState = Save-SuamiSihatAppState `
+                -LastProjectPath $script:appState.LastProjectPath `
+                -LastProjectName $script:appState.LastProjectName `
+                -LastJobNumber $script:appState.LastJobNumber `
+                -DefaultWorkspace $ws `
+                -DesignerName $script:appState.DesignerName `
+                -Department $script:appState.Department `
+                -DesignerEmail $script:appState.DesignerEmail `
+                -AvatarPath $script:appState.AvatarPath `
+                -StaffID $script:appState.StaffID `
+                -PendingSync @()
+        }
+        # Ensure designer folder and registry entry on NAS
+        if (-not [string]::IsNullOrWhiteSpace($script:appState.StaffID)) {
+            Register-TeamDesigner `
+                -WorkspaceRoot $ws `
+                -StaffID $script:appState.StaffID `
+                -Name $script:appState.DesignerName `
+                -Department $script:appState.Department `
+                -Email $script:appState.DesignerEmail
+        }
+        # Refill local pool if empty
+        if ((-not $script:appState.LocalJobPool -or $script:appState.LocalJobPool.Count -eq 0) -and (Test-NASAvailable -WorkspaceRoot $ws)) {
+            $prefix = "D"
+            $newPool = Refill-LocalJobPool -WorkspaceRoot $ws -JobPrefix $prefix -PoolSize 5
+            if ($newPool.Count -gt 0) {
+                $script:appState = Save-SuamiSihatAppState `
+                    -LastProjectPath $script:appState.LastProjectPath `
+                    -LastProjectName $script:appState.LastProjectName `
+                    -LastJobNumber $script:appState.LastJobNumber `
+                    -DefaultWorkspace $ws `
+                    -DesignerName $script:appState.DesignerName `
+                    -Department $script:appState.Department `
+                    -DesignerEmail $script:appState.DesignerEmail `
+                    -AvatarPath $script:appState.AvatarPath `
+                    -StaffID $script:appState.StaffID `
+                    -LocalJobPool $newPool
+            }
+        }
+    }
+} catch {}
+try { & $script:UpdateNASStatus } catch {}
 if ($InstallerMode -or -not $installedInfo.IsInstalled) {
     Show-Page 0
 } else {

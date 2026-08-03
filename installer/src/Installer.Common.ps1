@@ -527,6 +527,23 @@ function Get-SuamiSihatAppState {
                     AvatarPath = ""
                 }
             }
+            $localPool = @()
+            if ($json.LocalJobPool) {
+                foreach ($id in $json.LocalJobPool) { $localPool += [string]$id }
+            }
+            $pendingSync = @()
+            if ($json.PendingSync) {
+                foreach ($item in $json.PendingSync) {
+                    $pendingSync += @{
+                        JobID      = [string]$item.JobID
+                        StaffID    = [string]$item.StaffID
+                        FolderName = [string]$item.FolderName
+                        Path       = [string]$item.Path
+                        PresetType = [string]$item.PresetType
+                        Created    = [string]$item.Created
+                    }
+                }
+            }
             return @{
                 LastProjectPath  = [string]$json.LastProjectPath
                 LastProjectName  = [string]$json.LastProjectName
@@ -537,8 +554,11 @@ function Get-SuamiSihatAppState {
                 Department       = if ([string]::IsNullOrWhiteSpace([string]$json.Department)) { $defaultDept } else { [string]$json.Department }
                 DesignerEmail    = if ([string]::IsNullOrWhiteSpace([string]$json.DesignerEmail)) { $defaultEmail } else { [string]$json.DesignerEmail }
                 AvatarPath       = if ([string]::IsNullOrWhiteSpace([string]$json.AvatarPath)) { "" } else { [string]$json.AvatarPath }
+                StaffID          = if ([string]::IsNullOrWhiteSpace([string]$json.StaffID)) { "" } else { ([string]$json.StaffID).ToUpper() }
                 Profiles         = $profiles
                 RecentProjects   = $recent
+                LocalJobPool     = $localPool
+                PendingSync      = $pendingSync
             }
         } catch {}
     }
@@ -562,8 +582,11 @@ function Get-SuamiSihatAppState {
         Department       = $defaultDept
         DesignerEmail    = $defaultEmail
         AvatarPath       = ""
+        StaffID          = ""
         Profiles         = $defaultProfiles
         RecentProjects   = @()
+        LocalJobPool     = @()
+        PendingSync      = @()
     }
 }
 
@@ -588,7 +611,10 @@ function Save-SuamiSihatAppState {
         [string]$Department = "",
         [string]$DesignerEmail = "",
         [string]$AvatarPath = "",
-        [object[]]$Profiles = $null
+        [string]$StaffID = "",
+        [object[]]$Profiles = $null,
+        [string[]]$LocalJobPool = $null,
+        [object[]]$PendingSync = $null
     )
 
     $stateFile = Get-SuamiSihatAppStatePath
@@ -669,6 +695,15 @@ function Save-SuamiSihatAppState {
         }
     }
 
+    $finalStaffID = if (-not [string]::IsNullOrWhiteSpace($StaffID)) {
+        ($StaffID.ToUpper() -replace '[^A-Z0-9]', '').Substring(0, [Math]::Min(5, ($StaffID.ToUpper() -replace '[^A-Z0-9]', '').Length))
+    } elseif (-not [string]::IsNullOrWhiteSpace($prevState.StaffID)) {
+        $prevState.StaffID
+    } else { "" }
+
+    $finalLocalPool = if ($null -ne $LocalJobPool) { $LocalJobPool } elseif ($prevState.LocalJobPool) { @($prevState.LocalJobPool) } else { @() }
+    $finalPendingSync = if ($null -ne $PendingSync) { $PendingSync } elseif ($prevState.PendingSync) { @($prevState.PendingSync) } else { @() }
+
     $state = @{
         LastProjectPath  = $LastProjectPath
         LastProjectName  = $LastProjectName
@@ -679,14 +714,272 @@ function Save-SuamiSihatAppState {
         Department       = $finalDepartment
         DesignerEmail    = $finalEmail
         AvatarPath       = $finalAvatar
+        StaffID          = $finalStaffID
         Profiles         = $cleanProfilesList
         RecentProjects   = $recent
+        LocalJobPool     = $finalLocalPool
+        PendingSync      = $finalPendingSync
         Updated          = (Get-Date).ToString("o")
     }
 
     $json = $state | ConvertTo-Json -Depth 5
     Set-Content -LiteralPath $stateFile -Value $json -Encoding UTF8
     return $state
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Team NAS Registry Functions (v1.8.0)
+# ─────────────────────────────────────────────────────────────────────────────
+
+function Get-TeamRegistryPath {
+    param([string]$WorkspaceRoot)
+    return Join-Path $WorkspaceRoot "_team\team_registry.json"
+}
+
+function Test-NASAvailable {
+    param([string]$WorkspaceRoot)
+    if ([string]::IsNullOrWhiteSpace($WorkspaceRoot)) { return $false }
+    try {
+        $registryPath = Get-TeamRegistryPath -WorkspaceRoot $WorkspaceRoot
+        $teamDir = Split-Path $registryPath -Parent
+        # Quick existence check with a short timeout via Test-Path
+        return (Test-Path -LiteralPath $teamDir -PathType Container -ErrorAction Stop) -or
+               (Test-Path -LiteralPath $WorkspaceRoot -PathType Container -ErrorAction Stop)
+    } catch { return $false }
+}
+
+function Read-TeamRegistry {
+    param([string]$WorkspaceRoot)
+    $registryPath = Get-TeamRegistryPath -WorkspaceRoot $WorkspaceRoot
+    if (-not (Test-Path -LiteralPath $registryPath -PathType Leaf)) {
+        return @{
+            Version           = 1
+            GlobalNextCounter = 1
+            LastUpdated       = (Get-Date).ToString("o")
+            Designers         = @()
+            Projects          = @()
+        }
+    }
+    try {
+        $json = Get-Content -LiteralPath $registryPath -Raw | ConvertFrom-Json
+        $designers = @()
+        if ($json.Designers) {
+            foreach ($d in $json.Designers) {
+                $designers += @{
+                    StaffID    = [string]$d.StaffID
+                    Name       = [string]$d.Name
+                    Department = [string]$d.Department
+                    Email      = [string]$d.Email
+                    AvatarPath = [string]$d.AvatarPath
+                }
+            }
+        }
+        $projects = @()
+        if ($json.Projects) {
+            foreach ($p in $json.Projects) {
+                $projects += @{
+                    JobID      = [string]$p.JobID
+                    StaffID    = [string]$p.StaffID
+                    FolderName = [string]$p.FolderName
+                    Path       = [string]$p.Path
+                    PresetType = [string]$p.PresetType
+                    Created    = [string]$p.Created
+                    Synced     = $true
+                }
+            }
+        }
+        return @{
+            Version           = if ($json.Version) { [int]$json.Version } else { 1 }
+            GlobalNextCounter = if ($json.GlobalNextCounter) { [int]$json.GlobalNextCounter } else { 1 }
+            LastUpdated       = [string]$json.LastUpdated
+            Designers         = $designers
+            Projects          = $projects
+        }
+    } catch {
+        return @{
+            Version           = 1
+            GlobalNextCounter = 1
+            LastUpdated       = (Get-Date).ToString("o")
+            Designers         = @()
+            Projects          = @()
+        }
+    }
+}
+
+function Write-TeamRegistry {
+    param(
+        [string]$WorkspaceRoot,
+        [hashtable]$Registry
+    )
+    $registryPath = Get-TeamRegistryPath -WorkspaceRoot $WorkspaceRoot
+    $teamDir = Split-Path $registryPath -Parent
+    $lockPath = "$registryPath.lock"
+
+    New-Item -ItemType Directory -Path $teamDir -Force | Out-Null
+
+    # Acquire lock (wait up to 4 seconds for stale lock)
+    $waited = 0
+    while ((Test-Path -LiteralPath $lockPath) -and $waited -lt 4000) {
+        Start-Sleep -Milliseconds 200
+        $waited += 200
+    }
+    try {
+        [IO.File]::WriteAllText($lockPath, (Get-Date).ToString("o"))
+        $Registry.LastUpdated = (Get-Date).ToString("o")
+        $json = $Registry | ConvertTo-Json -Depth 6
+        Set-Content -LiteralPath $registryPath -Value $json -Encoding UTF8
+    } finally {
+        if (Test-Path -LiteralPath $lockPath) { Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue }
+    }
+}
+
+function Refill-LocalJobPool {
+    # Reserve next N job IDs from NAS registry into local pool
+    param(
+        [string]$WorkspaceRoot,
+        [string]$JobPrefix = "D",
+        [int]$PoolSize = 5
+    )
+    try {
+        $registry = Read-TeamRegistry -WorkspaceRoot $WorkspaceRoot
+        $counter = [int]$registry.GlobalNextCounter
+        $pool = @()
+        for ($i = 0; $i -lt $PoolSize; $i++) {
+            $pool += "${JobPrefix}" + ($counter + $i).ToString().PadLeft(4, '0')
+        }
+        $registry.GlobalNextCounter = $counter + $PoolSize
+        Write-TeamRegistry -WorkspaceRoot $WorkspaceRoot -Registry $registry
+        return $pool
+    } catch {
+        return @()
+    }
+}
+
+function Claim-NextJobID {
+    # Try NAS first; if unavailable, pop from local pool
+    param(
+        [string]$WorkspaceRoot,
+        [string]$JobPrefix = "D",
+        [hashtable]$AppState
+    )
+    $result = @{ JobID = ""; Source = "NAS"; PoolRemaining = 0 }
+
+    if (Test-NASAvailable -WorkspaceRoot $WorkspaceRoot) {
+        try {
+            $registry = Read-TeamRegistry -WorkspaceRoot $WorkspaceRoot
+            $counter = [int]$registry.GlobalNextCounter
+            $jobID = "${JobPrefix}" + $counter.ToString().PadLeft(4, '0')
+            $registry.GlobalNextCounter = $counter + 1
+            Write-TeamRegistry -WorkspaceRoot $WorkspaceRoot -Registry $registry
+
+            # Refill local pool if it's running low
+            $currentPool = if ($AppState.LocalJobPool) { @($AppState.LocalJobPool) } else { @() }
+            if ($currentPool.Count -lt 2) {
+                $newPool = Refill-LocalJobPool -WorkspaceRoot $WorkspaceRoot -JobPrefix $JobPrefix -PoolSize 5
+                $result.PoolRemaining = $newPool.Count
+                # Persist new pool to app state (caller must save)
+                $AppState.LocalJobPool = $newPool
+            } else {
+                $result.PoolRemaining = $currentPool.Count
+            }
+
+            $result.JobID = $jobID
+            $result.Source = "NAS"
+            return $result
+        } catch {}
+    }
+
+    # NAS unavailable — use local pool
+    $pool = if ($AppState.LocalJobPool) { [System.Collections.ArrayList]@($AppState.LocalJobPool) } else { [System.Collections.ArrayList]@() }
+    if ($pool.Count -gt 0) {
+        $jobID = $pool[0]
+        $pool.RemoveAt(0)
+        $AppState.LocalJobPool = @($pool)
+        $result.JobID = $jobID
+        $result.Source = "Local"
+        $result.PoolRemaining = $pool.Count
+    } else {
+        # Pool exhausted — generate a timestamp-based fallback (very rare)
+        $result.JobID = "${JobPrefix}" + (Get-Date).ToString("HHmmss")
+        $result.Source = "Fallback"
+        $result.PoolRemaining = 0
+    }
+    return $result
+}
+
+function Register-TeamDesigner {
+    # Ensure designer is present in team_registry.json; add if missing
+    param(
+        [string]$WorkspaceRoot,
+        [string]$StaffID,
+        [string]$Name,
+        [string]$Department = "",
+        [string]$Email = "",
+        [string]$AvatarPath = ""
+    )
+    if ([string]::IsNullOrWhiteSpace($WorkspaceRoot) -or [string]::IsNullOrWhiteSpace($StaffID)) { return }
+    try {
+        $registry = Read-TeamRegistry -WorkspaceRoot $WorkspaceRoot
+        $found = $false
+        foreach ($d in $registry.Designers) {
+            if ($d.StaffID -eq $StaffID) {
+                $d.Name = $Name; $d.Department = $Department; $d.Email = $Email
+                $found = $true; break
+            }
+        }
+        if (-not $found) {
+            $registry.Designers += @{
+                StaffID    = $StaffID
+                Name       = $Name
+                Department = $Department
+                Email      = $Email
+                AvatarPath = $AvatarPath
+            }
+        }
+        # Ensure designer folder exists
+        $designerFolder = Join-Path $WorkspaceRoot $StaffID
+        New-Item -ItemType Directory -Path $designerFolder -Force | Out-Null
+        Write-TeamRegistry -WorkspaceRoot $WorkspaceRoot -Registry $registry
+    } catch {}
+}
+
+function Sync-PendingProjects {
+    # Upload locally-created (offline) projects to NAS team_registry.json
+    param(
+        [string]$WorkspaceRoot,
+        [hashtable]$AppState
+    )
+    if (-not (Test-NASAvailable -WorkspaceRoot $WorkspaceRoot)) { return 0 }
+    $pending = if ($AppState.PendingSync) { @($AppState.PendingSync) } else { @() }
+    if ($pending.Count -eq 0) { return 0 }
+
+    try {
+        $registry = Read-TeamRegistry -WorkspaceRoot $WorkspaceRoot
+        $synced = 0
+        foreach ($proj in $pending) {
+            $alreadyExists = $false
+            foreach ($rp in $registry.Projects) {
+                if ($rp.JobID -eq $proj.JobID -and $rp.StaffID -eq $proj.StaffID) {
+                    $alreadyExists = $true; break
+                }
+            }
+            if (-not $alreadyExists) {
+                $registry.Projects += @{
+                    JobID      = $proj.JobID
+                    StaffID    = $proj.StaffID
+                    FolderName = $proj.FolderName
+                    Path       = $proj.Path
+                    PresetType = $proj.PresetType
+                    Created    = $proj.Created
+                    Synced     = $true
+                }
+                $synced++
+            }
+        }
+        Write-TeamRegistry -WorkspaceRoot $WorkspaceRoot -Registry $registry
+        $AppState.PendingSync = @()
+        return $synced
+    } catch { return 0 }
 }
 
 function Install-SuamiSihatShortcuts {
