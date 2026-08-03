@@ -76,6 +76,25 @@ function Get-DesignSoftwareInventory {
             Pattern = "(?i)Adobe Illustrator"
             Paths = @()
             DownloadUrl = "https://creativecloud.adobe.com/apps/all/desktop"
+        },
+        @{
+            Name = "CapCut"
+            Pattern = "(?i)^CapCut$|CapCut PC|CapCut for Windows"
+            Paths = @(
+                (Join-Path $env:LOCALAPPDATA "CapCut\Apps\CapCut.exe"),
+                (Join-Path $env:LOCALAPPDATA "Programs\CapCut\CapCut.exe"),
+                (Join-Path $env:ProgramFiles "CapCut\CapCut.exe")
+            )
+            DownloadUrl = "https://www.capcut.com/download"
+        },
+        @{
+            Name = "DaVinci Resolve"
+            Pattern = "(?i)DaVinci Resolve"
+            Paths = @(
+                (Join-Path $env:ProgramFiles "Blackmagic Design\DaVinci Resolve\Resolve.exe"),
+                (Join-Path ${env:ProgramFiles(x86)} "Blackmagic Design\DaVinci Resolve\Resolve.exe")
+            )
+            DownloadUrl = "https://www.blackmagicdesign.com/products/davinciresolve"
         }
     )
 

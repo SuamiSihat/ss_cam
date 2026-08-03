@@ -388,55 +388,48 @@ $tabDesignApps.BackColor = [Drawing.Color]::White
 
 $softwareList = New-Object Windows.Forms.ListView
 $softwareList.Location = New-Object Drawing.Point(4, 8)
-$softwareList.Size = New-Object Drawing.Size(658, 230)
+$softwareList.Size = New-Object Drawing.Size(658, 262)
 $softwareList.View = "Details"
 $softwareList.FullRowSelect = $true
 $softwareList.GridLines = $true
 $softwareList.ShowItemToolTips = $true
 $softwareList.Font = New-Object Drawing.Font("Segoe UI", 8.5)
-[void]$softwareList.Columns.Add("Application", 200)
-[void]$softwareList.Columns.Add("Status", 100)
-[void]$softwareList.Columns.Add("Installed Version", 165)
-[void]$softwareList.Columns.Add("Latest Version", 165)
+[void]$softwareList.Columns.Add("Application", 185)
+[void]$softwareList.Columns.Add("Status", 110)
+[void]$softwareList.Columns.Add("Installed Version", 130)
+[void]$softwareList.Columns.Add("Latest Version", 130)
+[void]$softwareList.Columns.Add("Get / Open", 89)
 $tabDesignApps.Controls.Add($softwareList)
 
-$softwareNote = New-Label -Text "Shared design account: branding@suamisihat.com. Request the current password and OTP from the team lead. Missing applications: use their official vendor setup, sign in, then select Rescan." -X 4 -Y 244 -Width 658 -Height 48
+$softwareNote = New-Label -Text "Shared account: branding@suamisihat.com. Request the password and OTP from the team lead.  Click [Get] on any row to open the vendor download page." -X 4 -Y 276 -Width 534 -Height 34
 $softwareNote.ForeColor = [Drawing.Color]::DimGray
+$softwareNote.Font = New-Object Drawing.Font("Segoe UI", 7.8)
 $tabDesignApps.Controls.Add($softwareNote)
-
-$affinityDownload = New-Object Windows.Forms.Button
-$affinityDownload.Text = "Get Affinity"
-$affinityDownload.Location = New-Object Drawing.Point(4, 296)
-$affinityDownload.Size = New-Object Drawing.Size(120, 32)
-$tabDesignApps.Controls.Add($affinityDownload)
-
-$adobeDownload = New-Object Windows.Forms.Button
-$adobeDownload.Text = "Get Adobe"
-$adobeDownload.Location = New-Object Drawing.Point(132, 296)
-$adobeDownload.Size = New-Object Drawing.Size(120, 32)
-$tabDesignApps.Controls.Add($adobeDownload)
-
-$canvaDownload = New-Object Windows.Forms.Button
-$canvaDownload.Text = "Get Canva"
-$canvaDownload.Location = New-Object Drawing.Point(260, 296)
-$canvaDownload.Size = New-Object Drawing.Size(110, 32)
-$tabDesignApps.Controls.Add($canvaDownload)
-
-$figmaDownload = New-Object Windows.Forms.Button
-$figmaDownload.Text = "Get Figma"
-$figmaDownload.Location = New-Object Drawing.Point(378, 296)
-$figmaDownload.Size = New-Object Drawing.Size(110, 32)
-$tabDesignApps.Controls.Add($figmaDownload)
 
 $rescanButton = New-Object Windows.Forms.Button
 $rescanButton.Text = "Rescan"
-$rescanButton.Location = New-Object Drawing.Point(542, 296)
+$rescanButton.Location = New-Object Drawing.Point(546, 278)
 $rescanButton.Size = New-Object Drawing.Size(116, 32)
 $tabDesignApps.Controls.Add($rescanButton)
 
-$softwareContinue = New-Label -Text "You may continue even if optional design software is not installed yet." -X 4 -Y 340 -Width 658 -Height 22
+$softwareContinue = New-Label -Text "You may continue even if optional design software is not installed yet." -X 4 -Y 318 -Width 658 -Height 22
 $softwareContinue.ForeColor = [Drawing.Color]::DimGray
 $tabDesignApps.Controls.Add($softwareContinue)
+
+# Click the 'Get / Open' column (index 4) to launch vendor download page
+$softwareList.Add_MouseDown({
+    param($s, $e)
+    $hit = $softwareList.HitTest($e.X, $e.Y)
+    if ($hit.Item -and $hit.SubItem) {
+        $colIndex = $hit.Item.SubItems.IndexOf($hit.SubItem)
+        if ($colIndex -eq 4) {
+            $url = [string]$hit.Item.Tag
+            if (-not [string]::IsNullOrWhiteSpace($url)) {
+                Start-Process $url
+            }
+        }
+    }
+})
 
 # Switch to Design Apps tab when navigating forward from requirements
 $systemCheckTabs.Add_SelectedIndexChanged({
@@ -1700,6 +1693,8 @@ $script:KnownLatestVersions = @{
     "Adobe Creative Cloud" = "6.6.0"
     "Adobe Photoshop"      = "26.0"
     "Adobe Illustrator"    = "29.0"
+    "CapCut"               = "5.0.0"
+    "DaVinci Resolve"      = "19.1"
 }
 
 function Refresh-SoftwareList {
@@ -1760,9 +1755,20 @@ function Refresh-SoftwareList {
             [Drawing.Color]::FromArgb(160, 165, 175)
         }
 
+        $getLabel = if ($software.Installed) { "Open" } else { "Get" }
+        $siGet = $item.SubItems.Add($getLabel)
+        $siGet.ForeColor = if ($software.Installed) {
+            [Drawing.Color]::FromArgb(4, 51, 136)
+        } else {
+            [Drawing.Color]::FromArgb(20, 135, 75)
+        }
+
+        # Store download URL in Tag for column-4 click handler
+        $item.Tag = $software.DownloadUrl
         $tip = "$($software.Name) - $status"
         if ($installedVer) { $tip += " | Installed: v$installedVer" }
         if ($latestVer -ne "N/A") { $tip += " | Latest: v$latestVer" }
+        $tip += " | Click [Get/Open] to visit vendor page"
         $item.ToolTipText = $tip
 
         [void]$softwareList.Items.Add($item)
@@ -1992,18 +1998,7 @@ function Start-Installation {
     $timer.Start()
 }
 
-$affinityDownload.Add_Click({
-    Open-VendorSetupPage "https://www.affinity.studio/download"
-})
-$adobeDownload.Add_Click({
-    Open-VendorSetupPage "https://creativecloud.adobe.com/apps/download/creative-cloud"
-})
-$canvaDownload.Add_Click({
-    Open-VendorSetupPage "https://www.canva.com/download/windows/"
-})
-$figmaDownload.Add_Click({
-    Open-VendorSetupPage "https://www.figma.com/downloads/"
-})
+
 $rescanButton.Add_Click({
     $rescanButton.Enabled = $false
     $rescanButton.Text = "Scanning..."
