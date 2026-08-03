@@ -970,18 +970,18 @@ $appGroup.Controls.Add($settingsStatusLabel)
 $updateGroup = New-Object Windows.Forms.GroupBox
 $updateGroup.Text = " About && Software Updates "
 $updateGroup.Location = New-Object Drawing.Point(27, 355)
-$updateGroup.Size = New-Object Drawing.Size(667, 125)
+$updateGroup.Size = New-Object Drawing.Size(667, 152)
 $updateGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $settingsPage.Controls.Add($updateGroup)
 
-$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v$($script:AppVersion)`r`nGitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 24 -Width 637 -Height 36
+$aboutLabel = New-Label -Text "SuamiSihat Creative Assets Management  |  Installed Version: v$($script:AppVersion)`r`nGitHub: https://github.com/SuamiSihat/SS-Designer-Assets" -X 15 -Y 22 -Width 637 -Height 54
 $aboutLabel.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $aboutLabel.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
 $updateGroup.Controls.Add($aboutLabel)
 
 $btnCheckUpdate = New-Object Windows.Forms.Button
 $btnCheckUpdate.Text = "Check for Updates"
-$btnCheckUpdate.Location = New-Object Drawing.Point(15, 68)
+$btnCheckUpdate.Location = New-Object Drawing.Point(15, 96)
 $btnCheckUpdate.Size = New-Object Drawing.Size(160, 32)
 $btnCheckUpdate.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $btnCheckUpdate.BackColor = [Drawing.Color]::FromArgb(4, 51, 136)
@@ -992,7 +992,7 @@ $updateGroup.Controls.Add($btnCheckUpdate)
 
 $btnInstallUpdate = New-Object Windows.Forms.Button
 $btnInstallUpdate.Text = "Install Update"
-$btnInstallUpdate.Location = New-Object Drawing.Point(185, 68)
+$btnInstallUpdate.Location = New-Object Drawing.Point(185, 96)
 $btnInstallUpdate.Size = New-Object Drawing.Size(140, 32)
 $btnInstallUpdate.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $btnInstallUpdate.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
@@ -1002,7 +1002,7 @@ $btnInstallUpdate.Cursor = [Windows.Forms.Cursors]::Hand
 $btnInstallUpdate.Visible = $false
 $updateGroup.Controls.Add($btnInstallUpdate)
 
-$updateStatusLabel = New-Label -Text "" -X 185 -Y 72 -Width 460 -Height 28
+$updateStatusLabel = New-Label -Text "" -X 185 -Y 100 -Width 465 -Height 26
 $updateStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 8.5)
 $updateGroup.Controls.Add($updateStatusLabel)
 
@@ -1248,7 +1248,10 @@ $refreshAppVersionStatus = {
     if ($script:installedInfo.IsInstalled) {
         $installStatusBadge.Text = "Installed: v$($script:installedInfo.Version)"
         $installStatusBadge.BackColor = [Drawing.Color]::FromArgb(20, 135, 75)
-        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Installed: v$($script:installedInfo.Version)`r`nStatus: Installed  |  Executable: $($script:installedInfo.ExePath)"
+        # Truncate exe path to keep line 2 to one clean line
+        $exeDisplay = $script:installedInfo.ExePath
+        if ($exeDisplay.Length -gt 72) { $exeDisplay = $exeDisplay.Substring(0, 69) + '...' }
+        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Installed: v$($script:installedInfo.Version)`r`nExecutable: $exeDisplay"
         $btnWelcomeLaunch.Visible = $true
         $btnWelcomeUninstall.Visible = $true
         $chkWelcomeBrandKit.Checked = $true
@@ -1258,7 +1261,7 @@ $refreshAppVersionStatus = {
     } else {
         $installStatusBadge.Text = "Not Installed  (v$($script:AppVersion) Ready)"
         $installStatusBadge.BackColor = [Drawing.Color]::FromArgb(33, 161, 247)
-        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Status: Not Installed`r`nRun setup wizard below to install SuamiSihat brand kit && assets."
+        $aboutLabel.Text = "SuamiSihat Creative Assets Management  |  Not Installed`r`nRun the setup wizard below to install the SuamiSihat brand kit & assets."
         $btnWelcomeLaunch.Visible = $false
         $btnWelcomeUninstall.Visible = $false
         $chkWelcomeBrandKit.Checked = $true
@@ -1380,10 +1383,10 @@ $btnCheckUpdate.Add_Click({
         $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
         $updateStatusLabel.Text = "New Version Available: v$($script:updateInfo.LatestVersion)!"
         if (-not [string]::IsNullOrWhiteSpace($script:updateInfo.DownloadUrl)) {
-            $btnInstallUpdate.Location = New-Object Drawing.Point(185, 68)
+            $btnInstallUpdate.Location = New-Object Drawing.Point(185, 96)
             $btnInstallUpdate.Visible = $true
-            $updateStatusLabel.Location = New-Object Drawing.Point(335, 72)
-            $updateStatusLabel.Width = 310
+            $updateStatusLabel.Location = New-Object Drawing.Point(335, 100)
+            $updateStatusLabel.Width = 315
         }
     } else {
         # Already on latest — disable button and mark as up to date
@@ -2075,10 +2078,10 @@ $form.Add_Shown({
                 $updateStatusLabel.ForeColor = [Drawing.Color]::FromArgb(194, 65, 12)
                 $updateStatusLabel.Text = "New Update Available: v$($e.Result.LatestVersion)"
                 if (-not [string]::IsNullOrWhiteSpace($e.Result.DownloadUrl)) {
-                    $btnInstallUpdate.Location = New-Object Drawing.Point(185, 68)
+                    $btnInstallUpdate.Location = New-Object Drawing.Point(185, 96)
                     $btnInstallUpdate.Visible = $true
-                    $updateStatusLabel.Location = New-Object Drawing.Point(335, 72)
-                    $updateStatusLabel.Width = 310
+                    $updateStatusLabel.Location = New-Object Drawing.Point(335, 100)
+                    $updateStatusLabel.Width = 315
                 }
             } elseif ($null -ne $e.Result -and -not $e.Result.HasUpdate) {
                 # Startup check confirmed: already on latest — mark button as up to date
