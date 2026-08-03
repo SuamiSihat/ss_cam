@@ -858,10 +858,10 @@ $script:UpdateNASStatus = {
     $ws = $workspacePathText.Text.Trim()
     if (Test-NASAvailable -WorkspaceRoot $ws) {
         $nasStatusDot.ForeColor  = [Drawing.Color]::FromArgb(20, 135, 75)   # green
-        $poolCount = if ($script:appState.LocalJobPool) { $script:appState.LocalJobPool.Count } else { 0 }
-        $nasStatusLabel.Text = if ($poolCount -gt 0) { "NAS: Online  •  Local pool: $poolCount IDs" } else { "NAS: Online" }
+        $poolCount = @($script:appState.LocalJobPool).Count
+        $nasStatusLabel.Text = if ($poolCount -gt 0) { "NAS: Online  -  Local pool: $poolCount IDs" } else { "NAS: Online" }
     } else {
-        $poolCount = if ($script:appState.LocalJobPool) { $script:appState.LocalJobPool.Count } else { 0 }
+        $poolCount = @($script:appState.LocalJobPool).Count
         $nasStatusDot.ForeColor  = if ($poolCount -gt 0) {
             [Drawing.Color]::FromArgb(194, 115, 12)  # orange: offline but pool available
         } else {
@@ -1665,8 +1665,8 @@ $createProjectBtn.Add_Click({
             -DesignerEmail $setDesignerEmailText.Text.Trim() `
             -AvatarPath $setAvatarPathText.Text.Trim() `
             -StaffID $activeStaffID `
-            -LocalJobPool $script:appState.LocalJobPool `
-            -PendingSync $script:appState.PendingSync
+            -LocalJobPool @($script:appState.LocalJobPool) `
+            -PendingSync @($script:appState.PendingSync)
 
         $nextPreviewID = $prefix + ([int]($claimResult.JobID -replace '[^0-9]','') + 1).ToString().PadLeft(4,'0')
         $jobIdText.Text = $nextPreviewID
@@ -2699,7 +2699,7 @@ try {
                 -Email $script:appState.DesignerEmail
         }
         # Refill local pool if empty
-        if ((-not $script:appState.LocalJobPool -or $script:appState.LocalJobPool.Count -eq 0) -and (Test-NASAvailable -WorkspaceRoot $ws)) {
+        if ((@($script:appState.LocalJobPool).Count -eq 0) -and (Test-NASAvailable -WorkspaceRoot $ws)) {
             $prefix = "D"
             $newPool = Refill-LocalJobPool -WorkspaceRoot $ws -JobPrefix $prefix -PoolSize 5
             if ($newPool.Count -gt 0) {
