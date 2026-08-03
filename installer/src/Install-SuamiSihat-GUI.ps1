@@ -11,7 +11,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 
-$script:AppVersion = "1.9.1"
+$script:AppVersion = "1.9.2"
 
 # Capture own exe path — used for self-copy to install directory
 # Must be done immediately; later in nested processes this returns powershell.exe
@@ -1017,7 +1017,7 @@ $setWorkspaceBrowseBtn.Location = New-Object Drawing.Point(543, 40)
 $setWorkspaceBrowseBtn.Size = New-Object Drawing.Size(107, 31)
 $appGroup.Controls.Add($setWorkspaceBrowseBtn)
 
-$setJobLabel = New-Label -Text "Next Job ID Counter (e.g. D0075):" -X 15 -Y 75 -Width 220
+$setJobLabel = New-Label -Text "Next Job ID Counter (e.g. 0075D):" -X 15 -Y 75 -Width 220
 $appGroup.Controls.Add($setJobLabel)
 
 $setJobText = New-Object Windows.Forms.TextBox
@@ -1239,7 +1239,7 @@ $linkReleases.Size = New-Object Drawing.Size(106, 16)
 $linkReleases.Font = New-Object Drawing.Font("Segoe UI Semibold", 8)
 $linkReleases.LinkColor = [Drawing.Color]::FromArgb(4, 51, 136)
 $linkReleases.ActiveLinkColor = [Drawing.Color]::FromArgb(33, 161, 247)
-$linkReleases.Add_LinkClicked({ Start-Process "https://github.com/SuamiSihat/SS-Brand-Assets/releases" })
+$linkReleases.Add_LinkClicked({ Start-Process "https://github.com/SuamiSihat/ss_cam/releases" })
 $updateGroup.Controls.Add($linkReleases)
 
 $linkChangelog = New-Object Windows.Forms.LinkLabel
@@ -1445,11 +1445,11 @@ $descResizeHandle.Add_MouseUp({
 $presetCombo.Add_SelectedIndexChanged({
     $prefix = Get-SuamiSihatJobPrefix -PresetName $presetCombo.SelectedItem
     $currentJob = $jobIdText.Text.Trim()
-    if ($currentJob -match '^[A-Za-z]+(\d+)') {
+    if ((ConvertTo-SuamiSihatJobID $currentJob) -match '^(\d+)[A-Za-z-]+$') {
         $numPart = $matches[1]
-        $jobIdText.Text = "${prefix}${numPart}"
+        $jobIdText.Text = "${numPart}${prefix}"
     } else {
-        $jobIdText.Text = "${prefix}0001"
+        $jobIdText.Text = "0001${prefix}"
     }
     &$updatePreview
 })
@@ -1465,8 +1465,8 @@ $chkExtraRevisions.Add_CheckedChanged($updatePreview)
 $chkExtraRaw.Add_CheckedChanged($updatePreview)
 $jobIdText.Add_TextChanged({
     $val = $jobIdText.Text.Trim()
-    # Valid Job ID: one uppercase letter followed by 3-5 digits (e.g. D0075, S0002, V0010)
-    if ($val -match '^[A-Z]\d{3,5}$') {
+    # Valid Job ID: 3-6 digits followed by the work-type code (e.g. 0075D, 0002S, 0010V)
+    if ($val -match '^\d{3,6}[A-Z-]+$') {
         $jobIdText.BackColor = [Drawing.Color]::White
     } else {
         $jobIdText.BackColor = [Drawing.Color]::FromArgb(254, 226, 226)  # soft red
@@ -1493,7 +1493,7 @@ $btnClearForm.Add_Click({
     $presetCombo.SelectedIndex = 0
     $subBrandCombo.SelectedIndex = 0
     $prefix = Get-SuamiSihatJobPrefix -PresetName $presetCombo.SelectedItem
-    $jobIdText.Text = "${prefix}0001"
+    $jobIdText.Text = "0001${prefix}"
     $creatorStatusLabel.Text = ""
     &$updatePreview
 })

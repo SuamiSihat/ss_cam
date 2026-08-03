@@ -10,13 +10,14 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
-$script:AppVersion = "1.9.1"
+$script:AppVersion = "1.9.2"
 $script:installationRunning = $false
 $script:installerProcess = $null
 $script:standardOutputTask = $null
 $script:standardErrorTask = $null
 $script:expressInstall = $false
 $script:uninstallReportMode = $false
+$script:readmePreviewMode = $true
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
@@ -1025,7 +1026,17 @@ $xaml = @'
             </GroupBox>
             <TabControl Grid.Column="1" Margin="7,0,0,0">
               <TabItem Header="README.md">
-                <TextBox Text="{Binding ProjectReadmeContent}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" BorderThickness="0" Padding="12" FontFamily="Consolas" Background="White"/>
+                <Grid Background="White">
+                  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                  <Border BorderBrush="{StaticResource BrandBorder}" BorderThickness="0,0,0,1" Padding="8,5">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                      <Button x:Name="ReadmePreviewButton" Content="Preview" MinWidth="88"/>
+                      <Button x:Name="ReadmeRawButton" Content="Raw Markdown" Style="{StaticResource SecondaryButton}" MinWidth="112"/>
+                    </StackPanel>
+                  </Border>
+                  <FlowDocumentScrollViewer x:Name="ReadmePreviewViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" IsToolBarVisible="False" Background="White"/>
+                  <TextBox x:Name="ReadmeRawTextBox" Grid.Row="1" Text="{Binding ProjectReadmeContent}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" BorderThickness="0" Padding="12" FontFamily="Consolas" Background="White" Visibility="Collapsed"/>
+                </Grid>
               </TabItem>
               <TabItem Header="Project files">
                 <DataGrid x:Name="SearchResultsGrid" ItemsSource="{Binding SearchResults}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" Background="White">
@@ -1164,6 +1175,10 @@ $fontChoice = Get-Control "FontChoice"
 $searchResultsGrid = Get-Control "SearchResultsGrid"
 $designerFoldersGrid = Get-Control "DesignerFoldersGrid"
 $designerFolderCombo = Get-Control "DesignerFolderCombo"
+$readmePreviewViewer = Get-Control "ReadmePreviewViewer"
+$readmeRawTextBox = Get-Control "ReadmeRawTextBox"
+$readmePreviewButton = Get-Control "ReadmePreviewButton"
+$readmeRawButton = Get-Control "ReadmeRawButton"
 $sidebar = Get-Control "Sidebar"
 $sidebarColumn = Get-Control "SidebarColumn"
 $headerLogo = Get-Control "HeaderLogo"
@@ -1712,6 +1727,27 @@ function ConvertFrom-MarkdownToFlowDocument([string]$Markdown) {
     return $document
 }
 
+function Update-ReadmePreview {
+    try {
+        $readmePreviewViewer.Document = ConvertFrom-MarkdownToFlowDocument ([string]$vm.ProjectReadmeContent)
+    } catch {
+        $fallback = New-Object Windows.Documents.FlowDocument
+        [void]$fallback.Blocks.Add((New-MarkdownParagraph -Text "README preview could not be rendered: $($_.Exception.Message)"))
+        $readmePreviewViewer.Document = $fallback
+    }
+}
+
+function Set-ReadmeViewMode([bool]$ShowPreview) {
+    $script:readmePreviewMode = $ShowPreview
+    $readmePreviewViewer.Visibility = if ($ShowPreview) { [Windows.Visibility]::Visible } else { [Windows.Visibility]::Collapsed }
+    $readmeRawTextBox.Visibility = if ($ShowPreview) { [Windows.Visibility]::Collapsed } else { [Windows.Visibility]::Visible }
+    $readmePreviewButton.Background = if ($ShowPreview) { $window.FindResource("BrandNavy") } else { New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(226,232,240)) }
+    $readmePreviewButton.Foreground = if ($ShowPreview) { [Windows.Media.Brushes]::White } else { $window.FindResource("BrandInk") }
+    $readmeRawButton.Background = if ($ShowPreview) { New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(226,232,240)) } else { $window.FindResource("BrandNavy") }
+    $readmeRawButton.Foreground = if ($ShowPreview) { $window.FindResource("BrandInk") } else { [Windows.Media.Brushes]::White }
+    if ($ShowPreview) { Update-ReadmePreview }
+}
+
 function Show-MarkdownReport([string]$FileName, [string]$Title) {
     $reportPath = Join-Path (Join-Path $vm.BrandAssetsPath "Reports") $FileName
     if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) {
@@ -1868,7 +1904,13 @@ $vm.add_PropertyChanged({
     if ($eventArgs.PropertyName -in @("Workspace", "JobId", "ProjectName", "SelectedPreset", "SelectedBrand", "SelectedYear", "SelectedTemplateExtension", "InjectMasterCanvas", "IncludeRevisions", "IncludeRawMedia", "StaffId")) {
         Update-ProjectPreview
     }
+    if ($eventArgs.PropertyName -eq "ProjectReadmeContent" -and $script:readmePreviewMode) {
+        Update-ReadmePreview
+    }
 })
+
+$readmePreviewButton.Add_Click({ Set-ReadmeViewMode -ShowPreview $true })
+$readmeRawButton.Add_Click({ Set-ReadmeViewMode -ShowPreview $false })
 
 (Get-Control "NavDashboard").Add_Click({ $views.SelectedIndex = 1; Start-DashboardRefresh })
 (Get-Control "NavProjects").Add_Click({ $views.SelectedIndex = 2 })
@@ -2388,6 +2430,7 @@ $window.Add_KeyDown({
 Refresh-RecentProjects
 Update-NasStatus
 Update-ProjectPreview
+Set-ReadmeViewMode -ShowPreview $true
 
 if ($InstallerMode) {
     Enter-InstallerSurface

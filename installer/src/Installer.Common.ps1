@@ -521,7 +521,7 @@ function Get-SuamiSihatBrandKitRegistration {
 function Set-SuamiSihatBrandKitRegistration {
     param(
         [Parameter(Mandatory = $true)][string]$AssetsPath,
-        [string]$Version = "1.9.1"
+        [string]$Version = "1.9.2"
     )
     if ($WhatIfPreference) { return }
     $registryPath = "HKCU:\Software\SuamiSihat\SS-CAM"
@@ -824,7 +824,7 @@ function Save-SuamiSihatAppState {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Team NAS Registry Functions (v1.9.1)
+# Team NAS Registry Functions (v1.9.2)
 # ─────────────────────────────────────────────────────────────────────────────
 
 function Get-TeamRegistryPath {
@@ -1087,7 +1087,7 @@ function Sync-PendingProjects {
 function Install-SuamiSihatShortcuts {
     param(
         [string]$TargetExePath,
-        [string]$Version = "1.9.1"
+        [string]$Version = "1.9.2"
     )
 
     if (-not (Test-Path -LiteralPath $TargetExePath -PathType Leaf)) {
@@ -1255,10 +1255,10 @@ function Uninstall-SuamiSihatApp {
 }
 
 function Get-SuamiSihatLatestRelease {
-    param([string]$CurrentVersion = "1.6.0")
+    param([string]$CurrentVersion = "1.9.2")
 
     $apiUrls = @(
-        "https://api.github.com/repos/SuamiSihat/SS-Brand-Assets/releases/latest"
+        "https://api.github.com/repos/SuamiSihat/ss_cam/releases/latest"
     )
 
     foreach ($url in $apiUrls) {
@@ -1267,7 +1267,7 @@ function Get-SuamiSihatLatestRelease {
             $response = Invoke-RestMethod -Uri $url -Headers $headers -TimeoutSec 5 -ErrorAction Stop
             
             $latestTag = [string]$response.tag_name -replace '^v', ''
-            $latestVersion = if ([string]::IsNullOrWhiteSpace($latestTag)) { "1.6.0" } else { $latestTag }
+            $latestVersion = if ([string]::IsNullOrWhiteSpace($latestTag)) { $CurrentVersion } else { $latestTag }
             $htmlUrl = [string]$response.html_url
             $releaseNotes = [string]$response.body
             
@@ -1308,7 +1308,7 @@ function Get-SuamiSihatLatestRelease {
         LatestVersion  = $CurrentVersion
         ReleaseNotes   = "Unable to connect to GitHub releases API."
         DownloadUrl    = ""
-        HtmlUrl        = "https://github.com/SuamiSihat/SS-Brand-Assets/releases"
+        HtmlUrl        = "https://github.com/SuamiSihat/ss_cam/releases"
         CheckedAt      = (Get-Date).ToString("yyyy-MM-dd HH:mm")
     }
 }
