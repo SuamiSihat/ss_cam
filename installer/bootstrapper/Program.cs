@@ -4,7 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Reflection;
 using System.Threading;
-using System.Windows.Forms;
+using System.Windows;
 
 internal static class Program
 {
@@ -14,9 +14,6 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
-
         string temporaryRoot = Path.Combine(
             Path.GetTempPath(),
             "SuamiSihatDesignerAssetsInstaller-" + Guid.NewGuid().ToString("N"));
@@ -30,7 +27,7 @@ internal static class Program
                 temporaryRoot,
                 "installer",
                 "src",
-                "Install-SuamiSihat-GUI.ps1");
+                "Install-SuamiSihat-WPF.ps1");
 
             if (!File.Exists(wizardPath))
             {
@@ -59,24 +56,13 @@ internal static class Program
                            string.Equals(argument, "-InstallerMode", StringComparison.OrdinalIgnoreCase);
                 });
 
-            string installedExe = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Programs",
-                "SuamiSihat",
-                "SuamiSihat Creative Assets Management",
-                "SS-CAM.exe");
-
             string currentExePath = Process.GetCurrentProcess().MainModule.FileName;
-            string installedExeDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Programs",
-                "SuamiSihat");
-
-            bool isInstalledLocation = !string.IsNullOrEmpty(currentExePath) &&
-                currentExePath.StartsWith(installedExeDir, StringComparison.OrdinalIgnoreCase);
-
-            bool isInstalled = File.Exists(installedExe);
-            bool isFirstRun = forceInstaller || !isInstalledLocation || !isInstalled;
+            bool launchedAsInstalledApp = !string.IsNullOrEmpty(currentExePath) &&
+                string.Equals(
+                    Path.GetFileName(currentExePath),
+                    "SS-CAM.exe",
+                    StringComparison.OrdinalIgnoreCase);
+            bool isFirstRun = forceInstaller || !launchedAsInstalledApp;
 
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
@@ -108,8 +94,8 @@ internal static class Program
             MessageBox.Show(
                 "The installer could not start.\r\n\r\n" + exception.Message,
                 ProductName,
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
             return 1;
         }
         finally

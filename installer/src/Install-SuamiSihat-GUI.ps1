@@ -11,7 +11,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 
-$script:AppVersion = "1.8.0"
+$script:AppVersion = "1.9.0"
 
 # Capture own exe path — used for self-copy to install directory
 # Must be done immediately; later in nested processes this returns powershell.exe
@@ -667,7 +667,7 @@ $recentOpenBtn.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
 $recentOpenBtn.ForeColor = [Drawing.Color]::FromArgb(30, 41, 59)
 $recentOpenBtn.FlatStyle = "Flat"
 $recentOpenBtn.Cursor = [Windows.Forms.Cursors]::Hand
-$recentOpenBtn.Enabled = $true
+$recentOpenBtn.Enabled = $false
 $recentGroup.Controls.Add($recentOpenBtn)
 
 # Card 2: Template Parameters & Customization Options
@@ -996,7 +996,7 @@ $fontGroup.Controls.Add($uninstallSettingsBtn)
 
 # Group 2: App & History Settings
 $appGroup = New-Object Windows.Forms.GroupBox
-$appGroup.Text = " Workspace && Sequential Counter Defaults "
+$appGroup.Text = " Workspace, History && Sequential Counter Defaults "
 $appGroup.Location = New-Object Drawing.Point(27, 165)
 $appGroup.Size = New-Object Drawing.Size(667, 125)
 $appGroup.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
@@ -1026,6 +1026,17 @@ $setJobText.Size = New-Object Drawing.Size(160, 27)
 $setJobText.Text = $script:appState.NextJobNumber
 $appGroup.Controls.Add($setJobText)
 
+$clearRecentProjectsBtn = New-Object Windows.Forms.Button
+$clearRecentProjectsBtn.Text = "Clear Recent Projects"
+$clearRecentProjectsBtn.Location = New-Object Drawing.Point(185, 89)
+$clearRecentProjectsBtn.Size = New-Object Drawing.Size(170, 31)
+$clearRecentProjectsBtn.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$clearRecentProjectsBtn.BackColor = [Drawing.Color]::FromArgb(241, 245, 249)
+$clearRecentProjectsBtn.ForeColor = [Drawing.Color]::FromArgb(71, 85, 105)
+$clearRecentProjectsBtn.FlatStyle = "Flat"
+$clearRecentProjectsBtn.Cursor = [Windows.Forms.Cursors]::Hand
+$appGroup.Controls.Add($clearRecentProjectsBtn)
+
 $saveSettingsBtn = New-Object Windows.Forms.Button
 $saveSettingsBtn.Text = "Save Settings"
 $saveSettingsBtn.Size = New-Object Drawing.Size(140, 34)
@@ -1038,7 +1049,7 @@ $saveSettingsBtn.Visible = $false
 $saveSettingsBtn.Anchor = $BR
 $form.Controls.Add($saveSettingsBtn)
 
-$settingsStatusLabel = New-Label -Text "" -X 185 -Y 95 -Width 465 -Height 24
+$settingsStatusLabel = New-Label -Text "" -X 365 -Y 95 -Width 285 -Height 24
 $settingsStatusLabel.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
 $appGroup.Controls.Add($settingsStatusLabel)
 
@@ -1331,7 +1342,7 @@ $updatePreview = {
     } else {
         [void]$recentCombo.Items.Add("No recent projects yet.")
         $recentCombo.SelectedIndex = 0
-        $recentOpenBtn.Enabled = $true
+        $recentOpenBtn.Enabled = $false
     }
     # M4: Update workspace root link label
     $workspaceRootLink.Text = "Workspace: $($workspacePathText.Text)"
@@ -1824,6 +1835,36 @@ $setWorkspaceBrowseBtn.Add_Click({
     $folderBrowser.SelectedPath = $setWorkspaceText.Text
     if ($folderBrowser.ShowDialog() -eq [Windows.Forms.DialogResult]::OK) {
         $setWorkspaceText.Text = $folderBrowser.SelectedPath
+    }
+})
+
+$clearRecentProjectsBtn.Add_Click({
+    $recentCount = @($script:appState.RecentProjects).Count
+    if ($recentCount -eq 0) {
+        $settingsStatusLabel.ForeColor = [Drawing.Color]::FromArgb(71, 85, 105)
+        $settingsStatusLabel.Text = "Recent projects are already clear."
+        return
+    }
+
+    $confirm = [Windows.Forms.MessageBox]::Show(
+        "Clear all recent project history?`n`nThis will not delete any project folders or reset your settings and Job IDs.",
+        "Clear Recent Projects",
+        [Windows.Forms.MessageBoxButtons]::YesNo,
+        [Windows.Forms.MessageBoxIcon]::Question
+    )
+    if ($confirm -ne [Windows.Forms.DialogResult]::Yes) { return }
+
+    try {
+        $script:appState = Clear-SuamiSihatRecentProjects
+        $recentCombo.Items.Clear()
+        [void]$recentCombo.Items.Add("No recent projects yet.")
+        $recentCombo.SelectedIndex = 0
+        $recentOpenBtn.Enabled = $false
+        $settingsStatusLabel.ForeColor = [Drawing.Color]::FromArgb(20, 135, 75)
+        $settingsStatusLabel.Text = "Recent project history cleared."
+    } catch {
+        $settingsStatusLabel.ForeColor = [Drawing.Color]::Firebrick
+        $settingsStatusLabel.Text = "Unable to clear history: $($_.Exception.Message)"
     }
 })
 
@@ -2707,7 +2748,7 @@ Refresh-PCRequirements
 Refresh-SoftwareList
 $installedInfo = Get-SuamiSihatInstalledVersion
 
-# v1.8.0: Auto-sync pending offline projects and refresh NAS status on startup
+# v1.9.0: Auto-sync pending offline projects and refresh NAS status on startup
 try {
     $ws = $script:appState.DefaultWorkspace
     if (-not [string]::IsNullOrWhiteSpace($ws)) {

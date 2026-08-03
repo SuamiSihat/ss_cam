@@ -604,6 +604,22 @@ function Get-SuamiSihatAppState {
     }
 }
 
+function Clear-SuamiSihatRecentProjects {
+    $stateFile = Get-SuamiSihatAppStatePath
+    $state = Get-SuamiSihatAppState
+
+    # Clear only launcher history. Preserve workspace, profile, Job ID pool,
+    # pending sync, and every other application setting.
+    $state.LastProjectPath = ""
+    $state.LastProjectName = "None"
+    $state.RecentProjects = @()
+    $state.Updated = (Get-Date).ToString("o")
+
+    $json = $state | ConvertTo-Json -Depth 5
+    Set-Content -LiteralPath $stateFile -Value $json -Encoding UTF8
+    return $state
+}
+
 function Get-SuamiSihatJobPrefix {
     param([string]$PresetName)
     switch -Wildcard ($PresetName) {
@@ -756,7 +772,7 @@ function Save-SuamiSihatAppState {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Team NAS Registry Functions (v1.8.0)
+# Team NAS Registry Functions (v1.9.0)
 # ─────────────────────────────────────────────────────────────────────────────
 
 function Get-TeamRegistryPath {
@@ -1019,7 +1035,7 @@ function Sync-PendingProjects {
 function Install-SuamiSihatShortcuts {
     param(
         [string]$TargetExePath,
-        [string]$Version = "1.8.0"
+        [string]$Version = "1.9.0"
     )
 
     if (-not (Test-Path -LiteralPath $TargetExePath -PathType Leaf)) {
@@ -1073,8 +1089,29 @@ function Install-SuamiSihatShortcuts {
 }
 
 function Get-SuamiSihatInstalledVersion {
-    $exePath = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management\SS-CAM.exe"
     $uninstallKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SuamiSihatCreativeAssetsManagement"
+    $appPathsKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\SS-CAM.exe"
+    $defaultExePath = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management\SS-CAM.exe"
+    $exePath = $defaultExePath
+    $installLocation = ""
+
+    if (Test-Path -Path $uninstallKey) {
+        try {
+            $installLocation = [string](Get-ItemProperty -Path $uninstallKey -Name "InstallLocation" -ErrorAction SilentlyContinue).InstallLocation
+            if (-not [string]::IsNullOrWhiteSpace($installLocation)) {
+                $registeredExe = Join-Path $installLocation "SS-CAM.exe"
+                if (Test-Path -LiteralPath $registeredExe -PathType Leaf) { $exePath = $registeredExe }
+            }
+        } catch {}
+    }
+    if ($exePath -eq $defaultExePath -and (Test-Path -Path $appPathsKey)) {
+        try {
+            $appPathExe = [string](Get-Item -Path $appPathsKey -ErrorAction SilentlyContinue).GetValue("")
+            if (-not [string]::IsNullOrWhiteSpace($appPathExe) -and (Test-Path -LiteralPath $appPathExe -PathType Leaf)) {
+                $exePath = $appPathExe
+            }
+        } catch {}
+    }
     
     $installed = Test-Path -LiteralPath $exePath -PathType Leaf
     $version = ""
@@ -1105,9 +1142,20 @@ function Get-SuamiSihatInstalledVersion {
 function Uninstall-SuamiSihatApp {
     param([switch]$RemoveAppState)
 
+    $installedApp = Get-SuamiSihatInstalledVersion
+    $uninstallErrors = [System.Collections.Generic.List[string]]::new()
     try {
-        Get-Process -Name "SS-CAM*" -ErrorAction SilentlyContinue | Stop-Process -Force
-    } catch {}
+        if ($installedApp.ExePath) {
+            foreach ($process in @(Get-Process -Name "SS-CAM*" -ErrorAction SilentlyContinue)) {
+                try {
+                    $runningPath = $process.MainModule.FileName
+                    if ($runningPath -and [IO.Path]::GetFullPath($runningPath).Equals([IO.Path]::GetFullPath($installedApp.ExePath), [StringComparison]::OrdinalIgnoreCase)) {
+                        $process | Stop-Process -Force -PassThru | Wait-Process -Timeout 5 -ErrorAction SilentlyContinue
+                    }
+                } catch {}
+            }
+        }
+    } catch { $uninstallErrors.Add($_.Exception.Message) }
 
     try {
         $desktopLnk = Join-Path ([Environment]::GetFolderPath("Desktop")) "SuamiSihat Creative Assets Management.lnk"
@@ -1121,24 +1169,36 @@ function Uninstall-SuamiSihatApp {
 
         $uninstallKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SuamiSihatCreativeAssetsManagement"
         if (Test-Path -Path $uninstallKey) { Remove-Item -Path $uninstallKey -Recurse -Force -ErrorAction SilentlyContinue }
-    } catch {}
+    } catch { $uninstallErrors.Add($_.Exception.Message) }
 
     try {
-        $appInstallDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management"
+        $appInstallDir = if ($installedApp.ExePath) { Split-Path -Parent $installedApp.ExePath } else { Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat\SuamiSihat Creative Assets Management" }
         if (Test-Path -LiteralPath $appInstallDir) {
-            Remove-Item -LiteralPath $appInstallDir -Recurse -Force -ErrorAction SilentlyContinue
+            $resolvedAppDir = [IO.Path]::GetFullPath($appInstallDir).TrimEnd('\')
+            $driveRoot = [IO.Path]::GetPathRoot($resolvedAppDir).TrimEnd('\')
+            if ($resolvedAppDir -ne $driveRoot -and (Split-Path -Leaf $resolvedAppDir) -eq "SuamiSihat Creative Assets Management") {
+                Remove-Item -LiteralPath $resolvedAppDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
         }
         $parentDir = Join-Path $env:LOCALAPPDATA "Programs\SuamiSihat"
         if ((Test-Path -LiteralPath $parentDir) -and (@(Get-ChildItem -LiteralPath $parentDir).Count -eq 0)) {
             Remove-Item -LiteralPath $parentDir -Force -ErrorAction SilentlyContinue
         }
-    } catch {}
+    } catch { $uninstallErrors.Add($_.Exception.Message) }
 
     if ($RemoveAppState) {
         try {
             $stateFile = Get-SuamiSihatAppStatePath
             if (Test-Path -LiteralPath $stateFile) { Remove-Item -LiteralPath $stateFile -Force -ErrorAction SilentlyContinue }
-        } catch {}
+        } catch { $uninstallErrors.Add($_.Exception.Message) }
+    }
+
+    $remainingExe = $installedApp.ExePath -and (Test-Path -LiteralPath $installedApp.ExePath -PathType Leaf)
+    return [pscustomobject]@{
+        Success         = (-not $remainingExe -and $uninstallErrors.Count -eq 0)
+        ExePath         = $installedApp.ExePath
+        SettingsRemoved = [bool]$RemoveAppState
+        Errors          = @($uninstallErrors)
     }
 }
 
@@ -1146,7 +1206,6 @@ function Get-SuamiSihatLatestRelease {
     param([string]$CurrentVersion = "1.6.0")
 
     $apiUrls = @(
-        "https://api.github.com/repos/SuamiSihat/SS-Designer-Assets/releases/latest",
         "https://api.github.com/repos/SuamiSihat/SS-Brand-Assets/releases/latest"
     )
 
@@ -1197,7 +1256,7 @@ function Get-SuamiSihatLatestRelease {
         LatestVersion  = $CurrentVersion
         ReleaseNotes   = "Unable to connect to GitHub releases API."
         DownloadUrl    = ""
-        HtmlUrl        = "https://github.com/SuamiSihat/SS-Designer-Assets/releases"
+        HtmlUrl        = "https://github.com/SuamiSihat/SS-Brand-Assets/releases"
         CheckedAt      = (Get-Date).ToString("yyyy-MM-dd HH:mm")
     }
 }

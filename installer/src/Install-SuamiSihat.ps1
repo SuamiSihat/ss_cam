@@ -107,14 +107,20 @@ function Install-CurrentUserFont {
     )
 
     $targetPath = Join-Path $FontsDirectory $Font.Name
+    $copyRequired = $true
     if (Test-Path -LiteralPath $targetPath) {
         $sourceHash = Get-FileSha256 -Path $Font.FullName
         $targetHash = Get-FileSha256 -Path $targetPath
 
-        if ($sourceHash -ne $targetHash) {
+        if ($sourceHash -eq $targetHash) {
+            $copyRequired = $false
+        } else {
             $shortHash = $sourceHash.Substring(0, 8)
             $targetName = "{0}-{1}{2}" -f $Font.BaseName, $shortHash, $Font.Extension
             $targetPath = Join-Path $FontsDirectory $targetName
+            if (Test-Path -LiteralPath $targetPath) {
+                $copyRequired = (Get-FileSha256 -Path $targetPath) -ne $sourceHash
+            }
         }
     }
 
@@ -122,12 +128,16 @@ function Install-CurrentUserFont {
     $registryName = "{0} ({1})" -f [IO.Path]::GetFileNameWithoutExtension($targetPath), $fontType
 
     if ($PSCmdlet.ShouldProcess($Font.Name, "Install font for the current Windows user")) {
-        # Copy font file to per-user Fonts directory
-        Copy-Item -LiteralPath $Font.FullName -Destination $targetPath -Force
+        if ($copyRequired) {
+            # Do not overwrite identical installed fonts. Windows may keep font
+            # files locked while design applications are running.
+            Copy-Item -LiteralPath $Font.FullName -Destination $targetPath -Force
+        }
         # Register in HKCU — Windows 10/11 per-user font registration (no DLL compilation required)
         New-ItemProperty -Path $RegistryPath -Name $registryName -Value $targetPath `
             -PropertyType String -Force | Out-Null
     }
+    return $copyRequired
 }
 
 $runningOnWindows = $env:OS -eq "Windows_NT"
@@ -139,6 +149,8 @@ Write-Host "SuamiSihat Designer Assets Installer" -ForegroundColor Green
 Write-Host "Source: $projectRoot"
 
 $installedCount = 0
+$existingFontCount = 0
+$fontFailures = [System.Collections.Generic.List[string]]::new()
 $selectedFonts = @()
 if (-not $SkipFonts) {
     if (-not (Test-Path -LiteralPath $fontLibrary -PathType Container)) {
@@ -169,12 +181,17 @@ if (-not $SkipFonts) {
 
     foreach ($font in $fonts) {
         try {
-            Install-CurrentUserFont -Font $font -FontsDirectory $userFontsDirectory -RegistryPath $fontsRegistry
-            $installedCount++
-            Write-Host "  Font: $($font.Name)"
+            $wasCopied = Install-CurrentUserFont -Font $font -FontsDirectory $userFontsDirectory -RegistryPath $fontsRegistry
+            if ($wasCopied) { $installedCount++ } else { $existingFontCount++ }
         } catch {
-            Write-Warning "Could not install '$($font.FullName)': $($_.Exception.Message)"
+            $fontFailures.Add("$($font.Name): $($_.Exception.Message)")
         }
+    }
+
+    if ($fontFailures.Count -gt 0) {
+        Write-Warning "$($fontFailures.Count) font file(s) could not be installed. Close design applications and retry if these fonts are required."
+        foreach ($failure in $fontFailures | Select-Object -First 10) { Write-Warning $failure }
+        if ($fontFailures.Count -gt 10) { Write-Warning "$($fontFailures.Count - 10) additional font error(s) omitted from this report." }
     }
 
     # Broadcast WM_FONTCHANGE (0x001D) to notify running apps of new fonts.
@@ -334,14 +351,15 @@ try {
         New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
         $installedExePath = Join-Path $appInstallDir "SS-CAM.exe"
         Copy-Item -LiteralPath $sourceExe -Destination $installedExePath -Force
-        Install-SuamiSihatShortcuts -TargetExePath $installedExePath -Version "1.8.0"
+        Install-SuamiSihatShortcuts -TargetExePath $installedExePath -Version "1.9.0"
         Write-Host "  Installed Windows Application shortcut: Start Menu -> SuamiSihat Creative Assets Management"
     }
 } catch {}
-try { Save-SuamiSihatAppState } catch {}
+try { Save-SuamiSihatAppState | Out-Null } catch {}
 Write-Step "Setup complete"
 if (-not $SkipFonts) {
-    Write-Host "$installedCount font files processed. Restart Affinity and Adobe apps if they were open."
+    Write-Host "$installedCount new font file(s) installed; $existingFontCount already present; $($fontFailures.Count) failed."
+    Write-Host "Restart Affinity and Adobe apps if they were open."
 }
 if (-not $SkipAssets) {
     Write-Host "$copiedFolders resource folders copied to:"
