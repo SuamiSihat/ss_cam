@@ -498,24 +498,30 @@ function Get-SuamiSihatAppState {
         try {
             $json = Get-Content -LiteralPath $stateFile -Raw | ConvertFrom-Json
             $recent = @()
-            if ($json.RecentProjects) {
+            if ($json.RecentProjects -and ($json.RecentProjects -is [System.Collections.IEnumerable])) {
                 foreach ($item in $json.RecentProjects) {
-                    $recent += @{
-                        FolderName  = [string]$item.FolderName
-                        ProjectPath = [string]$item.ProjectPath
-                        PresetType  = [string]$item.PresetType
-                        Created     = [string]$item.Created
+                    $fName = [string]$item.FolderName
+                    if (-not [string]::IsNullOrWhiteSpace($fName)) {
+                        $recent += @{
+                            FolderName  = $fName
+                            ProjectPath = [string]$item.ProjectPath
+                            PresetType  = [string]$item.PresetType
+                            Created     = [string]$item.Created
+                        }
                     }
                 }
             }
             $profiles = @()
-            if ($json.Profiles) {
+            if ($json.Profiles -and ($json.Profiles -is [System.Collections.IEnumerable])) {
                 foreach ($prof in $json.Profiles) {
-                    $profiles += @{
-                        Name       = [string]$prof.Name
-                        Department = [string]$prof.Department
-                        Email      = [string]$prof.Email
-                        AvatarPath = [string]$prof.AvatarPath
+                    $pName = [string]$prof.Name
+                    if (-not [string]::IsNullOrWhiteSpace($pName)) {
+                        $profiles += @{
+                            Name       = $pName
+                            Department = [string]$prof.Department
+                            Email      = [string]$prof.Email
+                            AvatarPath = [string]$prof.AvatarPath
+                        }
                     }
                 }
             }
@@ -528,19 +534,27 @@ function Get-SuamiSihatAppState {
                 }
             }
             $localPool = @()
-            if ($json.LocalJobPool) {
-                foreach ($id in $json.LocalJobPool) { $localPool += [string]$id }
+            if ($json.LocalJobPool -and ($json.LocalJobPool -is [System.Collections.IEnumerable])) {
+                foreach ($id in $json.LocalJobPool) {
+                    $sId = [string]$id
+                    if (-not [string]::IsNullOrWhiteSpace($sId) -and $sId -ne "System.Management.Automation.PSCustomObject") {
+                        $localPool += $sId
+                    }
+                }
             }
             $pendingSync = @()
-            if ($json.PendingSync) {
+            if ($json.PendingSync -and ($json.PendingSync -is [System.Collections.IEnumerable])) {
                 foreach ($item in $json.PendingSync) {
-                    $pendingSync += @{
-                        JobID      = [string]$item.JobID
-                        StaffID    = [string]$item.StaffID
-                        FolderName = [string]$item.FolderName
-                        Path       = [string]$item.Path
-                        PresetType = [string]$item.PresetType
-                        Created    = [string]$item.Created
+                    $jId = [string]$item.JobID
+                    if (-not [string]::IsNullOrWhiteSpace($jId)) {
+                        $pendingSync += @{
+                            JobID      = $jId
+                            StaffID    = [string]$item.StaffID
+                            FolderName = [string]$item.FolderName
+                            Path       = [string]$item.Path
+                            PresetType = [string]$item.PresetType
+                            Created    = [string]$item.Created
+                        }
                     }
                 }
             }
@@ -701,8 +715,22 @@ function Save-SuamiSihatAppState {
         $prevState.StaffID
     } else { "" }
 
-    $finalLocalPool = if ($null -ne $LocalJobPool) { $LocalJobPool } elseif ($prevState.LocalJobPool) { @($prevState.LocalJobPool) } else { @() }
-    $finalPendingSync = if ($null -ne $PendingSync) { $PendingSync } elseif ($prevState.PendingSync) { @($prevState.PendingSync) } else { @() }
+    $finalLocalPool = @()
+    $rawPool = if ($null -ne $LocalJobPool) { $LocalJobPool } elseif ($prevState.LocalJobPool) { $prevState.LocalJobPool } else { @() }
+    foreach ($item in @($rawPool)) {
+        $sItem = [string]$item
+        if (-not [string]::IsNullOrWhiteSpace($sItem) -and $sItem -ne "System.Management.Automation.PSCustomObject") {
+            $finalLocalPool += $sItem
+        }
+    }
+
+    $finalPendingSync = @()
+    $rawPending = if ($null -ne $PendingSync) { $PendingSync } elseif ($prevState.PendingSync) { $prevState.PendingSync } else { @() }
+    foreach ($item in @($rawPending)) {
+        if ($item.JobID -and -not [string]::IsNullOrWhiteSpace([string]$item.JobID)) {
+            $finalPendingSync += $item
+        }
+    }
 
     $state = @{
         LastProjectPath  = $LastProjectPath
