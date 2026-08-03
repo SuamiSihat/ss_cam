@@ -273,7 +273,7 @@ function New-SuamiSihatProjectFolder {
         [Parameter(Mandatory = $true)]
         [string]$RootDirectory,
         [string]$SubBrand = "SS",
-        [string]$JobNumber = "D0001",
+        [string]$JobNumber = "0001D",
         [Parameter(Mandatory = $true)]
         [string]$ProjectName,
         [string]$PresetType = "GraphicDesign",
@@ -299,9 +299,12 @@ function New-SuamiSihatProjectFolder {
     $currentMonth = (Get-Date).ToString("MM")
     $dateCode = "${Year}${currentMonth}"
     
-    $cleanSubBrand = switch -Wildcard ($SubBrand.Trim()) {
-        "*HEALTH*"   { "SSH" }
-        "*CLINIC*"   { "SSC" }
+    $brandValue = $SubBrand.Trim()
+    $cleanSubBrand = if ($brandValue -match '^([A-Z]{2,4})\s+-\s+') {
+        $matches[1].ToUpperInvariant()
+    } else { switch -Wildcard ($brandValue) {
+        "*HOLDING*"  { "SSH" }
+        "*HEALTHCARE*" { "SSC" }
         "*WELLNESS*" { "SSW" }
         "*ECOM*"     { "SSE" }
         "*TECH*"     { "SST" }
@@ -311,7 +314,7 @@ function New-SuamiSihatProjectFolder {
         "SSE"        { "SSE" }
         "SST"        { "SST" }
         default      { "SS" }
-    }
+    } }
 
     $cleanYear = if ($Year -match '^\d{4}$') { $Year } else { (Get-Date).ToString("yyyy") }
     $curMonthNum = (Get-Date).ToString("MM")
@@ -322,10 +325,9 @@ function New-SuamiSihatProjectFolder {
     $monthFolder = "${cleanYear}${curMonthNum}_${curMonthFull}"
     $dateCode = "${cleanYear}${curMonthNum}"
 
-    $cleanJob = ($JobNumber -replace '\s+', '').ToUpper()
-    if ($cleanJob -notmatch '^[A-Z]') {
-        $cleanJob = "D$cleanJob"
-    }
+    $cleanJob = ConvertTo-SuamiSihatJobID $JobNumber
+    if ($cleanJob -match '^\d+$') { $cleanJob = "${cleanJob}D" }
+    if ([string]::IsNullOrWhiteSpace($cleanJob)) { $cleanJob = "0001D" }
 
     $folderName = "${dateCode}_${cleanJob}_${cleanSubBrand}_${cleanProjectName}"
     $yearRoot = if ($RootDirectory -match '\\SS-\d{4}$') { Split-Path -Parent $RootDirectory } else { $RootDirectory }
@@ -483,6 +485,52 @@ function Get-SuamiSihatAppStatePath {
     Join-Path $appDataDir "app_state.json"
 }
 
+function ConvertTo-SuamiSihatJobID {
+    param([string]$JobID)
+
+    if ([string]::IsNullOrWhiteSpace($JobID)) { return "" }
+    $clean = ($JobID.Trim().ToUpperInvariant() -replace '[^A-Z0-9-]', '')
+    if ($clean -match '^(\d+)([A-Z-]+)$') { return "$($matches[1])$($matches[2])" }
+    if ($clean -match '^([A-Z-]+)(\d+)$') { return "$($matches[2])$($matches[1])" }
+    return $clean
+}
+
+function Get-SuamiSihatBrandKitRegistration {
+    $defaultAssetsPath = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "SuamiSihat Brand Assets"
+    $result = @{ IsInstalled = $false; AssetsPath = $defaultAssetsPath; Version = "" }
+    try {
+        $registryPath = "HKCU:\Software\SuamiSihat\SS-CAM"
+        if (Test-Path -LiteralPath $registryPath) {
+            $entry = Get-ItemProperty -LiteralPath $registryPath -ErrorAction Stop
+            if (-not [string]::IsNullOrWhiteSpace([string]$entry.BrandAssetsPath)) {
+                $result.AssetsPath = [string]$entry.BrandAssetsPath
+            }
+            $result.Version = [string]$entry.BrandKitVersion
+            $result.IsInstalled = ([int]$entry.BrandKitInstalled -eq 1)
+        }
+    } catch {}
+    if (Test-Path -LiteralPath $result.AssetsPath -PathType Container) {
+        $hasBrandContent = @("Colour Palettes", "Libraries", "Logos", "Reports") | Where-Object {
+            Test-Path -LiteralPath (Join-Path $result.AssetsPath $_)
+        }
+        if (@($hasBrandContent).Count -gt 0) { $result.IsInstalled = $true }
+    }
+    return $result
+}
+
+function Set-SuamiSihatBrandKitRegistration {
+    param(
+        [Parameter(Mandatory = $true)][string]$AssetsPath,
+        [string]$Version = "1.9.1"
+    )
+    if ($WhatIfPreference) { return }
+    $registryPath = "HKCU:\Software\SuamiSihat\SS-CAM"
+    New-Item -Path $registryPath -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "BrandKitInstalled" -Value 1 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "BrandAssetsPath" -Value $AssetsPath -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "BrandKitVersion" -Value $Version -PropertyType String -Force | Out-Null
+}
+
 function Get-SuamiSihatAppState {
     $stateFile = Get-SuamiSihatAppStatePath
     $currentYear = (Get-Date).ToString("yyyy")
@@ -538,7 +586,7 @@ function Get-SuamiSihatAppState {
                 foreach ($id in $json.LocalJobPool) {
                     $sId = [string]$id
                     if (-not [string]::IsNullOrWhiteSpace($sId) -and $sId -ne "System.Management.Automation.PSCustomObject") {
-                        $localPool += $sId
+                        $localPool += (ConvertTo-SuamiSihatJobID $sId)
                     }
                 }
             }
@@ -548,7 +596,7 @@ function Get-SuamiSihatAppState {
                     $jId = [string]$item.JobID
                     if (-not [string]::IsNullOrWhiteSpace($jId)) {
                         $pendingSync += @{
-                            JobID      = $jId
+                            JobID      = ConvertTo-SuamiSihatJobID $jId
                             StaffID    = [string]$item.StaffID
                             FolderName = [string]$item.FolderName
                             Path       = [string]$item.Path
@@ -561,8 +609,8 @@ function Get-SuamiSihatAppState {
             return @{
                 LastProjectPath  = [string]$json.LastProjectPath
                 LastProjectName  = [string]$json.LastProjectName
-                LastJobNumber    = [string]$json.LastJobNumber
-                NextJobNumber    = if ([string]::IsNullOrWhiteSpace([string]$json.NextJobNumber)) { "D0001" } else { [string]$json.NextJobNumber }
+                LastJobNumber    = ConvertTo-SuamiSihatJobID ([string]$json.LastJobNumber)
+                NextJobNumber    = if ([string]::IsNullOrWhiteSpace([string]$json.NextJobNumber)) { "0001D" } else { ConvertTo-SuamiSihatJobID ([string]$json.NextJobNumber) }
                 DefaultWorkspace = if ([string]::IsNullOrWhiteSpace([string]$json.DefaultWorkspace)) { $defaultWorkspace } else { [string]$json.DefaultWorkspace }
                 DesignerName     = if ([string]::IsNullOrWhiteSpace([string]$json.DesignerName)) { $defaultDesignerName } else { [string]$json.DesignerName }
                 Department       = if ([string]::IsNullOrWhiteSpace([string]$json.Department)) { $defaultDept } else { [string]$json.Department }
@@ -590,7 +638,7 @@ function Get-SuamiSihatAppState {
         LastProjectPath  = ""
         LastProjectName  = "None"
         LastJobNumber    = ""
-        NextJobNumber    = "D0001"
+        NextJobNumber    = "0001D"
         DefaultWorkspace = $defaultWorkspace
         DesignerName     = $defaultDesignerName
         Department       = $defaultDept
@@ -634,7 +682,8 @@ function Save-SuamiSihatAppState {
     param(
         [string]$LastProjectPath = "",
         [string]$LastProjectName = "",
-        [string]$LastJobNumber = "D0001",
+        [string]$LastJobNumber = "",
+        [string]$NextJobNumber = "",
         [string]$DefaultWorkspace = "",
         [string]$PresetType = "GraphicDesign",
         [string]$DesignerName = "",
@@ -650,14 +699,16 @@ function Save-SuamiSihatAppState {
     $stateFile = Get-SuamiSihatAppStatePath
     $prevState = Get-SuamiSihatAppState
     
-    $prefix = "D"
-    $nextJob = "D0002"
-    if ($LastJobNumber -match '^([A-Za-z\-]+)(\d+)') {
-        $prefix = $matches[1].ToUpper()
-        $num = [int]$matches[2] + 1
-        $digits = $matches[2].Length
+    $normalizedLastJob = ConvertTo-SuamiSihatJobID $LastJobNumber
+    $nextJob = if ($prevState.NextJobNumber) { ConvertTo-SuamiSihatJobID ([string]$prevState.NextJobNumber) } else { "0001D" }
+    if ($normalizedLastJob -match '^(\d+)([A-Za-z\-]+)$') {
+        $num = [int]$matches[1] + 1
+        $digits = $matches[1].Length
         if ($digits -lt 4) { $digits = 4 }
-        $nextJob = "${prefix}" + $num.ToString().PadLeft($digits, '0')
+        $nextJob = $num.ToString().PadLeft($digits, '0') + $matches[2].ToUpper()
+    }
+    if (-not [string]::IsNullOrWhiteSpace($NextJobNumber)) {
+        $nextJob = ConvertTo-SuamiSihatJobID $NextJobNumber
     }
 
     # Update Recent Projects list (keep top 5)
@@ -736,7 +787,7 @@ function Save-SuamiSihatAppState {
     foreach ($item in @($rawPool)) {
         $sItem = [string]$item
         if (-not [string]::IsNullOrWhiteSpace($sItem) -and $sItem -ne "System.Management.Automation.PSCustomObject") {
-            $finalLocalPool += $sItem
+            $finalLocalPool += (ConvertTo-SuamiSihatJobID $sItem)
         }
     }
 
@@ -744,6 +795,7 @@ function Save-SuamiSihatAppState {
     $rawPending = if ($null -ne $PendingSync) { $PendingSync } elseif ($prevState.PendingSync) { $prevState.PendingSync } else { @() }
     foreach ($item in @($rawPending)) {
         if ($item.JobID -and -not [string]::IsNullOrWhiteSpace([string]$item.JobID)) {
+            $item.JobID = ConvertTo-SuamiSihatJobID ([string]$item.JobID)
             $finalPendingSync += $item
         }
     }
@@ -751,7 +803,7 @@ function Save-SuamiSihatAppState {
     $state = @{
         LastProjectPath  = $LastProjectPath
         LastProjectName  = $LastProjectName
-        LastJobNumber    = $LastJobNumber
+        LastJobNumber    = if ($normalizedLastJob) { $normalizedLastJob } else { $prevState.LastJobNumber }
         NextJobNumber    = $nextJob
         DefaultWorkspace = if (-not [string]::IsNullOrWhiteSpace($DefaultWorkspace)) { $DefaultWorkspace } else { $prevState.DefaultWorkspace }
         DesignerName     = $finalDesignerName
@@ -772,7 +824,7 @@ function Save-SuamiSihatAppState {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Team NAS Registry Functions (v1.9.0)
+# Team NAS Registry Functions (v1.9.1)
 # ─────────────────────────────────────────────────────────────────────────────
 
 function Get-TeamRegistryPath {
@@ -889,7 +941,7 @@ function Refill-LocalJobPool {
         $counter = [int]$registry.GlobalNextCounter
         $pool = @()
         for ($i = 0; $i -lt $PoolSize; $i++) {
-            $pool += "${JobPrefix}" + ($counter + $i).ToString().PadLeft(4, '0')
+            $pool += ($counter + $i).ToString().PadLeft(4, '0') + $JobPrefix.ToUpperInvariant()
         }
         $registry.GlobalNextCounter = $counter + $PoolSize
         Write-TeamRegistry -WorkspaceRoot $WorkspaceRoot -Registry $registry
@@ -912,7 +964,7 @@ function Claim-NextJobID {
         try {
             $registry = Read-TeamRegistry -WorkspaceRoot $WorkspaceRoot
             $counter = [int]$registry.GlobalNextCounter
-            $jobID = "${JobPrefix}" + $counter.ToString().PadLeft(4, '0')
+            $jobID = $counter.ToString().PadLeft(4, '0') + $JobPrefix.ToUpperInvariant()
             $registry.GlobalNextCounter = $counter + 1
             Write-TeamRegistry -WorkspaceRoot $WorkspaceRoot -Registry $registry
 
@@ -945,12 +997,12 @@ function Claim-NextJobID {
         $jobID = $pool[0]
         $pool.RemoveAt(0)
         $AppState.LocalJobPool = @($pool)
-        $result.JobID = $jobID
+        $result.JobID = ConvertTo-SuamiSihatJobID ([string]$jobID)
         $result.Source = "Local"
         $result.PoolRemaining = $pool.Count
     } else {
         # Pool exhausted — generate a timestamp-based fallback (very rare)
-        $result.JobID = "${JobPrefix}" + (Get-Date).ToString("HHmmss")
+        $result.JobID = (Get-Date).ToString("HHmmss") + $JobPrefix.ToUpperInvariant()
         $result.Source = "Fallback"
         $result.PoolRemaining = 0
     }
@@ -1035,7 +1087,7 @@ function Sync-PendingProjects {
 function Install-SuamiSihatShortcuts {
     param(
         [string]$TargetExePath,
-        [string]$Version = "1.9.0"
+        [string]$Version = "1.9.1"
     )
 
     if (-not (Test-Path -LiteralPath $TargetExePath -PathType Leaf)) {

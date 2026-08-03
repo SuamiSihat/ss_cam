@@ -4,13 +4,13 @@ param(
     [switch]$InstallerMode,
     [string]$InstallerExePath = "",
     [string]$PreviewPath = "",
-    [ValidateSet("Setup", "Dashboard", "Projects", "Search", "Profile", "Creator", "Settings")]
+    [ValidateSet("Setup", "Dashboard", "Projects", "Search", "BrandAssets", "Profile", "Creator", "Settings")]
     [string]$PreviewView = "Dashboard"
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
-$script:AppVersion = "1.9.0"
+$script:AppVersion = "1.9.1"
 $script:installationRunning = $false
 $script:installerProcess = $null
 $script:standardOutputTask = $null
@@ -57,7 +57,8 @@ namespace SuamiSihat.Wpf
             searchQuery, searchDestination, searchStatus, headerContext, installerVersionStatus,
             cpmInstallPath, licenseText, licenseReadStatus, installReport, dashboardThisMonth,
             dashboardDesignerCount, dashboardFileCount, customTemplateExtension,
-            selectedDesignerFolderId, designerFolderStatus;
+            selectedDesignerFolderId, designerFolderStatus, projectReadmeContent, selectedProjectPath,
+            brandAssetsPath, brandAssetsStatus;
         private bool injectMasterCanvas, includeRevisions, includeRawMedia, hasRecent,
             isInstalling, installBrandKit = true, installProjectManager = true,
             acceptLicence, copyAssets = true, createWebShortcuts = true, isSearching;
@@ -118,6 +119,10 @@ namespace SuamiSihat.Wpf
         public string InstallReport { get { return installReport; } set { Set(ref installReport, value, "InstallReport"); } }
         public string SelectedDesignerFolderId { get { return selectedDesignerFolderId; } set { Set(ref selectedDesignerFolderId, value, "SelectedDesignerFolderId"); } }
         public string DesignerFolderStatus { get { return designerFolderStatus; } set { Set(ref designerFolderStatus, value, "DesignerFolderStatus"); } }
+        public string ProjectReadmeContent { get { return projectReadmeContent; } set { Set(ref projectReadmeContent, value, "ProjectReadmeContent"); } }
+        public string SelectedProjectPath { get { return selectedProjectPath; } set { Set(ref selectedProjectPath, value, "SelectedProjectPath"); } }
+        public string BrandAssetsPath { get { return brandAssetsPath; } set { Set(ref brandAssetsPath, value, "BrandAssetsPath"); } }
+        public string BrandAssetsStatus { get { return brandAssetsStatus; } set { Set(ref brandAssetsStatus, value, "BrandAssetsStatus"); } }
 
         public ObservableCollection<string> Presets { get; private set; }
         public ObservableCollection<string> Brands { get; private set; }
@@ -204,7 +209,7 @@ namespace SuamiSihat.Wpf
     public static class WorkspaceScanner
     {
         private static readonly Regex ProjectPattern = new Regex(
-            @"^\d{6}_([A-Z-]+\d+)_([A-Z]{2,8})_.+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+            @"^\d{6}_((?:[A-Z-]+\d+)|(?:\d+[A-Z-]+))_([A-Z]{2,8})_.+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static Task<DashboardSnapshot> ScanAsync(string root)
         {
@@ -249,9 +254,10 @@ namespace SuamiSihat.Wpf
                     result.TotalProjects++;
                     string job = match.Groups[1].Value.ToUpperInvariant();
                     string brand = match.Groups[2].Value.ToUpperInvariant();
-                    string type = job.StartsWith("S") ? "Social Media" :
-                        job.StartsWith("V") ? "Video" :
-                        job.StartsWith("P") ? "Brand Identity" : "Graphic / Print";
+                    string jobCode = GetJobCode(job);
+                    string type = jobCode.StartsWith("S") ? "Social Media" :
+                        jobCode.StartsWith("V") ? "Video" :
+                        jobCode.StartsWith("P") ? "Brand Identity" : "Graphic / Print";
                     AddCount(types, type);
                     AddCount(brands, brand);
                     string monthKey = name.Length >= 6 ? name.Substring(0, 6) : "";
@@ -295,10 +301,20 @@ namespace SuamiSihat.Wpf
 
         public static Task<List<DesignerFolderItem>> ListDesignerFoldersAsync(string root, string staffId, int limit)
         {
-            return Task.Factory.StartNew(delegate { return ListDesignerFolders(root, staffId, limit); });
+            return ListDesignerFoldersAsync(root, staffId, "", limit);
+        }
+
+        public static Task<List<DesignerFolderItem>> ListDesignerFoldersAsync(string root, string staffId, string query, int limit)
+        {
+            return Task.Factory.StartNew(delegate { return ListDesignerFolders(root, staffId, query, limit); });
         }
 
         public static List<DesignerFolderItem> ListDesignerFolders(string root, string staffId, int limit)
+        {
+            return ListDesignerFolders(root, staffId, "", limit);
+        }
+
+        public static List<DesignerFolderItem> ListDesignerFolders(string root, string staffId, string query, int limit)
         {
             List<DesignerFolderItem> results = new List<DesignerFolderItem>();
             if (!Directory.Exists(root)) return results;
@@ -322,6 +338,7 @@ namespace SuamiSihat.Wpf
                     string name = Path.GetFileName(directory);
                     if (ProjectPattern.IsMatch(name))
                     {
+                        if (!String.IsNullOrWhiteSpace(query) && name.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0) continue;
                         string designer = String.IsNullOrWhiteSpace(staffId) ? GetFirstRelativePart(root, directory) : staffId;
                         DateTime modified;
                         try { modified = Directory.GetLastWriteTime(directory); } catch { modified = DateTime.MinValue; }
@@ -340,16 +357,16 @@ namespace SuamiSihat.Wpf
             return results;
         }
 
-        public static Task<List<FileSearchItem>> SearchAsync(string root, string query, int limit)
+        public static Task<List<FileSearchItem>> ListProjectFilesAsync(string root, int limit)
         {
-            return Task.Factory.StartNew(delegate { return Search(root, query, limit); });
+            return Task.Factory.StartNew(delegate { return ListProjectFiles(root, limit); });
         }
 
-        public static List<FileSearchItem> Search(string root, string query, int limit)
+        public static List<FileSearchItem> ListProjectFiles(string root, int limit)
         {
             List<FileSearchItem> results = new List<FileSearchItem>();
             Queue<string> pending = new Queue<string>();
-            if (!Directory.Exists(root) || String.IsNullOrWhiteSpace(query)) return results;
+            if (!Directory.Exists(root)) return results;
             pending.Enqueue(root);
             while (pending.Count > 0 && results.Count < limit)
             {
@@ -360,13 +377,14 @@ namespace SuamiSihat.Wpf
                     foreach (string file in Directory.GetFiles(current))
                     {
                         if (results.Count >= limit) break;
-                        if (Path.GetFileName(file).IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0 &&
-                            file.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0) continue;
                         try
                         {
                             FileInfo info = new FileInfo(file);
+                            string relativeFolder = ".";
+                            if (info.DirectoryName.Length > root.Length)
+                                relativeFolder = info.DirectoryName.Substring(root.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                             results.Add(new FileSearchItem {
-                                Name = info.Name, FullPath = info.FullName, Folder = info.DirectoryName,
+                                Name = info.Name, FullPath = info.FullName, Folder = relativeFolder,
                                 Size = FormatBytes(info.Length), Modified = info.LastWriteTime.ToString("dd MMM yyyy HH:mm")
                             });
                         }
@@ -473,6 +491,14 @@ namespace SuamiSihat.Wpf
             values[key] = count + 1;
         }
 
+        private static string GetJobCode(string job)
+        {
+            Match oldFormat = Regex.Match(job, @"^([A-Z-]+)\d+$", RegexOptions.IgnoreCase);
+            if (oldFormat.Success) return oldFormat.Groups[1].Value.ToUpperInvariant();
+            Match newFormat = Regex.Match(job, @"^\d+([A-Z-]+)$", RegexOptions.IgnoreCase);
+            return newFormat.Success ? newFormat.Groups[1].Value.ToUpperInvariant() : job.ToUpperInvariant();
+        }
+
         private static string FormatCounts(Dictionary<string, int> values)
         {
             if (values.Count == 0) return "No project data yet";
@@ -549,6 +575,23 @@ $xaml = @'
       <Setter Property="BorderThickness" Value="0,0,0,1"/>
       <Setter Property="Margin" Value="8,2"/>
       <Setter Property="Padding" Value="16,10"/>
+    </Style>
+    <Style x:Key="AssetCardButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Height" Value="132"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+      <Setter Property="Background" Value="White"/>
+      <Setter Property="Foreground" Value="{StaticResource BrandInk}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BrandBorder}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="18"/>
+    </Style>
+    <Style x:Key="LinkButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{StaticResource BrandBlue}"/>
+      <Setter Property="Padding" Value="4,5"/>
+      <Setter Property="HorizontalAlignment" Value="Left"/>
+      <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
     </Style>
     <Style x:Key="MetricCard" TargetType="Border">
       <Setter Property="Background" Value="{StaticResource BrandSurface}"/>
@@ -640,7 +683,10 @@ $xaml = @'
               <StackPanel><TextBlock Text="Project Management" FontWeight="SemiBold" FontSize="15"/><TextBlock Text="Create and manage work" Foreground="{StaticResource BrandMuted}" FontSize="11"/></StackPanel>
             </Button>
             <Button x:Name="NavSearch" Style="{StaticResource ModuleButton}">
-              <StackPanel><TextBlock Text="Search &amp; Copy" FontWeight="SemiBold" FontSize="15"/><TextBlock Text="Find Synology files" Foreground="{StaticResource BrandMuted}" FontSize="11"/></StackPanel>
+              <StackPanel><TextBlock Text="Search &amp; Copy" FontWeight="SemiBold" FontSize="15"/><TextBlock Text="Find project folders" Foreground="{StaticResource BrandMuted}" FontSize="11"/></StackPanel>
+            </Button>
+            <Button x:Name="NavBrandAssets" Style="{StaticResource ModuleButton}" Visibility="Collapsed">
+              <StackPanel><TextBlock Text="Brand Assets" FontWeight="SemiBold" FontSize="15"/><TextBlock Text="Palettes, libraries &amp; logos" Foreground="{StaticResource BrandMuted}" FontSize="11"/></StackPanel>
             </Button>
           </StackPanel>
         </DockPanel>
@@ -889,11 +935,11 @@ $xaml = @'
                 <Button x:Name="OpenRecentButton" Grid.Column="1" Content="Open Folder" IsEnabled="{Binding HasRecent}"/>
               </Grid>
             </GroupBox>
-            <GroupBox Header="Project template and folder options">
+            <GroupBox Header="Project and template options">
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
-                  <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
                   <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                   <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
@@ -914,11 +960,21 @@ $xaml = @'
                   <CheckBox Content="+ Revisions folder" IsChecked="{Binding IncludeRevisions}"/>
                   <CheckBox Content="+ RAW Media" IsChecked="{Binding IncludeRawMedia}"/>
                 </WrapPanel>
-                <StackPanel Grid.Row="5" Grid.ColumnSpan="3">
-                  <TextBlock Text="Generated location" FontWeight="SemiBold"/>
-                  <TextBlock Text="{Binding PreviewPath}" Foreground="{StaticResource BrandNavy}" FontFamily="Consolas" Margin="0,4,0,8"/>
-                  <TextBlock Text="{Binding FolderStructure}" FontFamily="Consolas" Foreground="{StaticResource BrandMuted}"/>
+              </Grid>
+            </GroupBox>
+            <GroupBox Header="Generated location and subfolder structure">
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,14,0">
+                  <TextBlock Text="Project folder location" FontWeight="SemiBold" Foreground="{StaticResource BrandNavy}"/>
+                  <TextBlock Text="{Binding PreviewPath}" FontFamily="Consolas" Margin="0,8,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
+                <Border Grid.Column="1" Background="{StaticResource BrandSoft}" CornerRadius="6" Padding="14">
+                  <StackPanel>
+                    <TextBlock Text="Subfolders to be created" FontWeight="SemiBold" Foreground="{StaticResource BrandNavy}" Margin="0,0,0,8"/>
+                    <TextBlock Text="{Binding FolderStructure}" FontFamily="Consolas" Foreground="{StaticResource BrandMuted}"/>
+                  </StackPanel>
+                </Border>
               </Grid>
             </GroupBox>
             <Grid>
@@ -938,47 +994,51 @@ $xaml = @'
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <StackPanel>
-            <TextBlock Text="Search &amp; Copy" Style="{StaticResource PageTitle}"/>
-            <TextBlock Text="Search files across the Synology Drive workspace, then copy selected assets into your current work order." Foreground="{StaticResource BrandMuted}" Margin="0,0,0,14"/>
+            <TextBlock Text="Project Search &amp; Copy" Style="{StaticResource PageTitle}"/>
+            <TextBlock Text="Find a project folder, review its README.md brief, then copy selected project files into your current work order." Foreground="{StaticResource BrandMuted}" Margin="0,0,0,14"/>
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <TextBox Text="{Binding SearchRoot, UpdateSourceTrigger=PropertyChanged}" ToolTip="Synology Drive root folder"/>
               <Button x:Name="BrowseSearchRootButton" Grid.Column="1" Content="Browse Root..." Style="{StaticResource SecondaryButton}"/>
             </Grid>
-            <Expander x:Name="DesignerFolderExpander" Header="Browse project folders by designer" IsExpanded="False" HorizontalContentAlignment="Stretch" Margin="0,2,0,8">
-              <Grid Margin="0,8,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="150"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                  <ComboBox x:Name="DesignerFolderCombo" ItemsSource="{Binding DesignerFolderChoices}" DisplayMemberPath="Display" SelectedValuePath="StaffId" SelectedValue="{Binding SelectedDesignerFolderId}"/>
-                  <Button x:Name="ListDesignerFoldersButton" Grid.Column="1" Content="List Folders" MinWidth="110"/>
-                  <Button x:Name="OpenDesignerFolderButton" Grid.Column="2" Content="Open" Style="{StaticResource SecondaryButton}"/>
-                  <Button x:Name="UseDesignerFolderButton" Grid.Column="3" Content="Use as Destination" Style="{StaticResource SecondaryButton}"/>
-                </Grid>
-                <DataGrid x:Name="DesignerFoldersGrid" Grid.Row="1" ItemsSource="{Binding DesignerFolders}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderBrush="{StaticResource BrandBorder}" Background="White" Margin="0,7,0,3">
-                  <DataGrid.Columns>
-                    <DataGridTextColumn Header="Designer" Binding="{Binding Designer}" Width="110"/>
-                    <DataGridTextColumn Header="Project folder" Binding="{Binding Project}" Width="480"/>
-                    <DataGridTextColumn Header="Modified" Binding="{Binding Modified}" Width="145"/>
-                  </DataGrid.Columns>
-                </DataGrid>
-                <TextBlock Grid.Row="2" Text="{Binding DesignerFolderStatus}" Foreground="{StaticResource BrandMuted}"/>
-              </Grid>
-            </Expander>
-            <Grid>
-              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <TextBox x:Name="SearchQueryBox" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="Enter a filename or part of a path"/>
-              <Button x:Name="SearchFilesButton" Grid.Column="1" Content="Search Files" MinWidth="130"/>
+            <Grid Margin="0,2,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <StackPanel><TextBlock Text="Designer"/><ComboBox x:Name="DesignerFolderCombo" ItemsSource="{Binding DesignerFolderChoices}" DisplayMemberPath="Display" SelectedValuePath="StaffId" SelectedValue="{Binding SelectedDesignerFolderId}"/></StackPanel>
+              <StackPanel Grid.Column="1"><TextBlock Text="Project folder name"/><TextBox x:Name="SearchQueryBox" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="Enter part of a project folder name, or leave blank to list all"/></StackPanel>
+              <Button x:Name="SearchProjectFoldersButton" Grid.Column="2" Content="Find Projects" MinWidth="130" VerticalAlignment="Bottom"/>
             </Grid>
             <ProgressBar Height="5" IsIndeterminate="{Binding IsSearching}" Margin="0,0,0,8"/>
-            <TextBlock Text="{Binding SearchStatus}" Foreground="{StaticResource BrandMuted}" Margin="0,0,0,10"/>
+            <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{Binding DesignerFolderStatus}" Foreground="{StaticResource BrandMuted}"/><TextBlock Grid.Column="1" Text="{Binding SearchStatus}" Foreground="{StaticResource BrandMuted}"/></Grid>
           </StackPanel>
-          <DataGrid x:Name="SearchResultsGrid" Grid.Row="1" ItemsSource="{Binding SearchResults}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderBrush="{StaticResource BrandBorder}" Background="White">
-            <DataGrid.Columns>
-              <DataGridTextColumn Header="File" Binding="{Binding Name}" Width="2*"/>
-              <DataGridTextColumn Header="Folder" Binding="{Binding Folder}" Width="3*"/>
-              <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="90"/>
-              <DataGridTextColumn Header="Modified" Binding="{Binding Modified}" Width="145"/>
-            </DataGrid.Columns>
-          </DataGrid>
+          <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
+            <GroupBox Header="Project folders" Margin="0,0,7,0">
+              <Grid><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <DataGrid x:Name="DesignerFoldersGrid" ItemsSource="{Binding DesignerFolders}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" Background="White">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="140"/>
+                    <DataGridTextColumn Header="Designer" Binding="{Binding Designer}" Width="70"/>
+                    <DataGridTextColumn Header="Modified" Binding="{Binding Modified}" Width="125"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+                <Button x:Name="OpenDesignerFolderButton" Grid.Row="1" Content="Open Selected Folder" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" MinWidth="150"/>
+              </Grid>
+            </GroupBox>
+            <TabControl Grid.Column="1" Margin="7,0,0,0">
+              <TabItem Header="README.md">
+                <TextBox Text="{Binding ProjectReadmeContent}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" BorderThickness="0" Padding="12" FontFamily="Consolas" Background="White"/>
+              </TabItem>
+              <TabItem Header="Project files">
+                <DataGrid x:Name="SearchResultsGrid" ItemsSource="{Binding SearchResults}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" Background="White">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="File" Binding="{Binding Name}" Width="2*"/>
+                    <DataGridTextColumn Header="Relative folder" Binding="{Binding Folder}" Width="2*"/>
+                    <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="75"/>
+                    <DataGridTextColumn Header="Modified" Binding="{Binding Modified}" Width="125"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+              </TabItem>
+            </TabControl>
+          </Grid>
           <GroupBox Grid.Row="2" Header="Copy to work order" Margin="0,14,0,0">
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -988,6 +1048,53 @@ $xaml = @'
             </Grid>
           </GroupBox>
         </Grid>
+      </TabItem>
+
+      <TabItem Header="BrandAssets">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel MaxWidth="980">
+            <TextBlock Text="Brand Assets" Style="{StaticResource PageTitle}"/>
+            <TextBlock Text="Open installed SuamiSihat creative resources, official links and local installation reports." Foreground="{StaticResource BrandMuted}" Margin="0,0,0,16"/>
+            <GroupBox Header="Installed Brand Kit">
+              <StackPanel>
+                <TextBlock Text="Brand assets location" FontWeight="SemiBold" Foreground="{StaticResource BrandNavy}"/>
+                <TextBlock Text="{Binding BrandAssetsPath}" FontFamily="Consolas" Margin="0,6,0,4"/>
+                <TextBlock Text="{Binding BrandAssetsStatus}" Foreground="{StaticResource BrandSuccess}"/>
+              </StackPanel>
+            </GroupBox>
+            <!-- Font Awesome Free 7.3.1 icons: CC BY 4.0, Copyright 2026 Fonticons, Inc. https://fontawesome.com/license/free -->
+            <GroupBox Header="Asset folders">
+              <UniformGrid Columns="3">
+                <Button x:Name="OpenColourPalettesButton" Style="{StaticResource AssetCardButton}">
+                  <StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#E0F2FE" HorizontalAlignment="Left"><Viewbox Width="23" Height="23"><Path Fill="{StaticResource BrandBlue}" Data="M512 256c0 .9 0 1.8 0 2.7-.4 36.5-33.6 61.3-70.1 61.3L344 320c-26.5 0-48 21.5-48 48 0 3.4 .4 6.7 1 9.9 2.1 10.2 6.5 20 10.8 29.9 6.1 13.8 12.1 27.5 12.1 42 0 31.8-21.6 60.7-53.4 62-3.5 .1-7 .2-10.6 .2-141.4 0-256-114.6-256-256S114.6 0 256 0 512 114.6 512 256zM128 288a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm0-96a32 32 0 1 0 0-64 32 32 0 1 0 0 64zM288 96a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm96 96a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/></Viewbox></Border><TextBlock Text="Colour Palettes" Foreground="{StaticResource BrandNavy}" FontSize="17" FontWeight="SemiBold" Margin="0,12,0,2"/><TextBlock Text="Official colour files" Foreground="{StaticResource BrandMuted}" FontSize="11"/></StackPanel>
+                </Button>
+                <Button x:Name="OpenAssetLibrariesButton" Style="{StaticResource AssetCardButton}">
+                  <StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#EDE9FE" HorizontalAlignment="Left"><Viewbox Width="23" Height="23"><Path Fill="#7C3AED" Data="M96 96c0-35.3 28.7-64 64-64l320 0c35.3 0 64 28.7 64 64l0 256c0 35.3-28.7 64-64 64l-320 0c-35.3 0-64-28.7-64-64L96 96zM24 128c13.3 0 24 10.7 24 24l0 296c0 8.8 7.2 16 16 16l360 0c13.3 0 24 10.7 24 24s-10.7 24-24 24L64 512c-35.3 0-64-28.7-64-64L0 152c0-13.3 10.7-24 24-24zm168 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64zm196.5 11.5c-4.4-7.1-12.1-11.5-20.5-11.5s-16.1 4.4-20.5 11.5l-56.3 92.1-24.5-30.6c-4.6-5.7-11.4-9-18.7-9s-14.2 3.3-18.7 9l-64 80c-5.8 7.2-6.9 17.1-2.9 25.4S174.8 352 184 352l272 0c8.7 0 16.7-4.7 20.9-12.3s4.1-16.8-.5-24.3l-88-144z"/></Viewbox></Border><TextBlock Text="Asset Libraries" Foreground="{StaticResource BrandNavy}" FontSize="17" FontWeight="SemiBold" Margin="0,12,0,2"/><TextBlock Text="Affinity and Adobe libraries" Foreground="{StaticResource BrandMuted}" FontSize="11"/></StackPanel>
+                </Button>
+                <Button x:Name="OpenLogosButton" Style="{StaticResource AssetCardButton}">
+                  <StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#DCFCE7" HorizontalAlignment="Left"><Viewbox Width="25" Height="22"><Path Fill="#15803D" Data="M192 128c0-17.7 14.3-32 32-32s32 14.3 32 32l0 7.8c0 27.7-2.4 55.3-7.1 82.5l-84.4 25.3c-40.6 12.2-68.4 49.6-68.4 92l0 32.4-72 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l72.5 0c4.2 36 34.8 64 72 64 26 0 50-13.9 62.9-36.5l13.9-24.3c26.8-47 46.5-97.7 58.4-150.5l94.4-28.3-12.5 37.5c-3.3 9.8-1.6 20.5 4.4 28.8S405.7 320 416 320l128 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-83.6 0 18-53.9c3.8-11.3 .9-23.8-7.4-32.4s-20.7-11.8-32.2-8.4L316.4 198.1c2.4-20.7 3.6-41.4 3.6-62.3l0-7.8c0-53-43-96-96-96s-96 43-96 96l0 32c0 17.7 14.3 32 32 32s32-14.3 32-32l0-32zm-9.2 177l49-14.7c-10.4 33.8-24.5 66.4-42.1 97.2l-13.9 24.3c-1.5 2.6-4.3 4.3-7.4 4.3-4.7 0-8.5-3.8-8.5-8.5l0-71.9c0-14.1 9.3-26.6 22.8-30.7zM616 416c13.3 0 24-10.7 24-24s-10.7-24-24-24l-292.9 0c-6.5 16.3-13.7 32.3-21.6 48L616 416z"/></Viewbox></Border><TextBlock Text="Logos" Foreground="{StaticResource BrandNavy}" FontSize="17" FontWeight="SemiBold" Margin="0,12,0,2"/><TextBlock Text="Approved logo packages" Foreground="{StaticResource BrandMuted}" FontSize="11"/></StackPanel>
+                </Button>
+              </UniformGrid>
+            </GroupBox>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
+              <GroupBox Header="Official links" Margin="0,0,7,0">
+                <StackPanel>
+                  <Button x:Name="OpenServiceDashboardButton" Content="SuamiSihat Service Dashboard" Style="{StaticResource LinkButton}"/>
+                  <Button x:Name="OpenInternalAssetsButton" Content="SuamiSihat Internal Assets" Style="{StaticResource LinkButton}"/>
+                  <Button x:Name="OpenPublicBrandAssetsButton" Content="Public Brand Assets" Style="{StaticResource LinkButton}"/>
+                </StackPanel>
+              </GroupBox>
+              <GroupBox Grid.Column="1" Header="Installation reports" Margin="7,0,0,0">
+                <StackPanel>
+                  <Button x:Name="OpenWorkstationReportButton" Content="View Workstation Report" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Stretch"/>
+                  <Button x:Name="OpenFontInventoryReportButton" Content="View Font Inventory" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Stretch"/>
+                  <TextBlock Text="Reports open inside the app as Markdown text." Foreground="{StaticResource BrandMuted}" FontSize="11" Margin="5,5,0,0"/>
+                </StackPanel>
+              </GroupBox>
+            </Grid>
+          </StackPanel>
+        </ScrollViewer>
       </TabItem>
 
       <TabItem Header="Profile">
@@ -1089,6 +1196,10 @@ if (Test-Path -LiteralPath $logoPath -PathType Leaf) {
     $logoBitmap.Freeze()
     $headerLogo.Source = $logoBitmap
 }
+$taskbarIconPath = Join-Path (Split-Path -Parent $PSScriptRoot) "assets\app-icon.ico"
+if (Test-Path -LiteralPath $taskbarIconPath -PathType Leaf) {
+    $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create((New-Object Uri($taskbarIconPath, [UriKind]::Absolute)))
+}
 
 $script:appState = Get-SuamiSihatAppState
 $vm.Workspace = $script:appState.DefaultWorkspace
@@ -1123,8 +1234,22 @@ $vm.CustomTemplateExtension = ""
 $vm.SearchRoot = $script:appState.DefaultWorkspace
 $vm.SearchQuery = ""
 $vm.SearchDestination = if (@($script:appState.RecentProjects).Count -gt 0) { [string]$script:appState.RecentProjects[0].ProjectPath } else { $script:appState.DefaultWorkspace }
-$vm.SearchStatus = "Enter a filename or part of a path to search up to 500 files."
-$vm.DesignerFolderStatus = "Choose a designer to list their project folders."
+$vm.SearchStatus = "Select a project to load its files."
+$vm.DesignerFolderStatus = "Enter part of a folder name, or leave blank to list all projects."
+$vm.ProjectReadmeContent = "Select a project folder to view its README.md creative brief."
+$vm.SelectedProjectPath = ""
+$script:brandKitRegistration = Get-SuamiSihatBrandKitRegistration
+$vm.BrandAssetsPath = [string]$script:brandKitRegistration.AssetsPath
+$vm.BrandAssetsStatus = if ($script:brandKitRegistration.IsInstalled) {
+    "Brand Kit detected and ready."
+} else {
+    "Brand Kit is not installed. Run the installer and select Brand Kit to enable this module."
+}
+(Get-Control "NavBrandAssets").Visibility = if ($script:brandKitRegistration.IsInstalled -or ($SmokeTest -and $PreviewView -eq "BrandAssets")) {
+    [Windows.Visibility]::Visible
+} else {
+    [Windows.Visibility]::Collapsed
+}
 
 $licensePath = Join-Path (Split-Path -Parent $PSScriptRoot) "EULA.txt"
 $vm.LicenseText = if (Test-Path -LiteralPath $licensePath -PathType Leaf) { Get-Content -LiteralPath $licensePath -Raw } else { "Licence agreement file is unavailable." }
@@ -1153,7 +1278,14 @@ if (-not $detectedInstall.IsInstalled) {
 }
 
 @("Graphic & Print Design", "Social Media Content", "Video Production", "Brand Identity", "E-Commerce") | ForEach-Object { $vm.Presets.Add($_) }
-@("SS", "SSH", "SSC", "SSW", "SSE", "SST") | ForEach-Object { $vm.Brands.Add($_) }
+@(
+    "SS - SuamiSihat",
+    "SSH - SuamiSihat Holding Sdn. Bhd.",
+    "SSC - SuamiSihat Healthcare Sdn. Bhd.",
+    "SSW - SuamiSihat Wellness Sdn. Bhd.",
+    "SSE - SuamiSihat Ecommerce Sdn. Bhd.",
+    "SST - SuamiSihat Technology Sdn. Bhd."
+) | ForEach-Object { $vm.Brands.Add($_) }
 ((Get-Date).Year..((Get-Date).Year + 2)) | ForEach-Object { $vm.Years.Add([string]$_) }
 @("Meta / IG Square (1:1 - 1080x1080 RGB)", "Meta / IG Story (9:16 - 1080x1920 RGB)", "YouTube / Video (16:9 - 1920x1080 RGB)", "Print Production (CMYK 300 DPI)", "Flexible / Custom") | ForEach-Object { $vm.Platforms.Add($_) }
 @(".afdesign", ".psd", ".ai") | ForEach-Object { $vm.TemplateExtensions.Add($_) }
@@ -1204,9 +1336,10 @@ function Refresh-DesignerFolderChoices {
 Refresh-DesignerFolderChoices
 
 function Get-SubBrandCode([string]$Value) {
+    if ($Value -match '^\s*([A-Z]{2,4})\s+-\s+') { return $matches[1].ToUpperInvariant() }
     switch -Wildcard ($Value) {
-        "*HEALTH*" { "SSH" }
-        "*CLINIC*" { "SSC" }
+        "*HOLDING*" { "SSH" }
+        "*HEALTHCARE*" { "SSC" }
         "*WELLNESS*" { "SSW" }
         "*ECOM*" { "SSE" }
         "*TECH*" { "SST" }
@@ -1222,7 +1355,8 @@ function Get-SubBrandCode([string]$Value) {
 function Get-ProjectFolderName {
     $dateCode = "$($vm.SelectedYear)$((Get-Date).ToString('MM'))"
     $job = (($vm.JobId -replace '\s+', '').ToUpper())
-    if ([string]::IsNullOrWhiteSpace($job)) { $job = "D0001" }
+    $job = ConvertTo-SuamiSihatJobID $job
+    if ([string]::IsNullOrWhiteSpace($job)) { $job = "0001D" }
     $project = (($vm.ProjectName -replace '[\\/:*?"<>|]', '_') -replace '\s+', '_').Trim('_')
     if ([string]::IsNullOrWhiteSpace($project)) { $project = "Project" }
     return "${dateCode}_${job}_$(Get-SubBrandCode $vm.SelectedBrand)_${project}"
@@ -1324,6 +1458,8 @@ function Start-DashboardRefresh {
 }
 
 $script:searchTask = $null
+$script:searchTaskProjectPath = ""
+$script:pendingProjectPath = ""
 $searchTimer = New-Object Windows.Threading.DispatcherTimer
 $searchTimer.Interval = [TimeSpan]::FromMilliseconds(200)
 $searchTimer.Add_Tick({
@@ -1332,32 +1468,69 @@ $searchTimer.Add_Tick({
     $vm.IsSearching = $false
     try {
         $items = $script:searchTask.Result
-        $vm.SearchResults.Clear()
-        foreach ($item in $items) { $vm.SearchResults.Add($item) }
-        $suffix = if ($items.Count -ge 500) { " (showing first 500 matches)" } else { "" }
-        $vm.SearchStatus = "$($items.Count) file(s) found$suffix."
+        if ($script:searchTaskProjectPath.Equals($vm.SelectedProjectPath, [StringComparison]::OrdinalIgnoreCase)) {
+            $vm.SearchResults.Clear()
+            foreach ($item in $items) { $vm.SearchResults.Add($item) }
+            $suffix = if ($items.Count -ge 500) { " (showing first 500)" } else { "" }
+            $vm.SearchStatus = "$($items.Count) file(s) in selected project$suffix."
+        }
     } catch {
         $vm.SearchStatus = "Search failed: $($_.Exception.GetBaseException().Message)"
     } finally {
         $script:searchTask = $null
+        $script:searchTaskProjectPath = ""
+        $pendingPath = $script:pendingProjectPath
+        $script:pendingProjectPath = ""
+        if (-not [string]::IsNullOrWhiteSpace($pendingPath) -and $pendingPath.Equals($vm.SelectedProjectPath, [StringComparison]::OrdinalIgnoreCase)) {
+            Start-ProjectFileListing -ProjectPath $pendingPath
+        }
     }
 })
 
-function Start-WorkspaceSearch {
-    if ($script:searchTask -and -not $script:searchTask.IsCompleted) { return }
-    $query = $vm.SearchQuery.Trim()
-    if ([string]::IsNullOrWhiteSpace($query)) {
-        $vm.SearchStatus = "Enter a filename or part of a path."
+function Start-ProjectFileListing([string]$ProjectPath) {
+    if ($script:searchTask -and -not $script:searchTask.IsCompleted) {
+        $script:pendingProjectPath = $ProjectPath
         return
     }
-    if (-not (Test-Path -LiteralPath $vm.SearchRoot -PathType Container)) {
-        $vm.SearchStatus = "The selected Synology root folder is unavailable."
+    if (-not (Test-Path -LiteralPath $ProjectPath -PathType Container)) {
+        $vm.SearchStatus = "The selected project folder is unavailable."
         return
     }
     $vm.IsSearching = $true
-    $vm.SearchStatus = "Searching Synology Drive in the background..."
-    $script:searchTask = [SuamiSihat.Wpf.WorkspaceScanner]::SearchAsync($vm.SearchRoot, $query, 500)
+    $vm.SearchStatus = "Loading project files..."
+    $script:searchTaskProjectPath = $ProjectPath
+    $script:searchTask = [SuamiSihat.Wpf.WorkspaceScanner]::ListProjectFilesAsync($ProjectPath, 500)
     $searchTimer.Start()
+}
+
+function Show-SelectedProject {
+    param([object]$Folder = $null)
+    $folder = if ($null -ne $Folder) { $Folder } else { $designerFoldersGrid.SelectedItem }
+    $vm.SearchResults.Clear()
+    if (-not $folder -or -not (Test-Path -LiteralPath $folder.FullPath -PathType Container)) {
+        $vm.SelectedProjectPath = ""
+        $vm.ProjectReadmeContent = "Select a project folder to view its README.md creative brief."
+        $vm.SearchStatus = "Select a project to load its files."
+        return
+    }
+
+    $vm.SelectedProjectPath = [string]$folder.FullPath
+    $readmePath = Join-Path $folder.FullPath "README.md"
+    if (Test-Path -LiteralPath $readmePath -PathType Leaf) {
+        try {
+            $readmeFile = Get-Item -LiteralPath $readmePath
+            if ($readmeFile.Length -gt 1048576) {
+                $vm.ProjectReadmeContent = "README.md is larger than 1 MB. Open the project folder to view it."
+            } else {
+                $vm.ProjectReadmeContent = Get-Content -LiteralPath $readmePath -Raw
+            }
+        } catch {
+            $vm.ProjectReadmeContent = "README.md could not be read: $($_.Exception.Message)"
+        }
+    } else {
+        $vm.ProjectReadmeContent = "# No README.md found`n`nProject: $($folder.Project)`nPath: $($folder.FullPath)"
+    }
+    Start-ProjectFileListing -ProjectPath $folder.FullPath
 }
 
 $script:designerFolderTask = $null
@@ -1366,13 +1539,18 @@ $designerFolderTimer.Interval = [TimeSpan]::FromMilliseconds(200)
 $designerFolderTimer.Add_Tick({
     if ($null -eq $script:designerFolderTask -or -not $script:designerFolderTask.IsCompleted) { return }
     $designerFolderTimer.Stop()
+    $vm.IsSearching = $false
     try {
         $folders = $script:designerFolderTask.Result
         $vm.DesignerFolders.Clear()
         foreach ($folder in $folders) { $vm.DesignerFolders.Add($folder) }
         $suffix = if ($folders.Count -ge 500) { " (showing first 500)" } else { "" }
         $vm.DesignerFolderStatus = "$($folders.Count) project folder(s) found$suffix."
-        if ($folders.Count -gt 0) { $designerFoldersGrid.SelectedIndex = 0 }
+        if ($folders.Count -gt 0) {
+            $designerFoldersGrid.SelectedIndex = 0
+        } else {
+            Show-SelectedProject
+        }
     } catch {
         $vm.DesignerFolderStatus = "Unable to list designer folders: $($_.Exception.GetBaseException().Message)"
     } finally {
@@ -1387,9 +1565,14 @@ function Start-DesignerFolderListing {
         return
     }
     $vm.DesignerFolders.Clear()
+    $vm.SearchResults.Clear()
+    $vm.ProjectReadmeContent = "Select a project folder to view its README.md creative brief."
     $designerName = if ([string]::IsNullOrWhiteSpace($vm.SelectedDesignerFolderId)) { "all designers" } else { $vm.SelectedDesignerFolderId }
-    $vm.DesignerFolderStatus = "Listing project folders for $designerName..."
-    $script:designerFolderTask = [SuamiSihat.Wpf.WorkspaceScanner]::ListDesignerFoldersAsync($vm.SearchRoot, $vm.SelectedDesignerFolderId, 500)
+    $query = ([string]$vm.SearchQuery).Trim()
+    $queryDescription = if ([string]::IsNullOrWhiteSpace($query)) { "all project folders" } else { "folders matching '$query'" }
+    $vm.IsSearching = $true
+    $vm.DesignerFolderStatus = "Searching $queryDescription for $designerName..."
+    $script:designerFolderTask = [SuamiSihat.Wpf.WorkspaceScanner]::ListDesignerFoldersAsync($vm.SearchRoot, $vm.SelectedDesignerFolderId, $query, 500)
     $designerFolderTimer.Start()
 }
 
@@ -1404,12 +1587,177 @@ function Select-Folder([string]$InitialPath) {
     }
 }
 
+function Open-BrandAssetFolder([string]$RelativePath) {
+    $target = Join-Path $vm.BrandAssetsPath $RelativePath
+    if (-not (Test-Path -LiteralPath $target -PathType Container)) {
+        [Windows.MessageBox]::Show("This Brand Kit folder is unavailable:`n`n$target`n`nRun the installer and select Brand Kit to repair the assets.", "Folder unavailable", "OK", "Information") | Out-Null
+        return
+    }
+    Start-Process -FilePath "explorer.exe" -ArgumentList @($target)
+}
+
+function Open-SuamiSihatLink([string]$Url) {
+    try { Start-Process -FilePath $Url } catch {
+        [Windows.MessageBox]::Show("The link could not be opened:`n$Url", "Unable to open link", "OK", "Warning") | Out-Null
+    }
+}
+
+function Add-MarkdownInlineRuns([Windows.Documents.Paragraph]$Paragraph, [string]$Text) {
+    $cursor = 0
+    foreach ($match in [regex]::Matches($Text, '(\*\*.+?\*\*|`.+?`)')) {
+        if ($match.Index -gt $cursor) {
+            [void]$Paragraph.Inlines.Add((New-Object Windows.Documents.Run($Text.Substring($cursor, $match.Index - $cursor))))
+        }
+        $token = $match.Value
+        if ($token.StartsWith('**')) {
+            $run = New-Object Windows.Documents.Run($token.Substring(2, $token.Length - 4))
+            $run.FontWeight = [Windows.FontWeights]::SemiBold
+        } else {
+            $run = New-Object Windows.Documents.Run($token.Substring(1, $token.Length - 2))
+            $run.FontFamily = New-Object Windows.Media.FontFamily("Consolas")
+            $run.Background = New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(241,245,249))
+        }
+        [void]$Paragraph.Inlines.Add($run)
+        $cursor = $match.Index + $match.Length
+    }
+    if ($cursor -lt $Text.Length) {
+        [void]$Paragraph.Inlines.Add((New-Object Windows.Documents.Run($Text.Substring($cursor))))
+    }
+}
+
+function New-MarkdownParagraph([string]$Text, [double]$FontSize = 13, [bool]$Bold = $false) {
+    $paragraph = New-Object Windows.Documents.Paragraph
+    $paragraph.Margin = New-Object Windows.Thickness(0,3,0,7)
+    $paragraph.FontSize = $FontSize
+    if ($Bold) { $paragraph.FontWeight = [Windows.FontWeights]::SemiBold }
+    Add-MarkdownInlineRuns -Paragraph $paragraph -Text $Text
+    return $paragraph
+}
+
+function ConvertFrom-MarkdownToFlowDocument([string]$Markdown) {
+    $document = New-Object Windows.Documents.FlowDocument
+    $document.PagePadding = New-Object Windows.Thickness(22)
+    $document.FontFamily = New-Object Windows.Media.FontFamily("Segoe UI")
+    $document.FontSize = 13
+    $document.Foreground = New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(30,41,59))
+    $lines = @($Markdown -split "`r?`n")
+    $index = 0
+    while ($index -lt $lines.Count) {
+        $line = [string]$lines[$index]
+        if ([string]::IsNullOrWhiteSpace($line)) { $index++; continue }
+
+        if ($line -match '^(#{1,4})\s+(.+)$') {
+            $level = $matches[1].Length
+            $size = switch ($level) { 1 { 25 } 2 { 19 } 3 { 16 } default { 14 } }
+            $heading = New-MarkdownParagraph -Text $matches[2] -FontSize $size -Bold $true
+            $heading.Foreground = New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(4,51,136))
+            $heading.Margin = New-Object Windows.Thickness(0, $(if ($level -eq 1) { 0 } else { 12 }), 0, 8)
+            [void]$document.Blocks.Add($heading)
+            $index++; continue
+        }
+
+        if ($line.TrimStart().StartsWith('|')) {
+            $tableLines = @()
+            while ($index -lt $lines.Count -and ([string]$lines[$index]).TrimStart().StartsWith('|')) {
+                $tableLines += [string]$lines[$index]
+                $index++
+            }
+            $dataRows = @($tableLines | Where-Object { $_ -notmatch '^\s*\|?[\s:\-|]+\|?\s*$' })
+            if ($dataRows.Count -gt 0) {
+                $table = New-Object Windows.Documents.Table
+                $table.CellSpacing = 0
+                $table.Margin = New-Object Windows.Thickness(0,5,0,13)
+                $columnCount = @(($dataRows[0].Trim().Trim('|')) -split '\|').Count
+                for ($columnIndex = 0; $columnIndex -lt $columnCount; $columnIndex++) {
+                    [void]$table.Columns.Add((New-Object Windows.Documents.TableColumn))
+                }
+                $rowGroup = New-Object Windows.Documents.TableRowGroup
+                for ($rowIndex = 0; $rowIndex -lt $dataRows.Count; $rowIndex++) {
+                    $row = New-Object Windows.Documents.TableRow
+                    if ($rowIndex -eq 0) { $row.Background = New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(226,232,240)) }
+                    foreach ($cellText in @(($dataRows[$rowIndex].Trim().Trim('|')) -split '\|')) {
+                        $cellParagraph = New-MarkdownParagraph -Text $cellText.Trim() -FontSize 12 -Bold ($rowIndex -eq 0)
+                        $cellParagraph.Margin = New-Object Windows.Thickness(0)
+                        $cell = New-Object Windows.Documents.TableCell($cellParagraph)
+                        $cell.Padding = New-Object Windows.Thickness(8,6,8,6)
+                        $cell.BorderBrush = New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(203,213,225))
+                        $cell.BorderThickness = New-Object Windows.Thickness(0,0,0,1)
+                        [void]$row.Cells.Add($cell)
+                    }
+                    [void]$rowGroup.Rows.Add($row)
+                }
+                [void]$table.RowGroups.Add($rowGroup)
+                [void]$document.Blocks.Add($table)
+            }
+            continue
+        }
+
+        if ($line -match '^\s*[-*]\s+(.+)$') {
+            $list = New-Object Windows.Documents.List
+            $list.MarkerStyle = [Windows.TextMarkerStyle]::Disc
+            $list.Margin = New-Object Windows.Thickness(18,3,0,9)
+            while ($index -lt $lines.Count -and ([string]$lines[$index]) -match '^\s*[-*]\s+(.+)$') {
+                $itemParagraph = New-MarkdownParagraph -Text $matches[1] -FontSize 13
+                $itemParagraph.Margin = New-Object Windows.Thickness(0,1,0,3)
+                [void]$list.ListItems.Add((New-Object Windows.Documents.ListItem($itemParagraph)))
+                $index++
+            }
+            [void]$document.Blocks.Add($list)
+            continue
+        }
+
+        [void]$document.Blocks.Add((New-MarkdownParagraph -Text $line))
+        $index++
+    }
+    return $document
+}
+
+function Show-MarkdownReport([string]$FileName, [string]$Title) {
+    $reportPath = Join-Path (Join-Path $vm.BrandAssetsPath "Reports") $FileName
+    if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) {
+        [Windows.MessageBox]::Show("This report is unavailable:`n`n$reportPath`n`nRun Brand Kit repair to regenerate it.", "Report unavailable", "OK", "Information") | Out-Null
+        return
+    }
+
+    $reportWindow = New-Object Windows.Window
+    $reportWindow.Title = $Title
+    $reportWindow.Width = 820
+    $reportWindow.Height = 650
+    $reportWindow.MinWidth = 620
+    $reportWindow.MinHeight = 440
+    $reportWindow.Owner = $window
+    $reportWindow.Icon = $window.Icon
+    $reportWindow.WindowStartupLocation = "CenterOwner"
+    $reportWindow.Background = [Windows.Media.Brushes]::White
+
+    $layout = New-Object Windows.Controls.DockPanel
+    $layout.Margin = New-Object Windows.Thickness(18)
+    $closeButton = New-Object Windows.Controls.Button
+    $closeButton.Content = "Close"
+    $closeButton.Width = 100
+    $closeButton.HorizontalAlignment = "Right"
+    $closeButton.Margin = New-Object Windows.Thickness(0,12,0,0)
+    [Windows.Controls.DockPanel]::SetDock($closeButton, "Bottom")
+    $closeButton.Add_Click({ $reportWindow.Close() })
+    [void]$layout.Children.Add($closeButton)
+
+    $reportViewer = New-Object Windows.Controls.FlowDocumentScrollViewer
+    $reportViewer.Document = ConvertFrom-MarkdownToFlowDocument (Get-Content -LiteralPath $reportPath -Raw)
+    $reportViewer.VerticalScrollBarVisibility = "Auto"
+    $reportViewer.HorizontalScrollBarVisibility = "Disabled"
+    $reportViewer.IsToolBarVisible = $false
+    [void]$layout.Children.Add($reportViewer)
+    $reportWindow.Content = $layout
+    [void]$reportWindow.ShowDialog()
+}
+
 function Save-WpfSettings {
     $previousWorkspace = $script:appState.DefaultWorkspace
     $script:appState = Save-SuamiSihatAppState `
         -LastProjectPath $script:appState.LastProjectPath `
         -LastProjectName $script:appState.LastProjectName `
-        -LastJobNumber $vm.JobId `
+        -LastJobNumber $script:appState.LastJobNumber `
+        -NextJobNumber $vm.JobId `
         -DefaultWorkspace $vm.Workspace `
         -DesignerName $vm.DesignerName `
         -Department $vm.Department `
@@ -1524,8 +1872,17 @@ $vm.add_PropertyChanged({
 
 (Get-Control "NavDashboard").Add_Click({ $views.SelectedIndex = 1; Start-DashboardRefresh })
 (Get-Control "NavProjects").Add_Click({ $views.SelectedIndex = 2 })
-(Get-Control "NavSearch").Add_Click({ $views.SelectedIndex = 3 })
-(Get-Control "NavProfile").Add_Click({ $views.SelectedIndex = 4 })
+(Get-Control "NavSearch").Add_Click({ $views.SelectedIndex = 3; Start-DesignerFolderListing })
+(Get-Control "NavBrandAssets").Add_Click({ $views.SelectedIndex = 4 })
+(Get-Control "NavProfile").Add_Click({ $views.SelectedIndex = 5 })
+(Get-Control "OpenColourPalettesButton").Add_Click({ Open-BrandAssetFolder "Colour Palettes" })
+(Get-Control "OpenAssetLibrariesButton").Add_Click({ Open-BrandAssetFolder "Libraries" })
+(Get-Control "OpenLogosButton").Add_Click({ Open-BrandAssetFolder "Logos" })
+(Get-Control "OpenServiceDashboardButton").Add_Click({ Open-SuamiSihatLink "https://suamisihat.myds.me" })
+(Get-Control "OpenInternalAssetsButton").Add_Click({ Open-SuamiSihatLink "https://assets.suamisihat.myds.me/" })
+(Get-Control "OpenPublicBrandAssetsButton").Add_Click({ Open-SuamiSihatLink "https://suamisihat.com.my/brand-assets/" })
+(Get-Control "OpenWorkstationReportButton").Add_Click({ Show-MarkdownReport "SuamiSihat-Workstation-Report.md" "SuamiSihat Workstation Report" })
+(Get-Control "OpenFontInventoryReportButton").Add_Click({ Show-MarkdownReport "SuamiSihat-Font-Inventory.md" "SuamiSihat Font Inventory" })
 (Get-Control "RefreshDashboardButton").Add_Click({ Start-DashboardRefresh })
 (Get-Control "CloseSetupButton").Add_Click({ $window.Close() })
 (Get-Control "CancelInstallerButton").Add_Click({ $window.Close() })
@@ -1773,14 +2130,15 @@ $designerCombo.Add_SelectionChanged({
         $vm.SearchRoot = $selected
         Refresh-DesignerFolderChoices
         $vm.DesignerFolders.Clear()
+        $vm.SearchResults.Clear()
+        $vm.ProjectReadmeContent = "Select a project folder to view its README.md creative brief."
     }
 })
 (Get-Control "BrowseCopyDestinationButton").Add_Click({
     $selected = Select-Folder $vm.SearchDestination
     if ($selected) { $vm.SearchDestination = $selected }
 })
-(Get-Control "SearchFilesButton").Add_Click({ Start-WorkspaceSearch })
-(Get-Control "ListDesignerFoldersButton").Add_Click({ Start-DesignerFolderListing })
+(Get-Control "SearchProjectFoldersButton").Add_Click({ Start-DesignerFolderListing })
 (Get-Control "OpenDesignerFolderButton").Add_Click({
     $folder = $designerFoldersGrid.SelectedItem
     if ($folder -and (Test-Path -LiteralPath $folder.FullPath -PathType Container)) {
@@ -1789,15 +2147,7 @@ $designerCombo.Add_SelectionChanged({
         $vm.DesignerFolderStatus = "Select an available project folder to open."
     }
 })
-(Get-Control "UseDesignerFolderButton").Add_Click({
-    $folder = $designerFoldersGrid.SelectedItem
-    if ($folder -and (Test-Path -LiteralPath $folder.FullPath -PathType Container)) {
-        $vm.SearchDestination = $folder.FullPath
-        $vm.DesignerFolderStatus = "Copy destination set to $($folder.Project)."
-    } else {
-        $vm.DesignerFolderStatus = "Select an available project folder first."
-    }
-})
+$designerFoldersGrid.Add_SelectionChanged({ Show-SelectedProject -Folder $designerFoldersGrid.SelectedItem })
 $designerFoldersGrid.Add_MouseDoubleClick({
     $folder = $designerFoldersGrid.SelectedItem
     if ($folder -and (Test-Path -LiteralPath $folder.FullPath -PathType Container)) {
@@ -1807,7 +2157,7 @@ $designerFoldersGrid.Add_MouseDoubleClick({
 (Get-Control "SearchQueryBox").Add_KeyDown({
     param($sender, $eventArgs)
     if ($eventArgs.Key -eq [Windows.Input.Key]::Enter) {
-        Start-WorkspaceSearch
+        Start-DesignerFolderListing
         $eventArgs.Handled = $true
     }
 })
@@ -2057,8 +2407,9 @@ if ($SmokeTest) {
         "Projects" { 2 }
         "Creator" { 2 }
         "Search" { 3 }
-        "Profile" { 4 }
-        "Settings" { 4 }
+        "BrandAssets" { 4 }
+        "Profile" { 5 }
+        "Settings" { 5 }
         default { 1 }
     }
     if ($PreviewView -eq "Setup") { $vm.InstallBrandKit = $false }

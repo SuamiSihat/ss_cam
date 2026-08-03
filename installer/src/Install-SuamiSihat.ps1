@@ -251,7 +251,11 @@ if (-not $SkipWebShortcuts -and -not $WhatIfPreference) {
         },
         @{
             Path = Join-Path (Join-Path $favoritesDirectory "SuamiSihat") "SuamiSihat Internal Assets.url"
-            Url = "https://assets.suamisihat.com.my"
+            Url = "https://assets.suamisihat.myds.me/"
+        },
+        @{
+            Path = Join-Path (Join-Path $favoritesDirectory "SuamiSihat") "SuamiSihat Public Brand Assets.url"
+            Url = "https://suamisihat.com.my/brand-assets/"
         }
     )
     if (-not $SkipAssets) {
@@ -263,7 +267,11 @@ if (-not $SkipWebShortcuts -and -not $WhatIfPreference) {
             },
             @{
                 Path = Join-Path $linksDirectory "SuamiSihat Internal Assets.url"
-                Url = "https://assets.suamisihat.com.my"
+                Url = "https://assets.suamisihat.myds.me/"
+            },
+            @{
+                Path = Join-Path $linksDirectory "SuamiSihat Public Brand Assets.url"
+                Url = "https://suamisihat.com.my/brand-assets/"
             }
         )
     }
@@ -351,10 +359,15 @@ try {
         New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
         $installedExePath = Join-Path $appInstallDir "SS-CAM.exe"
         Copy-Item -LiteralPath $sourceExe -Destination $installedExePath -Force
-        Install-SuamiSihatShortcuts -TargetExePath $installedExePath -Version "1.9.0"
+        Install-SuamiSihatShortcuts -TargetExePath $installedExePath -Version "1.9.1"
         Write-Host "  Installed Windows Application shortcut: Start Menu -> SuamiSihat Creative Assets Management"
     }
 } catch {}
+if (-not ($SkipFonts -and $SkipAssets -and $SkipWebShortcuts -and $SkipReports)) {
+    try { Set-SuamiSihatBrandKitRegistration -AssetsPath $Destination -Version "1.9.1" } catch {
+        Write-Warning "Brand Kit was installed, but its app registration could not be saved: $($_.Exception.Message)"
+    }
+}
 try { Save-SuamiSihatAppState | Out-Null } catch {}
 Write-Step "Setup complete"
 if (-not $SkipFonts) {

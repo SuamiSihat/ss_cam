@@ -11,7 +11,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 
-$script:AppVersion = "1.9.0"
+$script:AppVersion = "1.9.1"
 
 # Capture own exe path — used for self-copy to install directory
 # Must be done immediately; later in nested processes this returns powershell.exe
@@ -2748,7 +2748,7 @@ Refresh-PCRequirements
 Refresh-SoftwareList
 $installedInfo = Get-SuamiSihatInstalledVersion
 
-# v1.9.0: Auto-sync pending offline projects and refresh NAS status on startup
+# v1.9.1: Auto-sync pending offline projects and refresh NAS status on startup
 try {
     $ws = $script:appState.DefaultWorkspace
     if (-not [string]::IsNullOrWhiteSpace($ws)) {
