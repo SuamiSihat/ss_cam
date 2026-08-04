@@ -10,7 +10,7 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
-$script:AppVersion = "1.9.2"
+$script:AppVersion = "1.9.3"
 $script:installationRunning = $false
 $script:installerProcess = $null
 $script:standardOutputTask = $null
@@ -2265,7 +2265,21 @@ $designerFoldersGrid.Add_MouseDoubleClick({
     try {
         $vm.SettingsStatus = "Checking for updates..."
         $update = Get-SuamiSihatLatestRelease -CurrentVersion $script:AppVersion
-        $vm.SettingsStatus = if ($update.HasUpdate) { "Update available: v$($update.LatestVersion)" } else { "You are running the latest version." }
+        if ($update.HasUpdate) {
+            $vm.SettingsStatus = "Update available: v$($update.LatestVersion)"
+            $prompt = [Windows.MessageBox]::Show(
+                "SS-CAM v$($update.LatestVersion) is available.`nYou are running v$($update.CurrentVersion).`n`nOpen the download page?",
+                "Update Available",
+                [Windows.MessageBoxButton]::YesNo,
+                [Windows.MessageBoxImage]::Information
+            )
+            if ($prompt -eq [Windows.MessageBoxResult]::Yes) {
+                $releaseUrl = if ($update.HtmlUrl) { $update.HtmlUrl } else { "https://github.com/SuamiSihat/ss_cam/releases/latest" }
+                Start-Process $releaseUrl
+            }
+        } else {
+            $vm.SettingsStatus = "You are running the latest version (v$($update.CurrentVersion))."
+        }
     } catch { $vm.SettingsStatus = "Update check unavailable." }
 })
 (Get-Control "RepairButton").Add_Click({
