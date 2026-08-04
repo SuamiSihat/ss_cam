@@ -308,3 +308,38 @@ function Invoke-FatigueRuleEngine {
     return $recommendations
 }
 
+
+function Save-WellbeingMindDrop {
+    param([string]$Content, [string]$RetentionMode)
+    $data = Get-WellbeingData
+    $encrypted = Protect-WellbeingText -PlainText $Content
+    $drop = @{
+        Id = [guid]::NewGuid().ToString()
+        CreatedAt = (Get-Date).ToString("s")
+        Content = $encrypted
+        RetentionMode = $RetentionMode
+    }
+    $data.MindDrops += $drop
+    Save-WellbeingData -Data $data
+    return $drop
+}
+
+function Get-WellbeingTodayMetrics {
+    $data = Get-WellbeingData
+    $today = (Get-Date).ToString("yyyy-MM-dd")
+    $todaySessions = @($data.FocusSessions | Where-Object { $_.StartedAt -like "$today*" })
+    
+    $totalFocusSeconds = 0
+    if ($todaySessions.Count -gt 0) {
+        $totalFocusSeconds = ($todaySessions | Measure-Object -Property ActualSeconds -Sum).Sum
+    }
+    
+    $todayDrops = @($data.MindDrops | Where-Object { $_.CreatedAt -like "$today*" })
+    
+    return @{
+        FocusMinutes = [math]::Floor($totalFocusSeconds / 60)
+        CompletedSessions = @($todaySessions | Where-Object { $_.Status -eq "completed" }).Count
+        TotalSessions = $todaySessions.Count
+        MindDropsCaptured = $todayDrops.Count
+    }
+}

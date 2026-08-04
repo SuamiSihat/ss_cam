@@ -1000,9 +1000,24 @@ $xaml = @'
                   
                   <Button x:Name="SaveCheckInButton" Content="Save Check-In"  Padding="12,8" Margin="0,0,0,16"/>
                   
-                  <Border Background="#EAF1FA" CornerRadius="4" Padding="12">
+                  <Border Background="#EAF1FA" CornerRadius="4" Padding="12" Margin="0,0,0,24">
                     <TextBlock x:Name="RecommendationDisplay" Text="No recent recommendations." TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource BrandNavy}"/>
                   </Border>
+                  
+                  <Separator Margin="0,0,0,24"/>
+                  
+                  <TextBlock Text="Mind Drop" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,8"/>
+                  <TextBlock Text="Quickly save an unblocking thought." Foreground="{StaticResource BrandMuted}" FontSize="12" Margin="0,0,0,8"/>
+                  <TextBox x:Name="MindDropInput" Height="60" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,8"/>
+                  <StackPanel Orientation="Horizontal">
+                    <ComboBox x:Name="MindDropRetentionCombo" Width="150" Margin="0,0,8,0">
+                      <ComboBoxItem IsSelected="True" Content="Keep until end of day"/>
+                      <ComboBoxItem Content="Keep for session only"/>
+                      <ComboBoxItem Content="Keep manually"/>
+                    </ComboBox>
+                    <Button x:Name="SaveMindDropButton" Content="Drop" Style="{StaticResource SecondaryButton}"/>
+                  </StackPanel>
+                  <TextBlock x:Name="MindDropStatus" Foreground="{StaticResource BrandNavy}" FontSize="12" Margin="0,8,0,0"/>
                 </StackPanel>
               </Border>
             </Grid>
@@ -2169,6 +2184,19 @@ $script:sidebarExpanded = $true
 (Get-Control "OpenFontInventoryReportButton").Add_Click({ Show-MarkdownReport "SuamiSihat-Font-Inventory.md" "SuamiSihat Font Inventory" })
 (Get-Control "RefreshDashboardButton").Add_Click({ Start-DashboardRefresh })
 
+function Start-WellbeingUIUpdate {
+    $metrics = Get-WellbeingTodayMetrics
+    $focusTimeText = "$($metrics.FocusMinutes) mins focus today"
+    
+    # We update the view model so WPF data binding handles the status bar update
+    if ([string]::IsNullOrEmpty($vm.WellbeingTimerStatus)) {
+        $vm.WellbeingTimerStatus = "Wellbeing: $focusTimeText"
+    } else {
+        # Keep the timer status if it's running
+        # The tick handler updates it to "Focus: 25:00"
+    }
+}
+
 # --- Creative Wellbeing Events ---
 (Get-Control "SaveCheckInButton").Add_Click({
     $mood = 3 # Hardcoded since we didn't add a slider for mood to save space, or we can use energy
@@ -2183,6 +2211,20 @@ $script:sidebarExpanded = $true
     } else {
         (Get-Control "RecommendationDisplay").Text = "Check-in saved. Have a great session!"
     }
+})
+
+(Get-Control "SaveMindDropButton").Add_Click({
+    $input = (Get-Control "MindDropInput").Text
+    if ([string]::IsNullOrWhiteSpace($input)) { return }
+    $retentionText = (Get-Control "MindDropRetentionCombo").Text
+    $retentionMode = "EndOfDay"
+    if ($retentionText -match "session") { $retentionMode = "Session" }
+    elseif ($retentionText -match "manually") { $retentionMode = "Manual" }
+    
+    Save-WellbeingMindDrop -Content $input -RetentionMode $retentionMode | Out-Null
+    (Get-Control "MindDropInput").Text = ""
+    (Get-Control "MindDropStatus").Text = "Mind Drop saved and encrypted."
+    Start-WellbeingUIUpdate
 })
 
 $script:WellbeingTimerDispatcher = New-Object System.Windows.Threading.DispatcherTimer
