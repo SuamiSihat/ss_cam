@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [ValidatePattern("^\d+\.\d+\.\d+$")]
     [string]$Version = "1.9.10"
@@ -38,6 +38,8 @@ $requiredPaths = @(
     (Join-Path $PSScriptRoot "src\Install-SuamiSihat.ps1"),
     (Join-Path $PSScriptRoot "src\Install-SuamiSihat-WPF.ps1"),
     (Join-Path $PSScriptRoot "src\Installer.Common.ps1"),
+    (Join-Path $PSScriptRoot "src\Installer.WellbeingData.ps1"),
+    (Join-Path $PSScriptRoot "src\Installer.Wellbeing.ps1"),
     (Join-Path $PSScriptRoot "EULA.txt"),
     (Join-Path $PSScriptRoot "assets\suamisihat-logo-on-dark-ui.png"),
     (Join-Path $PSScriptRoot "assets\suamisihat-logo-on-light-ui.png"),

@@ -95,7 +95,7 @@ function Stop-WellbeingSession {
         EndReason = $Reason
         CreatedAt = (Get-Date).ToString("s")
     }
-    $data.FocusSessions += $session
+    $data.FocusSessions = @($data.FocusSessions | Where-Object { $null -ne $_ }) + @($session)
     $data.ActiveSessionState = $null
     Save-WellbeingData -Data $data
     
@@ -204,7 +204,7 @@ function Save-WellbeingCheckIn {
         Pressure = $Pressure
         Context = $Context
     }
-    $data.CheckIns += $checkIn
+    $data.CheckIns = @($data.CheckIns | Where-Object { $null -ne $_ }) + @($checkIn)
     Save-WellbeingData -Data $data
     return $checkIn
 }
@@ -221,7 +221,7 @@ function Start-WellbeingResetSession {
         Status = "running"
         PlannedSeconds = $DurationSeconds
     }
-    $data.ResetSessions += $session
+    $data.ResetSessions = @($data.ResetSessions | Where-Object { $null -ne $_ }) + @($session)
     Save-WellbeingData -Data $data
     return $session
 }
@@ -229,17 +229,19 @@ function Start-WellbeingResetSession {
 function Stop-WellbeingResetSession {
     param([string]$Id, [int]$ActualSeconds)
     $data = Get-WellbeingData
-    for ($i = 0; $i -lt $data.ResetSessions.Count; $i++) {
-        if ($data.ResetSessions[$i].Id -eq $Id) {
-            $data.ResetSessions[$i].ActualSeconds = $ActualSeconds
-            $data.ResetSessions[$i].CompletedAt = (Get-Date).ToString("s")
-            if ($ActualSeconds -ge $data.ResetSessions[$i].PlannedSeconds) {
-                $data.ResetSessions[$i].Status = "completed"
+    $resetSessions = @($data.ResetSessions)
+    for ($i = 0; $i -lt $resetSessions.Count; $i++) {
+        if ($resetSessions[$i].Id -eq $Id) {
+            $resetSessions[$i].ActualSeconds = $ActualSeconds
+            $resetSessions[$i].CompletedAt = (Get-Date).ToString("s")
+            if ($ActualSeconds -ge $resetSessions[$i].PlannedSeconds) {
+                $resetSessions[$i].Status = "completed"
             } else {
-                $data.ResetSessions[$i].Status = "ended_early"
+                $resetSessions[$i].Status = "ended_early"
             }
         }
     }
+    $data.ResetSessions = $resetSessions
     Save-WellbeingData -Data $data
 }
 
@@ -276,7 +278,7 @@ function Invoke-FatigueRuleEngine {
     # Determine last meaningful break
     # A meaningful break = a reset > 60s, or idle time between sessions > 180s
     $today = (Get-Date).ToString("yyyy-MM-dd")
-    $todaySessions = $data.FocusSessions | Where-Object { $_.StartedAt -like "$today*" } | Sort-Object StartedAt
+    $todaySessions = @($data.FocusSessions | Where-Object { $_.StartedAt -like "$today*" } | Sort-Object StartedAt)
     
     $continuousWorkSeconds = 0
     $lastBreakTime = $null
@@ -319,7 +321,7 @@ function Save-WellbeingMindDrop {
         Content = $encrypted
         RetentionMode = $RetentionMode
     }
-    $data.MindDrops += $drop
+    $data.MindDrops = @($data.MindDrops | Where-Object { $null -ne $_ }) + @($drop)
     Save-WellbeingData -Data $data
     return $drop
 }

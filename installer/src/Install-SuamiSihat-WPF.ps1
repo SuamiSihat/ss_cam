@@ -4,7 +4,7 @@ param(
     [switch]$InstallerMode,
     [string]$InstallerExePath = "",
     [string]$PreviewPath = "",
-    [ValidateSet("Setup", "Dashboard", "Projects", "Search", "BrandAssets", "Profile", "Creator", "Settings")]
+    [ValidateSet("Setup", "Dashboard", "Wellbeing", "Projects", "Search", "BrandAssets", "Profile", "Creator", "Settings")]
     [string]$PreviewView = "Dashboard"
 )
 
