@@ -25,6 +25,8 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Xaml
 
 . (Join-Path $PSScriptRoot "Installer.Common.ps1")
+. (Join-Path $PSScriptRoot "Installer.WellbeingData.ps1")
+. (Join-Path $PSScriptRoot "Installer.Wellbeing.ps1")
 
 if (-not ("SuamiSihat.Wpf.AppViewModel" -as [type])) {
     Add-Type -ReferencedAssemblies @("WindowsBase", "System") -TypeDefinition @'
@@ -960,10 +962,48 @@ $xaml = @'
               </Grid.ColumnDefinitions>
               
               <Border Grid.Column="0" Background="White" CornerRadius="4" BorderBrush="#E2E8F0" BorderThickness="1" Margin="0,0,12,0" Padding="24">
-                <TextBlock Text="Focus Session (Coming Soon)" Foreground="{StaticResource BrandMuted}"/>
+                <StackPanel>
+                  <TextBlock Text="Focus Timer" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,16"/>
+                  
+                  <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                    <ComboBox x:Name="WellbeingPresetSelector" Width="200" Margin="0,0,12,0" Padding="8,6">
+                      <ComboBoxItem IsSelected="True" Content="Standard Focus (25m)"/>
+                      <ComboBoxItem Content="Deep Flow (50m)"/>
+                      <ComboBoxItem Content="Gentle Focus (15m)"/>
+                    </ComboBox>
+                    <Button x:Name="StartFocusButton" Content="Start Focus"  Padding="16,8"/>
+                  </StackPanel>
+                  
+                  <Border x:Name="ActiveTimerContainer" Visibility="Collapsed" Background="#F8FAFC" CornerRadius="8" Padding="24" Margin="0,16,0,0">
+                    <StackPanel HorizontalAlignment="Center">
+                      <TextBlock x:Name="TimerDisplay" Text="25:00" FontSize="48" FontWeight="Bold" Foreground="{StaticResource BrandNavy}" HorizontalAlignment="Center"/>
+                      <TextBlock x:Name="TimerStatusDisplay" Text="Focusing..." FontSize="14" Foreground="{StaticResource BrandMuted}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                      
+                      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button x:Name="PauseResumeTimerButton" Content="Pause" Padding="16,8" Margin="0,0,8,0"/>
+                        <Button x:Name="StopTimerButton" Content="End Session" Padding="16,8"/>
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
               </Border>
+              
               <Border Grid.Column="1" Background="White" CornerRadius="4" BorderBrush="#E2E8F0" BorderThickness="1" Margin="12,0,0,0" Padding="24">
-                <TextBlock Text="Quick Check-In (Coming Soon)" Foreground="{StaticResource BrandMuted}"/>
+                <StackPanel>
+                  <TextBlock Text="Quick Check-In" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,16"/>
+                  
+                  <TextBlock Text="Energy (1-5)" FontSize="12" Foreground="{StaticResource BrandMuted}" Margin="0,0,0,4"/>
+                  <Slider x:Name="EnergySlider" Minimum="1" Maximum="5" Value="3" TickPlacement="BottomRight" IsSnapToTickEnabled="True" Margin="0,0,0,16"/>
+                  
+                  <TextBlock Text="Pressure (1-5)" FontSize="12" Foreground="{StaticResource BrandMuted}" Margin="0,0,0,4"/>
+                  <Slider x:Name="PressureSlider" Minimum="1" Maximum="5" Value="3" TickPlacement="BottomRight" IsSnapToTickEnabled="True" Margin="0,0,0,16"/>
+                  
+                  <Button x:Name="SaveCheckInButton" Content="Save Check-In"  Padding="12,8" Margin="0,0,0,16"/>
+                  
+                  <Border Background="#EAF1FA" CornerRadius="4" Padding="12">
+                    <TextBlock x:Name="RecommendationDisplay" Text="No recent recommendations." TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource BrandNavy}"/>
+                  </Border>
+                </StackPanel>
               </Border>
             </Grid>
           </StackPanel>
@@ -2128,6 +2168,104 @@ $script:sidebarExpanded = $true
 (Get-Control "OpenWorkstationReportButton").Add_Click({ Show-MarkdownReport "SuamiSihat-Workstation-Report.md" "SuamiSihat Workstation Report" })
 (Get-Control "OpenFontInventoryReportButton").Add_Click({ Show-MarkdownReport "SuamiSihat-Font-Inventory.md" "SuamiSihat Font Inventory" })
 (Get-Control "RefreshDashboardButton").Add_Click({ Start-DashboardRefresh })
+
+# --- Creative Wellbeing Events ---
+(Get-Control "SaveCheckInButton").Add_Click({
+    $mood = 3 # Hardcoded since we didn't add a slider for mood to save space, or we can use energy
+    $energy = (Get-Control "EnergySlider").Value
+    $pressure = (Get-Control "PressureSlider").Value
+    Save-WellbeingCheckIn -Mood $mood -Energy $energy -Pressure $pressure -Context "manual" | Out-Null
+    
+    $recs = Invoke-FatigueRuleEngine
+    $recsArr = @($recs)
+    if ($recsArr.Count -gt 0) {
+        (Get-Control "RecommendationDisplay").Text = $recsArr[0].Message
+    } else {
+        (Get-Control "RecommendationDisplay").Text = "Check-in saved. Have a great session!"
+    }
+})
+
+$script:WellbeingTimerDispatcher = New-Object System.Windows.Threading.DispatcherTimer
+$script:WellbeingTimerDispatcher.Interval = [TimeSpan]::FromSeconds(1)
+$script:WellbeingTimerDispatcher.Add_Tick({
+    $tickResult = Update-WellbeingTimerTick
+    if ($tickResult -eq "Paused due to inactivity") {
+        (Get-Control "TimerStatusDisplay").Text = "Paused (Inactive)"
+        (Get-Control "PauseResumeTimerButton").Content = "Resume"
+    } elseif ($tickResult -eq "Completed") {
+        (Get-Control "TimerStatusDisplay").Text = "Session Completed!"
+        $script:WellbeingTimerDispatcher.Stop()
+        Stop-WellbeingSession -Reason "Completed" | Out-Null
+        (Get-Control "ActiveTimerContainer").Visibility = [Windows.Visibility]::Collapsed
+        (Get-Control "StartFocusButton").IsEnabled = $true
+        $vm.WellbeingTimerStatus = ""
+    }
+    
+    if ($script:WellbeingTimerState -eq "Running") {
+        $formatted = Get-WellbeingCurrentTimeFormatted
+        (Get-Control "TimerDisplay").Text = $formatted
+        $vm.WellbeingTimerStatus = "Focus: $formatted"
+    }
+})
+
+(Get-Control "StartFocusButton").Add_Click({
+    $presetCombo = Get-Control "WellbeingPresetSelector"
+    $selected = $presetCombo.Text
+    $duration = 25
+    if ($selected -match "50m") { $duration = 50 }
+    elseif ($selected -match "15m") { $duration = 15 }
+    
+    Start-WellbeingSession -DurationMinutes $duration -SessionType $selected
+    
+    (Get-Control "StartFocusButton").IsEnabled = $false
+    (Get-Control "ActiveTimerContainer").Visibility = [Windows.Visibility]::Visible
+    (Get-Control "TimerStatusDisplay").Text = "Focusing..."
+    (Get-Control "PauseResumeTimerButton").Content = "Pause"
+    
+    $formatted = Get-WellbeingCurrentTimeFormatted
+    (Get-Control "TimerDisplay").Text = $formatted
+    $vm.WellbeingTimerStatus = "Focus: $formatted"
+    
+    $script:WellbeingTimerDispatcher.Start()
+})
+
+(Get-Control "PauseResumeTimerButton").Add_Click({
+    if ($script:WellbeingTimerState -eq "Running") {
+        Pause-WellbeingSession
+        (Get-Control "PauseResumeTimerButton").Content = "Resume"
+        (Get-Control "TimerStatusDisplay").Text = "Paused"
+        $vm.WellbeingTimerStatus = "Focus: Paused"
+        $script:WellbeingTimerDispatcher.Stop()
+    } else {
+        Resume-WellbeingSession
+        (Get-Control "PauseResumeTimerButton").Content = "Pause"
+        (Get-Control "TimerStatusDisplay").Text = "Focusing..."
+        $script:WellbeingTimerDispatcher.Start()
+    }
+})
+
+(Get-Control "StopTimerButton").Add_Click({
+    Stop-WellbeingSession -Reason "Ended by user" | Out-Null
+    $script:WellbeingTimerDispatcher.Stop()
+    (Get-Control "ActiveTimerContainer").Visibility = [Windows.Visibility]::Collapsed
+    (Get-Control "StartFocusButton").IsEnabled = $true
+    $vm.WellbeingTimerStatus = ""
+})
+
+# Handle crash recovery on startup
+if (Restore-WellbeingCheckpoint) {
+    (Get-Control "StartFocusButton").IsEnabled = $false
+    (Get-Control "ActiveTimerContainer").Visibility = [Windows.Visibility]::Visible
+    (Get-Control "TimerStatusDisplay").Text = "Recovered Session (Paused)"
+    (Get-Control "PauseResumeTimerButton").Content = "Resume"
+    $formatted = Get-WellbeingCurrentTimeFormatted
+    (Get-Control "TimerDisplay").Text = $formatted
+    $vm.WellbeingTimerStatus = "Focus: Paused"
+}
+
+# --------------------------
+# END SCRIPT
+# --------------------------
 (Get-Control "CloseSetupButton").Add_Click({ $window.Close() })
 (Get-Control "CancelInstallerButton").Add_Click({ $window.Close() })
 (Get-Control "InstallerUninstallButton").Add_Click({

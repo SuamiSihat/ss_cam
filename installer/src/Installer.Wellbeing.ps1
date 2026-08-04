@@ -192,3 +192,119 @@ function Get-WellbeingCurrentTimeFormatted {
     $s = $remaining % 60
     return "${m}:$($s.ToString('00'))"
 }
+
+function Save-WellbeingCheckIn {
+    param([int]$Mood, [int]$Energy, [int]$Pressure, [string]$Context)
+    $data = Get-WellbeingData
+    $checkIn = @{
+        Id = [guid]::NewGuid().ToString()
+        RecordedAt = (Get-Date).ToString("s")
+        Mood = $Mood
+        Energy = $Energy
+        Pressure = $Pressure
+        Context = $Context
+    }
+    $data.CheckIns += $checkIn
+    Save-WellbeingData -Data $data
+    return $checkIn
+}
+
+function Start-WellbeingResetSession {
+    param([string]$ResetType, [int]$DurationSeconds)
+    $data = Get-WellbeingData
+    $session = @{
+        Id = [guid]::NewGuid().ToString()
+        ResetType = $ResetType
+        StartedAt = (Get-Date).ToString("s")
+        CompletedAt = $null
+        ActualSeconds = 0
+        Status = "running"
+        PlannedSeconds = $DurationSeconds
+    }
+    $data.ResetSessions += $session
+    Save-WellbeingData -Data $data
+    return $session
+}
+
+function Stop-WellbeingResetSession {
+    param([string]$Id, [int]$ActualSeconds)
+    $data = Get-WellbeingData
+    for ($i = 0; $i -lt $data.ResetSessions.Count; $i++) {
+        if ($data.ResetSessions[$i].Id -eq $Id) {
+            $data.ResetSessions[$i].ActualSeconds = $ActualSeconds
+            $data.ResetSessions[$i].CompletedAt = (Get-Date).ToString("s")
+            if ($ActualSeconds -ge $data.ResetSessions[$i].PlannedSeconds) {
+                $data.ResetSessions[$i].Status = "completed"
+            } else {
+                $data.ResetSessions[$i].Status = "ended_early"
+            }
+        }
+    }
+    Save-WellbeingData -Data $data
+}
+
+function Invoke-FatigueRuleEngine {
+    # Returns an array of recommendation objects
+    $data = Get-WellbeingData
+    $recommendations = @()
+    
+    # Analyze recent check-ins
+    $recentCheckIns = @($data.CheckIns | Sort-Object RecordedAt -Descending | Select-Object -First 2 | Where-Object { $null -ne $_ })
+    if ($recentCheckIns.Count -ge 1) {
+        $last = $recentCheckIns[0]
+        if ($last.Energy -le 2 -and $last.Pressure -ge 4) {
+            $recommendations += @{ Type = "Action"; Message = "A breathing reset is suggested before starting a Gentle Focus." }
+        } elseif ($last.Energy -le 2) {
+            $recommendations += @{ Type = "Action"; Message = "A gentler start may be easier today. Try a 15-minute focus session." }
+        } elseif ($last.Pressure -ge 4) {
+            $recommendations += @{ Type = "Action"; Message = "Pressure is high. Consider defining one achievable outcome." }
+        } elseif ($last.Energy -ge 4 -and $last.Pressure -le 3) {
+            $recommendations += @{ Type = "Action"; Message = "You have good energy. Consider a Deep Flow session." }
+        } elseif ($last.Mood -ge 4 -and $last.Energy -ge 4) {
+            $recommendations += @{ Type = "Action"; Message = "You're inspired and energized. Ready for a Deep Flow?" }
+        }
+    }
+    
+    # 2 consecutive Energy checkins at 1 or 2
+    if ($recentCheckIns.Count -ge 2 -and $recentCheckIns[0].Energy -le 2 -and $recentCheckIns[1].Energy -le 2) {
+        $recommendations += @{ Type = "Alert"; Message = "Low energy pattern noticed. Recommend shorter sessions for the rest of the day." }
+    }
+    if ($recentCheckIns.Count -ge 2 -and $recentCheckIns[0].Pressure -ge 4 -and $recentCheckIns[1].Pressure -ge 4) {
+        $recommendations += @{ Type = "Alert"; Message = "High pressure pattern noticed. Consider breathing, Mind Drop, or a one-outcome session." }
+    }
+    
+    # Determine last meaningful break
+    # A meaningful break = a reset > 60s, or idle time between sessions > 180s
+    $today = (Get-Date).ToString("yyyy-MM-dd")
+    $todaySessions = $data.FocusSessions | Where-Object { $_.StartedAt -like "$today*" } | Sort-Object StartedAt
+    
+    $continuousWorkSeconds = 0
+    $lastBreakTime = $null
+    
+    if ($todaySessions.Count -gt 0) {
+        # Simplified: check the duration since last session ended compared to now
+        $lastEnd = $todaySessions[-1].EndedAt
+        if ($lastEnd) {
+            $gap = ((Get-Date) - [DateTime]::Parse($lastEnd)).TotalSeconds
+            if ($gap -gt 180) {
+                # They took a break
+                $continuousWorkSeconds = 0
+            } else {
+                # Sum the work
+                $continuousWorkSeconds = ($todaySessions | Measure-Object -Property ActualSeconds -Sum).Sum
+            }
+        }
+    }
+    
+    # Fatigue limits
+    if ($continuousWorkSeconds -ge 7200) { # 120 mins
+        $recommendations += @{ Type = "Fatigue"; Level = 3; Message = "You have been focused for over 2 hours without a break. Please consider resting." }
+    } elseif ($continuousWorkSeconds -ge 5400) { # 90 mins
+        $recommendations += @{ Type = "Fatigue"; Level = 2; Message = "You have been working for a long time. Time for a 5-minute break?" }
+    } elseif ($continuousWorkSeconds -ge 3000) { # 50 mins
+        $recommendations += @{ Type = "Fatigue"; Level = 1; Message = "You have been focused for a while. A one-minute visual reset is available whenever you are ready." }
+    }
+    
+    return $recommendations
+}
+
