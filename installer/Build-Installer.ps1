@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidatePattern("^\d+\.\d+\.\d+$")]
-    [string]$Version = "1.9.3"
+    [string]$Version = "1.9.4"
 )
 
 Set-StrictMode -Version 2.0

@@ -1255,7 +1255,7 @@ function Uninstall-SuamiSihatApp {
 }
 
 function Get-SuamiSihatLatestRelease {
-    param([string]$CurrentVersion = "1.9.3")
+    param([string]$CurrentVersion = "1.9.4")
 
     $apiUrls = @(
         "https://api.github.com/repos/SuamiSihat/ss_cam/releases/latest"

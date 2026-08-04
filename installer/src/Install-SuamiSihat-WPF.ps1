@@ -10,7 +10,7 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
-$script:AppVersion = "1.9.3"
+$script:AppVersion = "1.9.4"
 $script:installationRunning = $false
 $script:installerProcess = $null
 $script:standardOutputTask = $null
@@ -578,9 +578,9 @@ $xaml = @'
       <Setter Property="Padding" Value="16,10"/>
     </Style>
     <Style x:Key="AssetCardButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Height" Value="132"/>
+      <Setter Property="MinHeight" Value="132"/>
       <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-      <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+      <Setter Property="VerticalContentAlignment" Value="Top"/>
       <Setter Property="Background" Value="White"/>
       <Setter Property="Foreground" Value="{StaticResource BrandInk}"/>
       <Setter Property="BorderBrush" Value="{StaticResource BrandBorder}"/>
@@ -1656,7 +1656,14 @@ function ConvertFrom-MarkdownToFlowDocument([string]$Markdown) {
     $document.FontSize = 13
     $document.Foreground = New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(30,41,59))
     $lines = @($Markdown -split "`r?`n")
-    $index = 0
+    # Strip YAML frontmatter (--- ... ---) before rendering
+    $startIndex = 0
+    if ($lines.Count -gt 0 -and ([string]$lines[0]).Trim() -eq '---') {
+        $closeIdx = 1
+        while ($closeIdx -lt $lines.Count -and ([string]$lines[$closeIdx]).Trim() -ne '---') { $closeIdx++ }
+        $startIndex = if ($closeIdx -lt $lines.Count) { $closeIdx + 1 } else { 0 }
+    }
+    $index = $startIndex
     while ($index -lt $lines.Count) {
         $line = [string]$lines[$index]
         if ([string]::IsNullOrWhiteSpace($line)) { $index++; continue }
@@ -1903,6 +1910,16 @@ $vm.add_PropertyChanged({
     param($sender, $eventArgs)
     if ($eventArgs.PropertyName -in @("Workspace", "JobId", "ProjectName", "SelectedPreset", "SelectedBrand", "SelectedYear", "SelectedTemplateExtension", "InjectMasterCanvas", "IncludeRevisions", "IncludeRawMedia", "StaffId")) {
         Update-ProjectPreview
+    }
+    # Bug fix: update Job ID suffix when preset changes
+    if ($eventArgs.PropertyName -eq "SelectedPreset") {
+        $newPrefix = Get-SuamiSihatJobPrefix -PresetName $vm.SelectedPreset
+        $currentId = [string]$vm.JobId
+        if ($currentId -match '^(\d+)[A-Za-z]+$') {
+            $vm.JobId = "$($matches[1])$newPrefix"
+        } elseif ($currentId -match '^(\d+)$') {
+            $vm.JobId = "$($matches[1])$newPrefix"
+        }
     }
     if ($eventArgs.PropertyName -eq "ProjectReadmeContent" -and $script:readmePreviewMode) {
         Update-ReadmePreview
