@@ -10,7 +10,7 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
-$script:AppVersion = "1.9.5"
+$script:AppVersion = "1.9.6"
 $script:installationRunning = $false
 $script:installerProcess = $null
 $script:standardOutputTask = $null
@@ -83,7 +83,8 @@ namespace SuamiSihat.Wpf
         public bool HasRecent { get { return hasRecent; } set { Set(ref hasRecent, value, "HasRecent"); } }
         public string StaffId { get { return staffId; } set { Set(ref staffId, value, "StaffId"); } }
         public string DesignerName { get { return designerName; } set { Set(ref designerName, value, "DesignerName"); } }
-        public string Department { get { return department; } set { Set(ref department, value, "Department"); } }
+        public string Department { get { return department; } set { Set(ref department, value, "Department"); var h = PropertyChanged; if (h != null) h(this, new PropertyChangedEventArgs("DepartmentDisplay")); } }
+        public string DepartmentDisplay { get { return string.IsNullOrWhiteSpace(department) ? "User Profile" : department; } }
         public string Email { get { return email; } set { Set(ref email, value, "Email"); } }
         public string AvatarPath { get { return avatarPath; } set { Set(ref avatarPath, value, "AvatarPath"); } }
         public string SettingsStatus { get { return settingsStatus; } set { Set(ref settingsStatus, value, "SettingsStatus"); } }
@@ -640,8 +641,9 @@ $xaml = @'
   </Window.Resources>
 
   <DockPanel LastChildFill="True">
-    <Border DockPanel.Dock="Top" Background="#022057" Padding="24,16">
+    <Border DockPanel.Dock="Top" Background="#022057" Padding="24,16" ClipToBounds="True">
       <Grid>
+        <Canvas x:Name="HeaderCanvas" IsHitTestVisible="False"/>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <Image x:Name="HeaderLogo" Width="260" Height="50" Stretch="Uniform" HorizontalAlignment="Left" Margin="0,0,18,0"/>
           <StackPanel>
@@ -666,7 +668,7 @@ $xaml = @'
         <DockPanel LastChildFill="True">
           <Button x:Name="NavProfile" DockPanel.Dock="Bottom" Style="{StaticResource ModuleButton}">
             <StackPanel Orientation="Horizontal">
-              <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource BrandSoft}" Margin="0,0,12,0" ClipToBounds="True">
+              <Border x:Name="AvatarBorder" Width="42" Height="42" CornerRadius="21" Background="{StaticResource BrandSoft}" Margin="0,0,12,0" ClipToBounds="True" Cursor="Hand">
                 <Grid>
                   <Path x:Name="AvatarPlaceholder" Data="M12,12 A5,5 0 1 1 22,12 A5,5 0 1 1 12,12 M7,27 C7,21 11,18 17,18 C23,18 27,21 27,27 Z" Fill="{StaticResource BrandNavy}" Stretch="Uniform" Margin="8"/>
                   <Image x:Name="SidebarAvatarImage" Stretch="UniformToFill" Visibility="Collapsed"/>
@@ -674,7 +676,7 @@ $xaml = @'
               </Border>
               <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="{Binding DesignerName}" FontWeight="SemiBold"/>
-                <TextBlock Text="User Profile" Foreground="{StaticResource BrandMuted}" FontSize="11"/>
+                <TextBlock Text="{Binding DepartmentDisplay}" Foreground="{StaticResource BrandMuted}" FontSize="11"/>
               </StackPanel>
             </StackPanel>
           </Button>
@@ -1050,6 +1052,15 @@ $xaml = @'
                     <DataGridTextColumn Header="Modified" Binding="{Binding Modified}" Width="125"/>
                   </DataGrid.Columns>
                 </DataGrid>
+              </TabItem>
+              <TabItem Header="Production / Export">
+                <Grid Background="{StaticResource BrandSurface}">
+                  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                  <TextBlock x:Name="ProductionStatusText" Text="Select a project folder to preview exported files." Foreground="{StaticResource BrandMuted}" FontSize="12" Padding="10,8" TextWrapping="Wrap"/>
+                  <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <WrapPanel x:Name="ProductionThumbnailPanel" Margin="8" Orientation="Horizontal"/>
+                  </ScrollViewer>
+                </Grid>
               </TabItem>
             </TabControl>
           </Grid>
@@ -1797,6 +1808,84 @@ function Show-MarkdownReport([string]$FileName, [string]$Title) {
     [void]$reportWindow.ShowDialog()
 }
 
+function Show-ImagePopup {
+    param([string]$ImagePath, [string]$Title = "")
+    if (-not (Test-Path -LiteralPath $ImagePath -PathType Leaf)) { return }
+    try {
+        $bmp = New-Object Windows.Media.Imaging.BitmapImage
+        $bmp.BeginInit()
+        $bmp.UriSource = [System.Uri]::new([System.IO.Path]::GetFullPath($ImagePath))
+        $bmp.CacheOption = [Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+        $bmp.EndInit(); $bmp.Freeze()
+        $popup = New-Object Windows.Window
+        $popup.Title = if ($Title) { $Title } else { [System.IO.Path]::GetFileName($ImagePath) }
+        $popup.Width = 860; $popup.Height = 660
+        $popup.MinWidth = 320; $popup.MinHeight = 240
+        $popup.WindowStartupLocation = "CenterOwner"
+        $popup.Owner = $window
+        $popup.Background = New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(15,22,36))
+        $popup.WindowStyle = "SingleBorderWindow"
+        $img = New-Object Windows.Controls.Image
+        $img.Source = $bmp
+        $img.Stretch = [Windows.Media.Stretch]::Uniform
+        $img.Margin = New-Object Windows.Thickness(16)
+        $popup.Content = $img
+        [void]$popup.ShowDialog()
+    } catch {}
+}
+
+function Update-ProductionThumbnails {
+    $panel   = Get-Control "ProductionThumbnailPanel"
+    $status  = Get-Control "ProductionStatusText"
+    $panel.Children.Clear()
+    $path = [string]$vm.SelectedProjectPath
+    if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Container)) {
+        $status.Text = "Select a project folder to preview exported files."
+        return
+    }
+    $imgExts = @('.png','.jpg','.jpeg','.gif','.bmp','.tiff','.tif','.webp')
+    $scanDirs = @("Production","Export","Exports","Output","Outputs") | ForEach-Object { Join-Path $path $_ } | Where-Object { Test-Path -LiteralPath $_ -PathType Container }
+    $files = @($scanDirs | ForEach-Object { Get-ChildItem -LiteralPath $_ -File -Recurse -ErrorAction SilentlyContinue } | Where-Object { $imgExts -contains $_.Extension.ToLower() } | Select-Object -First 60)
+    if ($files.Count -eq 0) {
+        $status.Text = "No exported images found in Production/Export subfolders."
+        return
+    }
+    $status.Text = "$($files.Count) file(s) - click any thumbnail to preview full size"
+    foreach ($file in $files) {
+        try {
+            $bmp = New-Object Windows.Media.Imaging.BitmapImage
+            $bmp.BeginInit()
+            $bmp.UriSource = [System.Uri]::new($file.FullName)
+            $bmp.DecodePixelWidth = 160
+            $bmp.CacheOption = [Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+            $bmp.EndInit(); $bmp.Freeze()
+            $img = New-Object Windows.Controls.Image
+            $img.Source = $bmp; $img.Width = 160; $img.Height = 120
+            $img.Stretch = [Windows.Media.Stretch]::UniformToFill
+            $img.VerticalAlignment = "Top"
+            $lbl = New-Object Windows.Controls.TextBlock
+            $lbl.Text = $file.Name
+            $lbl.FontSize = 10; $lbl.MaxWidth = 160
+            $lbl.TextTrimming = "CharacterEllipsis"
+            $lbl.Foreground = New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(71,85,105))
+            $lbl.Padding = New-Object Windows.Thickness(4,3,4,4)
+            $sp = New-Object Windows.Controls.StackPanel
+            [void]$sp.Children.Add($img); [void]$sp.Children.Add($lbl)
+            $card = New-Object Windows.Controls.Border
+            $card.Margin = New-Object Windows.Thickness(5)
+            $card.BorderBrush = New-Object Windows.Media.SolidColorBrush([Windows.Media.Color]::FromRgb(203,213,225))
+            $card.BorderThickness = New-Object Windows.Thickness(1)
+            $card.CornerRadius = New-Object Windows.CornerRadius(6)
+            $card.Background = [Windows.Media.Brushes]::White
+            $card.Cursor = [Windows.Input.Cursors]::Hand
+            $card.Child = $sp
+            $filePath = $file.FullName; $fileName = $file.Name
+            $card.Add_MouseLeftButtonDown({ Show-ImagePopup -ImagePath $filePath -Title $fileName }.GetNewClosure())
+            [void]$panel.Children.Add($card)
+        } catch {}
+    }
+}
+
 function Save-WpfSettings {
     $previousWorkspace = $script:appState.DefaultWorkspace
     $script:appState = Save-SuamiSihatAppState `
@@ -1942,7 +2031,7 @@ $vm.add_PropertyChanged({
     if ($eventArgs.PropertyName -in @("Workspace", "JobId", "ProjectName", "SelectedPreset", "SelectedBrand", "SelectedYear", "SelectedTemplateExtension", "InjectMasterCanvas", "IncludeRevisions", "IncludeRawMedia", "StaffId")) {
         Update-ProjectPreview
     }
-    # Bug fix: update Job ID suffix when preset changes
+    # Update Job ID suffix when preset changes
     if ($eventArgs.PropertyName -eq "SelectedPreset") {
         $newPrefix = Get-SuamiSihatJobPrefix -PresetName $vm.SelectedPreset
         $currentId = [string]$vm.JobId
@@ -1954,6 +2043,9 @@ $vm.add_PropertyChanged({
     }
     if ($eventArgs.PropertyName -eq "AvatarPath") {
         Update-AvatarDisplay
+    }
+    if ($eventArgs.PropertyName -eq "SelectedProjectPath") {
+        Update-ProductionThumbnails
     }
     if ($eventArgs.PropertyName -eq "ProjectReadmeContent" -and $script:readmePreviewMode) {
         Update-ReadmePreview
@@ -2287,10 +2379,22 @@ $designerFoldersGrid.Add_MouseDoubleClick({
     }
     $vm.SearchStatus = "$copied file(s) copied to the work order$(if ($skipped -gt 0) { "; $skipped skipped" })."
 })
+
 (Get-Control "BrowseAvatarButton").Add_Click({
     $dialog = New-Object Microsoft.Win32.OpenFileDialog
-    $dialog.Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.ico;*.svg|All files|*.*"
+    $dialog.Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.webp"
+    $dialog.Title = "Select profile picture"
     if ($dialog.ShowDialog($window)) { $vm.AvatarPath = $dialog.FileName }
+})
+
+# Avatar border click â†’ full-size popup
+$avatarBorder = Get-Control "AvatarBorder"
+$avatarBorder.Add_PreviewMouseLeftButtonDown({
+    param($s, $e)
+    if (-not [string]::IsNullOrWhiteSpace($vm.AvatarPath) -and (Test-Path -LiteralPath $vm.AvatarPath -PathType Leaf)) {
+        $e.Handled = $true
+        Show-ImagePopup -ImagePath $vm.AvatarPath -Title $vm.DesignerName
+    }
 })
 (Get-Control "SaveSettingsButton").Add_Click({
     try { Save-WpfSettings } catch { $vm.SettingsStatus = "Unable to save settings: $($_.Exception.Message)" }
@@ -2508,7 +2612,54 @@ $window.Add_ContentRendered({
         if ($InstallerMode) { Enter-InstallerSurface } else { $views.SelectedIndex = 1; Start-DashboardRefresh }
     }
     Update-AvatarDisplay
+
+    # â”€â”€ PS Vita-style floating geometry animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    $headerCanvas = Get-Control "HeaderCanvas"
+    $shapeData = @(
+        @{X= 60; Y= 10; VX= 0.45; VY= 0.20; D= 72; O= 0.09}
+        @{X=210; Y=-18; VX=-0.28; VY= 0.28; D= 44; O= 0.07}
+        @{X=390; Y= 28; VX= 0.22; VY=-0.18; D= 90; O= 0.06}
+        @{X=540; Y=  5; VX=-0.32; VY= 0.22; D= 56; O= 0.08}
+        @{X=720; Y= 32; VX= 0.28; VY=-0.22; D= 38; O= 0.07}
+        @{X=860; Y=-8;  VX=-0.20; VY= 0.25; D= 78; O= 0.055}
+        @{X=1000;Y= 22; VX= 0.36; VY=-0.14; D= 50; O= 0.08}
+        @{X=1120;Y= 12; VX=-0.24; VY= 0.17; D= 64; O= 0.06}
+    )
+    $script:animItems = [System.Collections.Generic.List[hashtable]]::new()
+    foreach ($d in $shapeData) {
+        $e = New-Object Windows.Shapes.Ellipse
+        $e.Width = $d.D; $e.Height = $d.D
+        $e.Stroke = [Windows.Media.Brushes]::White
+        $e.StrokeThickness = 1.4
+        $e.Opacity = $d.O
+        $e.Fill = [Windows.Media.Brushes]::Transparent
+        [Windows.Controls.Canvas]::SetLeft($e, $d.X)
+        [Windows.Controls.Canvas]::SetTop($e, $d.Y)
+        [void]$headerCanvas.Children.Add($e)
+        $script:animItems.Add(@{Shape=$e; VX=[double]$d.VX; VY=[double]$d.VY; D=[double]$d.D})
+    }
+    $script:headerTimer = New-Object Windows.Threading.DispatcherTimer
+    $script:headerTimer.Interval = [TimeSpan]::FromMilliseconds(33)
+    $script:headerTimer.Add_Tick({
+        $cw = [double]$headerCanvas.ActualWidth
+        $ch = [double]$headerCanvas.ActualHeight
+        if ($cw -le 0 -or $ch -le 0) { return }
+        foreach ($item in $script:animItems) {
+            $x = [Windows.Controls.Canvas]::GetLeft($item.Shape) + $item.VX
+            $y = [Windows.Controls.Canvas]::GetTop($item.Shape) + $item.VY
+            $d = $item.D
+            if ($x -gt $cw)  { $x = -$d }
+            elseif ($x -lt -$d) { $x = $cw }
+            if ($y -gt $ch)  { $y = -$d }
+            elseif ($y -lt -$d) { $y = $ch }
+            [Windows.Controls.Canvas]::SetLeft($item.Shape, $x)
+            [Windows.Controls.Canvas]::SetTop($item.Shape, $y)
+        }
+    })
+    $script:headerTimer.Start()
 })
+
+$window.Add_Closed({ if ($script:headerTimer) { $script:headerTimer.Stop() } })
 
 if ($SmokeTest) {
     $views.SelectedIndex = switch ($PreviewView) {
@@ -2554,4 +2705,5 @@ $dashboardTimer.Stop()
 $searchTimer.Stop()
 $designerFolderTimer.Stop()
 $reader.Close()
+
 
