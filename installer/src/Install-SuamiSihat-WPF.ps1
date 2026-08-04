@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [switch]$SmokeTest,
     [switch]$InstallerMode,
@@ -59,7 +59,7 @@ namespace SuamiSihat.Wpf
             cpmInstallPath, licenseText, licenseReadStatus, installReport, dashboardThisMonth,
             dashboardDesignerCount, dashboardFileCount, customTemplateExtension,
             selectedDesignerFolderId, designerFolderStatus, projectReadmeContent, selectedProjectPath,
-            brandAssetsPath, brandAssetsStatus;
+            brandAssetsPath, brandAssetsStatus, wellbeingTimerStatus;
         private bool injectMasterCanvas, includeRevisions, includeRawMedia, hasRecent,
             isInstalling, installBrandKit = true, installProjectManager = true,
             acceptLicence, copyAssets = true, createWebShortcuts = true, isSearching;
@@ -125,6 +125,7 @@ namespace SuamiSihat.Wpf
         public string SelectedProjectPath { get { return selectedProjectPath; } set { Set(ref selectedProjectPath, value, "SelectedProjectPath"); } }
         public string BrandAssetsPath { get { return brandAssetsPath; } set { Set(ref brandAssetsPath, value, "BrandAssetsPath"); } }
         public string BrandAssetsStatus { get { return brandAssetsStatus; } set { Set(ref brandAssetsStatus, value, "BrandAssetsStatus"); } }
+        public string WellbeingTimerStatus { get { return wellbeingTimerStatus; } set { Set(ref wellbeingTimerStatus, value, "WellbeingTimerStatus"); } }
 
         public ObservableCollection<string> Presets { get; private set; }
         public ObservableCollection<string> Brands { get; private set; }
@@ -659,6 +660,8 @@ $xaml = @'
     <StatusBar x:Name="AppStatusBar" DockPanel.Dock="Bottom" Background="#E8EEF6" Padding="12,5">
       <StatusBarItem><TextBlock Text="{Binding NasStatus}" Foreground="{StaticResource BrandMuted}"/></StatusBarItem>
       <Separator/>
+      <StatusBarItem><TextBlock Text="{Binding WellbeingTimerStatus}" Foreground="{StaticResource BrandMuted}" Cursor="Hand" Name="WellbeingTimerStatusBlock"/></StatusBarItem>
+      <Separator/>
       <StatusBarItem><TextBlock Text="{Binding VersionStatus}" Foreground="{StaticResource BrandMuted}"/></StatusBarItem>
     </StatusBar>
 
@@ -687,6 +690,14 @@ $xaml = @'
             <TextBlock Text="MODULES" Foreground="{StaticResource BrandMuted}" FontSize="11" FontWeight="Bold" Margin="22,20,0,8"/>
             <Button x:Name="NavDashboard" Style="{StaticResource ModuleButton}">
               <StackPanel><TextBlock Text="Dashboard" FontWeight="SemiBold" FontSize="15"/><TextBlock Text="Workspace overview" Foreground="{StaticResource BrandMuted}" FontSize="11"/></StackPanel>
+            </Button>
+            <Button x:Name="NavWellbeing" Style="{StaticResource ModuleButton}">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                  <TextBlock Text="Creative Wellbeing" FontWeight="SemiBold" FontSize="15"/>
+                </StackPanel>
+                <TextBlock Text="Focus, reset and work sustainably" Foreground="{StaticResource BrandMuted}" FontSize="11"/>
+              </StackPanel>
             </Button>
             <Button x:Name="NavProjects" Style="{StaticResource ModuleButton}">
               <StackPanel><TextBlock Text="Project Management" FontWeight="SemiBold" FontSize="15"/><TextBlock Text="Create and manage work" Foreground="{StaticResource BrandMuted}" FontSize="11"/></StackPanel>
@@ -928,6 +939,33 @@ $xaml = @'
                 <TextBlock Text="{Binding DashboardStatus}" Foreground="{StaticResource BrandMuted}" Margin="0,8,0,0"/>
               </StackPanel>
             </GroupBox>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="CreativeWellbeing">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel MaxWidth="980">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+              <TextBlock Text="Creative Wellbeing" Style="{StaticResource PageTitle}" Margin="0,0,16,0"/>
+              <Border Background="#EAF1FA" CornerRadius="12" Padding="8,4" VerticalAlignment="Center">
+                <TextBlock Text="Private on this PC" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource BrandNavy}" Cursor="Hand" Name="PrivacyBadgeText"/>
+              </Border>
+            </StackPanel>
+            <TextBlock Text="Build focus, manage creative fatigue and recover intentionally." Foreground="{StaticResource BrandMuted}" FontSize="14" Margin="0,0,0,24"/>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="1*"/>
+              </Grid.ColumnDefinitions>
+              
+              <Border Grid.Column="0" Background="White" CornerRadius="4" BorderBrush="#E2E8F0" BorderThickness="1" Margin="0,0,12,0" Padding="24">
+                <TextBlock Text="Focus Session (Coming Soon)" Foreground="{StaticResource BrandMuted}"/>
+              </Border>
+              <Border Grid.Column="1" Background="White" CornerRadius="4" BorderBrush="#E2E8F0" BorderThickness="1" Margin="12,0,0,0" Padding="24">
+                <TextBlock Text="Quick Check-In (Coming Soon)" Foreground="{StaticResource BrandMuted}"/>
+              </Border>
+            </Grid>
           </StackPanel>
         </ScrollViewer>
       </TabItem>
@@ -2076,10 +2114,11 @@ $script:sidebarExpanded = $true
 })
 
 (Get-Control "NavDashboard").Add_Click({ $views.SelectedIndex = 1; Start-DashboardRefresh })
-(Get-Control "NavProjects").Add_Click({ $views.SelectedIndex = 2 })
-(Get-Control "NavSearch").Add_Click({ $views.SelectedIndex = 3; Start-DesignerFolderListing })
-(Get-Control "NavBrandAssets").Add_Click({ $views.SelectedIndex = 4 })
-(Get-Control "NavProfile").Add_Click({ $views.SelectedIndex = 5 })
+(Get-Control "NavWellbeing").Add_Click({ $views.SelectedIndex = 2 })
+(Get-Control "NavProjects").Add_Click({ $views.SelectedIndex = 3 })
+(Get-Control "NavSearch").Add_Click({ $views.SelectedIndex = 4; Start-DesignerFolderListing })
+(Get-Control "NavBrandAssets").Add_Click({ $views.SelectedIndex = 5 })
+(Get-Control "NavProfile").Add_Click({ $views.SelectedIndex = 6 })
 (Get-Control "OpenColourPalettesButton").Add_Click({ Open-BrandAssetFolder "Colour Palettes" })
 (Get-Control "OpenAssetLibrariesButton").Add_Click({ Open-BrandAssetFolder "Libraries" })
 (Get-Control "OpenLogosButton").Add_Click({ Open-BrandAssetFolder "Logos" })
