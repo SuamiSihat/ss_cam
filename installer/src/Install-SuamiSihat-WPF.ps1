@@ -10,7 +10,7 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
-$script:AppVersion = "1.9.8"
+$script:AppVersion = "1.9.9"
 $script:installationRunning = $false
 $script:installerProcess = $null
 $script:standardOutputTask = $null
@@ -2725,6 +2725,7 @@ $dashboardTimer.Stop()
 $searchTimer.Stop()
 $designerFolderTimer.Stop()
 $reader.Close()
+
 
 
 
