@@ -10,7 +10,7 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
-$script:AppVersion = "1.9.7"
+$script:AppVersion = "1.9.8"
 $script:installationRunning = $false
 $script:installerProcess = $null
 $script:standardOutputTask = $null
@@ -645,6 +645,9 @@ $xaml = @'
       <Grid>
         <Canvas x:Name="HeaderCanvas" IsHitTestVisible="False"/>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <Border x:Name="ToggleSidebarButton" Background="Transparent" Margin="0,0,16,0" Cursor="Hand">
+            <Path Data="M0,0 L18,0 L18,2 L0,2 Z M0,6 L18,6 L18,8 L0,8 Z M0,12 L18,12 L18,14 L0,14 Z" Fill="#BFE4FF" Stretch="Uniform" Width="22" Height="14" VerticalAlignment="Center"/>
+          </Border>
           <Image x:Name="HeaderLogo" Width="260" Height="50" Stretch="Uniform" HorizontalAlignment="Left" Margin="0,0,18,0"/>
           <StackPanel>
             <TextBlock Text="{Binding HeaderContext}" Foreground="#BFE4FF" FontSize="13"/>
@@ -671,7 +674,7 @@ $xaml = @'
               <Border x:Name="AvatarBorder" Width="42" Height="42" CornerRadius="21" Background="{StaticResource BrandSoft}" Margin="0,0,12,0" ClipToBounds="True" Cursor="Hand">
                 <Grid>
                   <Path x:Name="AvatarPlaceholder" Data="M12,12 A5,5 0 1 1 22,12 A5,5 0 1 1 12,12 M7,27 C7,21 11,18 17,18 C23,18 27,21 27,27 Z" Fill="{StaticResource BrandNavy}" Stretch="Uniform" Margin="8"/>
-                  <Image x:Name="SidebarAvatarImage" Stretch="UniformToFill" Visibility="Collapsed"/>
+                  <Border x:Name="SidebarAvatarImage" CornerRadius="21" Visibility="Collapsed"/>
                 </Grid>
               </Border>
               <StackPanel VerticalAlignment="Center">
@@ -1922,16 +1925,19 @@ function Update-AvatarDisplay {
             $bmp.CacheOption = [Windows.Media.Imaging.BitmapCacheOption]::OnLoad
             $bmp.EndInit()
             $bmp.Freeze()
-            $avatarImg.Source = $bmp
+            $brush = New-Object Windows.Media.ImageBrush
+            $brush.ImageSource = $bmp
+            $brush.Stretch = [Windows.Media.Stretch]::UniformToFill
+            $avatarImg.Background = $brush
             $avatarImg.Visibility = [Windows.Visibility]::Visible
             $avatarHolder.Visibility = [Windows.Visibility]::Collapsed
         } catch {
-            $avatarImg.Source = $null
+            $avatarImg.Background = $null
             $avatarImg.Visibility = [Windows.Visibility]::Collapsed
             $avatarHolder.Visibility = [Windows.Visibility]::Visible
         }
     } else {
-        $avatarImg.Source = $null
+        $avatarImg.Background = $null
         $avatarImg.Visibility = [Windows.Visibility]::Collapsed
         $avatarHolder.Visibility = [Windows.Visibility]::Visible
     }
@@ -2054,6 +2060,20 @@ $vm.add_PropertyChanged({
 
 $readmePreviewButton.Add_Click({ Set-ReadmeViewMode -ShowPreview $true })
 $readmeRawButton.Add_Click({ Set-ReadmeViewMode -ShowPreview $false })
+
+$script:sidebarExpanded = $true
+(Get-Control "ToggleSidebarButton").Add_PreviewMouseLeftButtonDown({
+    param($s, $e)
+    $e.Handled = $true
+    $script:sidebarExpanded = -not $script:sidebarExpanded
+    if ($script:sidebarExpanded) {
+        $sidebar.Visibility = [Windows.Visibility]::Visible
+        $sidebarColumn.Width = New-Object Windows.GridLength(235)
+    } else {
+        $sidebar.Visibility = [Windows.Visibility]::Collapsed
+        $sidebarColumn.Width = New-Object Windows.GridLength(0)
+    }
+})
 
 (Get-Control "NavDashboard").Add_Click({ $views.SelectedIndex = 1; Start-DashboardRefresh })
 (Get-Control "NavProjects").Add_Click({ $views.SelectedIndex = 2 })
@@ -2387,7 +2407,7 @@ $designerFoldersGrid.Add_MouseDoubleClick({
     if ($dialog.ShowDialog($window)) { $vm.AvatarPath = $dialog.FileName }
 })
 
-# Avatar border click Ã¢â€ â€™ full-size popup
+# Avatar border click ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ full-size popup
 $avatarBorder = Get-Control "AvatarBorder"
 $avatarBorder.Add_PreviewMouseLeftButtonDown({
     param($s, $e)
@@ -2613,7 +2633,7 @@ $window.Add_ContentRendered({
     }
     Update-AvatarDisplay
 
-    # Ã¢â€â‚¬Ã¢â€â‚¬ PS Vita-style floating geometry animation Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    # ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ PS Vita-style floating geometry animation ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
     $script:headerCanvas = Get-Control "HeaderCanvas"
     $shapeData = @(
         @{X= 60; Y= 10; VX= 0.45; VY= 0.20; D= 72; O= 0.09}
@@ -2705,6 +2725,7 @@ $dashboardTimer.Stop()
 $searchTimer.Stop()
 $designerFolderTimer.Stop()
 $reader.Close()
+
 
 
 
