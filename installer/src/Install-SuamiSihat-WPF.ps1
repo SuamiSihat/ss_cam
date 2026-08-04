@@ -10,7 +10,7 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
-$script:AppVersion = "1.9.6"
+$script:AppVersion = "1.9.7"
 $script:installationRunning = $false
 $script:installerProcess = $null
 $script:standardOutputTask = $null
@@ -2387,7 +2387,7 @@ $designerFoldersGrid.Add_MouseDoubleClick({
     if ($dialog.ShowDialog($window)) { $vm.AvatarPath = $dialog.FileName }
 })
 
-# Avatar border click â†’ full-size popup
+# Avatar border click Ã¢â€ â€™ full-size popup
 $avatarBorder = Get-Control "AvatarBorder"
 $avatarBorder.Add_PreviewMouseLeftButtonDown({
     param($s, $e)
@@ -2613,8 +2613,8 @@ $window.Add_ContentRendered({
     }
     Update-AvatarDisplay
 
-    # â”€â”€ PS Vita-style floating geometry animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    $headerCanvas = Get-Control "HeaderCanvas"
+    # Ã¢â€â‚¬Ã¢â€â‚¬ PS Vita-style floating geometry animation Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    $script:headerCanvas = Get-Control "HeaderCanvas"
     $shapeData = @(
         @{X= 60; Y= 10; VX= 0.45; VY= 0.20; D= 72; O= 0.09}
         @{X=210; Y=-18; VX=-0.28; VY= 0.28; D= 44; O= 0.07}
@@ -2635,14 +2635,14 @@ $window.Add_ContentRendered({
         $e.Fill = [Windows.Media.Brushes]::Transparent
         [Windows.Controls.Canvas]::SetLeft($e, $d.X)
         [Windows.Controls.Canvas]::SetTop($e, $d.Y)
-        [void]$headerCanvas.Children.Add($e)
+        [void]$script:headerCanvas.Children.Add($e)
         $script:animItems.Add(@{Shape=$e; VX=[double]$d.VX; VY=[double]$d.VY; D=[double]$d.D})
     }
     $script:headerTimer = New-Object Windows.Threading.DispatcherTimer
     $script:headerTimer.Interval = [TimeSpan]::FromMilliseconds(33)
     $script:headerTimer.Add_Tick({
-        $cw = [double]$headerCanvas.ActualWidth
-        $ch = [double]$headerCanvas.ActualHeight
+        $cw = [double]$script:headerCanvas.ActualWidth
+        $ch = [double]$script:headerCanvas.ActualHeight
         if ($cw -le 0 -or $ch -le 0) { return }
         foreach ($item in $script:animItems) {
             $x = [Windows.Controls.Canvas]::GetLeft($item.Shape) + $item.VX
@@ -2705,5 +2705,6 @@ $dashboardTimer.Stop()
 $searchTimer.Stop()
 $designerFolderTimer.Stop()
 $reader.Close()
+
 
 
