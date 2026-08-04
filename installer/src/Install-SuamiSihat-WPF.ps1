@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [switch]$SmokeTest,
     [switch]$InstallerMode,
@@ -10,7 +10,7 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
-$script:AppVersion = "1.9.4"
+$script:AppVersion = "1.9.5"
 $script:installationRunning = $false
 $script:installerProcess = $null
 $script:standardOutputTask = $null
@@ -666,8 +666,11 @@ $xaml = @'
         <DockPanel LastChildFill="True">
           <Button x:Name="NavProfile" DockPanel.Dock="Bottom" Style="{StaticResource ModuleButton}">
             <StackPanel Orientation="Horizontal">
-              <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource BrandSoft}" Margin="0,0,12,0">
-                <Path Data="M12,12 A5,5 0 1 1 22,12 A5,5 0 1 1 12,12 M7,27 C7,21 11,18 17,18 C23,18 27,21 27,27 Z" Fill="{StaticResource BrandNavy}" Stretch="Uniform" Margin="8"/>
+              <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource BrandSoft}" Margin="0,0,12,0" ClipToBounds="True">
+                <Grid>
+                  <Path x:Name="AvatarPlaceholder" Data="M12,12 A5,5 0 1 1 22,12 A5,5 0 1 1 12,12 M7,27 C7,21 11,18 17,18 C23,18 27,21 27,27 Z" Fill="{StaticResource BrandNavy}" Stretch="Uniform" Margin="8"/>
+                  <Image x:Name="SidebarAvatarImage" Stretch="UniformToFill" Visibility="Collapsed"/>
+                </Grid>
               </Border>
               <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="{Binding DesignerName}" FontWeight="SemiBold"/>
@@ -1815,6 +1818,34 @@ function Save-WpfSettings {
     $vm.SettingsStatus = "Settings and profile saved."
     Update-ProjectPreview
     Start-DashboardRefresh
+    Update-AvatarDisplay
+}
+
+function Update-AvatarDisplay {
+    $avatarImg = Get-Control "SidebarAvatarImage"
+    $avatarHolder = Get-Control "AvatarPlaceholder"
+    $path = [string]$vm.AvatarPath
+    if (-not [string]::IsNullOrWhiteSpace($path) -and (Test-Path -LiteralPath $path -PathType Leaf)) {
+        try {
+            $bmp = New-Object Windows.Media.Imaging.BitmapImage
+            $bmp.BeginInit()
+            $bmp.UriSource = [System.Uri]::new([System.IO.Path]::GetFullPath($path))
+            $bmp.CacheOption = [Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+            $bmp.EndInit()
+            $bmp.Freeze()
+            $avatarImg.Source = $bmp
+            $avatarImg.Visibility = [Windows.Visibility]::Visible
+            $avatarHolder.Visibility = [Windows.Visibility]::Collapsed
+        } catch {
+            $avatarImg.Source = $null
+            $avatarImg.Visibility = [Windows.Visibility]::Collapsed
+            $avatarHolder.Visibility = [Windows.Visibility]::Visible
+        }
+    } else {
+        $avatarImg.Source = $null
+        $avatarImg.Visibility = [Windows.Visibility]::Collapsed
+        $avatarHolder.Visibility = [Windows.Visibility]::Visible
+    }
 }
 
 function Set-InstallerStep([int]$Index) {
@@ -1920,6 +1951,9 @@ $vm.add_PropertyChanged({
         } elseif ($currentId -match '^(\d+)$') {
             $vm.JobId = "$($matches[1])$newPrefix"
         }
+    }
+    if ($eventArgs.PropertyName -eq "AvatarPath") {
+        Update-AvatarDisplay
     }
     if ($eventArgs.PropertyName -eq "ProjectReadmeContent" -and $script:readmePreviewMode) {
         Update-ReadmePreview
@@ -2473,6 +2507,7 @@ $window.Add_ContentRendered({
     if (-not $SmokeTest) {
         if ($InstallerMode) { Enter-InstallerSurface } else { $views.SelectedIndex = 1; Start-DashboardRefresh }
     }
+    Update-AvatarDisplay
 })
 
 if ($SmokeTest) {
@@ -2519,3 +2554,4 @@ $dashboardTimer.Stop()
 $searchTimer.Stop()
 $designerFolderTimer.Stop()
 $reader.Close()
+

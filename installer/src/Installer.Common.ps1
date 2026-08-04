@@ -1,4 +1,4 @@
-Set-StrictMode -Version 2.0
+﻿Set-StrictMode -Version 2.0
 
 function Get-DesignSoftwareInventory {
     $registeredApplications = @()
@@ -823,9 +823,9 @@ function Save-SuamiSihatAppState {
     return $state
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Team NAS Registry Functions (v1.9.2)
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Get-TeamRegistryPath {
     param([string]$WorkspaceRoot)
@@ -985,8 +985,8 @@ function Claim-NextJobID {
         } catch {}
     }
 
-    # NAS unavailable — use local pool
-    # NOTE: do NOT assign ArrayList via if-else — PowerShell pipeline enumerates it,
+    # NAS unavailable â€” use local pool
+    # NOTE: do NOT assign ArrayList via if-else â€” PowerShell pipeline enumerates it,
     # collapsing an empty ArrayList to $null, breaking .Count under Set-StrictMode.
     $pool = [System.Collections.ArrayList]::new()
     foreach ($id in @($AppState.LocalJobPool)) {
@@ -1001,7 +1001,7 @@ function Claim-NextJobID {
         $result.Source = "Local"
         $result.PoolRemaining = $pool.Count
     } else {
-        # Pool exhausted — generate a timestamp-based fallback (very rare)
+        # Pool exhausted â€” generate a timestamp-based fallback (very rare)
         $result.JobID = (Get-Date).ToString("HHmmss") + $JobPrefix.ToUpperInvariant()
         $result.Source = "Fallback"
         $result.PoolRemaining = 0
@@ -1181,7 +1181,7 @@ function Get-SuamiSihatInstalledVersion {
         try {
             $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($exePath).FileVersion
         } catch {}
-        # Don't use a hardcoded fallback — leave blank if not determinable
+        # Don't use a hardcoded fallback â€” leave blank if not determinable
     }
 
     return [pscustomobject]@{
@@ -1255,7 +1255,7 @@ function Uninstall-SuamiSihatApp {
 }
 
 function Get-SuamiSihatLatestRelease {
-    param([string]$CurrentVersion = "1.9.4")
+    param([string]$CurrentVersion = "1.9.5")
 
     $apiUrls = @(
         "https://api.github.com/repos/SuamiSihat/ss_cam/releases/latest"
@@ -1332,6 +1332,7 @@ function Start-SuamiSihatAutoUpdate {
     Start-Process -FilePath $updateExePath
     return $updateExePath
 }
+
 
 
 
