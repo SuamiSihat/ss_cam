@@ -75,6 +75,17 @@ try {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "assets") `
         -Destination (Join-Path $archiveRoot "installer") -Recurse
 
+    Write-Host "Compiling SS-CAM v2.0 Native Application via MSBuild..." -ForegroundColor Cyan
+    $msBuild = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe"
+    $csharpProject = Join-Path $projectRoot "src\SS-CAM\SS-CAM.csproj"
+    & $msBuild $csharpProject /p:Configuration=Release /t:Build /nologo
+    if ($LASTEXITCODE -ne 0) { throw "MSBuild failed to compile the application." }
+    
+    $releaseDir = Join-Path $projectRoot "src\SS-CAM\bin\Release"
+    $appDestDir = Join-Path $archiveRoot "installer\app"
+    New-Item -ItemType Directory -Path $appDestDir -Force | Out-Null
+    Copy-Item -Path (Join-Path $releaseDir "*") -Destination $appDestDir -Recurse -Force
+
     Compress-Archive -Path (Join-Path $archiveRoot "*") -DestinationPath $archiveFile `
         -CompressionLevel Optimal -Force
 
