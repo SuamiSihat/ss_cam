@@ -55,14 +55,13 @@ if ($major -ge 2) {
         Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $versionedDir $_.Name) -Force
     }
 
-    # Rename SS-CAM.exe to SS-CAM-v$Version.exe inside the folder for clarity
-    $innerExe    = Join-Path $versionedDir "SS-CAM.exe"
-    $renamedExe  = Join-Path $versionedDir "SS-CAM-v$Version.exe"
-    if (Test-Path $innerExe) { Rename-Item -LiteralPath $innerExe -NewName "SS-CAM-v$Version.exe" -Force }
+    # (Do NOT rename SS-CAM.exe inside the folder. WPF embeds the assembly name in BAML. 
+    # Renaming the EXE causes a FileNotFoundException at runtime when WPF calls Assembly.Load("SS-CAM"))
+    $innerExe = Join-Path $versionedDir "SS-CAM.exe"
 
     # Also copy the standalone EXE to dist root (will fail silently without DLLs but is handy for devs)
     $outputExe = Join-Path $outputDirectory "SS-CAM-v$Version.exe"
-    Copy-Item -LiteralPath $renamedExe -Destination $outputExe -Force
+    Copy-Item -LiteralPath $innerExe -Destination $outputExe -Force
 
     # 3. Build portable ZIP from the versioned folder
     $portableZip = Join-Path $outputDirectory "SS-CAM-v$Version-portable.zip"
@@ -77,7 +76,7 @@ if ($major -ge 2) {
     Write-Host "  Run folder : $versionedDir  ($([math]::Round($dirSize,2)) MB total)"
     Write-Host "  Portable   : $($zipInfo.FullName)  ($([math]::Round($zipInfo.Length/1MB,2)) MB)"
     Write-Host ""
-    Write-Host "To run: open the folder and double-click SS-CAM-v$Version.exe" -ForegroundColor Yellow
+    Write-Host "To run: open the folder and double-click SS-CAM.exe" -ForegroundColor Yellow
 
     exit 0
 }
