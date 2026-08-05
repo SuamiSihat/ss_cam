@@ -40,43 +40,18 @@ if ($major -ge 2) {
     $sourceExe = Join-Path $releaseDir "SS-CAM.exe"
     if (-not (Test-Path $sourceExe)) { throw "SS-CAM.exe not found at $sourceExe" }
 
-    # 2. Create versioned output folder with EXE + all dependencies
-    $versionedDir = Join-Path $outputDirectory "SS-CAM-v$Version"
-    if (Test-Path $versionedDir) { Remove-Item $versionedDir -Recurse -Force }
-    New-Item -ItemType Directory -Path $versionedDir | Out-Null
-
-    Get-ChildItem -Path $releaseDir -File | Where-Object {
-        # Exclude mscorlib.dll and .nlp files — these are GAC/framework-only files.
-        # Shipping mscorlib.dll alongside the EXE causes .NET to fail to start the app.
-        $_.Name -ne "mscorlib.dll" -and
-        $_.Extension -notin @('.nlp') -and
-        $_.Extension -in @('.exe', '.dll', '.xml', '.pdb', '.config')
-    } | ForEach-Object {
-        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $versionedDir $_.Name) -Force
-    }
-
-    # (Do NOT rename SS-CAM.exe inside the folder. WPF embeds the assembly name in BAML. 
-    # Renaming the EXE causes a FileNotFoundException at runtime when WPF calls Assembly.Load("SS-CAM"))
-    $innerExe = Join-Path $versionedDir "SS-CAM.exe"
-
-    # Also copy the standalone EXE to dist root (will fail silently without DLLs but is handy for devs)
+    # 2. Output the standalone EXE directly to the dist folder
     $outputExe = Join-Path $outputDirectory "SS-CAM-v$Version.exe"
-    Copy-Item -LiteralPath $innerExe -Destination $outputExe -Force
+    Copy-Item -LiteralPath $sourceExe -Destination $outputExe -Force
+    $exeInfo = Get-Item $outputExe
 
-    # 3. Build portable ZIP from the versioned folder
-    $portableZip = Join-Path $outputDirectory "SS-CAM-v$Version-portable.zip"
-    if (Test-Path $portableZip) { Remove-Item $portableZip -Force }
-    Compress-Archive -Path (Join-Path $versionedDir "*") `
-        -DestinationPath $portableZip -CompressionLevel Optimal -Force
-
-    $dirSize = (Get-ChildItem $versionedDir -File | Measure-Object -Property Length -Sum).Sum / 1MB
-    $zipInfo = Get-Item $portableZip
     Write-Host ""
     Write-Host "Build complete:" -ForegroundColor Green
-    Write-Host "  Run folder : $versionedDir  ($([math]::Round($dirSize,2)) MB total)"
-    Write-Host "  Portable   : $($zipInfo.FullName)  ($([math]::Round($zipInfo.Length/1MB,2)) MB)"
+    Write-Host "  Application: $($exeInfo.FullName)"
+    Write-Host "  Size       : $([math]::Round($exeInfo.Length/1MB,2)) MB"
     Write-Host ""
-    Write-Host "To run: open the folder and double-click SS-CAM.exe" -ForegroundColor Yellow
+    Write-Host "This is a TRUE single-file executable. All dependencies (Wpf.Ui, etc) are embedded."
+    Write-Host "To run: just double-click $($exeInfo.Name) (you can move it anywhere)" -ForegroundColor Yellow
 
     exit 0
 }
