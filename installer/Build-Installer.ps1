@@ -1,3 +1,13 @@
+<#
+.SYNOPSIS
+    Build-Installer.ps1 — produces the SS-CAM distributable for the active branch.
+
+    v1.x  (Version like 1.*.*) : builds the legacy PowerShell bootstrapper EXE.
+    v2.x+ (Version like 2.*.*) : compiles the native C# WPF app via MSBuild and
+                                  outputs SS-CAM-vX.Y.Z.exe (the app itself) plus
+                                  SS-CAM-vX.Y.Z-portable.zip (app + all DLLs).
+                                  No bootstrapper - avoids AV false positives.
+#>
 [CmdletBinding()]
 param(
     [ValidatePattern("^\d+\.\d+\.\d+$")]
@@ -7,29 +17,81 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 
-$projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$projectRoot     = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $outputDirectory = Join-Path $projectRoot "dist"
-$outputFile = Join-Path $outputDirectory "SS-CAM-v$Version.exe"
-$iconFile = Join-Path $projectRoot "payload\Brand Assets\Logos\ss_favicon\favicon.ico"
-$bootstrapperSource = Join-Path $PSScriptRoot "bootstrapper\Program.cs"
-$applicationManifest = Join-Path $PSScriptRoot "bootstrapper\app.manifest"
-$frameworkRoot = Join-Path $env:WINDIR "Microsoft.NET"
-$compilerCandidates = @(
+New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
+
+$major = [int]($Version.Split('.')[0])
+
+# ── v2.0+ build path ─────────────────────────────────────────────────────────
+if ($major -ge 2) {
+
+    Write-Host "Building SS-CAM v$Version (native C# WPF - no bootstrapper)" -ForegroundColor Cyan
+
+    $msBuild      = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe"
+    $csharpProj   = Join-Path $projectRoot "src\SS-CAM\SS-CAM.csproj"
+    $releaseDir   = Join-Path $projectRoot "src\SS-CAM\bin\Release"
+
+    # 1. Compile
+    Write-Host "Compiling SS-CAM via MSBuild..."
+    & $msBuild $csharpProj /p:Configuration=Release /t:Build /nologo
+    if ($LASTEXITCODE -ne 0) { throw "MSBuild failed." }
+
+    $sourceExe = Join-Path $releaseDir "SS-CAM.exe"
+    if (-not (Test-Path $sourceExe)) { throw "SS-CAM.exe not found at $sourceExe" }
+
+    # 2. Output the app EXE directly (no bootstrapper wrapper)
+    $outputExe = Join-Path $outputDirectory "SS-CAM-v$Version.exe"
+    Copy-Item -LiteralPath $sourceExe -Destination $outputExe -Force
+    $exeInfo   = Get-Item $outputExe
+
+    # 3. Build portable ZIP (EXE + all dependency DLLs)
+    $portableZip = Join-Path $outputDirectory "SS-CAM-v$Version-portable.zip"
+    if (Test-Path $portableZip) { Remove-Item $portableZip -Force }
+
+    $filesToZip = Get-ChildItem -Path $releaseDir -File |
+        Where-Object { $_.Extension -in @('.exe', '.dll', '.xml', '.pdb', '.nlp', '.config') }
+
+    # Compress-Archive needs a list of paths
+    Compress-Archive -Path ($filesToZip | Select-Object -ExpandProperty FullName) `
+        -DestinationPath $portableZip -CompressionLevel Optimal -Force
+
+    $zipInfo = Get-Item $portableZip
+    Write-Host ""
+    Write-Host "Build complete:" -ForegroundColor Green
+    Write-Host "  App EXE  : $($exeInfo.FullName)  ($([math]::Round($exeInfo.Length/1MB,2)) MB)"
+    Write-Host "  Portable : $($zipInfo.FullName)  ($([math]::Round($zipInfo.Length/1MB,2)) MB)"
+    Write-Host ""
+    Write-Host "To run: launch SS-CAM-v$Version.exe directly." -ForegroundColor Yellow
+    Write-Host "  If DLLs are missing, extract SS-CAM-v$Version-portable.zip to a folder and run SS-CAM.exe." -ForegroundColor Yellow
+
+    exit 0
+}
+
+# ── v1.x legacy bootstrapper build path ─────────────────────────────────────
+Write-Host "Building Suamisihat Creative Assets Management v$Version" -ForegroundColor Cyan
+
+$outputFile            = Join-Path $outputDirectory "SS-CAM-v$Version.exe"
+$iconFile              = Join-Path $projectRoot "payload\Brand Assets\Logos\ss_favicon\favicon.ico"
+$bootstrapperSource    = Join-Path $PSScriptRoot "bootstrapper\Program.cs"
+$applicationManifest   = Join-Path $PSScriptRoot "bootstrapper\app.manifest"
+$frameworkRoot         = Join-Path $env:WINDIR "Microsoft.NET"
+$compilerCandidates    = @(
     (Join-Path $frameworkRoot "Framework64\v4.0.30319\csc.exe"),
     (Join-Path $frameworkRoot "Framework\v4.0.30319\csc.exe")
 )
 $compiler = $compilerCandidates |
     Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
     Select-Object -First 1
-$wpfReferenceRoot = if ($compiler) { Join-Path (Split-Path -Parent $compiler) "WPF" } else { "" }
-$presentationFrameworkReference = if ($wpfReferenceRoot) { Join-Path $wpfReferenceRoot "PresentationFramework.dll" } else { "" }
-$presentationCoreReference = if ($wpfReferenceRoot) { Join-Path $wpfReferenceRoot "PresentationCore.dll" } else { "" }
-$windowsBaseReference = if ($wpfReferenceRoot) { Join-Path $wpfReferenceRoot "WindowsBase.dll" } else { "" }
-$systemXamlReference = if ($compiler) { Join-Path (Split-Path -Parent $compiler) "System.Xaml.dll" } else { "" }
-$tempDirectory = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
-$buildRoot = Join-Path $tempDirectory ("SuamiSihatInstallerBuild-" + [guid]::NewGuid().ToString("N"))
-$archiveRoot = Join-Path $buildRoot "archive"
-$archiveFile = Join-Path $buildRoot "SuamiSihat-Designer-Assets.zip"
+$wpfReferenceRoot              = Join-Path (Split-Path -Parent $compiler) "WPF"
+$presentationFrameworkReference = Join-Path $wpfReferenceRoot "PresentationFramework.dll"
+$presentationCoreReference      = Join-Path $wpfReferenceRoot "PresentationCore.dll"
+$windowsBaseReference           = Join-Path $wpfReferenceRoot "WindowsBase.dll"
+$systemXamlReference            = Join-Path (Split-Path -Parent $compiler) "System.Xaml.dll"
+$tempDirectory  = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+$buildRoot      = Join-Path $tempDirectory ("SuamiSihatInstallerBuild-" + [guid]::NewGuid().ToString("N"))
+$archiveRoot    = Join-Path $buildRoot "archive"
+$archiveFile    = Join-Path $buildRoot "SuamiSihat-Designer-Assets.zip"
 $assemblyInfoFile = Join-Path $buildRoot "AssemblyInfo.cs"
 
 $requiredPaths = @(
@@ -43,14 +105,10 @@ $requiredPaths = @(
     (Join-Path $PSScriptRoot "EULA.txt"),
     (Join-Path $PSScriptRoot "assets\suamisihat-logo-on-dark-ui.png"),
     (Join-Path $PSScriptRoot "assets\suamisihat-logo-on-light-ui.png"),
-    $bootstrapperSource,
-    $applicationManifest,
-    $presentationFrameworkReference,
-    $presentationCoreReference,
-    $windowsBaseReference,
-    $systemXamlReference,
-    $iconFile,
-    $compiler
+    $bootstrapperSource, $applicationManifest,
+    $presentationFrameworkReference, $presentationCoreReference,
+    $windowsBaseReference, $systemXamlReference,
+    $iconFile, $compiler
 )
 foreach ($requiredPath in $requiredPaths) {
     if (-not $requiredPath -or -not (Test-Path -LiteralPath $requiredPath)) {
@@ -59,11 +117,9 @@ foreach ($requiredPath in $requiredPaths) {
 }
 
 try {
-    Write-Host "Building Suamisihat Creative Assets Management v$Version" -ForegroundColor Cyan
     Write-Host "Preparing the self-contained payload..."
 
     New-Item -ItemType Directory -Path (Join-Path $archiveRoot "installer\src") -Force | Out-Null
-    New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
 
     Copy-Item -LiteralPath (Join-Path $projectRoot "payload") -Destination $archiveRoot -Recurse
     Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot "src") -File -Filter "*.ps1" |
@@ -74,17 +130,6 @@ try {
         -Destination (Join-Path $archiveRoot "installer")
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "assets") `
         -Destination (Join-Path $archiveRoot "installer") -Recurse
-
-    Write-Host "Compiling SS-CAM v2.0 Native Application via MSBuild..." -ForegroundColor Cyan
-    $msBuild = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe"
-    $csharpProject = Join-Path $projectRoot "src\SS-CAM\SS-CAM.csproj"
-    & $msBuild $csharpProject /p:Configuration=Release /t:Build /nologo
-    if ($LASTEXITCODE -ne 0) { throw "MSBuild failed to compile the application." }
-    
-    $releaseDir = Join-Path $projectRoot "src\SS-CAM\bin\Release"
-    $appDestDir = Join-Path $archiveRoot "installer\app"
-    New-Item -ItemType Directory -Path $appDestDir -Force | Out-Null
-    Copy-Item -Path (Join-Path $releaseDir "*") -Destination $appDestDir -Recurse -Force
 
     Compress-Archive -Path (Join-Path $archiveRoot "*") -DestinationPath $archiveFile `
         -CompressionLevel Optimal -Force
@@ -104,16 +149,12 @@ using System.Reflection;
 
     Write-Host "Compiling the Windows EXE..."
     $compilerArguments = @(
-        "/nologo",
-        "/target:winexe",
-        "/optimize+",
-        "/platform:anycpu",
-        ('/out:"{0}"' -f $outputFile),
-        ('/win32icon:"{0}"' -f $iconFile),
+        "/nologo", "/target:winexe", "/optimize+", "/platform:anycpu",
+        ('/out:"{0}"'          -f $outputFile),
+        ('/win32icon:"{0}"'    -f $iconFile),
         ('/win32manifest:"{0}"' -f $applicationManifest),
         ('/resource:"{0}",SuamiSihat.Payload.Zip' -f $archiveFile),
-        "/reference:System.dll",
-        "/reference:System.Core.dll",
+        "/reference:System.dll", "/reference:System.Core.dll",
         ('/reference:"{0}"' -f $presentationFrameworkReference),
         ('/reference:"{0}"' -f $presentationCoreReference),
         ('/reference:"{0}"' -f $windowsBaseReference),
@@ -124,10 +165,7 @@ using System.Reflection;
         ('"{0}"' -f $assemblyInfoFile)
     )
     & $compiler $compilerArguments
-    $compilerExitCode = $LASTEXITCODE
-    if ($compilerExitCode -ne 0) {
-        throw "The .NET compiler failed with exit code $compilerExitCode."
-    }
+    if ($LASTEXITCODE -ne 0) { throw "The .NET compiler failed with exit code $LASTEXITCODE." }
     if (-not (Test-Path -LiteralPath $outputFile -PathType Leaf)) {
         throw "The compiler completed but the expected EXE was not created: $outputFile"
     }
@@ -137,6 +175,7 @@ using System.Reflection;
     Write-Host "Installer created:" -ForegroundColor Green
     Write-Host $outputInfo.FullName
     Write-Host ("Size: {0:N2} MB" -f ($outputInfo.Length / 1MB))
+
 } finally {
     $resolvedBuildRoot = [IO.Path]::GetFullPath($buildRoot)
     if ($resolvedBuildRoot.StartsWith($tempDirectory, [StringComparison]::OrdinalIgnoreCase) -and
@@ -146,9 +185,3 @@ using System.Reflection;
         }
     }
 }
-
-
-
-
-
-
