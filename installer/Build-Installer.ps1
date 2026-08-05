@@ -40,30 +40,40 @@ if ($major -ge 2) {
     $sourceExe = Join-Path $releaseDir "SS-CAM.exe"
     if (-not (Test-Path $sourceExe)) { throw "SS-CAM.exe not found at $sourceExe" }
 
-    # 2. Output the app EXE directly (no bootstrapper wrapper)
-    $outputExe = Join-Path $outputDirectory "SS-CAM-v$Version.exe"
-    Copy-Item -LiteralPath $sourceExe -Destination $outputExe -Force
-    $exeInfo   = Get-Item $outputExe
+    # 2. Create versioned output folder with EXE + all dependencies
+    $versionedDir = Join-Path $outputDirectory "SS-CAM-v$Version"
+    if (Test-Path $versionedDir) { Remove-Item $versionedDir -Recurse -Force }
+    New-Item -ItemType Directory -Path $versionedDir | Out-Null
 
-    # 3. Build portable ZIP (EXE + all dependency DLLs)
+    Get-ChildItem -Path $releaseDir -File | Where-Object {
+        $_.Extension -in @('.exe', '.dll', '.xml', '.pdb', '.nlp', '.config')
+    } | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $versionedDir $_.Name) -Force
+    }
+
+    # Rename SS-CAM.exe to SS-CAM-v$Version.exe inside the folder for clarity
+    $innerExe    = Join-Path $versionedDir "SS-CAM.exe"
+    $renamedExe  = Join-Path $versionedDir "SS-CAM-v$Version.exe"
+    if (Test-Path $innerExe) { Rename-Item -LiteralPath $innerExe -NewName "SS-CAM-v$Version.exe" -Force }
+
+    # Also copy the standalone EXE to dist root (will fail silently without DLLs but is handy for devs)
+    $outputExe = Join-Path $outputDirectory "SS-CAM-v$Version.exe"
+    Copy-Item -LiteralPath $renamedExe -Destination $outputExe -Force
+
+    # 3. Build portable ZIP from the versioned folder
     $portableZip = Join-Path $outputDirectory "SS-CAM-v$Version-portable.zip"
     if (Test-Path $portableZip) { Remove-Item $portableZip -Force }
-
-    $filesToZip = Get-ChildItem -Path $releaseDir -File |
-        Where-Object { $_.Extension -in @('.exe', '.dll', '.xml', '.pdb', '.nlp', '.config') }
-
-    # Compress-Archive needs a list of paths
-    Compress-Archive -Path ($filesToZip | Select-Object -ExpandProperty FullName) `
+    Compress-Archive -Path (Join-Path $versionedDir "*") `
         -DestinationPath $portableZip -CompressionLevel Optimal -Force
 
+    $dirSize = (Get-ChildItem $versionedDir -File | Measure-Object -Property Length -Sum).Sum / 1MB
     $zipInfo = Get-Item $portableZip
     Write-Host ""
     Write-Host "Build complete:" -ForegroundColor Green
-    Write-Host "  App EXE  : $($exeInfo.FullName)  ($([math]::Round($exeInfo.Length/1MB,2)) MB)"
-    Write-Host "  Portable : $($zipInfo.FullName)  ($([math]::Round($zipInfo.Length/1MB,2)) MB)"
+    Write-Host "  Run folder : $versionedDir  ($([math]::Round($dirSize,2)) MB total)"
+    Write-Host "  Portable   : $($zipInfo.FullName)  ($([math]::Round($zipInfo.Length/1MB,2)) MB)"
     Write-Host ""
-    Write-Host "To run: launch SS-CAM-v$Version.exe directly." -ForegroundColor Yellow
-    Write-Host "  If DLLs are missing, extract SS-CAM-v$Version-portable.zip to a folder and run SS-CAM.exe." -ForegroundColor Yellow
+    Write-Host "To run: open the folder and double-click SS-CAM-v$Version.exe" -ForegroundColor Yellow
 
     exit 0
 }
