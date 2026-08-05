@@ -8,144 +8,167 @@ using System.Windows;
 
 internal static class Program
 {
-    private const string ProductName = "SuamiSihat Creative Assets Management";
+    private const string ProductName     = "SuamiSihat Creative Assets Management";
     private const string PayloadResource = "SuamiSihat.Payload.Zip";
+    private const string AppExeName      = "SS-CAM.exe";
+
+    // Permanent install location for the native C# app
+    private static readonly string InstallDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "SuamiSihat", "SS-CAM", "app");
 
     [STAThread]
     private static int Main(string[] args)
     {
-        string temporaryRoot = Path.Combine(
-            Path.GetTempPath(),
-            "SuamiSihatDesignerAssetsInstaller-" + Guid.NewGuid().ToString("N"));
+        bool smokeTest = HasArg(args, "--smoke-test");
+        bool forceReinstall = HasArg(args, "--reinstall");
 
-        try
+        string installedExe = Path.Combine(InstallDir, AppExeName);
+        bool needsDeploy = forceReinstall || !File.Exists(installedExe);
+
+        if (needsDeploy)
         {
-            Directory.CreateDirectory(temporaryRoot);
-            ExtractPayload(temporaryRoot);
+            string tempDir = Path.Combine(Path.GetTempPath(),
+                "SS-CAM-Setup-" + Guid.NewGuid().ToString("N"));
 
-            string wizardPath = Path.Combine(
-                temporaryRoot,
-                "installer",
-                "src",
-                "Install-SuamiSihat-WPF.ps1");
-
-            if (!File.Exists(wizardPath))
+            try
             {
-                throw new FileNotFoundException("The embedded setup wizard is missing.", wizardPath);
-            }
+                // 1. Extract the payload ZIP
+                Directory.CreateDirectory(tempDir);
+                ExtractPayload(tempDir);
 
-            string systemDirectory = Environment.GetFolderPath(Environment.SpecialFolder.System);
-            string powershell = Path.Combine(
-                systemDirectory,
-                "WindowsPowerShell",
-                "v1.0",
-                "powershell.exe");
-
-            bool smokeTest = Array.Exists(
-                args,
-                delegate(string argument)
+                // 2. Copy the compiled C# app from payload → install directory
+                string appSrcDir = Path.Combine(tempDir, "installer", "app");
+                if (!Directory.Exists(appSrcDir))
                 {
-                    return string.Equals(argument, "--smoke-test", StringComparison.OrdinalIgnoreCase);
-                });
-
-            bool forceInstaller = Array.Exists(
-                args,
-                delegate(string argument)
-                {
-                    return string.Equals(argument, "--installer", StringComparison.OrdinalIgnoreCase) ||
-                           string.Equals(argument, "-InstallerMode", StringComparison.OrdinalIgnoreCase);
-                });
-
-            string currentExePath = Process.GetCurrentProcess().MainModule.FileName;
-            bool launchedAsInstalledApp = !string.IsNullOrEmpty(currentExePath) &&
-                string.Equals(
-                    Path.GetFileName(currentExePath),
-                    "SS-CAM.exe",
-                    StringComparison.OrdinalIgnoreCase);
-            bool isFirstRun = forceInstaller || !launchedAsInstalledApp;
-
-            ProcessStartInfo startInfo = new ProcessStartInfo
-            {
-                FileName = powershell,
-                Arguments =
-                    "-NoLogo -NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File " +
-                    QuoteArgument(wizardPath) +
-                    (isFirstRun ? " -InstallerMode" : string.Empty) +
-                    " -InstallerExePath " + QuoteArgument(currentExePath) +
-                    (smokeTest ? " -SmokeTest" : string.Empty),
-                WorkingDirectory = Path.GetDirectoryName(wizardPath),
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using (Process wizard = Process.Start(startInfo))
-            {
-                if (wizard == null)
-                {
-                    throw new InvalidOperationException("Windows could not start the setup wizard.");
+                    MessageBox.Show(
+                        "The v2.0 application bundle was not found in the installer payload.\n\n" +
+                        "Expected: installer\\app\\\n\n" +
+                        "Please re-download the installer.",
+                        ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
+                    return 1;
                 }
 
-                wizard.WaitForExit();
-                return wizard.ExitCode;
+                if (!Directory.Exists(InstallDir))
+                    Directory.CreateDirectory(InstallDir);
+
+                foreach (string src in Directory.GetFiles(appSrcDir, "*", SearchOption.AllDirectories))
+                {
+                    string rel  = src.Substring(appSrcDir.Length).TrimStart(
+                        Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    string dest = Path.Combine(InstallDir, rel);
+                    string dir  = Path.GetDirectoryName(dest);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                        Directory.CreateDirectory(dir);
+                    File.Copy(src, dest, overwrite: true);
+                }
+
+                // 3. Copy brand kit payload alongside app (fonts, brand assets)
+                string payloadSrc = Path.Combine(tempDir, "payload");
+                if (Directory.Exists(payloadSrc))
+                {
+                    string payloadDest = Path.Combine(InstallDir, "payload");
+                    CopyDir(payloadSrc, payloadDest);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Installation failed.\r\n\r\n" + ex.Message,
+                    ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
+                return 1;
+            }
+            finally
+            {
+                DeleteDir(tempDir);
             }
         }
-        catch (Exception exception)
+
+        // 4. Verify the exe exists
+        if (!File.Exists(installedExe))
         {
             MessageBox.Show(
-                "The installer could not start.\r\n\r\n" + exception.Message,
-                ProductName,
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                "SS-CAM could not be found at:\r\n" + installedExe +
+                "\r\n\r\nRun the installer again to repair the installation.",
+                ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
             return 1;
         }
-        finally
+
+        if (smokeTest)
         {
-            DeleteTemporaryDirectory(temporaryRoot);
+            MessageBox.Show("Smoke test OK.\r\nSS-CAM.exe: " + installedExe,
+                ProductName, MessageBoxButton.OK, MessageBoxImage.Information);
+            return 0;
         }
+
+        // 5. Launch the native C# app
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName         = installedExe,
+                UseShellExecute  = true,
+                WorkingDirectory = InstallDir
+            });
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Could not launch SS-CAM.\r\n\r\n" + ex.Message,
+                ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
+            return 1;
+        }
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────
+
+    private static bool HasArg(string[] args, string flag)
+    {
+        return Array.Exists(args, delegate(string a) {
+            return string.Equals(a, flag, StringComparison.OrdinalIgnoreCase);
+        });
     }
 
     private static void ExtractPayload(string destination)
     {
-        Assembly assembly = Assembly.GetExecutingAssembly();
-        using (Stream payload = assembly.GetManifestResourceStream(PayloadResource))
+        Assembly asm = Assembly.GetExecutingAssembly();
+        using (Stream stream = asm.GetManifestResourceStream(PayloadResource))
         {
-            if (payload == null)
-            {
-                throw new InvalidOperationException("The embedded designer-assets payload is missing.");
-            }
-
-            string archivePath = Path.Combine(destination, "payload.zip");
-            using (FileStream archive = File.Create(archivePath))
-            {
-                payload.CopyTo(archive);
-            }
-
-            ZipFile.ExtractToDirectory(archivePath, destination);
-            File.Delete(archivePath);
+            if (stream == null)
+                throw new InvalidOperationException("The embedded payload resource is missing.");
+            string zip = Path.Combine(destination, "payload.zip");
+            using (FileStream fs = File.Create(zip))
+                stream.CopyTo(fs);
+            ZipFile.ExtractToDirectory(zip, destination);
+            File.Delete(zip);
         }
     }
 
-    private static string QuoteArgument(string value)
+    private static void CopyDir(string src, string dest)
     {
-        return "\"" + value.Replace("\"", "\\\"") + "\"";
+        if (!Directory.Exists(dest)) Directory.CreateDirectory(dest);
+        foreach (string file in Directory.GetFiles(src, "*", SearchOption.AllDirectories))
+        {
+            string rel      = file.Substring(src.Length).TrimStart(
+                Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string destFile = Path.Combine(dest, rel);
+            string destDir  = Path.GetDirectoryName(destFile);
+            if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
+                Directory.CreateDirectory(destDir);
+            File.Copy(file, destFile, overwrite: true);
+        }
     }
 
-    private static void DeleteTemporaryDirectory(string path)
+    private static void DeleteDir(string path)
     {
-        for (int attempt = 0; attempt < 4; attempt++)
+        for (int i = 0; i < 4; i++)
         {
             try
             {
-                if (Directory.Exists(path))
-                {
-                    Directory.Delete(path, true);
-                }
+                if (Directory.Exists(path)) Directory.Delete(path, true);
                 return;
             }
-            catch
-            {
-                Thread.Sleep(300);
-            }
+            catch { Thread.Sleep(300); }
         }
     }
 }
