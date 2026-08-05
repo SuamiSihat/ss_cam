@@ -46,7 +46,11 @@ if ($major -ge 2) {
     New-Item -ItemType Directory -Path $versionedDir | Out-Null
 
     Get-ChildItem -Path $releaseDir -File | Where-Object {
-        $_.Extension -in @('.exe', '.dll', '.xml', '.pdb', '.nlp', '.config')
+        # Exclude mscorlib.dll and .nlp files — these are GAC/framework-only files.
+        # Shipping mscorlib.dll alongside the EXE causes .NET to fail to start the app.
+        $_.Name -ne "mscorlib.dll" -and
+        $_.Extension -notin @('.nlp') -and
+        $_.Extension -in @('.exe', '.dll', '.xml', '.pdb', '.config')
     } | ForEach-Object {
         Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $versionedDir $_.Name) -Force
     }
