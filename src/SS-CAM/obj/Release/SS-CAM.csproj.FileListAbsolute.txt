@@ -36,3 +36,4 @@ e:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\WorkstationHealthPa
 e:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\WorkstationHealthPage.g.cs
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\RadioPage.baml
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\RadioPage.g.cs
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\GeneratedInternalTypeHelper.g.cs
