@@ -10,11 +10,11 @@ none
 false
 DEBUG;TRACE
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\App.xaml
-131152834225
+14527986553
 
 36-1193783135
 19-18396807
-MainWindow.xaml;Styles\Fluent2Styles.xaml;Views\DashboardPage.xaml;Views\WellbeingPage.xaml;Views\ProjectCreatorPage.xaml;Views\SearchCopyPage.xaml;Views\BrandAssetsPage.xaml;Views\AboutWindow.xaml;Views\WorkstationHealthPage.xaml;Views\SettingsPage.xaml;Views\RadioPage.xaml;Views\QuickNotePage.xaml;Views\TaskManagerPage.xaml;
+MainWindow.xaml;Styles\Fluent2Styles.xaml;Styles\MetamorphosisTheme.xaml;Views\DashboardPage.xaml;Views\WellbeingPage.xaml;Views\ProjectCreatorPage.xaml;Views\SearchCopyPage.xaml;Views\BrandAssetsPage.xaml;Views\AboutWindow.xaml;Views\WorkstationHealthPage.xaml;Views\SettingsPage.xaml;Views\RadioPage.xaml;Views\QuickNotePage.xaml;Views\TaskManagerPage.xaml;
 
 False
 

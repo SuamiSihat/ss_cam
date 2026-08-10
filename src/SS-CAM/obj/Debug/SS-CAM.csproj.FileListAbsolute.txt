@@ -42,3 +42,4 @@ E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\SS-CAM.g.resources
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\SS-CAM.csproj.Fody.CopyLocal.cache
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\SS-CAM.exe
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\SS-CAM.pdb
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\Styles\MetamorphosisTheme.baml
