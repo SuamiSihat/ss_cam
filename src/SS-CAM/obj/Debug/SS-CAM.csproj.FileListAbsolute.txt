@@ -43,3 +43,5 @@ E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\SS-CAM.csproj.Fody.CopyLoca
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\SS-CAM.exe
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\SS-CAM.pdb
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\Styles\MetamorphosisTheme.baml
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\Views\WaktuSolatPage.baml
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Debug\Views\WaktuSolatPage.g.cs

@@ -38,3 +38,10 @@ E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\RadioPage.baml
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\RadioPage.g.cs
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\GeneratedInternalTypeHelper.g.cs
 E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Styles\Fluent2Styles.baml
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Styles\MetamorphosisTheme.baml
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\QuickNotePage.baml
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\TaskManagerPage.baml
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\QuickNotePage.g.cs
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\TaskManagerPage.g.cs
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\WaktuSolatPage.baml
+E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\obj\Release\Views\WaktuSolatPage.g.cs
