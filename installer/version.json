@@ -1,0 +1,6 @@
+{
+  "version": "4.0.1",
+  "releaseNotes": "Fixed: Update checker now queries GitHub Releases API — v4.0.1 patch release.",
+  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.0.1/SS-CAM-v4.0.1.exe",
+  "publishedAt": "2026-08-18"
+}
