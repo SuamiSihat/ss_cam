@@ -1,6 +1,6 @@
 {
-  "version": "4.0.1",
-  "releaseNotes": "Fixed: Update checker now queries GitHub Releases API — v4.0.1 patch release.",
-  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.0.1/SS-CAM-v4.0.1.exe",
-  "publishedAt": "2026-08-18"
+  "version": "4.6.0",
+  "releaseNotes": "SS-CAM v4.6.0 Beta Release — Cross-Platform Ecosystem with Android Studio Companion, Real-Time Radio Streaming Engine, Preflight Quality Auditor, and Persistent Local Caching.",
+  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.6.0/SS-CAM-v4.6.0.exe",
+  "publishedAt": "2026-09-01"
 }
