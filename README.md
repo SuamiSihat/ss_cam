@@ -4,7 +4,7 @@
 
 Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Brand Asset Inspector · Synology NAS Native · Multi-Platform
 
-[![Release](https://img.shields.io/badge/release-v4.9.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.9.0)
+[![Release](https://img.shields.io/badge/release-v4.10.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.10.0)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20Linux%20%7C%20Android%20%7C%20Docker-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%208.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
 [![Web Stack](https://img.shields.io/badge/web-Svelte%205%20%2B%20Node.js%2020-ff3e00?style=flat-square)](https://svelte.dev)
@@ -12,6 +12,31 @@ Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Br
 [![License](https://img.shields.io/badge/licence-Internal%20Use-orange?style=flat-square)](./installer/EULA.txt)
 
 ---
+
+## 🚀 What's New in v4.10.0 ("Smart Drag-and-Drop Vault Ingester, Myers LCS Diff Engine & AI Brief Intelligence")
+
+* **📥 Smart Drag-and-Drop Vault Ingester (`SmartIngesterService.cs`)**:
+  * **Canonical 5-Folder Auto-Sorting**: Automatically sorts dropped files and directories into the standardized hierarchy: `01_BRIEF_ASSETS`, `02_SOURCE_FILES`, `03_COPYWRITING`, `04_WORK_IN_PROGRESS`, and `05_DELIVERABLES`.
+  * **Collision Safety**: Implements non-destructive collision renaming (`_1`, `_2`), ensuring working files are never accidentally overwritten.
+  * **Multi-Surface Desktop Integration**: Drag external files directly into the `ProjectCreatorPage` staging dropzone, `SearchCopyPage` project catalog cards, or `TaskManagerPage` Kanban cards.
+* **🔍 Myers LCS Markdown Diff Engine (`TextDiffService.cs`, `MarkdownDiffDialog.xaml`)**:
+  * **Myers LCS Line Diffing**: Computes edit distance, LCS similarity metrics, and highlights line mutations (`Equal`, `Insert`, `Delete`, `Modify`).
+  * **Automatic Snapshot Archiving**: Automatically creates timestamped immutable backups in `archive/` or `.snapshots/` upon saving scripts or briefs.
+  * **Fluent 2 Revision Inspector**: Modal `<ui:FluentWindow>` with Before/After revision selector, similarity score badge, additions/deletions counts, Unified and Side-by-Side views, and 1-click clipboard copy.
+* **🧠 AI Brief Intelligence & Copy Preflight Assistant (`GeminiDesktopService.cs`, `GeminiService.js`)**:
+  * **Dual Engine (Online Gemini 1.5 + Offline Resilient)**: Queries Google Gemini 1.5 using NAS credentials with automatic offline heuristic fallback.
+  * **AI Brief Completeness Auditor**: Validates deliverables, target audience, aspect ratios, core hooks, and brand color tokens with an Art Director score (0–100).
+  * **AI Copywriting Preflight**: Audits copy tone, hooks, and scans against Malaysian KKM / LIU medical and cosmetic advertising regulations.
+* **📝 Notion & Evernote Inspired Quick Notes Studio (`QuickNotePage.xaml`, `QuickNoteService.cs`)**:
+  * **Notion-Style Header & Properties**: 12-emoji page icon picker, inline title editor synced with Markdown `# Title`, category dropdown, priority tags, relative time, and live reading time metrics.
+  * **Distraction-Free Zen Mode**: 1-click focus toggle button collapsing the sidebar for full-screen writing.
+  * **Evernote-Inspired Sidebar**: Instant search with clear button, 6 category filter chips (`All`, `Pin`, `High`, `Tasks`, `Ideas`, `Briefs`), and multi-factor sort selector (`Recently Edited`, `Date Created`, `Title`, `Priority`).
+  * **Block Formatting Toolbar & Callouts**: 4 Notion callout blocks (`[!NOTE]`, `[!TIP]`, `[!WARNING]`, `[!DANGER]`), 1-click Markdown table generator, task checkboxes, and 3-way view switcher (`Split`, `Edit`, `Preview`).
+  * **Starter Templates**: 4-card interactive grid for Creative Briefs, Meeting Syncs, 3-Hook Ad Scripts, and Mind Drops.
+* **🌐 Tri-Platform Version Parity**:
+  * Windows Desktop: v4.10.0 (`SS-CAM.exe` Release MSBuild verified).
+  * Web Management Portal: v4.10.0 (34/34 unit tests & 7/7 smoke tests passed).
+  * Android Companion App: v4.10.0 (`versionCode = 4100`, `versionName = "4.10.0"`).
 
 ## 🚀 What's New in v4.9.0 ("Visual Project Timeline & Gantt Inspector Drawer, Live Studio Workstream Telemetry, Command Palette v3.5.1 & Tri-Platform Parity")
 

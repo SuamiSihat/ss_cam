@@ -1,5 +1,50 @@
 # SS-CAM FIX LOG
 
+## v4.10.0 — 2026-09-14 (Smart Drag-and-Drop Vault Ingester, Myers LCS Diff Engine & AI Brief Intelligence)
+- **Assembly Version**: `4.10.0.0`
+- **Android Version**: `versionCode = 4100`, `versionName = "4.10.0"`
+- **Web Portal Version**: `4.10.0`
+- **Smart Drag-and-Drop Vault Ingester (`SmartIngesterService.cs`)**:
+  - Automatically identifies file extensions and folder names to sort dropped external files into canonical 5-folder structure (`01_BRIEF_ASSETS`, `02_SOURCE_FILES`, `03_COPYWRITING`, `04_WORK_IN_PROGRESS`, `05_DELIVERABLES`).
+  - Recursive directory traversal with flattening and folder creation.
+  - Non-destructive collision safety (`_1`, `_2`) preventing overwrite of existing project assets.
+  - Multi-surface integration across Desktop: `ProjectCreatorPage.xaml` (staged asset card), `SearchCopyPage.xaml` (project catalog cards drop target), and `TaskManagerPage.xaml.cs` (Kanban task card drop target).
+- **Myers LCS Markdown Diff Engine (`TextDiffService.cs`, `MarkdownDiffDialog.xaml`)**:
+  - Implemented Myers LCS difference algorithm for line-by-line comparison with edit distance, change classification (`Equal`, `Insert`, `Delete`, `Modify`), and LCS similarity score.
+  - Automatic snapshot generation (`YYYYMMDD_HHmmss_COPY.md` / `README.md`) in `archive/` or `.snapshots/` on save.
+  - Rich Fluent 2 `<ui:FluentWindow>` comparison dialog with Before/After revision selector, metric badges (similarity score, insertions/deletions), Side-by-Side and Unified views, and clipboard copying.
+  - Integrated into `CopywritingPage.xaml` and `SearchCopyPage.xaml`.
+- **AI Brief Intelligence & Style Preflight Assistant (`GeminiDesktopService.cs`, `GeminiService.js`, `api.js`)**:
+  - Dual engine: online Google Gemini 1.5 REST queries using credentials from NAS `_Team/ai-config.json` + robust offline heuristic fallback.
+  - Brief Completeness Validator (`ValidateBriefAsync`): scores project briefs (0-100), identifies missing specifications (deliverables, aspect ratio, target audience, brand tokens), and delivers Art Director recommendations.
+  - Copywriting Style & Compliance Preflight (`PreflightCopyAsync`): audits hook strength, readability, and scans against KKM / LIU regulatory claims with actionable alternatives.
+  - REST endpoints exposed on Web Portal: `POST /api/ai/validate-brief` and `POST /api/ai/preflight-copy`.
+- **Notion & Evernote Inspired Quick Notes Studio (`QuickNoteService.cs`, `QuickNotePage.xaml`, `QuickNotePage.xaml.cs`)**:
+  - **Notion-Style Header & Property Matrix**:
+    - Interactive 12-emoji page icon picker (`BtnPageIcon`, `MenuIconPicker`) reflecting across page header and sidebar note cards.
+    - Inline borderless note title editor (`TxtNoteTitle`) synchronized bidirectionally with note Markdown `# Title`.
+    - Compact property matrix bar: Category tag dropdown (`General`, `Brief`, `Meeting`, `Idea`, `Copywriting`, `Tasks`, `Feedback`), Priority pill (`Normal`, `Medium (P1)`, `High (P2)`), Pinned toggle, relative timestamps ("Edited today, 11:42"), reading time ("X min read"), word count, and character metrics.
+    - Distraction-Free Focus / Zen Mode (`BtnToggleZen`) with 1-click sidebar collapse for immersive drafting.
+  - **Evernote-Inspired Sidebar & Note Cards**:
+    - Instant search with clear `(✕)` button (`BtnClearSearch`).
+    - 6 filter chips: `All`, `📌 Pin`, `⚡ High`, `☑️ Tasks`, `💡 Ideas`, `📋 Briefs`.
+    - Sort selector: `Recently Edited`, `Date Created`, `Title (A-Z)`, `Priority`.
+    - Rich card template: circular icon badge, bold title, 2-line snippet, category tag pill, relative timestamp, task progress pill (`✓ 2/4`), and priority pill (`P1`, `P2`).
+  - **Notion-Style Block Formatting & Callout Inserters**:
+    - 4 Notion Callout blocks: Blue Note (`[!NOTE]`), Green Pro-Tip (`[!TIP]`), Amber Regulatory Warning (`[!WARNING]`), Red Critical Alert (`[!DANGER]`).
+    - 1-click Markdown Table template generator with deliverables, specs, and status columns.
+    - Task checklist checkbox (`- [ ]`), bullet lists, numbered lists, blockquotes, code blocks, horizontal rules, links, and image tags.
+    - 3-Way Mode Segmented Switcher (`Split`, `Edit`, `Preview`) with live side-by-side FlowDocument rendering.
+    - Export options: Plain clean text for WhatsApp/Slack, Raw Markdown clipboard copying, and `.md` file export dialog.
+  - **Creative Starter Templates & Onboarding Empty State**:
+    - 4-card interactive starter grid on empty workspace: Creative Brief (Notion Standard), Meeting Sync, 3-Hook Ad Matrix, and Mind Drop.
+    - 100% backward-compatible YAML frontmatter storage (`icon:`, `category:`, `pinned:`, `priority:`).
+- **QA & Verification Status**:
+  - Desktop Build: MSBuild Release clean build PASS (`SS-CAM.exe` output).
+  - Source Guardian: 8 passed / 1 warned / 0 failed (UTF-8 BOM enforced on all files).
+  - Web Test Suite: 34 passed / 0 failed (100%).
+  - Web Admin Smoketest: 7 passed / 0 failed (100%).
+
 ## v4.9.0 — 2026-09-11 (Visual Project Timeline & Gantt Inspector Drawer, Live Studio Workstream Telemetry, Command Palette v3.5.1 & Tri-Platform Parity)
 - **Assembly Version**: `4.9.0.0`
 - **Android Version**: `versionCode = 490`, `versionName = "4.9.0"`

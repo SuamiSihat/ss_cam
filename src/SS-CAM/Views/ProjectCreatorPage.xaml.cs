@@ -20,6 +20,7 @@ namespace SS_CAM.Views
         private UserProfile currentProfile;
         private List<CategoryPreset> _categoryPresets;
         private CategoryPreset _selectedEditingPreset;
+        private readonly List<string> _stagedRawAssetPaths = new List<string>();
 
         private void OnScrollViewerPreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
@@ -919,9 +920,28 @@ namespace SS_CAM.Views
                     CreativeOrderService.UpdateOrderProject(workspaceRoot, orderId, folderName, "in_progress");
                 }
 
-                CreateStatusText.Text = !string.IsNullOrWhiteSpace(orderId)
-                    ? string.Format("Project created! Imported {0} attachment(s) from {1}", attachmentsCopied, orderId)
-                    : "Project created successfully!";
+                int stagedIngested = 0;
+                if (_stagedRawAssetPaths != null && _stagedRawAssetPaths.Count > 0)
+                {
+                    SmartIngestResult ingestResult = SmartIngesterService.Ingest(targetDir, _stagedRawAssetPaths);
+                    stagedIngested = ingestResult.TotalIngested;
+                    _stagedRawAssetPaths.Clear();
+                    if (TxtStagedAssetsHint != null)
+                        TxtStagedAssetsHint.Text = "Auto-sorts into 01_BRIEF, 02_SOURCE, 03_COPY, and 05_DELIVERABLES upon creation";
+                    if (BtnClearStagedAssets != null)
+                        BtnClearStagedAssets.Visibility = Visibility.Collapsed;
+                }
+
+                if (stagedIngested > 0)
+                {
+                    CreateStatusText.Text = string.Format("Project created! Ingested {0} asset(s) and {1} order file(s).", stagedIngested, attachmentsCopied);
+                }
+                else
+                {
+                    CreateStatusText.Text = !string.IsNullOrWhiteSpace(orderId)
+                        ? string.Format("Project created! Imported {0} attachment(s) from {1}", attachmentsCopied, orderId)
+                        : "Project created successfully!";
+                }
                 LoadRecentProjects();
                 LoadCreativeOrders();
                 
@@ -1467,6 +1487,83 @@ namespace SS_CAM.Views
             ProjectDescriptionInput.Text = ProjectDescriptionInput.Text.Insert(pos, insert);
             ProjectDescriptionInput.SelectionStart = pos + insert.Length;
             ProjectDescriptionInput.Focus();
+        }
+
+        // ─── Asset Staging Dropzone (Smart Ingester) ────────────────────────
+
+        private void OnStagingDropzoneOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+                if (BorderStagingDropzone != null)
+                {
+                    BorderStagingDropzone.BorderBrush = (System.Windows.Media.Brush)Application.Current.FindResource("FluentBrand80");
+                    BorderStagingDropzone.BorderThickness = new Thickness(2);
+                }
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void OnStagingDropzoneLeave(object sender, DragEventArgs e)
+        {
+            if (BorderStagingDropzone != null)
+            {
+                BorderStagingDropzone.BorderBrush = (System.Windows.Media.Brush)Application.Current.FindResource("CardStrokeColorDefaultBrush");
+                BorderStagingDropzone.BorderThickness = new Thickness(1.5);
+            }
+        }
+
+        private void OnStagingDropzoneDrop(object sender, DragEventArgs e)
+        {
+            if (BorderStagingDropzone != null)
+            {
+                BorderStagingDropzone.BorderBrush = (System.Windows.Media.Brush)Application.Current.FindResource("CardStrokeColorDefaultBrush");
+                BorderStagingDropzone.BorderThickness = new Thickness(1.5);
+            }
+
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] paths = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (paths != null && paths.Length > 0)
+                {
+                    foreach (string p in paths)
+                    {
+                        if (!_stagedRawAssetPaths.Contains(p, StringComparer.OrdinalIgnoreCase))
+                        {
+                            _stagedRawAssetPaths.Add(p);
+                        }
+                    }
+
+                    if (TxtStagedAssetsHint != null)
+                    {
+                        TxtStagedAssetsHint.Text = string.Format("✓ {0} asset path(s) staged for auto-sorting upon creation", _stagedRawAssetPaths.Count);
+                    }
+                    if (BtnClearStagedAssets != null)
+                    {
+                        BtnClearStagedAssets.Visibility = Visibility.Visible;
+                    }
+
+                    NotificationService.ShowInfo("Assets Staged", string.Format("Staged {0} item(s) for smart ingestion upon folder generation.", paths.Length));
+                }
+            }
+        }
+
+        private void OnClearStagedAssetsClicked(object sender, RoutedEventArgs e)
+        {
+            _stagedRawAssetPaths.Clear();
+            if (TxtStagedAssetsHint != null)
+            {
+                TxtStagedAssetsHint.Text = "Auto-sorts into 01_BRIEF, 02_SOURCE, 03_COPY, and 05_DELIVERABLES upon creation";
+            }
+            if (BtnClearStagedAssets != null)
+            {
+                BtnClearStagedAssets.Visibility = Visibility.Collapsed;
+            }
         }
     }
 }

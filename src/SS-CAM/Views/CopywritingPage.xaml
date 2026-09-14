@@ -289,6 +289,24 @@
                                         <ui:TextBlock Text="Sidebar" FontSize="11"/>
                                     </StackPanel>
                                 </ui:Button>
+
+                                <!-- 6. Diff & History -->
+                                <ui:Button x:Name="BtnCopyDiffHistory" Appearance="Secondary" Height="28" Padding="8,0" Margin="4,0,0,0"
+                                           Click="OnCopyDiffHistoryClicked" Cursor="Hand" ToolTip="Compare script revisions &amp; diff">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="DocumentText24" Margin="0,0,4,0" FontSize="12"/>
+                                        <ui:TextBlock Text="Diff &amp; History" FontSize="11"/>
+                                    </StackPanel>
+                                </ui:Button>
+
+                                <!-- 7. AI Preflight Check -->
+                                <ui:Button x:Name="BtnAiPreflight" Appearance="Secondary" Height="28" Padding="8,0" Margin="4,0,0,0"
+                                           Click="OnAiPreflightClicked" Cursor="Hand" ToolTip="Run AI Tone &amp; KKM Compliance Preflight">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="Sparkle24" Margin="0,0,4,0" FontSize="12" Foreground="{DynamicResource FluentBrand80}"/>
+                                        <ui:TextBlock Text="AI Preflight" FontSize="11"/>
+                                    </StackPanel>
+                                </ui:Button>
                             </StackPanel>
                         </Border>
                     </Grid>

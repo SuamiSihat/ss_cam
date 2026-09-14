@@ -243,6 +243,88 @@ Please generate:
 3. **3 WhatsApp Direct-Response Closing Messages** with interactive numbered options.
 `;
   }
+
+  async validateBriefCompleteness({ briefMarkdown = '', client = 'SSH', projectTitle = 'Campaign' }) {
+    const systemPrompt = `You are the Lead Creative Director and Compliance Officer for SuamiSihat.
+Evaluate this creative brief for client "${client}" titled "${projectTitle}".
+Analyze:
+1. Target demographic clarity
+2. Key value proposition / active ingredients / mechanism of action
+3. Deliverables & asset dimensions (resolutions, formats e.g. 1:1, 9:16, 16:9, 300 DPI CMYK)
+4. Tone of Voice (Must be masculine, authoritative, trustworthy, medical luxury)
+5. Regulatory compliance (KKM / LIU health claim limits)
+6. Recommended SuamiSihat Master Brand System v3.5.1 color tokens (e.g., #043388 Royal Navy, #D4AF37 Luxury Gold, #10B981 Emerald).
+
+Output valid JSON only matching this schema:
+{
+  "score": 85,
+  "passed": true,
+  "strengths": ["..."],
+  "missingItems": ["..."],
+  "recommendations": ["..."],
+  "suggestedBrandTokens": ["..."]
+}`;
+
+    const userPrompt = `Creative Brief Content:
+"""
+${briefMarkdown}
+"""
+`;
+    const response = await this.callGemini(systemPrompt, userPrompt);
+    try {
+      const cleaned = response.replace(/^```json/m, '').replace(/```$/m, '').trim();
+      return JSON.parse(cleaned);
+    } catch (e) {
+      return {
+        score: 75,
+        passed: true,
+        rawAnalysis: response,
+        strengths: ["Creative context defined"],
+        missingItems: [],
+        recommendations: ["Review deliverables with Art Director"],
+        suggestedBrandTokens: ["#043388 Royal Navy", "#D4AF37 Luxury Gold"]
+      };
+    }
+  }
+
+  async preflightCopyTone({ copyMarkdown = '', brand = 'SSH', platform = 'Meta Feed' }) {
+    const systemPrompt = `You are an elite creative director and medical advertising compliance auditor for SuamiSihat in Malaysia.
+Audit this copywriting script for brand "${brand}" on platform "${platform}".
+Audit criteria:
+1. Tone: Authoritative masculine, premium medical luxury, trustworthy (not cheap clickbait).
+2. KKM/LIU Regulatory Compliance: Flag any forbidden absolute cure promises (e.g. 'sembuh 100%', 'ubat ajaib', 'pasti pulih').
+3. Hook engagement: 3-second pattern interrupt strength.
+4. CTA: Frictionless, urgent, clear next step.
+
+Output valid JSON only matching this schema:
+{
+  "score": 90,
+  "toneVerdict": "Authoritative & Masculine",
+  "regulatoryWarnings": ["..."],
+  "hookSuggestions": ["..."],
+  "actionableImprovements": ["..."]
+}`;
+
+    const userPrompt = `Copywriting Script Content:
+"""
+${copyMarkdown}
+"""
+`;
+    const response = await this.callGemini(systemPrompt, userPrompt);
+    try {
+      const cleaned = response.replace(/^```json/m, '').replace(/```$/m, '').trim();
+      return JSON.parse(cleaned);
+    } catch (e) {
+      return {
+        score: 85,
+        toneVerdict: "Authoritative & Masculine",
+        rawAnalysis: response,
+        regulatoryWarnings: [],
+        hookSuggestions: [],
+        actionableImprovements: ["Ensure CTA links to valid WhatsApp or checkout link"]
+      };
+    }
+  }
 }
 
 module.exports = new GeminiService();

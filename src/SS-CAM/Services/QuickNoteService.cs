@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
@@ -65,14 +65,30 @@ namespace SS_CAM.Services
                     string content = File.ReadAllText(file, Encoding.UTF8);
                     bool isPinned = false;
                     NotePriority priority = NotePriority.Normal;
+                    string icon = "📝";
+                    string category = "General";
 
-                    ParseFrontmatter(content, out isPinned, out priority);
+                    ParseFrontmatter(content, out isPinned, out priority, out icon, out category);
 
                     string title = ExtractTitle(content, Path.GetFileNameWithoutExtension(file));
                     DateTime modified = File.GetLastWriteTime(file);
+                    DateTime created = File.GetCreationTime(file);
                     int completedTasks, totalTasks;
                     ExtractTaskStats(content, out completedTasks, out totalTasks);
                     string snippet = ExtractSnippet(content, title);
+
+                    string[] tokens = (content ?? "").Split(new char[] { ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                    int wordCount = tokens.Length;
+                    int readingTime = Math.Max(1, (int)Math.Ceiling(wordCount / 200.0));
+
+                    if (icon == "📝")
+                    {
+                        if (category == "Idea") icon = "💡";
+                        else if (category == "Meeting") icon = "💬";
+                        else if (category == "Brief") icon = "📋";
+                        else if (category == "Tasks") icon = "🎯";
+                        else if (category == "Copywriting") icon = "⚡";
+                    }
 
                     notes.Add(new QuickNoteItem
                     {
@@ -84,8 +100,13 @@ namespace SS_CAM.Services
                         CompletedTasks = completedTasks,
                         IsPinned = isPinned,
                         Priority = priority,
+                        Icon = icon,
+                        Category = category,
+                        ReadingTimeMinutes = readingTime,
+                        WordCount = wordCount,
+                        CreatedTicks = created.Ticks,
                         ModifiedTicks = modified.Ticks,
-                        ModifiedDisplay = modified.ToString("dd MMM yyyy, HH:mm")
+                        ModifiedDisplay = FormatRelativeTime(modified)
                     });
                 }
                 catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
@@ -103,16 +124,28 @@ namespace SS_CAM.Services
             return notes;
         }
 
+        public static string FormatRelativeTime(DateTime dt)
+        {
+            TimeSpan diff = DateTime.Now - dt;
+            if (diff.TotalMinutes < 1) return "Just now";
+            if (diff.TotalMinutes < 60) return string.Format("{0}m ago", (int)diff.TotalMinutes);
+            if (dt.Date == DateTime.Today) return "Today, " + dt.ToString("HH:mm");
+            if (dt.Date == DateTime.Today.AddDays(-1)) return "Yesterday, " + dt.ToString("HH:mm");
+            return dt.ToString("dd MMM yyyy");
+        }
+
         /// <summary>
         /// Creates a new empty note and returns its file path.
         /// </summary>
-        public static string CreateNote()
+        public static string CreateNote(string title = "New Note", string bodyContent = null, string icon = "📝", string category = "General")
         {
             string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             string fileName = string.Format("{0}.md", timestamp);
             string filePath = Path.Combine(NotesDirectory, fileName);
-            string body = string.Format("# New Note\n\n_{0}_\n\n", DateTime.Now.ToString("dd MMMM yyyy"));
-            string fullContent = BuildContentWithFrontmatter(body, false, NotePriority.Normal);
+            string body = !string.IsNullOrWhiteSpace(bodyContent)
+                ? bodyContent
+                : string.Format("# {0}\n\n_{1}_\n\n", title, DateTime.Now.ToString("dd MMMM yyyy"));
+            string fullContent = BuildContentWithFrontmatter(body, false, NotePriority.Normal, icon, category);
             File.WriteAllText(filePath, fullContent, Encoding.UTF8);
             return filePath;
         }
@@ -120,12 +153,12 @@ namespace SS_CAM.Services
         /// <summary>
         /// Saves note content with pinned and priority metadata in YAML frontmatter.
         /// </summary>
-        public static void SaveNote(string filePath, string rawContent, bool isPinned, NotePriority priority)
+        public static void SaveNote(string filePath, string rawContent, bool isPinned, NotePriority priority, string icon = "📝", string category = "General")
         {
             if (string.IsNullOrWhiteSpace(filePath)) return;
             try
             {
-                string fullContent = BuildContentWithFrontmatter(rawContent, isPinned, priority);
+                string fullContent = BuildContentWithFrontmatter(rawContent, isPinned, priority, icon, category);
                 File.WriteAllText(filePath, fullContent, Encoding.UTF8);
 
                 string noteId = Path.GetFileNameWithoutExtension(filePath);
@@ -149,6 +182,11 @@ namespace SS_CAM.Services
                 catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[QuickNoteService] SaveNote Portal push error: " + ex.Message); }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+        }
+
+        public static void SaveNote(string filePath, string rawContent, bool isPinned, NotePriority priority)
+        {
+            SaveNote(filePath, rawContent, isPinned, priority, "📝", "General");
         }
 
         /// <summary>
@@ -361,12 +399,14 @@ namespace SS_CAM.Services
         }
 
         /// <summary>
-        /// Parses pinned and priority metadata from YAML frontmatter block if present.
+        /// Parses pinned, priority, icon, and category metadata from YAML frontmatter block if present.
         /// </summary>
-        public static void ParseFrontmatter(string content, out bool isPinned, out NotePriority priority)
+        public static void ParseFrontmatter(string content, out bool isPinned, out NotePriority priority, out string icon, out string category)
         {
             isPinned = false;
             priority = NotePriority.Normal;
+            icon = "📝";
+            category = "General";
             if (string.IsNullOrWhiteSpace(content)) return;
 
             string text = content.Trim();
@@ -382,26 +422,42 @@ namespace SS_CAM.Services
                 if (colonIdx > 0)
                 {
                     string key = line.Substring(0, colonIdx).Trim().ToLowerInvariant();
-                    string val = line.Substring(colonIdx + 1).Trim().ToLowerInvariant();
+                    string val = line.Substring(colonIdx + 1).Trim();
 
                     if (key == "pinned")
                     {
-                        isPinned = val == "true" || val == "yes" || val == "1";
+                        string v = val.ToLowerInvariant();
+                        isPinned = v == "true" || v == "yes" || v == "1";
                     }
                     else if (key == "priority")
                     {
-                        if (val == "high" || val == "2") priority = NotePriority.High;
-                        else if (val == "medium" || val == "med" || val == "1") priority = NotePriority.Medium;
+                        string v = val.ToLowerInvariant();
+                        if (v == "high" || v == "2") priority = NotePriority.High;
+                        else if (v == "medium" || v == "med" || v == "1") priority = NotePriority.Medium;
                         else priority = NotePriority.Normal;
+                    }
+                    else if (key == "icon")
+                    {
+                        if (!string.IsNullOrWhiteSpace(val)) icon = val;
+                    }
+                    else if (key == "category")
+                    {
+                        if (!string.IsNullOrWhiteSpace(val)) category = val;
                     }
                 }
             }
         }
 
+        public static void ParseFrontmatter(string content, out bool isPinned, out NotePriority priority)
+        {
+            string icon, category;
+            ParseFrontmatter(content, out isPinned, out priority, out icon, out category);
+        }
+
         /// <summary>
         /// Rebuilds note content with standardized YAML frontmatter header.
         /// </summary>
-        public static string BuildContentWithFrontmatter(string content, bool isPinned, NotePriority priority)
+        public static string BuildContentWithFrontmatter(string content, bool isPinned, NotePriority priority, string icon = "📝", string category = "General")
         {
             string body = content != null ? content.Trim() : "";
             if (body.StartsWith("---"))
@@ -410,7 +466,10 @@ namespace SS_CAM.Services
                 if (end > 0) body = body.Substring(end + 3).TrimStart('\r', '\n');
             }
 
-            if (!isPinned && priority == NotePriority.Normal)
+            bool hasIcon = !string.IsNullOrWhiteSpace(icon) && icon != "📝";
+            bool hasCat = !string.IsNullOrWhiteSpace(category) && category != "General";
+
+            if (!isPinned && priority == NotePriority.Normal && !hasIcon && !hasCat)
             {
                 return body;
             }
@@ -420,11 +479,18 @@ namespace SS_CAM.Services
             if (isPinned) sb.AppendLine("pinned: true");
             if (priority == NotePriority.High) sb.AppendLine("priority: high");
             else if (priority == NotePriority.Medium) sb.AppendLine("priority: medium");
+            if (hasIcon) sb.AppendLine(string.Format("icon: {0}", icon));
+            if (hasCat) sb.AppendLine(string.Format("category: {0}", category));
             sb.AppendLine("---");
             sb.AppendLine();
             sb.Append(body);
 
             return sb.ToString();
+        }
+
+        public static string BuildContentWithFrontmatter(string content, bool isPinned, NotePriority priority)
+        {
+            return BuildContentWithFrontmatter(content, isPinned, priority, "📝", "General");
         }
 
         /// <summary>
@@ -474,6 +540,134 @@ namespace SS_CAM.Services
                 }
             }
         }
+
+        #region Notion & Evernote Inspired Creative Templates
+
+        public static string GetTemplateCreativeBrief()
+        {
+            return "# 📋 Creative Brief: [Project Title]\n\n" +
+                   "> [!NOTE] Campaign Objective\n" +
+                   "> Drive high-converting direct response leads with thumb-stopping visual hooks and clear value propositions.\n\n" +
+                   "### 🎯 Target Audience\n" +
+                   "- **Primary Persona:** Working professionals (28–45 years old)\n" +
+                   "- **Core Pain Point:** Daily fatigue, stress, lack of stamina\n" +
+                   "- **Desired Action:** Click through to WhatsApp consultation or direct web order\n\n" +
+                   "### ⚡ Deliverables Matrix\n" +
+                   "| Deliverable | Format / Ratio | Specs | Channel |\n" +
+                   "| :--- | :--- | :--- | :--- |\n" +
+                   "| Video Ad Cut | 9:16 (1080x1920) | MP4, < 30s | Meta & TikTok Ads |\n" +
+                   "| Feed Carousel (3 slides) | 1:1 (1080x1080) | PNG, RGB 72 DPI | Meta Ads / IG Feed |\n" +
+                   "| Story Banner | 9:16 (1080x1920) | Static PNG | IG Story |\n\n" +
+                   "### 🎣 Core Angle & Hooks\n" +
+                   "- **Hook 1 (Problem Callout):** \"Ramai ingat penat biasa, rupa-rupanya...\"\n" +
+                   "- **Hook 2 (Social Proof):** \"Dah cuba macam-macam suplemen tapi tak ada kesan?\"\n" +
+                   "- **Hook 3 (Urgency):** \"Slot konsultasi percuma terhad untuk 50 pelanggan pertama!\"\n\n" +
+                   "### ☑️ Milestone Checklist\n" +
+                   "- [ ] Art Director brief alignment\n" +
+                   "- [ ] Copywriting draft approved\n" +
+                   "- [ ] Visual asset rendering & grading\n" +
+                   "- [ ] Export final packages to 05_DELIVERABLES\n";
+        }
+
+        public static string GetTemplateMeetingMinutes()
+        {
+            return "# 💬 Creative Sync & Decisions — " + DateTime.Now.ToString("dd MMM yyyy") + "\n\n" +
+                   "> [!TIP] Focus\n" +
+                   "> Quick 15-minute sync on active campaign deliverables and production blockers.\n\n" +
+                   "### 👥 Attendees\n" +
+                   "- Harussani (Head of Creative)\n" +
+                   "- Creative Team Designers\n\n" +
+                   "### 📌 Agenda & Discussion Points\n" +
+                   "1. **Current Sprint Priorities:** Review active video cuts and print packaging dielines.\n" +
+                   "2. **Asset Approvals:** Update status on Meta feed creatives for client review.\n" +
+                   "3. **Nas Storage & Vault:** Ensure all completed deliverables are indexed in `05_DELIVERABLES`.\n\n" +
+                   "### 💡 Key Decisions\n" +
+                   "- Standardize all video exports to H.264 1080x1920 with burnt-in Malay captions.\n" +
+                   "- Retain high-resolution master project files in `02_SOURCE_FILES`.\n\n" +
+                   "### ☑️ Action Items & Ownership\n" +
+                   "- [ ] Finalize packaging box sleeve dieline (Due: Tomorrow 3 PM)\n" +
+                   "- [ ] Run AI Preflight check on WhatsApp broadcast copy\n" +
+                   "- [ ] Upload approved deliverables to Synology NAS\n";
+        }
+
+        public static string GetTemplateAdCopyHookMatrix()
+        {
+            return "# ⚡ Direct-Response Ad Script & 3-Hook Matrix\n\n" +
+                   "> [!WARNING] Regulatory Guard (KKM / LIU)\n" +
+                   "> Do NOT use prohibited absolutes like \"100% sembuh\", \"pasti berkesan\", or \"tiada tandingan\". Focus on lifestyle improvement and premium natural ingredients.\n\n" +
+                   "### 🎣 3-Hook Matrix Table\n" +
+                   "| Hook # | Angle Type | Opening Audio (0–3s) | Visual Retention Cue |\n" +
+                   "| :--- | :--- | :--- | :--- |\n" +
+                   "| **Hook 1** | Pain-Point Callout | *\"Dah cuba macam-macam suplemen tapi badan masih lemau?\"* | Fast zoom-in on exhausted expression |\n" +
+                   "| **Hook 2** | Story & Curiosity | *\"Saya ingat umur 40-an memang macam ni, rupanya silap...\"* | Split screen before vs. after |\n" +
+                   "| **Hook 3** | Solution Demo | *\"Tengok apa jadi lepas konsisten amalkan herba terpilih ni...\"* | Dynamic product reveal with lighting sweep |\n\n" +
+                   "### 📝 Body Script (15–25s)\n" +
+                   "- **Problem Agitation:** Masalah stamina bukan sekadar faktor umur, tapi cara pemakanan dan gaya hidup seharian.\n" +
+                   "- **Unique Mechanism:** Ekstrak herba asli standardisasi premium yang membantu menyegarkan badan secara semula jadi.\n" +
+                   "- **Social Proof:** Lebih 12,000 pelanggan setia di seluruh Malaysia telah merasai perbezaannya.\n\n" +
+                   "### 🚀 Call-To-Action (CTA)\n" +
+                   "> *\"Tekan butang 'Learn More' di bawah sekarang untuk dapatkan pakej pengenalan eksklusif!\"*\n";
+        }
+
+        public static string GetTemplateMindDrop()
+        {
+            return "# 💡 Mind Drop & Concept Brainstorm\n\n" +
+                   "> [!NOTE] Raw Inspiration\n" +
+                   "> Unfiltered ideas, moodboard notes, visual styles, and references.\n\n" +
+                   "### 🌟 Core Concept\n" +
+                   "- **Elevator Pitch:** \n" +
+                   "- **Emotional Benefit:** \n" +
+                   "- **Aesthetic Direction:** Minimalist luxury, clean medical typography, 60-30-10 color balance.\n\n" +
+                   "### 🎨 Visual & Moodboard References\n" +
+                   "- Primary Color Accent: `#0078D4` (SS Royal Blue)\n" +
+                   "- Secondary Accent: `#D97706` (Luxury Gold)\n" +
+                   "- Reference Link 1: [Moodboard / Pinterest]()\n" +
+                   "- Reference Link 2: [Competitor Campaign Reference]()\n\n" +
+                   "### ☑️ Next Steps to Validate\n" +
+                   "- [ ] Mock up rapid 1:1 canvas comp in Photoshop\n" +
+                   "- [ ] Check with Art Director for brand token alignment\n" +
+                   "- [ ] Draft 3 copy variations in Copywriting Studio\n";
+        }
+
+        public static string GetTemplateTaskSprint()
+        {
+            return "# 🎯 Creative Sprint & Task Backlog\n\n" +
+                   "> [!TIP] Daily Rhythm\n" +
+                   "> Knock out High Priority tasks before 12 PM. Group administrative feedback into the afternoon block.\n\n" +
+                   "### 🔥 High Priority (Today)\n" +
+                   "- [ ] Review client comments on Video Ad #3\n" +
+                   "- [ ] Export high-res packaging labels for print vendor\n" +
+                   "- [ ] Sync project brief changes with Task Manager\n\n" +
+                   "### ⚡ Medium Priority (In Progress)\n" +
+                   "- [ ] Design Instagram carousel slides (1:1 ratio)\n" +
+                   "- [ ] Organize raw shoot footage into `02_SOURCE_FILES`\n" +
+                   "- [ ] Update README.md milestone frontmatter\n\n" +
+                   "### 📦 Backlog & Next Up\n" +
+                   "- [ ] Explore Canva template bridge for social templates\n" +
+                   "- [ ] Archive completed Q2 campaign folders on Synology NAS\n";
+        }
+
+        public static string GetTemplateClientFeedback()
+        {
+            return "# 📋 Client Feedback & Revision Log\n\n" +
+                   "> [!WARNING] Scope Alert\n" +
+                   "> Revisions outside the original approved brief require Art Director sign-off.\n\n" +
+                   "**Client / Brand:** SuamiSihat Clinic  \n" +
+                   "**Revision Round:** Round 2  \n" +
+                   "**Date Received:** " + DateTime.Now.ToString("dd MMM yyyy") + "  \n\n" +
+                   "### 🔍 Requested Changes\n" +
+                   "| Section | Current State | Requested Revision | Priority |\n" +
+                   "| :--- | :--- | :--- | :--- |\n" +
+                   "| Opening Hook | Text caption too small | Increase font size by 20% with white drop shadow | High |\n" +
+                   "| Callout Box | Mentioned 30-day guarantee | Remove claim; replace with \"Konsultasi Klinikal Percuma\" | Critical |\n" +
+                   "| Logo Outro | 2-second hold | Extend logo outro to 3.5 seconds with website URL | Medium |\n\n" +
+                   "### ☑️ Revision Checklist\n" +
+                   "- [ ] Update master composition in After Effects\n" +
+                   "- [ ] Re-export MP4 to `05_DELIVERABLES/REV2_Ad.mp4`\n" +
+                   "- [ ] Upload revision preview for client approval\n";
+        }
+
+        #endregion
     }
 
     public class QuickNoteItem
@@ -486,8 +680,36 @@ namespace SS_CAM.Services
         public int CompletedTasks { get; set; }
         public bool IsPinned { get; set; }
         public NotePriority Priority { get; set; }
+        public string Icon { get; set; }
+        public string Category { get; set; }
+        public int ReadingTimeMinutes { get; set; }
+        public int WordCount { get; set; }
+        public long CreatedTicks { get; set; }
         public long ModifiedTicks { get; set; }
         public string ModifiedDisplay { get; set; }
+
+        public QuickNoteItem()
+        {
+            Icon = "📝";
+            Category = "General";
+            ReadingTimeMinutes = 1;
+            WordCount = 0;
+        }
+
+        public string ReadingTimeDisplay
+        {
+            get { return string.Format("{0} min read", Math.Max(1, ReadingTimeMinutes)); }
+        }
+
+        public string CategoryDisplay
+        {
+            get { return string.IsNullOrWhiteSpace(Category) ? "General" : Category; }
+        }
+
+        public System.Windows.Visibility CategoryBadgeVisibility
+        {
+            get { return string.IsNullOrWhiteSpace(Category) || Category == "General" ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible; }
+        }
 
         public System.Windows.Visibility PinBadgeVisibility
         {
@@ -506,7 +728,7 @@ namespace SS_CAM.Services
 
         public string TaskProgressDisplay
         {
-            get { return string.Format("{0}/{1} tasks", CompletedTasks, TotalTasks); }
+            get { return string.Format("✓ {0}/{1}", CompletedTasks, TotalTasks); }
         }
 
         public string PriorityLabel

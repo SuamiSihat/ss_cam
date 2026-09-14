@@ -2,6 +2,79 @@
 
 All notable SS-CAM changes are documented here.
 
+## [4.10.0] - 2026-09-14 (Smart Drag-and-Drop Vault Ingester, Myers LCS Diff Engine & AI Brief Intelligence)
+
+### Added & Refined — Smart Drag-and-Drop Vault Ingester (`SmartIngesterService.cs`)
+- **Canonical 5-Folder Classifier**:
+  - Automatically identifies file extensions and folder names to sort dropped assets directly into target project folders:
+    - `01_BRIEF_ASSETS`: Briefs, PDF guidelines, DOCX specifications, requirements text.
+    - `02_SOURCE_FILES`: PSD, AI, EPS, SVG, blend, raw design sources.
+    - `03_COPYWRITING`: Text copy, scripts, markdown, transcripts.
+    - `04_WORK_IN_PROGRESS`: Staged work, intermediate renderings, comps.
+    - `05_DELIVERABLES`: Final exports, PNG, JPG, MP4, WEBM, PDF deliverables.
+  - Recursively flattens or preserves directory contents during ingestion.
+  - **Non-Destructive Collision Protection**: Employs `ResolveCollisionSafeFileName` appending numeric suffixes (`_1`, `_2`) so existing project assets are never overwritten.
+- **Multi-Surface Desktop Integration**:
+  - **Project Creator (`ProjectCreatorPage.xaml`)**: Added visual drag-and-drop staging card (`BorderDropZone`) allowing designers to drop raw files/folders during project setup; files are staged and automatically ingested upon clicking "Create Project Folder".
+  - **Project Catalog & Inspector (`SearchCopyPage.xaml`)**: Project cards and detail areas act as drag-and-drop targets with visual border highlight feedback, enabling direct asset ingestion into active vaults with automatic image gallery reloading.
+  - **Task Manager (`TaskManagerPage.xaml.cs`)**: Kanban task cards support direct asset dropping with automatic vault ingestion and toast notification alerts.
+
+### Added & Refined — Copywriting & Brief Myers LCS Diff Engine (`TextDiffService.cs`, `MarkdownDiffDialog.xaml`)
+- **Myers LCS Difference Algorithm**:
+  - High-performance line-by-line comparison algorithm calculating edit distance, LCS similarity percentage, and classifying line mutations into `Equal`, `Insert`, `Delete`, and `Modify`.
+- **Automatic Milestone & Revision Snapshots**:
+  - Automatically creates timestamped immutable backups (`YYYYMMDD_HHmmss_COPY.md` / `README.md`) in `archive/` or `.snapshots/` subdirectories whenever copy or brief content is updated.
+- **Fluent 2 Revision Comparison Dialog (`MarkdownDiffDialog.xaml`)**:
+  - Modal window (`<ui:FluentWindow>`) comparing live working markdown against historical archive snapshots or arbitrary revisions.
+  - Dual revision dropdown pickers with file size and timestamp metadata.
+  - Visual summary banner showing similarity percentage badge, line insertions count (`+N`), and line deletions count (`-N`).
+  - Dual viewing modes: **Unified View** (inline GitHub-style diff with syntax colors) and **Side-by-Side View** (dual-pane synchronized comparison).
+  - Integrated 1-click clipboard exporter and NAS Explorer quick-launch button.
+  - Wired into `CopywritingPage.xaml` ("Diff History" button) and `SearchCopyPage.xaml` ("Brief Diff" button).
+
+### Added & Refined — AI Brief Intelligence & Copy Preflight Assistant (`GeminiDesktopService.cs`, `GeminiService.js`)
+- **Dual Engine Architecture (Online Cloud + Offline Resilient)**:
+  - Queries Google Gemini 1.5 REST API using credentials securely discovered from NAS `_Team/ai-config.json`.
+  - Seamless offline heuristic fallback when disconnected from NAS or network, guaranteeing 100% feature availability and zero UI thread hangs.
+- **AI Brief Completeness & Requirements Auditor (`ValidateBriefAsync`)**:
+  - Audits creative brief content against required parameters: Deliverables specified, Target Audience defined, Aspect Ratios declared, Core Hook clarity, and Brand Color Tokens included.
+  - Computes an Art Director Completeness Score (0–100) with clear Pass/Revise verdict, strengths list, missing items checklist, and recommended brand tokens.
+- **AI Copywriting Style & Compliance Preflight Assistant (`PreflightCopyAsync`)**:
+  - Inspects copywriting scripts for hook velocity, readability, and persuasiveness.
+  - Scans for prohibited medical and cosmetic claims under Malaysian KKM / LIU guidelines (e.g., "100% berkesan", "pasti sembuh", "bebas kesan sampingan", "tiada tandingan").
+  - Generates hook alternatives and actionable copywriting recommendations before running live ad campaigns.
+- **Web Portal Parity**:
+  - Extended Node.js `GeminiService.js` with `validateBriefCompleteness` and `preflightCopyTone`.
+  - Exposed REST API endpoints `POST /api/ai/validate-brief` and `POST /api/ai/preflight-copy`.
+
+### Added & Refined — Notion & Evernote Inspired Quick Notes Studio (`QuickNoteService.cs`, `QuickNotePage.xaml`, `QuickNotePage.xaml.cs`)
+- **Notion-Style Header & Property Matrix**:
+  - **Interactive Page Emoji Avatar**: 12 curated creative icons (`📝`, `💡`, `🎯`, `🚀`, `📋`, `⚡`, `💬`, `🎨`, `📊`, `☕`, `🏷️`, `📌`) with dropdown context menu, updating note cards and header instantly.
+  - **Inline Borderless Title Editor**: Large 20pt title text editor that synchronizes bidirectionally with note frontmatter and first markdown heading.
+  - **Compact Property Matrix**: Inline category tag dropdown (`General`, `Brief`, `Meeting`, `Idea`, `Copywriting`, `Tasks`, `Feedback`), priority dropdown (`Normal`, `Medium (P1)`, `High (P2)`), relative time badge ("Edited today, 11:42"), dynamic reading time estimator ("X min read"), word/char metrics, and auto-saving indicator (`Saved ✓`).
+  - **Distraction-Free Focus / Zen Mode**: 1-click focus toggle button collapsing the notes sidebar for full-screen creative immersion.
+- **Evernote-Inspired Sidebar & Note Cards**:
+  - **Instant Search with Clear Button**: Real-time substring query matching across note titles, contents, and categories, with `(✕)` quick-clear button.
+  - **Categorical Filter Chips**: 6 status and category pills (`All`, `📌 Pin`, `⚡ High`, `☑️ Tasks`, `💡 Ideas`, `📋 Briefs`) with theme-adaptive styling.
+  - **Multi-Factor Sort Selector**: Sort by `Recently Edited`, `Date Created`, `Title (A-Z)`, or `Priority`.
+  - **Rich Card Visual Hierarchy**: Rounded emoji badge, bold title, 2-line snippet preview, category tag pill, relative timestamp, task completion counter (`✓ 2/4`), and priority pill (`P1`, `P2`).
+- **Notion-Style Block Formatting & Callouts**:
+  - **4 Notion Callout Blocks**: Blue Note (`[!NOTE]`), Green Pro-Tip (`[!TIP]`), Amber Regulatory Warning (`[!WARNING]`), Red Critical Alert (`[!DANGER]`).
+  - **1-Click Markdown Table Inserter**: Scaffolds 4-column deliverable matrix with specs, status, and ownership.
+  - **Expanded Markdown Tools**: Headings (`H1`, `H2`, `H3`), inline styles (`B`, `I`, `S`, `</>`), task checklist (`- [ ]`), bullet lists, numbered lists, blockquotes, code blocks, horizontal rules, links, and image inserters.
+  - **3-Way View Mode Switcher**: `Split` (side-by-side live FlowDocument rendering), `Edit` (full-width text editor), and `Preview` (full-width rendered view).
+  - **Export & Handover**: Plain clean text export (for WhatsApp/Slack broadcasting), raw Markdown copying, and native `.md` file saving.
+- **Creative Starter Templates & Onboarding Grid**:
+  - 4-card interactive starter template grid on empty workspace: Creative Brief (Notion Standard), Meeting Sync, 3-Hook Ad Matrix, and Mind Drop.
+  - 100% backward-compatible YAML frontmatter storage (`icon:`, `category:`, `pinned:`, `priority:`).
+
+### Tri-Platform Release Artifacts & Verification
+| Artifact | Platform / Target | Specifications | Status |
+|---|---|---|---|
+| `dist/SS-CAM-v4.10.0.exe` | Windows 10/11 x64 | .NET Framework 4.8 WPF Single-File Binary | **Verified** |
+| `src/SS-CAM.Web/` | Web / Docker | Svelte 5 + Node 20 (34/34 Unit Tests, 7/7 Smoke Tests Passed) | **Verified** |
+| `src/SS-CAM.Android/` | Android 8.0+ (API 26+) | Jetpack Compose Companion App (Version 4.10.0, Code 4100) | **Verified** |
+
 ## [4.9.1] - 2026-09-11 (Direct-Manipulation Gantt Edge Drag-to-Resize, Real-Time Grid Snapping & Holiday Conflict Guard)
 
 ### Added & Refined — Interactive Gantt Edge Dragging & Real-Time Snapping (`CalendarPage.xaml.cs`, `ProjectGanttView.svelte`)

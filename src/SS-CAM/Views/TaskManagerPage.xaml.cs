@@ -1425,32 +1425,19 @@ namespace SS_CAM.Views
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
                 if (files != null && files.Length > 0)
                 {
-                    int ingestedCount = 0;
-                    foreach (string src in files)
-                    {
-                        if (File.Exists(src))
-                        {
-                            string ext = Path.GetExtension(src).ToLowerInvariant();
-                            string targetFolder = (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".mp4" || ext == ".mov")
-                                ? "05_DELIVERABLES"
-                                : (ext == ".afdesign" || ext == ".psd" || ext == ".ai" ? "02_SOURCE_FILES" : "01_BRIEF_ASSETS");
+                    SmartIngestResult result = SmartIngesterService.Ingest(_editingProject.FullPath, files);
 
-                            string destDir = Path.Combine(_editingProject.FullPath, targetFolder);
-                            if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
-
-                            string destPath = Path.Combine(destDir, Path.GetFileName(src));
-                            File.Copy(src, destPath, true);
-                            ingestedCount++;
-                        }
-                    }
-
-                    if (ingestedCount > 0)
+                    if (result.Success && result.TotalIngested > 0)
                     {
                         if (TxtAssetDropHint != null)
                         {
-                            TxtAssetDropHint.Text = string.Format("\u2713 Ingested {0} file(s) successfully!", ingestedCount);
+                            TxtAssetDropHint.Text = string.Format("\u2713 Ingested {0} asset(s) successfully!", result.TotalIngested);
                         }
-                        NotificationService.ShowSuccess("Assets Ingested", string.Format("Ingested {0} file(s) into project vault.", ingestedCount));
+                        NotificationService.ShowSuccess("Assets Ingested", string.Format("Ingested {0} asset(s) into project vault.", result.TotalIngested), _editingProject.FullPath);
+                    }
+                    else if (!result.Success)
+                    {
+                        NotificationService.ShowError("Ingestion Failed", result.ErrorMessage ?? "Could not ingest dropped files.");
                     }
                 }
             }

@@ -150,6 +150,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Dialogs\MarkdownDiffDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\RadioPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -235,6 +239,9 @@
     <Compile Include="Services\WorkSessionTrackerService.cs" />
     <Compile Include="Services\CommandPaletteService.cs" />
     <Compile Include="Services\LiveTaskSyncService.cs" />
+    <Compile Include="Services\SmartIngesterService.cs" />
+    <Compile Include="Services\TextDiffService.cs" />
+    <Compile Include="Services\GeminiDesktopService.cs" />
     <Compile Include="Views\SplashWindow.xaml.cs">
       <DependentUpon>SplashWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -293,6 +300,10 @@
     </Compile>
     <Compile Include="Dialogs\VisualDiffDialog.xaml.cs">
       <DependentUpon>VisualDiffDialog.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Dialogs\MarkdownDiffDialog.xaml.cs">
+      <DependentUpon>MarkdownDiffDialog.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Views\RadioPage.xaml.cs">

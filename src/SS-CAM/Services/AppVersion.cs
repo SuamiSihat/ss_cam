@@ -15,7 +15,7 @@ namespace SS_CAM.Services
                 }
                 catch
                 {
-                    return new Version(4, 8, 1, 0);
+                    return new Version(4, 10, 0, 0);
                 }
             }
         }

@@ -134,7 +134,11 @@
                                             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                             BorderThickness="1" CornerRadius="8" Padding="0"
-                                            Width="255" Height="80" Cursor="Hand" Margin="0,0,8,0">
+                                            Width="255" Height="80" Cursor="Hand" Margin="0,0,8,0"
+                                            AllowDrop="True"
+                                            DragOver="OnProjectCardDragOver"
+                                            DragLeave="OnProjectCardDragLeave"
+                                            Drop="OnProjectCardDrop">
                                         <Grid>
                                             <!-- Left Selected Accent Indicator -->
                                             <Border x:Name="SelectedIndicator" Width="4" HorizontalAlignment="Left"
@@ -326,6 +330,22 @@
                                                        BorderThickness="0" Cursor="Hand"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <ui:Button Appearance="Secondary" Click="OnBriefDiffClicked"
+                                                       Height="28" Padding="10,0" FontSize="11.5" Cursor="Hand" Margin="0,0,6,0"
+                                                       ToolTip="Inspect brief revisions and line-by-line diff">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ui:SymbolIcon Symbol="DocumentText24" FontSize="12" Margin="0,0,4,0"/>
+                                                    <ui:TextBlock Text="Diff History"/>
+                                                </StackPanel>
+                                            </ui:Button>
+                                            <ui:Button Appearance="Secondary" Click="OnAiBriefAuditClicked"
+                                                       Height="28" Padding="10,0" FontSize="11.5" Cursor="Hand" Margin="0,0,6,0"
+                                                       ToolTip="Validate brief completeness &amp; brand guidelines using AI">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ui:SymbolIcon Symbol="Sparkle24" FontSize="12" Foreground="{DynamicResource FluentBrand80}" Margin="0,0,4,0"/>
+                                                    <ui:TextBlock Text="AI Health Check"/>
+                                                </StackPanel>
+                                            </ui:Button>
                                             <ui:Button Appearance="Primary" Click="OnSaveBriefClicked"
                                                        Height="28" Padding="12,0" FontSize="11.5" FontWeight="Bold" Cursor="Hand" Margin="0,0,6,0">
                                                 <StackPanel Orientation="Horizontal">
@@ -633,6 +653,13 @@
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Edit24" FontSize="13" Margin="0,0,5,0"/>
                                     <ui:TextBlock Text="Edit Brief" VerticalAlignment="Center" FontSize="11.5"/>
+                                </StackPanel>
+                            </ui:Button>
+                            <ui:Button x:Name="BtnBriefDiffAction" Appearance="Secondary" Click="OnBriefDiffClicked"
+                                       Height="32" Padding="12,0" Cursor="Hand" Margin="0,0,8,0" ToolTip="Compare brief revisions &amp; diff">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="DocumentText24" FontSize="13" Margin="0,0,5,0"/>
+                                    <ui:TextBlock Text="Diff History" VerticalAlignment="Center" FontSize="11.5"/>
                                 </StackPanel>
                             </ui:Button>
                             <ui:Button Appearance="Primary" Click="OnExportHandoverZipClicked"

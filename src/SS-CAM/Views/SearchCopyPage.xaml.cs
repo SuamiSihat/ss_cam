@@ -170,6 +170,7 @@ namespace SS_CAM.Views
             string readmePath = Path.Combine(selectedItem.FullPath, "README.md");
             try
             {
+                TextDiffService.CreateSnapshot(selectedItem.FullPath, "brief", BriefEditor.Text);
                 File.WriteAllText(readmePath, BriefEditor.Text, System.Text.Encoding.UTF8);
                 rawReadmeText = BriefEditor.Text;
                 cleanedReadmeText = StripFrontmatter(rawReadmeText);
@@ -994,6 +995,156 @@ namespace SS_CAM.Views
             {
                 string targetSubDir = Path.Combine(destinationDir, subDir.Name);
                 CopyDirectory(subDir.FullName, targetSubDir);
+            }
+        }
+
+        // ─── Smart Asset Ingestion Drag-and-Drop ────────────────────────────
+
+        private void OnProjectCardDragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+                Border border = sender as Border;
+                if (border != null)
+                {
+                    border.BorderBrush = (System.Windows.Media.Brush)Application.Current.FindResource("FluentBrand80");
+                    border.BorderThickness = new Thickness(2);
+                }
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void OnProjectCardDragLeave(object sender, DragEventArgs e)
+        {
+            Border border = sender as Border;
+            if (border != null)
+            {
+                border.BorderBrush = (System.Windows.Media.Brush)Application.Current.FindResource("CardStrokeColorDefaultBrush");
+                border.BorderThickness = new Thickness(1);
+            }
+        }
+
+        private async void OnProjectCardDrop(object sender, DragEventArgs e)
+        {
+            Border border = sender as Border;
+            if (border != null)
+            {
+                border.BorderBrush = (System.Windows.Media.Brush)Application.Current.FindResource("CardStrokeColorDefaultBrush");
+                border.BorderThickness = new Thickness(1);
+            }
+
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] paths = (string[])e.Data.GetData(DataFormats.FileDrop);
+                FrameworkElement fe = sender as FrameworkElement;
+                DesignerFolderItem targetItem = fe != null ? fe.DataContext as DesignerFolderItem : null;
+                string targetPath = targetItem != null ? targetItem.FullPath : (selectedItem != null ? selectedItem.FullPath : null);
+
+                if (!string.IsNullOrEmpty(targetPath) && Directory.Exists(targetPath))
+                {
+                    SmartIngestResult res = await SmartIngesterService.IngestAsync(targetPath, paths);
+                    if (res.Success && res.TotalIngested > 0)
+                    {
+                        NotificationService.ShowSuccess(
+                            "Smart Assets Ingested",
+                            string.Format("Ingested {0} asset(s) into project vault.", res.TotalIngested),
+                            targetPath);
+
+                        if (selectedItem != null && string.Equals(selectedItem.FullPath, targetPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            LoadProjectImages();
+                        }
+                    }
+                    else if (!res.Success)
+                    {
+                        NotificationService.ShowError("Ingestion Failed", res.ErrorMessage ?? "Could not ingest dropped files.");
+                    }
+                }
+            }
+        }
+
+        // ─── Brief Diff Inspector & AI Health Check ─────────────────────────
+
+        private void OnBriefDiffClicked(object sender, RoutedEventArgs e)
+        {
+            if (selectedItem == null || !Directory.Exists(selectedItem.FullPath))
+            {
+                MessageBox.Show("Please select a project folder first.", "No Project Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                MarkdownDiffDialog dlg = new MarkdownDiffDialog(selectedItem.FullPath, "brief");
+                dlg.Owner = Window.GetWindow(this);
+                dlg.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[SearchCopyPage] OnBriefDiffClicked error: " + ex.Message);
+            }
+        }
+
+        private async void OnAiBriefAuditClicked(object sender, RoutedEventArgs e)
+        {
+            if (selectedItem == null || !Directory.Exists(selectedItem.FullPath))
+            {
+                MessageBox.Show("Please select a project folder first.", "No Project Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string content = BriefEditor != null && !string.IsNullOrWhiteSpace(BriefEditor.Text) ?
+                BriefEditor.Text :
+                (rawReadmeText ?? string.Empty);
+
+            NotificationService.ShowInfo("AI Brief Audit", "Analyzing project brief completeness and compliance...");
+
+            try
+            {
+                string clientName = currentStatusItem != null ? currentStatusItem.Client : "SSH";
+                BriefValidationReport report = await GeminiDesktopService.ValidateBriefAsync(content, clientName, selectedItem.Project, workspaceRoot);
+
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine(string.Format("AI Brief Completeness Score: {0}/100 ({1})\n", report.Score, report.Passed ? "PASS" : "REVISIONS RECOMMENDED"));
+
+                if (report.Strengths.Count > 0)
+                {
+                    sb.AppendLine("Strengths:");
+                    foreach (var s in report.Strengths) sb.AppendLine("  • " + s);
+                    sb.AppendLine();
+                }
+
+                if (report.MissingItems.Count > 0)
+                {
+                    sb.AppendLine("Missing / Ambiguous Items:");
+                    foreach (var m in report.MissingItems) sb.AppendLine("  • " + m);
+                    sb.AppendLine();
+                }
+
+                if (report.Recommendations.Count > 0)
+                {
+                    sb.AppendLine("Art Director Recommendations:");
+                    foreach (var r in report.Recommendations) sb.AppendLine("  • " + r);
+                    sb.AppendLine();
+                }
+
+                if (report.SuggestedBrandTokens.Count > 0)
+                {
+                    sb.AppendLine("Suggested Brand Tokens:");
+                    foreach (var t in report.SuggestedBrandTokens) sb.AppendLine("  • " + t);
+                }
+
+                MessageBox.Show(sb.ToString(), string.Format("AI Brief Intelligence — {0}/100", report.Score), MessageBoxButton.OK, report.Passed ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[SearchCopyPage] OnAiBriefAuditClicked error: " + ex.Message);
+                NotificationService.ShowError("AI Audit Error", ex.Message);
             }
         }
     }

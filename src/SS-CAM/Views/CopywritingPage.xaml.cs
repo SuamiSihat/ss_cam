@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,6 +14,7 @@ using System.Windows.Threading;
 using SS_CAM.Models;
 using SS_CAM.Services;
 using SS_CAM.Utilities;
+using SS_CAM.Dialogs;
 
 namespace SS_CAM.Views
 {
@@ -34,6 +36,7 @@ namespace SS_CAM.Views
             public string Name { get; set; }
             public string FullPath { get; set; }
             public string ProjectId { get; set; }
+            public string Client { get; set; }
 
             public override string ToString()
             {
@@ -1200,6 +1203,81 @@ namespace SS_CAM.Views
             catch (Exception ex)
             {
                 Debug.WriteLine("[CopywritingPage] Open deliverables folder error: " + ex.Message);
+            }
+        }
+
+        private void OnCopyDiffHistoryClicked(object sender, RoutedEventArgs e)
+        {
+            if (selectedProject == null || string.IsNullOrWhiteSpace(selectedProject.FullPath))
+            {
+                MessageBox.Show("Please select a project first.", "No Project Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                MarkdownDiffDialog dlg = new MarkdownDiffDialog(selectedProject.FullPath, "copy");
+                dlg.Owner = Window.GetWindow(this);
+                dlg.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[CopywritingPage] OnCopyDiffHistoryClicked error: " + ex.Message);
+            }
+        }
+
+        private async void OnAiPreflightClicked(object sender, RoutedEventArgs e)
+        {
+            if (selectedProject == null || string.IsNullOrWhiteSpace(selectedProject.FullPath))
+            {
+                MessageBox.Show("Please select a project first.", "No Project Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string copyText = CopyScriptEditor != null ? CopyScriptEditor.Text : string.Empty;
+            if (string.IsNullOrWhiteSpace(copyText))
+            {
+                MessageBox.Show("Script content is empty. Write or paste copy to audit.", "Empty Script", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            NotificationService.ShowInfo("AI Preflight", "Auditing copywriting tone, hooks, and KKM compliance...");
+
+            try
+            {
+                string clientCode = selectedProject.Client != null ? selectedProject.Client : "SSH";
+                CopyPreflightReport report = await GeminiDesktopService.PreflightCopyAsync(copyText, clientCode, "Meta Feed", workspaceRoot);
+
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine(string.Format("AI Style & Compliance Score: {0}/100\n", report.Score));
+                sb.AppendLine(string.Format("Tone Verdict: {0}\n", report.ToneVerdict));
+
+                if (report.RegulatoryWarnings.Count > 0)
+                {
+                    sb.AppendLine("Regulatory & Medical Warnings (KKM / LIU):");
+                    foreach (var w in report.RegulatoryWarnings) sb.AppendLine("  ⚠️ " + w);
+                    sb.AppendLine();
+                }
+
+                if (report.HookSuggestions.Count > 0)
+                {
+                    sb.AppendLine("High-Converting Hook Suggestions:");
+                    foreach (var h in report.HookSuggestions) sb.AppendLine("  🎣 " + h);
+                    sb.AppendLine();
+                }
+
+                if (report.ActionableImprovements.Count > 0)
+                {
+                    sb.AppendLine("Actionable Recommendations:");
+                    foreach (var a in report.ActionableImprovements) sb.AppendLine("  • " + a);
+                }
+
+                MessageBox.Show(sb.ToString(), string.Format("AI Copywriting Preflight — {0}/100", report.Score), MessageBoxButton.OK, report.Score >= 75 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[CopywritingPage] OnAiPreflightClicked error: " + ex.Message);
+                NotificationService.ShowError("AI Preflight Error", ex.Message);
             }
         }
 

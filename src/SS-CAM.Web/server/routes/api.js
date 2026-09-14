@@ -636,6 +636,26 @@ router.post('/ai/format-prompt', authenticateToken, (req, res) => {
   }
 });
 
+router.post('/ai/validate-brief', authenticateToken, async (req, res) => {
+  try {
+    const { briefMarkdown, client, projectTitle } = req.body;
+    const report = await GeminiService.validateBriefCompleteness({ briefMarkdown, client, projectTitle });
+    res.json({ success: true, report });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/ai/preflight-copy', authenticateToken, async (req, res) => {
+  try {
+    const { copyMarkdown, brand, platform } = req.body;
+    const report = await GeminiService.preflightCopyTone({ copyMarkdown, brand, platform });
+    res.json({ success: true, report });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // ─── PROJECT SNAPSHOTS & VERSION ROLLBACK ROUTES ────────────────────
 

@@ -50,19 +50,21 @@
 | **v4.8.1** | 2026-09-10 | **Global Studio Command Palette (`Ctrl + K`), Art Director 60-30-10 Polish, Live Work Session Stopwatch, Real-Time Team Task Stream & Creative Operations Upgrade**: Universal keyboard quick-launcher for 15 modules, brand colors, and copy hooks; 60-30-10 Fluent 2 visual hierarchy; live stopwatch, project status pill, and crash-resilient session tracker drawer; real-time studio live tasks feed on Main Dashboard (`LiveTaskSyncService`); team task start/resume desktop toast notifications; comprehensive resolution of dropdown text cropping, baseline clipping, and mnemonic underscore stripping across all views; Creative Request low-priority intake tier (`tier_0`), contextual Digital vs. Print format & material architecture, full request editing, "Added to Backlog" intake refinement, and pure production queue cleanup |
 | **v4.8.2** | 2026-09-11 | **Art Director Deliverables & Subtask Engine, Tri-Platform Real-Time Sync & Dashboard KPI Automation**: Canonical deliverables & subtask management architecture (`subtasks:` frontmatter schema with weight points, deliverable specs, and designer attribution); 1-tap interactive status progression (`Draft` ➔ `In Progress` ➔ `Done`) across Desktop Task Manager, Web Deliverables Gallery, and Android Companion; Desktop FileSystemWatcher integration in `DashboardPage` and `TaskManagerPage` ensuring 100% real-time KPI card telemetry; Web Portal REST API `PUT /api/projects/:id` subtask ingestion, live memory cache refresh, and SSE `project:updated` broadcasting; Android Native Companion `updateProject` API wiring with instant optimistic state updates and direct `README.md` syncing; and YAML frontmatter parser nesting hierarchy fix in `FrontmatterService.cs` preventing child subtask statuses from overriding top-level project status |
 | **v4.9.0** | 2026-09-11 | **Art Director Ecosystem Unification (Live Studio Workstream Telemetry, Command Palette v3.5.1, Packaging Deliverables & Tri-Platform Parity)**: Tri-platform live studio telemetry (`_Team/live_tasks.json`, Web Live Radar & Top Pulse Pill, Android Standby Desk Companion pulsing ticker & Team Hub live workstream); Master Brand System v3.5.1 (16 official SSoT color tokens with Shift-click CSS token copy, 7 high-converting Malay marketing hooks); packaging dieline deliverables (`pkg_box_sleeve`, `pkg_label`) with custom dimensions and material substrates; `tier_0` Low/Pipeline intake priority; and full Android Companion App release build (`app-release.aab` 5.76 MB RSA-signed + standalone APK) |
+| **v4.9.1** | 2026-09-11 | **Direct-Manipulation Gantt Edge Drag-to-Resize, Real-Time Grid Snapping & Holiday Conflict Guard**: Interactive left/right resize handles on project timeline bars, live duration day counter, real-time Malaysian holiday off-day conflict detection, and bidirectional frontmatter sync |
+| **v4.10.0** | 2026-09-14 | **Smart Drag-and-Drop Vault Ingester, Myers LCS Diff Engine & AI Brief Intelligence**: Drag-and-drop auto-sorting into 5 canonical vault folders with non-destructive collision safety across Project Creator, Search & Copy, and Task Manager; Myers LCS line-by-line Markdown text diff engine with automatic timestamped snapshots and Fluent 2 Side-by-Side/Unified comparison dialog (`MarkdownDiffDialog`); online Gemini 1.5 REST & offline heuristic fallback brief completeness validator and KKM regulatory compliance preflight assistant |
 
 ---
 
-## 🎯 Active Milestone — v4.10.0: Smart Ingester & Copywriting Diff Engine (Target: Q4 2026)
+## 🎯 Active Milestone — v4.11.0: Advanced Batch Operations & Studio Archive Vault (Target: Q4 2026)
 
-### 1. Drag-and-Drop Folder Ingester
-* Drag external assets directly onto project cards in Project Creator or Search Copy to automatically ingest and organize into `01_BRIEF_ASSETS`, `02_SOURCE`, etc.
+### 1. Batch Vault Archival & Auto-Pruning
+* Multi-select project archival with automated cold-storage ZIP compression, metadata cataloging, and NAS storage quota optimization.
 
-### 2. Copywriting & Brief Revision Diff Engine
-* Visual color-coded diff viewer (green additions / red deletions) for `COPY.md` scripts and `README.md` project briefs across revision cycles.
+### 2. Multi-Format Asset Transcoder Bridge
+* Direct background conversion for video/image assets (MP4 to WebM/GIF, PNG to AVIF/WebP) directly from project deliverable cards.
 
-### 3. AI Brief Intelligence & Style Preflight Assistant
-* Integrated LLM assistant to validate brief completeness, detect tone deviations, and auto-suggest missing brand tokens.
+### 3. Studio Audio & Radio Visualizer Upgrades
+* Additional live audio stream integrations and expanded visualizer particle presets.
 
 ---
 
