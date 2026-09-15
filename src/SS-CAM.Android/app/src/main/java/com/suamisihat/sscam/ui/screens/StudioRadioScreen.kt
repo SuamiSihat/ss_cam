@@ -126,29 +126,7 @@ object LiveStreamMetadataFetcher {
     }
 
     suspend fun fetchLiveTrackTitle(station: CassetteRadioStation): String? = withContext(Dispatchers.IO) {
-        // 1. AzuraCast API (Official SuamiSihat Radio)
-        if (station.id == "preset_suamisihat") {
-            try {
-                val jsonStr = fetchJson("https://dj.suamisihat.myds.me/api/nowplaying/suamisihat-radio")
-                if (!jsonStr.isNullOrBlank()) {
-                    val json = JSONObject(jsonStr)
-                    val nowPlaying = json.optJSONObject("now_playing")
-                    val song = nowPlaying?.optJSONObject("song")
-                    if (song != null) {
-                        val title = song.optString("title").trim()
-                        val artist = song.optString("artist").trim()
-                        val text = song.optString("text").trim()
-                        if (title.isNotBlank() && artist.isNotBlank()) {
-                            return@withContext "$artist — $title"
-                        } else if (text.isNotBlank()) {
-                            return@withContext text
-                        }
-                    }
-                }
-            } catch (e: Exception) { }
-        }
-
-        // 2. Laut.fm API (AnimeFM & Chillhop Lounge)
+        // 1. Laut.fm API (AnimeFM & Chillhop Lounge)
         if (station.id == "preset_animefm" || station.id == "preset_chillhop") {
             val stationSlug = if (station.id == "preset_animefm") "animefm" else "lofi"
             try {
@@ -449,7 +427,7 @@ val ALL_CASSETTE_STATIONS: List<CassetteRadioStation> = listOf(
         id = "preset_suamisihat",
         name = "SuamiSihat Radio",
         genre = "Health / Lifestyle",
-        streamUrl = "https://dj.suamisihat.myds.me/listen/suamisihat-radio/radio.mp3",
+        streamUrl = "https://radio.suamisihat.myds.me/listen",
         shellColor = Color(0xFF1E3A8A), // Classic Cobalt Navy
         labelColor = Color(0xFFF8FAFC),
         icon = Icons.Default.Radio,

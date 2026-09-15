@@ -4,7 +4,7 @@
 
 Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Brand Asset Inspector · Synology NAS Native · Multi-Platform
 
-[![Release](https://img.shields.io/badge/release-v4.10.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.10.0)
+[![Release](https://img.shields.io/badge/release-v4.10.1-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.10.1)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20Linux%20%7C%20Android%20%7C%20Docker-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%208.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
 [![Web Stack](https://img.shields.io/badge/web-Svelte%205%20%2B%20Node.js%2020-ff3e00?style=flat-square)](https://svelte.dev)
@@ -12,6 +12,19 @@ Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Br
 [![License](https://img.shields.io/badge/licence-Internal%20Use-orange?style=flat-square)](./installer/EULA.txt)
 
 ---
+
+## 🚀 What's New in v4.10.1 ("Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine")
+
+* **📻 Official SuamiSihat Radio Stream Migration (`RadioStreamService.cs`, `MainViewModel.cs`, `StudioRadioScreen.kt`)**:
+  * **Live Stream Upgrade**: Migrated the official stream endpoint to `https://radio.suamisihat.myds.me/listen` (broadcasting high-fidelity 192 kbps MP3 with embedded real-time ICY metadata).
+  * **Zero-Interruption Config Migration**: Automatically migrates local `%LOCALAPPDATA%\SuamiSihat\radio_config.json` presets on startup so existing users connect to the new endpoint without resetting favorites or custom presets.
+  * **Multi-Platform Parity**: Synchronized across Windows Desktop, Linux Avalonia (`MainViewModel.cs`), and Android (`StudioRadioScreen.kt`).
+* **🎵 Native M3U / M3U8 Playlist Engine (`PlaylistHelper`, `RadioStreamService.cs`)**:
+  * **Direct Stream Resolution & Playback**: Automatically resolves `.m3u`, `.m3u8`, and `.pls` playlist URLs directly to the target media stream for smooth playback in WPF `MediaPlayer`.
+  * **On-the-Fly Stream Redirection**: Intercepts `audio/x-mpegurl` stream responses within `LocalAudioProxy`, parsing and reconnecting to the true audio feed without breaking playback or throwing codec exceptions.
+  * **Extended Attribute & Relative Path Parsing**: Full `#EXTINF` parser extracting `tvg-name`, `group-title` (genre), and `tvg-logo` / `logo` (album art), with automatic relative path resolution against playlist base URLs.
+  * **Station Playlist Export**: Added 1-click **Export** toolbar button (`&#xE74E;`) in `RadioPage.xaml` exporting the full station collection to `.m3u` / `.m3u8` via `SaveFileDialog`.
+  * **Online Playlist Import & Stream Testing**: Import playlists directly via web URLs (`ImportPlaylistUrl`), with enhanced stream testing reporting verified M3U endpoints (`TestStreamUrl`).
 
 ## 🚀 What's New in v4.10.0 ("Smart Drag-and-Drop Vault Ingester, Myers LCS Diff Engine & AI Brief Intelligence")
 

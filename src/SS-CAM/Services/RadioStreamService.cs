@@ -40,6 +40,268 @@ namespace SS_CAM.Services
         Error
     }
 
+    public static class PlaylistHelper
+    {
+        public static string ResolveStreamUrl(string url, int maxDepth = 2)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return url;
+            url = url.Trim();
+
+            if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return url;
+            }
+
+            bool isPlaylistExt = url.IndexOf(".m3u", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                 url.IndexOf(".m3u8", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                 url.IndexOf(".pls", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            if (!isPlaylistExt)
+            {
+                return url;
+            }
+
+            try
+            {
+                ServicePointManager.ServerCertificateValidationCallback = (s, cert, chain, sslPolicyErrors) => true;
+                HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
+                req.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) SS-CAM/4.6.3";
+                req.Timeout = 5000;
+                req.AllowAutoRedirect = true;
+
+                using (HttpWebResponse resp = (HttpWebResponse)req.GetResponse())
+                {
+                    Uri baseUri = resp.ResponseUri ?? new Uri(url);
+                    using (Stream s = resp.GetResponseStream())
+                    using (StreamReader reader = new StreamReader(s, System.Text.Encoding.UTF8))
+                    {
+                        string body = reader.ReadToEnd();
+                        string stream = ParseFirstStreamUrl(body, baseUri);
+                        if (!string.IsNullOrWhiteSpace(stream) && !stream.Equals(url, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (maxDepth > 0 && (stream.IndexOf(".m3u", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                 stream.IndexOf(".pls", StringComparison.OrdinalIgnoreCase) >= 0))
+                            {
+                                return ResolveStreamUrl(stream, maxDepth - 1);
+                            }
+                            return stream;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[PlaylistHelper] ResolveStreamUrl error: " + ex.Message);
+            }
+
+            return url;
+        }
+
+        public static string ParseFirstStreamUrl(string content, Uri baseUri = null)
+        {
+            if (string.IsNullOrWhiteSpace(content)) return null;
+
+            string[] lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (content.Contains("[playlist]"))
+            {
+                foreach (string l in lines)
+                {
+                    string line = l.Trim();
+                    if (line.StartsWith("File", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var match = Regex.Match(line, @"File\d+=(.*)", RegexOptions.IgnoreCase);
+                        if (match.Success)
+                        {
+                            string target = match.Groups[1].Value.Trim();
+                            return ResolveAbsoluteUri(target, baseUri);
+                        }
+                    }
+                }
+            }
+
+            foreach (string l in lines)
+            {
+                string line = l.Trim();
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
+
+                return ResolveAbsoluteUri(line, baseUri);
+            }
+
+            return null;
+        }
+
+        public static string ResolveAbsoluteUri(string rawUri, Uri baseUri)
+        {
+            if (string.IsNullOrWhiteSpace(rawUri)) return rawUri;
+            rawUri = rawUri.Trim();
+
+            if (Uri.IsWellFormedUriString(rawUri, UriKind.Absolute))
+            {
+                return rawUri;
+            }
+
+            if (baseUri != null)
+            {
+                try
+                {
+                    Uri resolved = new Uri(baseUri, rawUri);
+                    return resolved.AbsoluteUri;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("[PlaylistHelper] ResolveAbsoluteUri: " + ex.Message);
+                }
+            }
+
+            return rawUri;
+        }
+
+        public static List<RadioStation> ParseM3U(string content, string sourceName, Uri baseUri = null)
+        {
+            List<RadioStation> stations = new List<RadioStation>();
+            if (string.IsNullOrWhiteSpace(content)) return stations;
+
+            string[] lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            string currentTitle = "";
+            string currentGenre = "Imported";
+            string currentLogo = "";
+
+            foreach (string l in lines)
+            {
+                string line = l.Trim();
+                if (line.StartsWith("#EXTINF:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var groupMatch = Regex.Match(line, @"group-title=""([^""]+)""", RegexOptions.IgnoreCase);
+                    if (groupMatch.Success)
+                    {
+                        currentGenre = groupMatch.Groups[1].Value.Trim();
+                    }
+
+                    var logoMatch = Regex.Match(line, @"(?:tvg-logo|logo)=""([^""]+)""", RegexOptions.IgnoreCase);
+                    if (logoMatch.Success)
+                    {
+                        currentLogo = logoMatch.Groups[1].Value.Trim();
+                    }
+
+                    int commaIdx = line.IndexOf(',');
+                    if (commaIdx >= 0)
+                    {
+                        currentTitle = line.Substring(commaIdx + 1).Trim();
+                    }
+                    else
+                    {
+                        var nameMatch = Regex.Match(line, @"tvg-name=""([^""]+)""", RegexOptions.IgnoreCase);
+                        if (nameMatch.Success)
+                        {
+                            currentTitle = nameMatch.Groups[1].Value.Trim();
+                        }
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
+                {
+                    string streamUrl = ResolveAbsoluteUri(line, baseUri);
+                    string title = !string.IsNullOrWhiteSpace(currentTitle) ? currentTitle : sourceName;
+
+                    RadioStation station = new RadioStation
+                    {
+                        Name = title,
+                        StreamUrl = streamUrl,
+                        Genre = !string.IsNullOrWhiteSpace(currentGenre) ? currentGenre : "Imported",
+                        IconEmoji = "📻",
+                        CoverImageUrl = !string.IsNullOrWhiteSpace(currentLogo) ? currentLogo : null,
+                        Description = "Imported from M3U playlist (" + sourceName + ")"
+                    };
+
+                    stations.Add(station);
+
+                    currentTitle = "";
+                    currentGenre = "Imported";
+                    currentLogo = "";
+                }
+            }
+
+            return stations;
+        }
+
+        public static List<RadioStation> ParsePLS(string content, string sourceName, Uri baseUri = null)
+        {
+            List<RadioStation> stations = new List<RadioStation>();
+            if (string.IsNullOrWhiteSpace(content)) return stations;
+
+            Dictionary<int, string> files = new Dictionary<int, string>();
+            Dictionary<int, string> titles = new Dictionary<int, string>();
+
+            string[] lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string l in lines)
+            {
+                string line = l.Trim();
+                if (line.StartsWith("File", StringComparison.OrdinalIgnoreCase))
+                {
+                    var match = Regex.Match(line, @"File(\d+)=(.*)", RegexOptions.IgnoreCase);
+                    if (match.Success)
+                    {
+                        int idx = int.Parse(match.Groups[1].Value);
+                        files[idx] = match.Groups[2].Value.Trim();
+                    }
+                }
+                else if (line.StartsWith("Title", StringComparison.OrdinalIgnoreCase))
+                {
+                    var match = Regex.Match(line, @"Title(\d+)=(.*)", RegexOptions.IgnoreCase);
+                    if (match.Success)
+                    {
+                        int idx = int.Parse(match.Groups[1].Value);
+                        titles[idx] = match.Groups[2].Value.Trim();
+                    }
+                }
+            }
+
+            foreach (var kvp in files)
+            {
+                int idx = kvp.Key;
+                string streamUrl = ResolveAbsoluteUri(kvp.Value, baseUri);
+                string title = titles.ContainsKey(idx) ? titles[idx] : sourceName;
+
+                if (!string.IsNullOrWhiteSpace(streamUrl))
+                {
+                    RadioStation station = new RadioStation
+                    {
+                        Name = title,
+                        StreamUrl = streamUrl,
+                        Genre = "Imported",
+                        IconEmoji = "🎵",
+                        Description = "Imported from PLS playlist (" + sourceName + ")"
+                    };
+                    stations.Add(station);
+                }
+            }
+
+            return stations;
+        }
+
+        public static string GenerateM3U(IEnumerable<RadioStation> stations)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("#EXTM3U");
+            if (stations != null)
+            {
+                foreach (var station in stations)
+                {
+                    if (string.IsNullOrWhiteSpace(station.StreamUrl)) continue;
+
+                    string name = !string.IsNullOrWhiteSpace(station.Name) ? station.Name.Replace(",", " ") : "Radio Stream";
+                    string genre = !string.IsNullOrWhiteSpace(station.Genre) ? station.Genre : "Radio";
+                    string logoAttr = !string.IsNullOrWhiteSpace(station.CoverImageUrl) ? string.Format(" tvg-logo=\"{0}\"", station.CoverImageUrl) : "";
+
+                    sb.AppendLine(string.Format("#EXTINF:-1 tvg-name=\"{0}\" group-title=\"{1}\"{2},{0}", name, genre, logoAttr));
+                    sb.AppendLine(station.StreamUrl.Trim());
+                }
+            }
+            return sb.ToString();
+        }
+    }
+
     public class LocalAudioProxy
     {
         private HttpListener _listener;
@@ -145,7 +407,9 @@ namespace SS_CAM.Services
 
                 ServicePointManager.ServerCertificateValidationCallback = (s, cert, chain, sslPolicyErrors) => true;
 
-                remoteReq = (HttpWebRequest)WebRequest.Create(_targetStreamUrl);
+                string activeUrl = PlaylistHelper.ResolveStreamUrl(_targetStreamUrl);
+
+                remoteReq = (HttpWebRequest)WebRequest.Create(activeUrl);
                 remoteReq.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
                 remoteReq.Timeout = 8000;
                 remoteReq.ReadWriteTimeout = 8000;
@@ -153,6 +417,30 @@ namespace SS_CAM.Services
                 remoteReq.Headers.Add("Icy-MetaData", "1"); // Request ICY Metadata
 
                 remoteResp = (HttpWebResponse)remoteReq.GetResponse();
+
+                string cType = remoteResp.ContentType != null ? remoteResp.ContentType.ToLower() : "";
+                if (cType.Contains("mpegurl") || cType.Contains("x-scpls") || cType.Contains("playlist"))
+                {
+                    using (Stream s = remoteResp.GetResponseStream())
+                    using (StreamReader reader = new StreamReader(s, System.Text.Encoding.UTF8))
+                    {
+                        string body = reader.ReadToEnd();
+                        Uri baseUri = remoteResp.ResponseUri ?? new Uri(activeUrl);
+                        string nestedUrl = PlaylistHelper.ParseFirstStreamUrl(body, baseUri);
+                        if (!string.IsNullOrWhiteSpace(nestedUrl) && !nestedUrl.Equals(activeUrl, StringComparison.OrdinalIgnoreCase))
+                        {
+                            remoteResp.Close();
+                            activeUrl = nestedUrl;
+                            remoteReq = (HttpWebRequest)WebRequest.Create(activeUrl);
+                            remoteReq.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+                            remoteReq.Timeout = 8000;
+                            remoteReq.ReadWriteTimeout = 8000;
+                            remoteReq.AllowAutoRedirect = true;
+                            remoteReq.Headers.Add("Icy-MetaData", "1");
+                            remoteResp = (HttpWebResponse)remoteReq.GetResponse();
+                        }
+                    }
+                }
                 
                 int metaInt = 0;
                 string metaIntStr = remoteResp.Headers.Get("icy-metaint");
@@ -543,9 +831,16 @@ namespace SS_CAM.Services
                 }
 
                 // Ensure SuamiSihat Radio is present as the pinned first station
-                if (!AllStations.Any(s => s.Id == "preset_suamisihat" || s.StreamUrl.Contains("dj.suamisihat.myds.me")))
+                var existingSs = AllStations.FirstOrDefault(s => s.Id == "preset_suamisihat" || s.StreamUrl.Contains("radio.suamisihat.myds.me") || s.StreamUrl.Contains("dj.suamisihat.myds.me"));
+                if (existingSs == null)
                 {
                     AllStations.Insert(0, GetSuamiSihatRadioStation());
+                }
+                else
+                {
+                    existingSs.StreamUrl = "https://radio.suamisihat.myds.me/listen";
+                    existingSs.Name = "SuamiSihat Radio";
+                    existingSs.Genre = "Health / Lifestyle (Official)";
                 }
 
                 SyncConfigStations();
@@ -583,8 +878,8 @@ namespace SS_CAM.Services
             {
                 Id = "preset_suamisihat",
                 Name = "SuamiSihat Radio",
-                Genre = "Health / Lifestyle",
-                StreamUrl = "https://dj.suamisihat.myds.me/listen/suamisihat-radio/radio.mp3",
+                Genre = "Health / Lifestyle (Official)",
+                StreamUrl = "https://radio.suamisihat.myds.me/listen",
                 IconEmoji = "📻",
                 IsPreset = true,
                 Language = "Malay",
@@ -905,93 +1200,90 @@ namespace SS_CAM.Services
             {
                 string text = File.ReadAllText(filePath);
                 string ext = Path.GetExtension(filePath).ToLower();
+                string fileName = Path.GetFileName(filePath);
+                Uri baseUri = new Uri(Path.GetFullPath(filePath));
 
                 if (ext == ".pls" || text.Contains("[playlist]"))
                 {
-                    Dictionary<int, string> files = new Dictionary<int, string>();
-                    Dictionary<int, string> titles = new Dictionary<int, string>();
-
-                    string[] lines = File.ReadAllLines(filePath);
-                    foreach (string l in lines)
-                    {
-                        string line = l.Trim();
-                        if (line.StartsWith("File", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var match = Regex.Match(line, @"File(\d+)=(.*)", RegexOptions.IgnoreCase);
-                            if (match.Success)
-                            {
-                                int idx = int.Parse(match.Groups[1].Value);
-                                files[idx] = match.Groups[2].Value.Trim();
-                            }
-                        }
-                        else if (line.StartsWith("Title", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var match = Regex.Match(line, @"Title(\d+)=(.*)", RegexOptions.IgnoreCase);
-                            if (match.Success)
-                            {
-                                int idx = int.Parse(match.Groups[1].Value);
-                                titles[idx] = match.Groups[2].Value.Trim();
-                            }
-                        }
-                    }
-
-                    foreach (var kvp in files)
-                    {
-                        int idx = kvp.Key;
-                        string url = kvp.Value;
-                        string title = titles.ContainsKey(idx) ? titles[idx] : Path.GetFileNameWithoutExtension(filePath);
-
-                        if (!string.IsNullOrWhiteSpace(url))
-                        {
-                            RadioStation station = new RadioStation
-                            {
-                                Name = title,
-                                StreamUrl = url,
-                                Genre = "Imported",
-                                IconEmoji = "🎵",
-                                Description = "Imported from PLS playlist (" + Path.GetFileName(filePath) + ")"
-                            };
-                            imported.Add(station);
-                            AddStation(station);
-                        }
-                    }
+                    imported = PlaylistHelper.ParsePLS(text, fileName, baseUri);
                 }
-                else if (ext == ".m3u" || ext == ".m3u8" || text.Contains("#EXTM3U"))
+                else
                 {
-                    string[] lines = File.ReadAllLines(filePath);
-                    string lastTitle = "";
-                    foreach (string l in lines)
+                    imported = PlaylistHelper.ParseM3U(text, fileName, baseUri);
+                }
+
+                foreach (var st in imported)
+                {
+                    AddStation(st);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[RadioStreamService] ImportPlaylistFile: " + ex.Message);
+            }
+
+            return imported;
+        }
+
+        public List<RadioStation> ImportPlaylistUrl(string url)
+        {
+            List<RadioStation> imported = new List<RadioStation>();
+            if (string.IsNullOrWhiteSpace(url)) return imported;
+
+            try
+            {
+                ServicePointManager.ServerCertificateValidationCallback = (s, cert, chain, sslPolicyErrors) => true;
+                HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url.Trim());
+                req.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SS-CAM/4.6.3";
+                req.Timeout = 8000;
+                req.AllowAutoRedirect = true;
+
+                using (HttpWebResponse resp = (HttpWebResponse)req.GetResponse())
+                using (Stream s = resp.GetResponseStream())
+                using (StreamReader reader = new StreamReader(s, System.Text.Encoding.UTF8))
+                {
+                    string text = reader.ReadToEnd();
+                    Uri baseUri = resp.ResponseUri ?? new Uri(url);
+                    string name = Path.GetFileName(baseUri.LocalPath);
+                    if (string.IsNullOrWhiteSpace(name)) name = "Online Playlist";
+
+                    if (text.Contains("[playlist]"))
                     {
-                        string line = l.Trim();
-                        if (line.StartsWith("#EXTINF:", StringComparison.OrdinalIgnoreCase))
-                        {
-                            int commaIdx = line.IndexOf(',');
-                            if (commaIdx >= 0)
-                            {
-                                lastTitle = line.Substring(commaIdx + 1).Trim();
-                            }
-                        }
-                        else if (!string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
-                        {
-                            string title = !string.IsNullOrWhiteSpace(lastTitle) ? lastTitle : Path.GetFileNameWithoutExtension(filePath);
-                            RadioStation station = new RadioStation
-                            {
-                                Name = title,
-                                StreamUrl = line,
-                                Genre = "Imported",
-                                IconEmoji = "🎵",
-                                Description = "Imported from M3U playlist (" + Path.GetFileName(filePath) + ")"
-                            };
-                            imported.Add(station);
-                            AddStation(station);
-                            lastTitle = "";
-                        }
+                        imported = PlaylistHelper.ParsePLS(text, name, baseUri);
+                    }
+                    else
+                    {
+                        imported = PlaylistHelper.ParseM3U(text, name, baseUri);
+                    }
+
+                    foreach (var st in imported)
+                    {
+                        AddStation(st);
                     }
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[RadioStreamService] ImportPlaylistUrl: " + ex.Message);
+            }
 
             return imported;
+        }
+
+        public void ExportPlaylistFile(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath)) return;
+
+            try
+            {
+                string m3uContent = PlaylistHelper.GenerateM3U(AllStations);
+                File.WriteAllText(filePath, m3uContent, System.Text.Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[RadioStreamService] ExportPlaylistFile: " + ex.Message);
+                throw;
+            }
         }
 
         private void SyncConfigStations()
@@ -1027,7 +1319,10 @@ namespace SS_CAM.Services
             {
                 ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
 
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url.Trim());
+                string resolvedUrl = PlaylistHelper.ResolveStreamUrl(url.Trim());
+                bool wasM3u = !resolvedUrl.Equals(url.Trim(), StringComparison.OrdinalIgnoreCase);
+
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(resolvedUrl);
                 request.Timeout = 5000;
                 request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
                 request.Method = "GET";
@@ -1038,7 +1333,14 @@ namespace SS_CAM.Services
                     if (response.StatusCode == HttpStatusCode.OK ||
                         ctype.Contains("audio") || ctype.Contains("mpeg") || ctype.Contains("aac") || ctype.Contains("ogg") || ctype.Contains("stream") || ctype.Contains("html"))
                     {
-                        statusMessage = "Stream connection successful (" + (response.ContentType ?? "Audio Stream") + ")!";
+                        if (wasM3u)
+                        {
+                            statusMessage = "M3U stream verified! (" + (response.ContentType ?? "Audio Stream") + ")";
+                        }
+                        else
+                        {
+                            statusMessage = "Stream connection successful (" + (response.ContentType ?? "Audio Stream") + ")!";
+                        }
                         return true;
                     }
                     else

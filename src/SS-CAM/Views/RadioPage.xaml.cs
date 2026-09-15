@@ -964,6 +964,28 @@ namespace SS_CAM.Views
             }
         }
 
+        private void OnExportPlaylistClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Microsoft.Win32.SaveFileDialog dlg = new Microsoft.Win32.SaveFileDialog();
+                dlg.Filter = "M3U Playlist (*.m3u)|*.m3u|M3U8 Playlist (*.m3u8)|*.m3u8|All Files (*.*)|*.*";
+                dlg.Title = "Export Radio Stations to M3U Playlist";
+                dlg.FileName = "SS-CAM-Radio-Stations.m3u";
+
+                if (dlg.ShowDialog() == true)
+                {
+                    _radioService.ExportPlaylistFile(dlg.FileName);
+                    string msg = string.Format("Successfully exported {0} station(s) to '{1}'!", _radioService.AllStations.Count, System.IO.Path.GetFileName(dlg.FileName));
+                    MessageBox.Show(msg, "Playlist Exported", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to export playlist: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnResetDefaultsClicked(object sender, RoutedEventArgs e)
         {
             var result = MessageBox.Show("Reset playlist to default recommended radio stations?", "Reset Playlist", MessageBoxButton.YesNo, MessageBoxImage.Question);

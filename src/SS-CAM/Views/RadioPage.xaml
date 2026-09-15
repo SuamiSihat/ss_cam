@@ -42,6 +42,14 @@
                         <ui:TextBlock Text="Import" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
                     </StackPanel>
                 </ui:Button>
+                <ui:Button Appearance="Secondary" Click="OnExportPlaylistClicked" Margin="0,0,8,0"
+                        Padding="10,6" Cursor="Hand" ToolTip="Export playlist as .m3u" >
+                    <StackPanel Orientation="Horizontal">
+                        <ui:TextBlock Text="&#xE74E;" FontFamily="Segoe Fluent Icons" FontSize="12"
+                                   Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <ui:TextBlock Text="Export" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </ui:Button>
                 <ui:Button Appearance="Secondary" Click="OnResetDefaultsClicked" Margin="0,0,8,0"
                         Padding="10,6" Cursor="Hand" ToolTip="Reset to defaults" >
                     <StackPanel Orientation="Horizontal">

@@ -1,5 +1,24 @@
 # SS-CAM FIX LOG
 
+## v4.10.1 — 2026-09-15 (Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine)
+- **Assembly Version**: `4.10.1.0`
+- **Official SuamiSihat Radio Live Stream Migration (`RadioStreamService.cs`, `MainViewModel.cs`, `StudioRadioScreen.kt`)**:
+  - Migrated primary stream endpoint from `https://dj.suamisihat.myds.me/listen/suamisihat-radio/radio.mp3` to `https://radio.suamisihat.myds.me/listen` (broadcasting 192 kbps MP3 with embedded ICY real-time metadata).
+  - Implemented automatic local configuration migration in `RadioStreamService.LoadStations()`: existing user presets in `%LOCALAPPDATA%\SuamiSihat\radio_config.json` pointing to legacy links or shortcodes are seamlessly upgraded to the new endpoint on launch.
+  - Synchronized stream URLs across Linux desktop client (`MainViewModel.cs`) and Android companion app (`StudioRadioScreen.kt`).
+  - Streamlined Android live track title extraction in `StudioRadioScreen.kt` to extract directly from the live ICY stream metadata with zero network delay.
+- **Native M3U / M3U8 Playlist Engine (`PlaylistHelper`, `RadioStreamService.cs`, `RadioPage.xaml`)**:
+  - **Direct M3U/M3U8 Stream Playback & Resolution**: Implemented `PlaylistHelper.ResolveStreamUrl` to identify and resolve `.m3u`, `.m3u8`, and `.pls` links (or query parameters) to the active media stream.
+  - **Dynamic Proxy Redirection**: In `LocalAudioProxy.ProcessRequest`, detects `audio/x-mpegurl`, `application/x-mpegurl`, or playlist text bodies returned by stream servers and automatically resolves and redirects to the underlying audio stream, preventing WPF `MediaPlayer` codec crashes.
+  - **Enhanced M3U / M3U8 Parsing & Relative URL Handling**: Comprehensive `#EXTINF` metadata parser supporting duration, title, `tvg-name`, `group-title` (genre categorization), and `tvg-logo` / `logo` cover image URLs. Automatically resolves relative paths within playlists against the source file or base URL (`PlaylistHelper.ResolveAbsoluteUri`).
+  - **Station Playlist Export**: Added `ExportPlaylistFile` in `RadioStreamService.cs` generating clean, standardized `#EXTM3U` playlists. Added an **Export** button with Segoe Fluent Icon `&#xE74E;` in `RadioPage.xaml` toolbar (`OnExportPlaylistClicked` in `RadioPage.xaml.cs`) allowing designers to backup or export station collections to `.m3u` / `.m3u8` files via a standard `SaveFileDialog`.
+  - **Online Playlist Import & Stream Testing**: Added `ImportPlaylistUrl` for fetching and importing M3U/PLS playlists directly from web URLs. Enhanced `TestStreamUrl` to resolve M3U stream links and verify audio stream connectivity with clear UI feedback (`M3U stream verified! (audio/mpeg)`).
+- **QA & Verification Status**:
+  - Desktop Build: MSBuild Release clean build PASS (`SS-CAM.exe` v4.10.1).
+  - Source Guardian: 8 passed / 1 warned / 0 failed (UTF-8 BOM enforced on all files).
+  - Live Stream Verification: Verified `https://radio.suamisihat.myds.me/listen` (audio/mpeg 200 OK).
+  - M3U Engine: Verified parsing, generation, relative path resolution, and stream testing.
+
 ## v4.10.0 — 2026-09-14 (Smart Drag-and-Drop Vault Ingester, Myers LCS Diff Engine & AI Brief Intelligence)
 - **Assembly Version**: `4.10.0.0`
 - **Android Version**: `versionCode = 4100`, `versionName = "4.10.0"`

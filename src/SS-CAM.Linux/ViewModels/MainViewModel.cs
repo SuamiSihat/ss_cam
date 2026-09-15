@@ -259,7 +259,7 @@ namespace SS_CAM.Linux.ViewModels
             // Setup radio stations (Latest Official SS-CAM Desktop v4.6.0 Presets)
             RadioStations = new ObservableCollection<RadioStationItem>
             {
-                new() { Name = "SuamiSihat Radio", StreamUrl = "https://dj.suamisihat.myds.me/listen/suamisihat-radio/radio.mp3", Genre = "Health / Lifestyle (Official)", AccentColor = "#043388", Bitrate = "192 kbps" },
+                new() { Name = "SuamiSihat Radio", StreamUrl = "https://radio.suamisihat.myds.me/listen", Genre = "Health / Lifestyle (Official)", AccentColor = "#043388", Bitrate = "192 kbps" },
                 new() { Name = "Initial D World Radio Broadcast", StreamUrl = "http://165.227.19.100:9001/listen.aac", Genre = "Eurobeat / High Energy", AccentColor = "#DC2626", Bitrate = "128 kbps" },
                 new() { Name = "BABYMETAL & J-Rock Radio", StreamUrl = "https://animefm.stream.laut.fm/animefm", Genre = "J-Rock / Kawaii Metal", AccentColor = "#E11D48", Bitrate = "128 kbps" },
                 new() { Name = "BFM 89.9 The Business Station", StreamUrl = "https://stream.rcs.revma.com/s91qy9p0zs3vv", Genre = "News, Business & Interviews", AccentColor = "#F59E0B", Bitrate = "128 kbps" },
