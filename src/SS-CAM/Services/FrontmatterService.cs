@@ -60,6 +60,23 @@ namespace SS_CAM.Services
                     item.CategoryWeight = cw;
                 }
                 item.Subtasks = ParseSubtasks(lines);
+                item.ProjectId = GetValue(fm, "project_id", "");
+                if (string.IsNullOrWhiteSpace(item.ProjectId))
+                {
+                    foreach (string line in lines)
+                    {
+                        System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(line, @"^\s*-\s*\*{0,2}Project ID\*{0,2}\s*:\s*([A-Za-z0-9_-]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        if (m.Success)
+                        {
+                            item.ProjectId = m.Groups[1].Value.Trim();
+                            break;
+                        }
+                    }
+                }
+                if (string.IsNullOrWhiteSpace(item.ProjectId))
+                {
+                    item.ProjectId = ProjectStatusItem.ExtractProjectId(item.Project);
+                }
                 item.CanvaUrl = GetValue(fm, "canva_url", "");
                 if (string.IsNullOrWhiteSpace(item.CanvaUrl))
                 {

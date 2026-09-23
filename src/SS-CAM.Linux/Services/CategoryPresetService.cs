@@ -42,6 +42,16 @@ namespace SS_CAM.Linux.Services
                 },
                 new CategoryPreset
                 {
+                    Id = "preset_shoot",
+                    Name = "Video Shooting",
+                    Suffix = "V",
+                    IsDefault = true,
+                    SlaDays = 5,
+                    SlotWeight = 2.0,
+                    Folders = new List<string> { "01_BRIEFS", "02_RAW_ASSETS", "03_WORKING_FILES", "04_EXPORTS", "05_DELIVERABLES" }
+                },
+                new CategoryPreset
+                {
                     Id = "preset_brand",
                     Name = "Brand Identity & Guidelines",
                     Suffix = "P",

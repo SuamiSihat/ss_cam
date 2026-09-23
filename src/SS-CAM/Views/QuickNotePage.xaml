@@ -139,7 +139,7 @@
                                         FontSize="11" FontWeight="Medium"
                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
                             <ComboBox x:Name="CmbSort" Grid.Column="1" SelectionChanged="OnSortChanged"
-                                      Height="24" FontSize="10.5" Padding="6,0" VerticalContentAlignment="Center"
+                                      Height="34" FontSize="11.5" Padding="10,0" VerticalContentAlignment="Center"
                                       ToolTip="Sort notes list">
                                 <ComboBoxItem Content="Recently Edited" IsSelected="True"/>
                                 <ComboBoxItem Content="Date Created"/>
@@ -359,7 +359,7 @@
                                         <ui:TextBlock Text="&#x1F3F7;&#xFE0F;" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                         <ui:TextBlock Text="Category:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                         <ComboBox x:Name="CmbCategory" SelectionChanged="OnCategoryChanged"
-                                                  Height="26" Width="108" FontSize="11" Padding="6,0" VerticalContentAlignment="Center" ToolTip="Set note category">
+                                                  Height="34" Width="125" FontSize="11.5" Padding="10,0" VerticalContentAlignment="Center" ToolTip="Set note category">
                                             <ComboBoxItem Content="General"/>
                                             <ComboBoxItem Content="Brief"/>
                                             <ComboBoxItem Content="Meeting"/>
@@ -375,7 +375,7 @@
                                         <ui:TextBlock Text="&#x26A1;" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                         <ui:TextBlock Text="Priority:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                         <ComboBox x:Name="CmbPriority" SelectionChanged="OnPriorityChanged"
-                                                  Height="26" Width="96" FontSize="11" Padding="6,0" VerticalContentAlignment="Center" ToolTip="Set note priority">
+                                                  Height="34" Width="120" FontSize="11.5" Padding="10,0" VerticalContentAlignment="Center" ToolTip="Set note priority">
                                             <ComboBoxItem Content="Normal"/>
                                             <ComboBoxItem Content="Medium (P1)"/>
                                             <ComboBoxItem Content="High (P2)"/>

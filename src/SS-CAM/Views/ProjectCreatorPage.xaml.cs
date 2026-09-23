@@ -257,13 +257,15 @@ namespace SS_CAM.Views
             FilterTargetPlatformsByCategory(GetSelectedCategoryPreset());
 
             // Canvas extensions (.af Affinity format default)
-            List<string> extensions = new List<string> { ".af", ".afdesign", ".psd", ".ai", ".prproj", ".catcomp", "Canva (.url)" };
+            List<string> extensions = new List<string> { ".af", ".afdesign", ".psd", ".ai", ".prproj", ".drp", ".catcomp", "Canva (.url)" };
             TemplateExtensionComboBox.ItemsSource = extensions;
             TemplateExtensionComboBox.SelectedIndex = 0;
         }
 
         private static readonly List<string> AllMasterPlatforms = new List<string>
         {
+            "4K UHD Video Master (16:9 - 3840x2160 RGB 25/50fps)",
+            "4K Vertical Video Shoot (9:16 - 2160x3840 RGB 50/60fps)",
             "WordPress / Web Desktop (1920x1080 - RGB 72/144 DPI)",
             "WordPress / Mobile Web (390x844 - RGB 72 DPI)",
             "Meta / IG Square (1:1 - 1080x1080 RGB)",
@@ -299,9 +301,13 @@ namespace SS_CAM.Views
             {
                 filtered = AllMasterPlatforms.Where(p => p.Contains("Print") || p.Contains("Trifold") || p.Contains("A5 Leaflet") || p.Contains("Rollup") || p.Contains("Bunting") || p.Contains("Billboard") || p.Contains("Flexible")).ToList();
             }
-            else if (catName.IndexOf("Video", StringComparison.OrdinalIgnoreCase) >= 0)
+            else if (catName.IndexOf("Video", StringComparison.OrdinalIgnoreCase) >= 0 || catName.IndexOf("Shoot", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 filtered = AllMasterPlatforms.Where(p => p.Contains("16:9") || p.Contains("9:16") || p.Contains("WordPress") || p.Contains("Flexible")).ToList();
+                if (catName.IndexOf("Shoot", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    filtered = filtered.OrderByDescending(p => p.Contains("Shoot") || p.Contains("4K")).ToList();
+                }
             }
             else if (catName.IndexOf("Brand", StringComparison.OrdinalIgnoreCase) >= 0)
             {
@@ -386,12 +392,31 @@ namespace SS_CAM.Views
 
                 FilterTargetPlatformsByCategory(preset);
                 UpdateDeliverableScopeInfo();
+
+                // If Video discipline, switch starter canvas default to .prproj if still on graphic defaults
+                if (preset != null && !string.IsNullOrEmpty(preset.Name) && preset.Name.IndexOf("Video", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    if (TemplateExtensionComboBox != null)
+                    {
+                        string curExt = TemplateExtensionComboBox.SelectedItem != null ? TemplateExtensionComboBox.SelectedItem.ToString() : "";
+                        if (string.IsNullOrEmpty(curExt) || curExt == ".af" || curExt == ".afdesign")
+                        {
+                            TemplateExtensionComboBox.SelectedItem = ".prproj";
+                        }
+                    }
+                    if (IncludeRawMediaCheck != null)
+                    {
+                        IncludeRawMediaCheck.IsChecked = true;
+                    }
+                }
             }
 
             if (PlatformComboBox.SelectedItem != null)
             {
                 string platform = PlatformComboBox.SelectedItem.ToString();
-                if (platform.Contains("WordPress / Web Desktop") || platform.Contains("WordPress")) PlatformSpecsText.Text = "1920 x 1080 px • 72/144 DPI • sRGB Color Mode • WordPress Hero";
+                if (platform.Contains("4K UHD")) PlatformSpecsText.Text = "3840 x 2160 px • 4K UHD 16:9 • 25/50 fps • Rec.709/Log Master Video";
+                else if (platform.Contains("4K Vertical")) PlatformSpecsText.Text = "2160 x 3840 px • 4K Vertical 9:16 • 50/60 fps • High-Res Mobile Video Shoot";
+                else if (platform.Contains("WordPress / Web Desktop") || platform.Contains("WordPress")) PlatformSpecsText.Text = "1920 x 1080 px • 72/144 DPI • sRGB Color Mode • WordPress Hero";
                 else if (platform.Contains("Mobile Web")) PlatformSpecsText.Text = "390 x 844 px • 72 DPI • sRGB Color Mode • Mobile Viewport";
                 else if (platform.Contains("1:1")) PlatformSpecsText.Text = "1080 x 1080 px • 72 DPI • sRGB Color Mode • 1:1 Feed Post";
                 else if (platform.Contains("4:5")) PlatformSpecsText.Text = "1080 x 1350 px • 72 DPI • sRGB Color Mode • 4:5 Feed Post";
@@ -431,6 +456,10 @@ namespace SS_CAM.Views
             string tag = GetSelectedScopeTag();
             switch (tag)
             {
+                case "video_shoot_full":
+                    TxtScopeEstimatedPoints.Text = "Estimated: 2.5 pts";
+                    TxtScopeDescription.Text = "Production shoot with raw media logging. Creates A-Cam, B-Cam, B-Roll, and Audio Sync subtask folders.";
+                    break;
                 case "video_batch_4":
                     TxtScopeEstimatedPoints.Text = "Estimated: 3.2 pts";
                     TxtScopeDescription.Text = "1 Master Story (60s, 2.0 pts) + 3 Hook Variations (15s, 0.4 pt each). Creates V01-V04 subtask folders.";
@@ -474,6 +503,14 @@ namespace SS_CAM.Views
 
             switch (scopeTag)
             {
+                case "video_shoot_full":
+                    categoryWeight = 2.5;
+                    list.Add(new ProjectSubtaskItem { Id = "S01_A_Cam", Name = "A-Cam Primary Footage", Type = "video", Weight = 1.0, Status = "draft", Specs = "Main Camera 4K/1080p A-Roll" });
+                    list.Add(new ProjectSubtaskItem { Id = "S02_B_Cam", Name = "B-Cam Secondary Angle", Type = "video", Weight = 0.6, Status = "draft", Specs = "Secondary Angle / Close-up" });
+                    list.Add(new ProjectSubtaskItem { Id = "S03_B_Roll", Name = "B-Roll Cutaways & Inserts", Type = "video", Weight = 0.5, Status = "draft", Specs = "Product & Environmental B-Roll" });
+                    list.Add(new ProjectSubtaskItem { Id = "S04_Audio_Sync", Name = "Master Audio Sync", Type = "video", Weight = 0.4, Status = "draft", Specs = "Lavalier & Boom Audio Tracks" });
+                    break;
+
                 case "video_batch_4":
                     categoryWeight = 2.0;
                     list.Add(new ProjectSubtaskItem { Id = "V01_Master_60s", Name = "Master Story Cut (60s)", Type = "video", Weight = 2.0, Status = "draft", Specs = "1920x1080 16:9 • 60s Main Cut" });
@@ -733,7 +770,7 @@ namespace SS_CAM.Views
             {
                 lines.Add(" ├── 📁 Client_Revisions");
             }
-            if (IncludeRawMediaCheck != null && IncludeRawMediaCheck.IsChecked == true)
+            if (IncludeRawMediaCheck != null && IncludeRawMediaCheck.IsChecked == true && !presetFolders.Any(f => f.StartsWith("RAW_Media", StringComparison.OrdinalIgnoreCase)))
             {
                 lines.Add(" ├── 📁 RAW_Media");
             }
@@ -837,7 +874,7 @@ namespace SS_CAM.Views
                 if (IncludeRevisionsCheck.IsChecked == true)
                     Directory.CreateDirectory(Path.Combine(targetDir, "Client_Revisions"));
 
-                if (IncludeRawMediaCheck.IsChecked == true)
+                if (IncludeRawMediaCheck.IsChecked == true && !presetFolders.Any(f => f.StartsWith("RAW_Media", StringComparison.OrdinalIgnoreCase)))
                     Directory.CreateDirectory(Path.Combine(targetDir, "RAW_Media"));
 
                 // Build sub-brand code from the ComboBox selection

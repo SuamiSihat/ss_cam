@@ -52,6 +52,28 @@ namespace SS_CAM.Services
                 },
                 new CategoryPreset
                 {
+                    Id = "preset_shoot",
+                    Name = "Video Shooting",
+                    Suffix = "V",
+                    IsDefault = true,
+                    SlaDays = 5,
+                    SlotWeight = 2.0,
+                    Folders = new List<string>
+                    {
+                        "01_BRIEF_ASSETS",
+                        "02_SOURCE_FILES",
+                        "03_COPYWRITING",
+                        "04_WORK_IN_PROGRESS",
+                        "05_DELIVERABLES",
+                        "RAW_Media",
+                        "RAW_Media/Cam_A",
+                        "RAW_Media/Cam_B",
+                        "RAW_Media/B_Roll",
+                        "RAW_Media/Audio_Sync"
+                    }
+                },
+                new CategoryPreset
+                {
                     Id = "preset_brand",
                     Name = "Brand Identity",
                     Suffix = "P",

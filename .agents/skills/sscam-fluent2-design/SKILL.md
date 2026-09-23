@@ -167,7 +167,25 @@ private void OnScrollViewerPreviewMouseWheel(object sender, System.Windows.Input
 
 ---
 
-## 5. Verification Protocol
+## 5. Dropdown & ComboBox Standard (Anti-Cropping & Anti-Overlay)
+
+All dropdowns and ComboBoxes in SS-CAM must ensure text is 100% visible and cannot be blocked, cropped, or overlaid:
+
+1. **Vertical Geometry**:
+   - Standard height is `Height="36"` (never `< 34`).
+   - Never use `Height="28"` or `Height="30"` — it cuts off baseline text and font descenders (`g`, `y`, `p`, `q`, `j`).
+   - Always set `VerticalContentAlignment="Center"` and `Padding="10,0"` (or `Padding="8,4"`).
+2. **Horizontal Layout**:
+   - Multi-word options (e.g. resolution dimensions `9:16, 1080x1920 (Reels / TikTok / Story)` or weight ratings `2.0 pts (Master Story Cut 30-60s)`) must NOT be placed into narrow (< 180px) columns.
+   - Use full-width rows or dedicated generous columns so text is fully legible without horizontal clipping.
+3. **Popup & Overlay Protection**:
+   - Ensure parent containers have `ClipToBounds="False"` and appropriate `Panel.ZIndex` so open dropdown popups never render underneath adjacent cards or borders.
+4. **IsEditable Value Consistency**:
+   - For `IsEditable="True"` ComboBoxes, always assign clean matching item content or formatted strings rather than bare numbers or fragmented values that clash with display options.
+
+---
+
+## 6. Verification Protocol
 
 After creating or editing any Fluent 2 XAML or C# files:
 

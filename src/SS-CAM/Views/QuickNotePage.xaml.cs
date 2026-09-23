@@ -42,7 +42,33 @@ namespace SS_CAM.Views
                 SetupAutoSaveTimer();
                 RefreshNoteList();
 
-                await QuickNoteService.SyncWithWebPortalAsync();
+                // Run NAS & Web Portal sync safely in the background without freezing the UI thread
+                await System.Threading.Tasks.Task.Run(async () =>
+                {
+                    try
+                    {
+                        var profile = UserProfileService.LoadProfile();
+                        if (profile != null && !string.IsNullOrWhiteSpace(profile.WorkspaceRoot))
+                        {
+                            NasConfigSyncService.SyncFolderFromNasIfNewer(profile.WorkspaceRoot, "Notes");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[QuickNotePage] NAS background sync: " + ex.Message);
+                    }
+
+                    try
+                    {
+                        await QuickNoteService.SyncWithWebPortalAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[QuickNotePage] Web portal background sync: " + ex.Message);
+                    }
+                });
+
+                // Refresh UI after background sync completes
                 RefreshNoteList();
             }
             catch (Exception ex)
@@ -123,6 +149,11 @@ namespace SS_CAM.Views
             SaveCurrentNote();
 
             QuickNoteItem selected = NotesList.SelectedItem as QuickNoteItem;
+            LoadNoteIntoWorkspace(selected);
+        }
+
+        private void LoadNoteIntoWorkspace(QuickNoteItem selected)
+        {
             if (selected == null)
             {
                 _currentNote = null;
@@ -573,15 +604,30 @@ namespace SS_CAM.Views
                 return true;
             });
 
-            _isLoading = true;
             QuickNoteItem currentlySelected = _currentNote;
             NotesList.ItemsSource = null;
             NotesList.ItemsSource = filtered;
 
+            QuickNoteItem itemToSelect = null;
             if (currentlySelected != null)
             {
-                QuickNoteItem found = filtered.Find(delegate(QuickNoteItem n) { return n.FilePath == currentlySelected.FilePath; });
-                if (found != null) NotesList.SelectedItem = found;
+                itemToSelect = filtered.Find(delegate(QuickNoteItem n) { return n.FilePath == currentlySelected.FilePath; });
+            }
+            if (itemToSelect == null && filtered.Count > 0)
+            {
+                itemToSelect = filtered[0];
+            }
+
+            if (itemToSelect != null)
+            {
+                _isLoading = true;
+                NotesList.SelectedItem = itemToSelect;
+                _isLoading = false;
+                LoadNoteIntoWorkspace(itemToSelect);
+            }
+            else
+            {
+                LoadNoteIntoWorkspace(null);
             }
 
             TxtNoteCount.Text = string.Format("{0} note{1}", filtered.Count, filtered.Count == 1 ? "" : "s");

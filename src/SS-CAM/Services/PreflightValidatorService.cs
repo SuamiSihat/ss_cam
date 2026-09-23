@@ -94,7 +94,9 @@ namespace SS_CAM.Services
                         else if (folder == "02_DESIGNS")
                             exists = Directory.Exists(Path.Combine(projectFullPath, "02_Artwork_Mockup")) || Directory.Exists(Path.Combine(projectFullPath, "04_WORK_IN_PROGRESS"));
                         else if (folder == "04_DELIVERABLES")
-                            exists = Directory.Exists(Path.Combine(projectFullPath, "05_DELIVERABLES")) || Directory.Exists(Path.Combine(projectFullPath, "04_Production"));
+                            exists = Directory.Exists(Path.Combine(projectFullPath, "05_DELIVERABLES")) || 
+                                     Directory.Exists(Path.Combine(projectFullPath, "04_Production")) ||
+                                     Directory.Exists(Path.Combine(projectFullPath, "04_Export_Packages"));
                         else if (folder == "05_DOCUMENTATION")
                             exists = Directory.Exists(Path.Combine(projectFullPath, "05_Briefs_Docs")) || Directory.Exists(Path.Combine(projectFullPath, "06_DOCS"));
                     }

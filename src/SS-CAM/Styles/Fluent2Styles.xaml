@@ -83,17 +83,21 @@
     <DropShadowEffect x:Key="FluentDepth8" BlurRadius="12" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.20"/>
     <DropShadowEffect x:Key="FluentDepth16" BlurRadius="24" ShadowDepth="8" Direction="270" Color="#000000" Opacity="0.28"/>
     <DropShadowEffect x:Key="FluentCyberGlow" BlurRadius="16" ShadowDepth="0" Color="#00CFFF" Opacity="0.45"/>
-    <!-- Global ComboBox Baseline Standards (Prevents Text Clipping & Descender Cropping) -->
+    <!-- Global ComboBox & Input Standards (Prevents Text Clipping, Cropping & Dropdown Overlay Issues) -->
     <Style TargetType="{x:Type ComboBox}">
         <Setter Property="MinHeight" Value="36"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="MaxDropDownHeight" Value="380"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
     </Style>
 
     <Style TargetType="{x:Type ComboBoxItem}">
-        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="MinHeight" Value="34"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
     </Style>
 
 </ResourceDictionary>

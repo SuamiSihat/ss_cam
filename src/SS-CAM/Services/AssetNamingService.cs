@@ -49,7 +49,7 @@ namespace SS_CAM.Services
                 ? string.Format("{0}_{1}_{2}", folderParts[0], folderParts[1], folderParts[2])
                 : projectFolderName;
 
-            string[] targetSubDirs = new[] { "05_DELIVERABLES", "05_Deliverables", "04_Production", "04_WORK_IN_PROGRESS", "04_WIP" };
+            string[] targetSubDirs = new[] { "05_DELIVERABLES", "05_Deliverables", "04_Production", "04_Export_Packages", "Export_Packages", "04_WORK_IN_PROGRESS", "04_WIP" };
 
             foreach (string subName in targetSubDirs)
             {

@@ -78,7 +78,7 @@ namespace SS_CAM.Services
                             // 1. Deliverables (05_DELIVERABLES)
                             if (options.IncludeDeliverables)
                             {
-                                string[] delivDirs = new[] { "05_DELIVERABLES", "05_Deliverables", "04_Production", "Production", "04_Final_Exports" };
+                                string[] delivDirs = new[] { "05_DELIVERABLES", "05_Deliverables", "04_Production", "04_Export_Packages", "Export_Packages", "Production", "04_Final_Exports", "Export", "Exports" };
                                 foreach (string dirName in delivDirs)
                                 {
                                     string fullDelivDir = Path.Combine(projectFullPath, dirName);

@@ -144,13 +144,13 @@
                                     <!-- Category Preset -->
                                     <StackPanel Grid.Column="0">
                                         <ui:TextBlock Text="Category Preset" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                                        <ComboBox x:Name="PresetComboBox" Height="36" SelectionChanged="OnFormInputChanged"/>
+                                        <ComboBox x:Name="PresetComboBox" Height="36" Padding="10,0" VerticalContentAlignment="Center" SelectionChanged="OnFormInputChanged"/>
                                     </StackPanel>
 
                                     <!-- Canvas Size Preset -->
                                     <StackPanel Grid.Column="2">
                                         <ui:TextBlock Text="Target Platform" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                                        <ComboBox x:Name="PlatformComboBox" Height="36" SelectionChanged="OnFormInputChanged"/>
+                                        <ComboBox x:Name="PlatformComboBox" Height="36" Padding="10,0" VerticalContentAlignment="Center" SelectionChanged="OnFormInputChanged"/>
                                     </StackPanel>
                                 </Grid>
 
@@ -240,19 +240,15 @@
                                 <!-- Canva Cloud Bridge Section -->
                                 <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,12">
                                     <StackPanel>
-                                        <Grid Margin="0,0,0,8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Border Background="#00C4CC" CornerRadius="4" Padding="5,2" Margin="0,0,8,0">
+                                        <DockPanel Margin="0,0,0,8" LastChildFill="True">
+                                            <ui:Button DockPanel.Dock="Right" Appearance="Secondary" Content="Create on Canva (Auto-size)" Click="OnLaunchCanvaWithDimensionsClicked" Height="28" Padding="10,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" Margin="8,0,0,0" ToolTip="Open Canva in browser with exact platform dimensions"/>
+                                            <DockPanel VerticalAlignment="Center">
+                                                <Border DockPanel.Dock="Left" Background="#00C4CC" CornerRadius="4" Padding="5,2" Margin="0,0,8,0">
                                                     <ui:TextBlock Text="CANVA" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                                 </Border>
-                                                <ui:TextBlock Text="Canva Creative Cloud Bridge" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                            <ui:Button Grid.Column="1" Appearance="Secondary" Content="Create on Canva (Auto-size)" Click="OnLaunchCanvaWithDimensionsClicked" Height="26" Padding="10,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" ToolTip="Open Canva in browser with exact platform dimensions"/>
-                                        </Grid>
+                                                <ui:TextBlock Text="Canva Creative Cloud Bridge" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            </DockPanel>
+                                        </DockPanel>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -281,23 +277,24 @@
                                                 <ui:TextBlock x:Name="TxtScopeEstimatedPoints" Text="Estimated: 1.0 pt" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource FluentBrand80}"/>
                                             </Border>
                                         </Grid>
-                                        <ComboBox x:Name="DeliverableScopeComboBox" Height="32" FontSize="11" SelectionChanged="OnDeliverableScopeSelectionChanged">
-                                            <ComboBoxItem Content="Single Master Deliverable (Standard 1.0 - 2.0 pts)" IsSelected="True" Tag="single"/>
-                                            <ComboBoxItem Content="Video Ad Batch (1 Master 60s + 3 Hooks 15s &#x2022; 3.2 pts)" Tag="video_batch_4"/>
-                                            <ComboBoxItem Content="Video Hooks Blitz (1 Master 60s + 5 Hooks 15s &#x2022; 4.0 pts)" Tag="video_batch_6"/>
-                                            <ComboBoxItem Content="Episodic Video Series (3 Episodes 10m &#x2022; 18.0 pts)" Tag="video_episodes_3"/>
-                                            <ComboBoxItem Content="Graphic Multi-Size Pack (1 Master KV + 2 Resizes &#x2022; 1.4 pts)" Tag="graphic_pack_3"/>
-                                            <ComboBoxItem Content="Multi-Design Carousel / Series (5 Unique KVs &#x2022; 5.0 pts)" Tag="graphic_series_5"/>
-                                            <ComboBoxItem Content="Multi-Design Massive Pack (10 Unique KVs &#x2022; 10.0 pts)" Tag="graphic_series_10"/>
+                                        <ComboBox x:Name="DeliverableScopeComboBox" Height="36" Padding="10,0" VerticalContentAlignment="Center" FontSize="11.5" FontFamily="{DynamicResource FluentFontFamily}" MaxDropDownHeight="320" SelectionChanged="OnDeliverableScopeSelectionChanged">
+                                            <ComboBoxItem Content="Single Master Deliverable (Standard 1.0 - 2.0 pts)" IsSelected="True" Tag="single" Padding="10,6" VerticalContentAlignment="Center"/>
+                                            <ComboBoxItem Content="Video Shoot &amp; Raw Assets (1 Full Shoot + B-Roll &amp; Audio &#x2022; 2.5 pts)" Tag="video_shoot_full" Padding="10,6" VerticalContentAlignment="Center"/>
+                                            <ComboBoxItem Content="Video Ad Batch (1 Master 60s + 3 Hooks 15s &#x2022; 3.2 pts)" Tag="video_batch_4" Padding="10,6" VerticalContentAlignment="Center"/>
+                                            <ComboBoxItem Content="Video Hooks Blitz (1 Master 60s + 5 Hooks 15s &#x2022; 4.0 pts)" Tag="video_batch_6" Padding="10,6" VerticalContentAlignment="Center"/>
+                                            <ComboBoxItem Content="Episodic Video Series (3 Episodes 10m &#x2022; 18.0 pts)" Tag="video_episodes_3" Padding="10,6" VerticalContentAlignment="Center"/>
+                                            <ComboBoxItem Content="Graphic Multi-Size Pack (1 Master KV + 2 Resizes &#x2022; 1.4 pts)" Tag="graphic_pack_3" Padding="10,6" VerticalContentAlignment="Center"/>
+                                            <ComboBoxItem Content="Multi-Design Carousel / Series (5 Unique KVs &#x2022; 5.0 pts)" Tag="graphic_series_5" Padding="10,6" VerticalContentAlignment="Center"/>
+                                            <ComboBoxItem Content="Multi-Design Massive Pack (10 Unique KVs &#x2022; 10.0 pts)" Tag="graphic_series_10" Padding="10,6" VerticalContentAlignment="Center"/>
                                         </ComboBox>
                                         <ui:TextBlock x:Name="TxtScopeDescription" Text="Standard single deliverable. Occupies 1 default slot in studio capacity." FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </Border>
 
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <CheckBox x:Name="IncludeRevisionsCheck" Content="Include Client Revisions folder" IsChecked="True" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,16,0" Click="OnFormInputChanged"/>
-                                    <CheckBox x:Name="IncludeRawMediaCheck" Content="Include Raw Media folder" IsChecked="True" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Click="OnFormInputChanged"/>
-                                </StackPanel>
+                                <WrapPanel Margin="0,0,0,8">
+                                    <CheckBox x:Name="IncludeRevisionsCheck" Content="Include Client Revisions folder" IsChecked="True" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,16,6" Click="OnFormInputChanged"/>
+                                    <CheckBox x:Name="IncludeRawMediaCheck" Content="Include Raw Media folder" IsChecked="True" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6" Click="OnFormInputChanged"/>
+                                </WrapPanel>
                             </StackPanel>
                         </ui:Card>
 

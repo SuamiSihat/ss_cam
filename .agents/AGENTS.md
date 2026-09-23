@@ -171,6 +171,25 @@ Exception: theme swatch preview buttons in SettingsPage (intentional).
 - Use `<ui:Button>` for all interactive buttons.
 - Do not use native WPF `<TextBlock>`, `<Button>`, or `<GroupBox>` in page content unless there is a documented exception.
 
+## Dropdown & ComboBox Standard — MANDATORY
+
+**All dropdown/ComboBox text must be completely visible and cannot be blocked, cropped, truncated, or overlaid.**
+
+1. **Minimum Height & Vertical Geometry**:
+   - Never set `Height` less than `34` on `<ComboBox>` or `<ComboBoxItem>` (canonical standard is `Height="36"` or `MinHeight="36"`).
+   - Never use compact heights such as `Height="28"` or `Height="30"` on ComboBoxes — it constricts WPF control templates, cuts off baseline text, and chops off font descenders (`g`, `y`, `p`, `q`, `j`).
+   - Always set `VerticalContentAlignment="Center"`.
+   - Always provide internal horizontal padding (`Padding="10,0"` or `Padding="8,4"`) so text has breathing room and never collides with borders or chevrons.
+2. **Horizontal Sizing & Anti-Clipping**:
+   - Never place verbose or multi-word dropdowns (e.g. aspect ratio specifications, resolution dimensions, long weight labels) into narrow multi-column splits (< 180px).
+   - Use full-width rows or dedicated generous column definitions so all option text remains readable without horizontal truncation.
+   - For items with extended text, ensure the dropdown list popup (`MaxDropDownHeight`, `MinWidth`) expands comfortably without clipping.
+3. **Overlay & Stacking Protection**:
+   - Dropdown containers and active editor cards must specify `Panel.ZIndex` and avoid clipping bounds (`ClipToBounds="False"`) so that dropdown menus and popup items never render underneath neighboring cards, borders, or task items.
+   - Dropdown options must render completely without being obscured, overlaid, or blocked by other UI elements.
+4. **IsEditable Consistency**:
+   - For `IsEditable="True"` ComboBoxes, ensure programmatic value assignment populates clean, matched descriptive items or properly formatted strings rather than bare numbers or fragmented values that clash with display options.
+
 ---
 
 # COMPONENT RULE

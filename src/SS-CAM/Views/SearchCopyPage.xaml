@@ -77,7 +77,7 @@
                         <StackPanel x:Name="BatchActionBar" Grid.Column="1" Orientation="Horizontal" Visibility="Collapsed" VerticalAlignment="Center">
                             <ui:SymbolIcon Symbol="CheckmarkSquare24" FontSize="12" Foreground="{DynamicResource FluentBrand80}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                             <ui:TextBlock x:Name="TxtBatchCount" Text="0 selected" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="BatchStatusCmb" Height="32" Width="125" Padding="8,0" VerticalContentAlignment="Center" FontSize="11" SelectionChanged="OnBatchStatusChanged" Margin="0,0,6,0">
+                            <ComboBox x:Name="BatchStatusCmb" Height="36" Width="135" Padding="10,0" VerticalContentAlignment="Center" FontSize="11.5" SelectionChanged="OnBatchStatusChanged" Margin="0,0,6,0">
                                 <ComboBoxItem Content="Set Status..." VerticalContentAlignment="Center"/>
                                 <ComboBoxItem Content="backlog" VerticalContentAlignment="Center"/>
                                 <ComboBoxItem Content="in-progress" VerticalContentAlignment="Center"/>
@@ -85,7 +85,7 @@
                                 <ComboBoxItem Content="done" VerticalContentAlignment="Center"/>
                                 <ComboBoxItem Content="on-hold" VerticalContentAlignment="Center"/>
                             </ComboBox>
-                            <ComboBox x:Name="BatchPriorityCmb" Height="32" Width="125" Padding="8,0" VerticalContentAlignment="Center" FontSize="11" SelectionChanged="OnBatchPriorityChanged" Margin="0,0,6,0">
+                            <ComboBox x:Name="BatchPriorityCmb" Height="36" Width="135" Padding="10,0" VerticalContentAlignment="Center" FontSize="11.5" SelectionChanged="OnBatchPriorityChanged" Margin="0,0,6,0">
                                 <ComboBoxItem Content="Set Priority..." VerticalContentAlignment="Center"/>
                                 <ComboBoxItem Content="low" VerticalContentAlignment="Center"/>
                                 <ComboBoxItem Content="medium" VerticalContentAlignment="Center"/>
@@ -99,16 +99,15 @@
                     </Grid>
 
                     <!-- Row 3: Horizontal Scrollable List of Project Tiles (Max 10) -->
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="0,2">
-                        <ListBox x:Name="ResultsListBox"
-                                 SelectionMode="Extended"
-                                 SelectionChanged="OnListSelectionChanged"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                 ScrollViewer.CanContentScroll="True"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 Padding="0">
+                    <ListBox x:Name="ResultsListBox"
+                             SelectionMode="Extended"
+                             SelectionChanged="OnListSelectionChanged"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                             ScrollViewer.CanContentScroll="True"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             Padding="0,2">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <VirtualizingStackPanel Orientation="Horizontal" IsItemsHost="True"/>
@@ -212,7 +211,6 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                    </ScrollViewer>
                 </StackPanel>
             </ui:Card>
 

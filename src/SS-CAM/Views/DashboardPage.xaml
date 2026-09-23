@@ -155,7 +155,7 @@
                             <StackPanel Orientation="Horizontal" Margin="0,0,8,0" VerticalAlignment="Center">
                                 <ui:SymbolIcon Symbol="Person24" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,4,0" VerticalAlignment="Center"/>
                                 <ComboBox x:Name="CmbLiveDesignerFilter" SelectionChanged="OnLiveDesignerFilterChanged"
-                                          Height="32" Width="140" Padding="8,0" VerticalContentAlignment="Center" FontSize="11.5"
+                                          Height="36" Width="140" Padding="10,0" VerticalContentAlignment="Center" FontSize="11.5"
                                           ToolTip="Filter active studio tasks by designer">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>

@@ -45,8 +45,35 @@ namespace SS_CAM.Models
             }
         }
 
+        private string _projectId;
+        public string ProjectId
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(_projectId)) return _projectId;
+                return ExtractProjectId(Project);
+            }
+            set { _projectId = value; }
+        }
+
+        public static string ExtractProjectId(string folderName)
+        {
+            if (string.IsNullOrWhiteSpace(folderName)) return string.Empty;
+            System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(folderName, @"^\d{6}_([0-9]+[A-Za-z0-9]*)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (m.Success) return m.Groups[1].Value;
+
+            System.Text.RegularExpressions.Match m2 = System.Text.RegularExpressions.Regex.Match(folderName, @"^([0-9]{4}[A-Za-z0-9]*)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (m2.Success) return m2.Groups[1].Value;
+
+            System.Text.RegularExpressions.Match m3 = System.Text.RegularExpressions.Regex.Match(folderName, @"_([0-9]{4}[A-Za-z0-9]*)_", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (m3.Success) return m3.Groups[1].Value;
+
+            return string.Empty;
+        }
+
         public ProjectStatusItem()
         {
+            _projectId = "";
             Status = "backlog";
             Priority = "medium";
             Revision = 0;

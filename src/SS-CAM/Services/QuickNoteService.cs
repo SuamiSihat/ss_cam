@@ -32,31 +32,59 @@ namespace SS_CAM.Services
             {
                 string dir = Path.Combine(AppPaths.AppDataFolder, "Notes");
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                // Auto-discover and migrate legacy notes from %LOCALAPPDATA%\SuamiSihat\SS-CAM\Notes
+                try
+                {
+                    string legacyDir = Path.Combine(AppPaths.AppDataFolder, "SS-CAM", "Notes");
+                    if (Directory.Exists(legacyDir))
+                    {
+                        foreach (string legacyFile in Directory.GetFiles(legacyDir, "*.md"))
+                        {
+                            string destFile = Path.Combine(dir, Path.GetFileName(legacyFile));
+                            if (!File.Exists(destFile))
+                            {
+                                File.Copy(legacyFile, destFile, false);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("[QuickNoteService] Legacy notes migration: " + ex.Message);
+                }
+
                 return dir;
             }
         }
 
         /// <summary>
         /// Lists all notes sorted: Pinned first, then Priority (High > Medium > Normal), then newest modification.
+        /// Purely local and fast (0ms UI lag).
         /// </summary>
         public static List<QuickNoteItem> ListNotes()
         {
-            try
-            {
-                var profile = UserProfileService.LoadProfile();
-                if (profile != null && !string.IsNullOrWhiteSpace(profile.WorkspaceRoot))
-                {
-                    NasConfigSyncService.SyncFolderFromNasIfNewer(profile.WorkspaceRoot, "Notes");
-                }
-            }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[QuickNoteService] NAS sync error: " + ex.Message); }
-
             List<QuickNoteItem> notes = new List<QuickNoteItem>();
             string dir = NotesDirectory;
 
             string[] files;
             try { files = Directory.GetFiles(dir, "*.md"); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); return notes; }
+
+            // Auto-scaffold initial welcome creative note if folder has zero notes
+            if (files.Length == 0)
+            {
+                try
+                {
+                    CreateNote("Welcome to Studio Notes", GetWelcomeStudioNoteContent(), "📋", "Brief");
+                    try { files = Directory.GetFiles(dir, "*.md"); }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); return notes; }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("[QuickNoteService] Auto-scaffold welcome note error: " + ex.Message);
+                }
+            }
 
             foreach (string file in files)
             {
@@ -665,6 +693,21 @@ namespace SS_CAM.Services
                    "- [ ] Update master composition in After Effects\n" +
                    "- [ ] Re-export MP4 to `05_DELIVERABLES/REV2_Ad.mp4`\n" +
                    "- [ ] Upload revision preview for client approval\n";
+        }
+        public static string GetWelcomeStudioNoteContent()
+        {
+            return "# 📋 Welcome to Studio Notes\n\n" +
+                   "> [!NOTE] Creative Scratchpad & Direct-Response Studio\n" +
+                   "> Quick scratchpad for SuamiSihat campaigns, ad copy hooks, meeting decisions, and video briefs.\n\n" +
+                   "### 🚀 Key Features\n" +
+                   "- **Live Markdown Preview**: Split, Edit, and Full Preview modes with full Notion block support.\n" +
+                   "- **Notion Blocks**: Use `> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`, and `> [!DANGER]` callout boxes.\n" +
+                   "- **Task Checklists**: Keep track of deliverable progress using `- [ ]` and `- [x]`.\n" +
+                   "- **Auto-Sync**: Automatically synchronizes with Synology NAS (`_Team\\_Config\\Notes`) and Web Portal.\n\n" +
+                   "### ☑️ Getting Started Checklist\n" +
+                   "- [x] Launch SS-CAM Studio Notes\n" +
+                   "- [ ] Draft campaign brief or ad copy\n" +
+                   "- [ ] Export clean copy or save to NAS\n";
         }
 
         #endregion

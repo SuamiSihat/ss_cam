@@ -430,6 +430,13 @@
 
                     <!-- 1-Click Launchers, Handover Bar & Save Button -->
                     <WrapPanel Orientation="Horizontal">
+                        <ui:Button x:Name="BtnDetailCopyProjectId" Click="OnDetailCopyProjectIdClicked" Appearance="Secondary" Height="28" Padding="8,2" Margin="0,0,6,4" ToolTip="Copy Project ID to clipboard">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Copy24" Margin="0,0,4,0" FontSize="12"/>
+                                <ui:TextBlock Text="Copy ID" FontSize="11"/>
+                            </StackPanel>
+                        </ui:Button>
+
                         <ui:Button x:Name="BtnDetailOpenFolder" Click="OnDetailOpenFolderClicked" Appearance="Secondary" Height="28" Padding="8,2" Margin="0,0,6,4" ToolTip="Open project folder in Windows Explorer">
                             <StackPanel Orientation="Horizontal">
                                 <ui:SymbolIcon Symbol="FolderOpen24" Margin="0,0,4,0" FontSize="12"/>
@@ -558,7 +565,8 @@
                                     <Border x:Name="SubtaskEditorCard" Visibility="Collapsed"
                                             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{DynamicResource FluentBrand80}"
-                                            BorderThickness="1.5" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                                            BorderThickness="1.5" CornerRadius="6" Padding="12,10" Margin="0,0,0,10"
+                                            Panel.ZIndex="10" ClipToBounds="False">
                                         <StackPanel>
                                             <Grid Margin="0,0,0,8">
                                                 <Grid.ColumnDefinitions>
@@ -567,62 +575,43 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                     <ui:SymbolIcon Symbol="Edit24" FontSize="14" Foreground="{DynamicResource FluentBrand80}" Margin="0,0,6,0"/>
-                                                    <ui:TextBlock x:Name="TxtSubtaskEditorTitle" Text="Edit Deliverable / Subtask" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                    <ui:TextBlock x:Name="TxtSubtaskEditorTitle" Text="Edit Deliverable / Subtask" FontSize="11.5" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                                 </StackPanel>
-                                                <ui:Button Grid.Column="1" Appearance="Secondary" Height="20" Width="20" Padding="0" Click="OnCancelSubtaskEditClicked" Cursor="Hand" ToolTip="Close editor">
-                                                    <ui:SymbolIcon Symbol="Dismiss16" FontSize="9"/>
+                                                <ui:Button Grid.Column="1" Appearance="Secondary" Height="22" Width="22" Padding="0" Click="OnCancelSubtaskEditClicked" Cursor="Hand" ToolTip="Close editor">
+                                                    <ui:SymbolIcon Symbol="Dismiss16" FontSize="10"/>
                                                 </ui:Button>
                                             </Grid>
 
                                             <!-- Row 1: ID & Filename / Title -->
-                                            <Grid Margin="0,0,0,6">
+                                            <Grid Margin="0,0,0,8">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="75"/>
+                                                    <ColumnDefinition Width="70"/>
                                                     <ColumnDefinition Width="8"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0">
-                                                    <ui:TextBlock Text="Tag / ID" FontSize="9.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2"/>
-                                                    <ui:TextBox x:Name="EditSubtaskId" PlaceholderText="e.g. V01" Height="28" FontSize="10.5"/>
+                                                    <ui:TextBlock Text="Tag / ID" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,3"/>
+                                                    <ui:TextBox x:Name="EditSubtaskId" PlaceholderText="e.g. V01" Height="36" Padding="8,0" VerticalContentAlignment="Center" FontSize="11.5"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2">
-                                                    <ui:TextBlock Text="Filename / Deliverable Name" FontSize="9.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2"/>
-                                                    <ui:TextBox x:Name="EditSubtaskName" PlaceholderText="e.g. Master Story Cut 60s" Height="28" FontSize="10.5"/>
+                                                    <ui:TextBlock Text="Filename / Deliverable Name" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,3"/>
+                                                    <ui:TextBox x:Name="EditSubtaskName" PlaceholderText="e.g. Master Story Cut 60s" Height="36" Padding="10,0" VerticalContentAlignment="Center" FontSize="11.5"/>
                                                 </StackPanel>
                                             </Grid>
 
-                                            <!-- Row 2: Size Ratio / Specs & Deliverable Type -->
-                                            <Grid Margin="0,0,0,6">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="8"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0">
-                                                    <ui:TextBlock Text="Size Ratio &amp; Resolution" FontSize="9.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2"/>
-                                                    <ComboBox x:Name="EditSubtaskSpecs" IsEditable="True" Height="28" FontSize="10.5">
-                                                        <ComboBoxItem Content="9:16, 1080x1920 (Reels / TikTok / Story)"/>
-                                                        <ComboBoxItem Content="1:1, 1080x1080 (Square Feed Post)"/>
-                                                        <ComboBoxItem Content="16:9, 1920x1080 (Landscape / YouTube / Display)"/>
-                                                        <ComboBoxItem Content="4:5, 1080x1350 (Portrait Feed)"/>
-                                                        <ComboBoxItem Content="Custom Dimensions"/>
-                                                    </ComboBox>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="2">
-                                                    <ui:TextBlock Text="Deliverable Type" FontSize="9.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2"/>
-                                                    <ComboBox x:Name="EditSubtaskType" IsEditable="True" Height="28" FontSize="10.5">
-                                                        <ComboBoxItem Content="master_video"/>
-                                                        <ComboBoxItem Content="hook_variation"/>
-                                                        <ComboBoxItem Content="cutdown"/>
-                                                        <ComboBoxItem Content="key_visual"/>
-                                                        <ComboBoxItem Content="resize"/>
-                                                        <ComboBoxItem Content="carousel_slide"/>
-                                                        <ComboBoxItem Content="artwork"/>
-                                                    </ComboBox>
-                                                </StackPanel>
-                                            </Grid>
+                                            <!-- Row 2: Size Ratio / Specs (Full Width for Maximum Readability) -->
+                                            <StackPanel Margin="0,0,0,8">
+                                                <ui:TextBlock Text="Size Ratio &amp; Resolution" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,3"/>
+                                                <ComboBox x:Name="EditSubtaskSpecs" IsEditable="True" Height="36" Padding="10,0" VerticalContentAlignment="Center" FontSize="11.5">
+                                                    <ComboBoxItem Content="9:16, 1080x1920 (Reels / TikTok / Story)" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                    <ComboBoxItem Content="1:1, 1080x1080 (Square Feed Post)" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                    <ComboBoxItem Content="16:9, 1920x1080 (Landscape / YouTube / Display)" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                    <ComboBoxItem Content="4:5, 1080x1350 (Portrait Feed)" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                    <ComboBoxItem Content="Custom Dimensions" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                </ComboBox>
+                                            </StackPanel>
 
-                                            <!-- Row 3: Points Weight & Status -->
+                                            <!-- Row 3: Deliverable Type & Status -->
                                             <Grid Margin="0,0,0,8">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
@@ -630,29 +619,43 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0">
-                                                    <ui:TextBlock Text="Complexity Points (Weight)" FontSize="9.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2"/>
-                                                    <ComboBox x:Name="EditSubtaskWeight" IsEditable="True" Height="28" FontSize="10.5">
-                                                        <ComboBoxItem Content="0.2 pt (Format Resize)"/>
-                                                        <ComboBoxItem Content="0.4 pt (Hook Variation)"/>
-                                                        <ComboBoxItem Content="1.0 pt (Master Key Visual / Slide)"/>
-                                                        <ComboBoxItem Content="2.0 pts (Master Story Cut 30-60s)"/>
-                                                        <ComboBoxItem Content="6.0 pts (Long-Form Episode)"/>
+                                                    <ui:TextBlock Text="Deliverable Type" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,3"/>
+                                                    <ComboBox x:Name="EditSubtaskType" IsEditable="True" Height="36" Padding="10,0" VerticalContentAlignment="Center" FontSize="11.5">
+                                                        <ComboBoxItem Content="master_video" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                        <ComboBoxItem Content="hook_variation" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                        <ComboBoxItem Content="cutdown" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                        <ComboBoxItem Content="key_visual" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                        <ComboBoxItem Content="resize" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                        <ComboBoxItem Content="carousel_slide" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                        <ComboBoxItem Content="artwork" VerticalContentAlignment="Center" Padding="10,6"/>
                                                     </ComboBox>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2">
-                                                    <ui:TextBlock Text="Status (Default is Draft)" FontSize="9.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2"/>
-                                                    <ComboBox x:Name="EditSubtaskStatus" Height="28" FontSize="10.5">
-                                                        <ComboBoxItem Content="Draft" Tag="draft"/>
-                                                        <ComboBoxItem Content="In Progress" Tag="in-progress"/>
-                                                        <ComboBoxItem Content="Done" Tag="done"/>
+                                                    <ui:TextBlock Text="Status (Default is Draft)" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,3"/>
+                                                    <ComboBox x:Name="EditSubtaskStatus" Height="36" Padding="10,0" VerticalContentAlignment="Center" FontSize="11.5">
+                                                        <ComboBoxItem Content="Draft" Tag="draft" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                        <ComboBoxItem Content="In Progress" Tag="in-progress" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                        <ComboBoxItem Content="Done" Tag="done" VerticalContentAlignment="Center" Padding="10,6"/>
                                                     </ComboBox>
                                                 </StackPanel>
                                             </Grid>
 
+                                            <!-- Row 4: Complexity Points Weight (Full Width) -->
+                                            <StackPanel Margin="0,0,0,10">
+                                                <ui:TextBlock Text="Complexity Points (Weight)" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,3"/>
+                                                <ComboBox x:Name="EditSubtaskWeight" IsEditable="True" Height="36" Padding="10,0" VerticalContentAlignment="Center" FontSize="11.5">
+                                                    <ComboBoxItem Content="0.2 pt (Format Resize)" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                    <ComboBoxItem Content="0.4 pt (Hook Variation)" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                    <ComboBoxItem Content="1.0 pt (Master Key Visual / Slide)" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                    <ComboBoxItem Content="2.0 pts (Master Story Cut 30-60s)" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                    <ComboBoxItem Content="6.0 pts (Long-Form Episode)" VerticalContentAlignment="Center" Padding="10,6"/>
+                                                </ComboBox>
+                                            </StackPanel>
+
                                             <!-- Save / Cancel Buttons -->
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                                <ui:Button Appearance="Secondary" Content="Cancel" Click="OnCancelSubtaskEditClicked" Height="26" Padding="12,0" FontSize="10.5" Margin="0,0,6,0" Cursor="Hand"/>
-                                                <ui:Button Appearance="Primary" Content="Save Deliverable" Click="OnSaveSubtaskEditClicked" Height="26" Padding="14,0" FontSize="10.5" Cursor="Hand"/>
+                                                <ui:Button Appearance="Secondary" Content="Cancel" Click="OnCancelSubtaskEditClicked" Height="30" Padding="14,0" FontSize="11" Margin="0,0,6,0" Cursor="Hand"/>
+                                                <ui:Button Appearance="Primary" Content="Save Deliverable" Click="OnSaveSubtaskEditClicked" Height="30" Padding="16,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand"/>
                                             </StackPanel>
                                         </StackPanel>
                                     </Border>

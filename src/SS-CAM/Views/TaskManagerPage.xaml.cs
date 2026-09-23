@@ -1119,9 +1119,9 @@ namespace SS_CAM.Views
             if (TxtSubtaskEditorTitle != null) TxtSubtaskEditorTitle.Text = "Add Deliverable / Subtask";
             if (EditSubtaskId != null) EditSubtaskId.Text = id;
             if (EditSubtaskName != null) EditSubtaskName.Text = name;
-            if (EditSubtaskSpecs != null) EditSubtaskSpecs.Text = isVideo ? "9:16, 1080x1920" : "1:1, 1080x1080";
-            if (EditSubtaskType != null) EditSubtaskType.Text = isVideo ? (nextNum == 1 ? "master_video" : "hook_variation") : (nextNum == 1 ? "key_visual" : "resize");
-            if (EditSubtaskWeight != null) EditSubtaskWeight.Text = weight.ToString("0.#");
+            if (EditSubtaskSpecs != null) SelectOrSetComboBoxItem(EditSubtaskSpecs, isVideo ? "9:16, 1080x1920" : "1:1, 1080x1080");
+            if (EditSubtaskType != null) SelectOrSetComboBoxItem(EditSubtaskType, isVideo ? (nextNum == 1 ? "master_video" : "hook_variation") : (nextNum == 1 ? "key_visual" : "resize"));
+            if (EditSubtaskWeight != null) SelectOrSetComboBoxWeight(EditSubtaskWeight, weight);
             if (EditSubtaskStatus != null) EditSubtaskStatus.SelectedIndex = 0; // Default: Draft
 
             if (SubtaskEditorCard != null)
@@ -1129,6 +1129,42 @@ namespace SS_CAM.Views
                 SubtaskEditorCard.Visibility = Visibility.Visible;
                 if (EditSubtaskName != null) EditSubtaskName.Focus();
             }
+        }
+
+        private static void SelectOrSetComboBoxItem(ComboBox combo, string text)
+        {
+            if (combo == null) return;
+            if (string.IsNullOrWhiteSpace(text)) { combo.Text = string.Empty; return; }
+
+            foreach (var item in combo.Items)
+            {
+                ComboBoxItem cbi = item as ComboBoxItem;
+                string content = cbi != null ? cbi.Content as string : item as string;
+                if (!string.IsNullOrEmpty(content) && (content.Equals(text, StringComparison.OrdinalIgnoreCase) || content.StartsWith(text, StringComparison.OrdinalIgnoreCase)))
+                {
+                    combo.SelectedItem = item;
+                    return;
+                }
+            }
+            combo.Text = text;
+        }
+
+        private static void SelectOrSetComboBoxWeight(ComboBox combo, double weight)
+        {
+            if (combo == null) return;
+            string weightStr = weight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+            foreach (var item in combo.Items)
+            {
+                ComboBoxItem cbi = item as ComboBoxItem;
+                string content = cbi != null ? cbi.Content as string : item as string;
+                if (!string.IsNullOrEmpty(content) && content.StartsWith(weightStr, StringComparison.OrdinalIgnoreCase))
+                {
+                    combo.SelectedItem = item;
+                    return;
+                }
+            }
+            combo.Text = string.Format("{0:0.#} pts", weight);
         }
 
         private void OnEditSubtaskClicked(object sender, RoutedEventArgs e)
@@ -1144,9 +1180,9 @@ namespace SS_CAM.Views
             if (TxtSubtaskEditorTitle != null) TxtSubtaskEditorTitle.Text = string.Format("Edit Deliverable: {0}", st.Id);
             if (EditSubtaskId != null) EditSubtaskId.Text = st.Id ?? "";
             if (EditSubtaskName != null) EditSubtaskName.Text = st.Name ?? "";
-            if (EditSubtaskSpecs != null) EditSubtaskSpecs.Text = st.Specs ?? "";
-            if (EditSubtaskType != null) EditSubtaskType.Text = st.Type ?? "";
-            if (EditSubtaskWeight != null) EditSubtaskWeight.Text = st.Weight.ToString("0.#");
+            if (EditSubtaskSpecs != null) SelectOrSetComboBoxItem(EditSubtaskSpecs, st.Specs ?? "");
+            if (EditSubtaskType != null) SelectOrSetComboBoxItem(EditSubtaskType, st.Type ?? "");
+            if (EditSubtaskWeight != null) SelectOrSetComboBoxWeight(EditSubtaskWeight, st.Weight);
 
             if (EditSubtaskStatus != null)
             {
@@ -1272,6 +1308,57 @@ namespace SS_CAM.Views
                 PopulateDetailSubtasks(_editingProject);
                 ApplyFiltersAndUpdateBoard();
                 UpdateMetricSummaryCards();
+            }
+        }
+
+        private void OnDetailCopyProjectIdClicked(object sender, RoutedEventArgs e)
+        {
+            if (_editingProject == null) return;
+
+            string projectId = !string.IsNullOrWhiteSpace(_editingProject.ProjectId)
+                ? _editingProject.ProjectId
+                : ProjectStatusItem.ExtractProjectId(_editingProject.Project);
+
+            if (string.IsNullOrWhiteSpace(projectId) && DetailReadmePreview != null && !string.IsNullOrWhiteSpace(DetailReadmePreview.Text))
+            {
+                Match m = Regex.Match(DetailReadmePreview.Text, @"(?:^|\n)\s*-\s*\*{0,2}Project ID\*{0,2}\s*:\s*([A-Za-z0-9_-]+)", RegexOptions.IgnoreCase);
+                if (m.Success)
+                {
+                    projectId = m.Groups[1].Value.Trim();
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(projectId))
+            {
+                projectId = _editingProject.Project ?? string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(projectId))
+            {
+                try
+                {
+                    ClipboardService.SetText(projectId);
+                    if (DetailSaveStatus != null)
+                    {
+                        DetailSaveStatus.Text = string.Format("Copied ID '{0}' \u2713", projectId);
+                    }
+                    NotificationService.ShowSuccess("Copied Project ID", string.Format("Project ID '{0}' copied to clipboard.", projectId), _editingProject.FullPath);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("[TaskManagerPage] CopyProjectId error: " + ex.Message);
+                    if (DetailSaveStatus != null)
+                    {
+                        DetailSaveStatus.Text = "Failed to copy ID";
+                    }
+                }
+            }
+            else
+            {
+                if (DetailSaveStatus != null)
+                {
+                    DetailSaveStatus.Text = "Project ID not found";
+                }
             }
         }
 

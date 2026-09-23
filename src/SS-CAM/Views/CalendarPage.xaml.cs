@@ -2008,6 +2008,41 @@ namespace SS_CAM.Views
             }
         }
 
+        private void OnDrawerCopyProjectIdClicked(object sender, RoutedEventArgs e)
+        {
+            if (_drawerEditingProject == null) return;
+
+            string projectId = !string.IsNullOrWhiteSpace(_drawerEditingProject.ProjectId)
+                ? _drawerEditingProject.ProjectId
+                : ProjectStatusItem.ExtractProjectId(_drawerEditingProject.Project);
+
+            if (string.IsNullOrWhiteSpace(projectId))
+            {
+                projectId = _drawerEditingProject.Project ?? string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(projectId))
+            {
+                try
+                {
+                    ClipboardService.SetText(projectId);
+                    if (DrawerSaveStatus != null)
+                    {
+                        DrawerSaveStatus.Text = string.Format("Copied ID '{0}' \u2713", projectId);
+                    }
+                    NotificationService.ShowSuccess("Copied Project ID", string.Format("Project ID '{0}' copied to clipboard.", projectId), _drawerEditingProject.FullPath);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("[CalendarPage] CopyProjectId error: " + ex.Message);
+                    if (DrawerSaveStatus != null)
+                    {
+                        DrawerSaveStatus.Text = "Failed to copy ID";
+                    }
+                }
+            }
+        }
+
         private void OnDrawerOpenFolderClicked(object sender, RoutedEventArgs e)
         {
             if (_drawerEditingProject != null && Directory.Exists(_drawerEditingProject.FullPath))
@@ -2185,9 +2220,9 @@ namespace SS_CAM.Views
             if (DrawerSubtaskEditorTitle != null) DrawerSubtaskEditorTitle.Text = "Add Deliverable / Subtask";
             if (DrawerSubtaskId != null) DrawerSubtaskId.Text = id;
             if (DrawerSubtaskName != null) DrawerSubtaskName.Text = name;
-            if (DrawerSubtaskSpecs != null) DrawerSubtaskSpecs.Text = isVideo ? "9:16, 1080x1920" : "1:1, 1080x1080";
-            if (DrawerSubtaskType != null) DrawerSubtaskType.Text = isVideo ? (nextNum == 1 ? "master_video" : "hook_variation") : (nextNum == 1 ? "key_visual" : "resize");
-            if (DrawerSubtaskWeight != null) DrawerSubtaskWeight.Text = weight.ToString("0.#");
+            if (DrawerSubtaskSpecs != null) SelectOrSetDrawerComboBoxItem(DrawerSubtaskSpecs, isVideo ? "9:16, 1080x1920" : "1:1, 1080x1080");
+            if (DrawerSubtaskType != null) SelectOrSetDrawerComboBoxItem(DrawerSubtaskType, isVideo ? (nextNum == 1 ? "master_video" : "hook_variation") : (nextNum == 1 ? "key_visual" : "resize"));
+            if (DrawerSubtaskWeight != null) SelectOrSetDrawerComboBoxWeight(DrawerSubtaskWeight, weight);
             if (DrawerSubtaskStatus != null) DrawerSubtaskStatus.SelectedIndex = 0;
 
             if (DrawerSubtaskEditorCard != null)
@@ -2195,6 +2230,42 @@ namespace SS_CAM.Views
                 DrawerSubtaskEditorCard.Visibility = Visibility.Visible;
                 if (DrawerSubtaskName != null) DrawerSubtaskName.Focus();
             }
+        }
+
+        private static void SelectOrSetDrawerComboBoxItem(ComboBox combo, string text)
+        {
+            if (combo == null) return;
+            if (string.IsNullOrWhiteSpace(text)) { combo.Text = string.Empty; return; }
+
+            foreach (var item in combo.Items)
+            {
+                ComboBoxItem cbi = item as ComboBoxItem;
+                string content = cbi != null ? cbi.Content as string : item as string;
+                if (!string.IsNullOrEmpty(content) && (content.Equals(text, StringComparison.OrdinalIgnoreCase) || content.StartsWith(text, StringComparison.OrdinalIgnoreCase)))
+                {
+                    combo.SelectedItem = item;
+                    return;
+                }
+            }
+            combo.Text = text;
+        }
+
+        private static void SelectOrSetDrawerComboBoxWeight(ComboBox combo, double weight)
+        {
+            if (combo == null) return;
+            string weightStr = weight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+            foreach (var item in combo.Items)
+            {
+                ComboBoxItem cbi = item as ComboBoxItem;
+                string content = cbi != null ? cbi.Content as string : item as string;
+                if (!string.IsNullOrEmpty(content) && content.StartsWith(weightStr, StringComparison.OrdinalIgnoreCase))
+                {
+                    combo.SelectedItem = item;
+                    return;
+                }
+            }
+            combo.Text = string.Format("{0:0.#} pts", weight);
         }
 
         private void OnDrawerEditSubtaskClicked(object sender, RoutedEventArgs e)
@@ -2210,9 +2281,9 @@ namespace SS_CAM.Views
             if (DrawerSubtaskEditorTitle != null) DrawerSubtaskEditorTitle.Text = string.Format("Edit Deliverable: {0}", st.Id);
             if (DrawerSubtaskId != null) DrawerSubtaskId.Text = st.Id ?? "";
             if (DrawerSubtaskName != null) DrawerSubtaskName.Text = st.Name ?? "";
-            if (DrawerSubtaskSpecs != null) DrawerSubtaskSpecs.Text = st.Specs ?? "";
-            if (DrawerSubtaskType != null) DrawerSubtaskType.Text = st.Type ?? "";
-            if (DrawerSubtaskWeight != null) DrawerSubtaskWeight.Text = st.Weight.ToString("0.#");
+            if (DrawerSubtaskSpecs != null) SelectOrSetDrawerComboBoxItem(DrawerSubtaskSpecs, st.Specs ?? "");
+            if (DrawerSubtaskType != null) SelectOrSetDrawerComboBoxItem(DrawerSubtaskType, st.Type ?? "");
+            if (DrawerSubtaskWeight != null) SelectOrSetDrawerComboBoxWeight(DrawerSubtaskWeight, st.Weight);
 
             if (DrawerSubtaskStatus != null)
             {

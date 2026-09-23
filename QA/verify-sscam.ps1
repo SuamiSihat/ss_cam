@@ -121,8 +121,22 @@ if ($windowViews.Count -eq 0) {
     Write-Check "All views are Page/ui:Page (not Window)" "FAIL" "View files must be Pages: $($windowViews -join ', ')"
 }
 
+# ── CHECK 6: ComboBox Height & Anti-Clipping Standard ────────────────────────
+$croppedCombos = @()
+foreach ($xf in $viewXamls) {
+    $text = Get-Content $xf.FullName -Raw -Encoding UTF8
+    if ($text -match '<ComboBox[^>]*Height="([12][0-9]|3[0-3])"') {
+        $croppedCombos += $xf.Name
+    }
+}
+if ($croppedCombos.Count -eq 0) {
+    Write-Check "All dropdowns / ComboBoxes meet MinHeight >= 34/36 (no text clipping)" "PASS" ""
+} else {
+    Write-Check "All dropdowns / ComboBoxes meet MinHeight >= 34/36 (no text clipping)" "FAIL" "Found cropped ComboBox with Height < 34 in: $($croppedCombos -join ', ')"
+}
+
 Write-Host "`n[ DATA SAFETY ]" -ForegroundColor Cyan
-# ── CHECK 6: No hardcoded DEV machine filesystem paths ───────────────────────
+# ── CHECK 7: No hardcoded DEV machine filesystem paths ───────────────────────
 # Only flags absolute dev paths - not AppData or Environment.GetFolderPath usage
 $hardcodedPaths = @()
 $pathPat = '"[A-Ee-e]:\\\\(Dev|Projects|Testing|Users\\\\[A-Za-z])'
@@ -136,7 +150,7 @@ if ($hardcodedPaths.Count -eq 0) {
     Write-Check "No hardcoded filesystem paths in C# code" "FAIL" "Hardcoded paths found in: $($hardcodedPaths -join ', ')"
 }
 
-# ── CHECK 7: No silent empty catch{} ─────────────────────────────────────────
+# ── CHECK 8: No silent empty catch{} ─────────────────────────────────────────
 $emptyCatch = @()
 foreach ($file in ($allSrc | Where-Object { $_.Extension -eq ".cs" })) {
     $text = Get-Content $file.FullName -Raw -Encoding UTF8
@@ -148,7 +162,7 @@ if ($emptyCatch.Count -eq 0) {
     Write-Check "No silent empty catch{} blocks" "WARN" "Replace with Debug.WriteLine logging: $($emptyCatch -join ', ')"
 }
 
-# ── CHECK 8: HttpClient singleton ────────────────────────────────────────────
+# ── CHECK 9: HttpClient singleton ────────────────────────────────────────────
 $httpNew = @()
 foreach ($file in ($allSrc | Where-Object { $_.Extension -eq ".cs" })) {
     $text = Get-Content $file.FullName -Raw -Encoding UTF8
@@ -161,7 +175,7 @@ if ($httpNew.Count -eq 0) {
     Write-Check "HttpClient is static readonly singleton" "WARN" "Use private static readonly HttpClient: $($httpNew -join ', ')"
 }
 
-# ── CHECK 9: No UI thread blocking ───────────────────────────────────────────
+# ── CHECK 10: No UI thread blocking ──────────────────────────────────────────
 Write-Host "`n[ THREAD SAFETY ]" -ForegroundColor Cyan
 $uiBlock = @()
 foreach ($file in ($allSrc | Where-Object { $_.Extension -eq ".cs" })) {
