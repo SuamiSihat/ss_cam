@@ -1010,7 +1010,7 @@
             <div class="gallery-header" style="margin-top: 28px;">
               <div class="gallery-title-group">
                 <h3>Production Output Assets</h3>
-                <span class="gallery-subtitle">Found in <code>05_DELIVERABLES/</code> or <code>04_Production/</code> on Synology NAS</span>
+                <span class="gallery-subtitle">Found in <code>05_DELIVERABLES/</code>, <code>04_Production/</code>, or <code>04_Export_Packages/</code> on Synology NAS</span>
               </div>
             </div>
 
@@ -1019,7 +1019,7 @@
                 <div class="empty-icon-box">
                   <FluentIcons name="folder" size={36} color="rgba(255,255,255,0.2)" />
                 </div>
-                <p>No output media found in <code>05_DELIVERABLES</code> or <code>04_Production</code>.</p>
+                <p>No output media found in <code>05_DELIVERABLES</code>, <code>04_Production</code>, or <code>04_Export_Packages</code>.</p>
                 <p class="empty-sub">Export output media (PNG, JPG, MP4, PDF) from Photoshop, Illustrator, or Blender into the project folder.</p>
               </div>
             {:else}

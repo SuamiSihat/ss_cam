@@ -177,7 +177,7 @@ This is the project brief content.
       // Restore workspaceRoot and clean up
       WorkspaceService.workspaceRoot = origRoot;
       WorkspaceService.scan(true);
-      fs.rmSync(testDir, { recursive: true, force: true });
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
     }
   });
 
@@ -516,15 +516,19 @@ This is the project brief content.
   });
 
   // ─── TEST 19: DeliverableService Strict Media Filtering & Previews ──
-  test('DeliverableService strictly indexes output media (PNG, JPG, MP4, PDF) and excludes COPY.md / raw source files', () => {
+  test('DeliverableService strictly indexes output media (PNG, JPG, MP4, PDF) including 04_Production, 04_Export_Packages and EXPORT folders, excluding COPY.md / raw source files', () => {
     const testDir = path.join(__dirname, 'temp-deliv-test-project');
     const delivDir = path.join(testDir, '05_DELIVERABLES');
     const prodDir = path.join(testDir, '04_Production');
+    const exportPkgDir = path.join(testDir, '04_Export_Packages');
+    const keywordExportDir = path.join(testDir, 'Client_EXPORT_Files');
     const copyDir = path.join(testDir, '03_COPYWRITING');
     const srcDir = path.join(testDir, '02_SOURCE_FILES');
 
     fs.mkdirSync(delivDir, { recursive: true });
     fs.mkdirSync(prodDir, { recursive: true });
+    fs.mkdirSync(exportPkgDir, { recursive: true });
+    fs.mkdirSync(keywordExportDir, { recursive: true });
     fs.mkdirSync(copyDir, { recursive: true });
     fs.mkdirSync(srcDir, { recursive: true });
 
@@ -532,18 +536,22 @@ This is the project brief content.
     fs.writeFileSync(path.join(delivDir, 'master_packaging_v1.png'), 'dummy-png-data');
     fs.writeFileSync(path.join(delivDir, 'product_catalogue_final.pdf'), 'dummy-pdf-data');
     fs.writeFileSync(path.join(prodDir, 'social_reel_1080p.mp4'), 'dummy-mp4-data');
+    fs.writeFileSync(path.join(exportPkgDir, 'bunting_print_ready.pdf'), 'dummy-bunting-pdf');
+    fs.writeFileSync(path.join(keywordExportDir, 'display_ad_1200x628.jpg'), 'dummy-jpg-data');
     fs.writeFileSync(path.join(copyDir, 'COPY.md'), '# Copywriting text should be excluded from gallery');
     fs.writeFileSync(path.join(srcDir, 'packaging_master.afdesign'), 'raw-vector-source-data');
 
     const deliverables = DeliverableService.getProjectDeliverables(testDir);
 
-    // Assert only media files from deliverables & production folders were indexed
-    assert.strictEqual(deliverables.length, 3, 'Must index exactly 3 media deliverables (png, pdf, mp4)');
+    // Assert only media files from deliverables, production, and export folders were indexed
+    assert.strictEqual(deliverables.length, 5, 'Must index exactly 5 media deliverables (png, pdf, mp4, export_packages pdf, export_keyword jpg)');
     
     const filenames = deliverables.map(d => d.filename);
     assert.ok(filenames.includes('master_packaging_v1.png'), 'Must include PNG export');
     assert.ok(filenames.includes('product_catalogue_final.pdf'), 'Must include PDF export');
     assert.ok(filenames.includes('social_reel_1080p.mp4'), 'Must include MP4 video');
+    assert.ok(filenames.includes('bunting_print_ready.pdf'), 'Must include 04_Export_Packages deliverable');
+    assert.ok(filenames.includes('display_ad_1200x628.jpg'), 'Must include EXPORT keyword folder deliverable');
     assert.strictEqual(filenames.includes('COPY.md'), false, 'COPY.md must NEVER be in deliverables gallery');
     assert.strictEqual(filenames.includes('packaging_master.afdesign'), false, 'Source files must not be in deliverables gallery');
 

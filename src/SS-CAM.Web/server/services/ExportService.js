@@ -39,14 +39,33 @@ class ExportService {
     const { frontmatter } = FrontmatterService.readProjectReadme(projectFullPath);
     const addedFiles = [];
 
-    // 1. Deliverables
-    const delivDirs = ['05_DELIVERABLES', '05_Deliverables', '04_Production', 'Production', '04_Final_Exports'];
+    // 1. Deliverables & Production Exports
+    const delivDirs = ['05_DELIVERABLES', '05_Deliverables', '04_Production', '04_Export_Packages', 'Production', '04_Final_Exports', 'Export', 'Exports', 'Final_Exports', 'Export_Packages'];
+    const addedDelivPaths = new Set();
     for (const dir of delivDirs) {
       const p = path.join(projectFullPath, dir);
-      if (fs.existsSync(p)) {
+      if (fs.existsSync(p) && !addedDelivPaths.has(p)) {
         this.addDirectoryToArchive(archive, p, 'Deliverables', addedFiles);
-        break;
+        addedDelivPaths.add(p);
       }
+    }
+    // Also discover any directory containing 'export' or 'production' in name if none matched
+    if (addedDelivPaths.size === 0) {
+      try {
+        const subdirs = fs.readdirSync(projectFullPath, { withFileTypes: true });
+        for (const s of subdirs) {
+          if (s.isDirectory()) {
+            const lower = s.name.toLowerCase();
+            if (lower.includes('export') || lower.includes('production') || lower.includes('deliverable')) {
+              const p = path.join(projectFullPath, s.name);
+              if (!addedDelivPaths.has(p)) {
+                this.addDirectoryToArchive(archive, p, 'Deliverables', addedFiles);
+                addedDelivPaths.add(p);
+              }
+            }
+          }
+        }
+      } catch (e) {}
     }
 
     // 2. Mockups (optional)

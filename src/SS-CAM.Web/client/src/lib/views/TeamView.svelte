@@ -19,8 +19,9 @@
   let selectedCapacity = $state<string>('all');
   let sortBy = $state<'hierarchy' | 'name' | 'workload-desc' | 'workload-asc'>('hierarchy');
 
-  // Workload Rebalancing Modal States
+  // Workload Rebalancing & Capacity Guide Modal States
   let showReassignModal = $state<boolean>(false);
+  let showGuideModal = $state<boolean>(false);
   let reassignProjectData = $state<any>(null);
   let reassignCurrentDesigner = $state<string>('');
   let reassignTargetDesigner = $state<string>('');
@@ -269,6 +270,15 @@
 
     <div class="hero-actions">
       <FluentButton
+        appearance="subtle"
+        onclick={() => (showGuideModal = true)}
+        title="View Art Director Workload & Capacity Balancing Framework"
+      >
+        <FluentIcons name="info" size={14} color="#0284C7" />
+        <span style="margin-left: 6px;">Capacity Guide</span>
+      </FluentButton>
+
+      <FluentButton
         appearance="secondary"
         onclick={() => loadTeam(true)}
         disabled={isRefreshing}
@@ -285,7 +295,7 @@
         >
           <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
         </svg>
-        {isRefreshing ? 'Syncing...' : 'Refresh Telemetry'}
+        {isRefreshing ? 'Syncing...' : 'Refresh'}
       </FluentButton>
 
       {#if appState.hasPermission('admin:manage_users') || appState.currentUser?.role?.toLowerCase().includes('admin') || appState.currentUser?.role?.toLowerCase().includes('director')}
@@ -616,12 +626,15 @@
             </div>
           </div>
 
-          <!-- Capacity Meter Bar -->
-          <div class="capacity-meter-section">
+          <!-- Capacity Meter Bar with Tooltip -->
+          <div
+            class="capacity-meter-section"
+            title="Bandwidth: {w.weightedLoad !== undefined ? w.weightedLoad : (w.active || 0)} of 5.0 Active Project Slots ({w.capacityPercent || 0}%). Based on maximum 5 active projects weighted by discipline: Graphic/E-Com (1.0 slot), Social (0.8 slot), Web (1.5 slots), Video (2.0 slots), Branding (2.5 slots)."
+          >
             <div class="meter-labels">
-              <span class="meter-title" title="Weighted by Category Complexity (Graphic 1.0, Video 2.0, Brand 2.5)">Capacity Load</span>
+              <span class="meter-title">Capacity Load</span>
               <span class="meter-count">
-                <b>{w.weightedLoad !== undefined ? w.weightedLoad : (w.active || 0)}</b> / 5.0 pts ({w.capacityPercent || 0}%)
+                <b>{w.weightedLoad !== undefined ? w.weightedLoad : (w.active || 0)}</b> / 5.0 Slots ({w.capacityPercent || 0}%)
               </span>
             </div>
             <div class="meter-track">
@@ -632,29 +645,49 @@
             </div>
           </div>
 
-          <!-- Workload Matrix Grid (6 Metrics) -->
+          <!-- Workload Matrix Grid (6 Metrics with Explanatory Tooltips) -->
           <div class="workload-matrix">
-            <div class="matrix-cell active-cell">
+            <div
+              class="matrix-cell active-cell"
+              title="Active: Total in-flight projects actively demanding designer bandwidth (In Progress + Review + Revision). Max recommended: 5 projects."
+            >
               <span class="cell-num">{w.active || 0}</span>
               <span class="cell-lbl">Active</span>
             </div>
-            <div class="matrix-cell">
+            <div
+              class="matrix-cell"
+              title="In Progress: Projects currently undergoing active design, animation, drafting, or rendering."
+            >
               <span class="cell-num">{w.inProgress || 0}</span>
               <span class="cell-lbl">In Progress</span>
             </div>
-            <div class="matrix-cell">
+            <div
+              class="matrix-cell"
+              title="In Review: Completed milestones submitted and awaiting Art Director or client sign-off."
+            >
               <span class="cell-num">{w.inReview || 0}</span>
               <span class="cell-lbl">In Review</span>
             </div>
-            <div class="matrix-cell" class:has-revision={(w.revision || 0) > 0}>
+            <div
+              class="matrix-cell"
+              class:has-revision={(w.revision || 0) > 0}
+              title="Revision: Projects requiring modifications or rework based on stakeholder feedback."
+            >
               <span class="cell-num">{w.revision || 0}</span>
               <span class="cell-lbl">Revision</span>
             </div>
-            <div class="matrix-cell" class:is-overdue={(w.overdue || 0) > 0}>
+            <div
+              class="matrix-cell"
+              class:is-overdue={(w.overdue || 0) > 0}
+              title="Overdue: Active projects that have exceeded their target SLA turnaround date."
+            >
               <span class="cell-num">{w.overdue || 0}</span>
               <span class="cell-lbl">Overdue</span>
             </div>
-            <div class="matrix-cell completed-cell">
+            <div
+              class="matrix-cell completed-cell"
+              title="Delivered: Completed milestones successfully approved and published."
+            >
               <span class="cell-num">{w.completed || 0}</span>
               <span class="cell-lbl">Delivered</span>
             </div>
@@ -711,27 +744,30 @@
                     <!-- Bottom row: SLA & Weight metadata -->
                     <div class="project-chip-meta">
                       {#if proj.shortLabel || proj.slaDays}
-                        <span class="chip-sla" title="Category SLA: {proj.slaDays || 3} days target">
-                          {proj.shortLabel || 'Graphic'} · {proj.slaDays || 3}d SLA
+                        <span
+                          class="chip-sla"
+                          title="{proj.presetType || 'Discipline'}: {proj.slaDays || 3} days target turnaround. Consumes {proj.slotWeight || 1.0} active bandwidth slot(s)."
+                        >
+                          {proj.shortLabel || 'Graphic'} · {proj.slaDays || 3}d SLA ({proj.slotWeight || 1.0} slot)
                         </span>
                       {/if}
                       {#if proj.subtasks && proj.subtasks.length > 0}
                         {@const completedCount = proj.completedSubtasksCount !== undefined ? proj.completedSubtasksCount : proj.subtasks.filter((s: any) => ['approved', 'done', 'completed'].includes((s.status || '').toLowerCase())).length}
-                        {@const totalPts = proj.totalWeight || proj.slotWeight || proj.subtasks.reduce((sum: number, s: any) => sum + (typeof s.weight === 'number' ? s.weight : 1), 0)}
-                        <span class="chip-weight chip-subtasks" title="{completedCount}/{proj.subtasks.length} subtasks completed • {totalPts} total points">
+                        {@const totalPts = proj.totalWeight || proj.subtasks.reduce((sum: number, s: any) => sum + (typeof s.weight === 'number' ? s.weight : 1), 0)}
+                        <span class="chip-weight chip-subtasks" title="Milestone Subtasks: {completedCount} of {proj.subtasks.length} deliverables completed ({totalPts} total points scope).">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 3px; vertical-align: -1px; display: inline-block;">
                             <circle cx="12" cy="12" r="9"/>
                             <circle cx="12" cy="12" r="4"/>
                           </svg>
                           {completedCount}/{proj.subtasks.length} Done • {totalPts} pts
                         </span>
-                      {:else if proj.slotWeight || proj.totalWeight}
-                        <span class="chip-weight" title="Capacity Weight: {proj.totalWeight || proj.slotWeight} slot pts">
-                          {proj.totalWeight || proj.slotWeight} pt{(proj.totalWeight || proj.slotWeight) > 1 ? 's' : ''}
+                      {:else if proj.slotWeight}
+                        <span class="chip-weight" title="Bandwidth Slot Weight: {proj.slotWeight} slot(s)">
+                          {proj.slotWeight} slot{proj.slotWeight > 1 ? 's' : ''}
                         </span>
                       {/if}
                       {#if proj.deadlineDisplay || proj.deadline}
-                        <span class="chip-deadline" title="Target Deadline: {proj.deadline ? String(proj.deadline).split('T')[0] : ''}">
+                        <span class="chip-deadline" title="Target Deadline: {proj.deadline ? String(proj.deadline).split('T')[0] : 'SLA Target'}">
                           {proj.deadlineDisplay || formatDeadlineDisplay(proj.deadline, proj.status)}
                         </span>
                       {/if}
@@ -828,6 +864,174 @@
           <FluentButton appearance="primary" loading={isReassigning} onclick={handleConfirmReassign}>
             <FluentIcons name="sparkles" size={13} />
             <span style="margin-left: 5px;">Confirm Reassignment</span>
+          </FluentButton>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- ═══ ART DIRECTOR CAPACITY & BALANCING GUIDE MODAL ════════════ -->
+  {#if showGuideModal}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="reassign-backdrop" onclick={(e) => { if (e.target === e.currentTarget) showGuideModal = false; }}>
+      <div class="guide-modal">
+        <div class="guide-header">
+          <div class="header-left">
+            <div class="guide-icon">
+              <FluentIcons name="info" size={18} color="#0284C7" />
+            </div>
+            <div>
+              <h2 class="modal-title">Studio Capacity & Workload Balancing Guide</h2>
+              <p class="modal-sub">Art Director & Data Analysis standards for monitoring designer bandwidth.</p>
+            </div>
+          </div>
+          <button class="close-btn" onclick={() => (showGuideModal = false)} aria-label="Close">
+            <FluentIcons name="close" size={14} />
+          </button>
+        </div>
+
+        <div class="guide-body">
+          <!-- Section 1: The 5-Slot Model -->
+          <div class="guide-section">
+            <h3 class="guide-sec-title">1. The 5.0 Active Project Slot Standard</h3>
+            <p class="guide-text">
+              Each designer has a maximum capacity ceiling of <b>5.0 Active Bandwidth Slots</b> at any one time.
+              Only active in-flight projects (<b>In Progress</b>, <b>Review</b>, <b>Revision</b>) consume bandwidth slots. Backlog and Delivered projects consume 0 slots.
+            </p>
+            <div class="discipline-table-wrap">
+              <table class="discipline-table">
+                <thead>
+                  <tr>
+                    <th>Creative Discipline</th>
+                    <th>Code</th>
+                    <th>SLA Target</th>
+                    <th>Bandwidth Weight</th>
+                    <th>Cognitive Demand</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>Social Media Content</b></td>
+                    <td><code>S</code></td>
+                    <td>2 Days</td>
+                    <td><span class="badge-slot">0.8 Slots</span></td>
+                    <td>Fast-turnaround promo banners & story reels</td>
+                  </tr>
+                  <tr>
+                    <td><b>Graphic & Print Design</b></td>
+                    <td><code>D</code></td>
+                    <td>3 Days</td>
+                    <td><span class="badge-slot">1.0 Slot</span></td>
+                    <td>Standard print/digital layouts & packaging assets</td>
+                  </tr>
+                  <tr>
+                    <td><b>E-Commerce Product Assets</b></td>
+                    <td><code>E</code></td>
+                    <td>3 Days</td>
+                    <td><span class="badge-slot">1.0 Slot</span></td>
+                    <td>Listing images, infographics & hero banners</td>
+                  </tr>
+                  <tr>
+                    <td><b>Web Design & UI</b></td>
+                    <td><code>W</code></td>
+                    <td>5 Days</td>
+                    <td><span class="badge-slot">1.5 Slots</span></td>
+                    <td>Multi-screen layouts, responsive testing & staging</td>
+                  </tr>
+                  <tr>
+                    <td><b>Video Production & Motion</b></td>
+                    <td><code>V</code></td>
+                    <td>7 Days</td>
+                    <td><span class="badge-slot">2.0 Slots</span></td>
+                    <td>Scripting, filming, cutting, motion, sound & color</td>
+                  </tr>
+                  <tr>
+                    <td><b>Brand Identity & Campaign</b></td>
+                    <td><code>P</code></td>
+                    <td>10 Days</td>
+                    <td><span class="badge-slot">2.5 Slots</span></td>
+                    <td>Master brand guides, packaging suites & art direction</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Section 2: How to Balance Graphic & Video Workload -->
+          <div class="guide-section">
+            <h3 class="guide-sec-title">2. Graphic vs Video Workload Balancing (The 2-Video Rule)</h3>
+            <div class="rules-grid">
+              <div class="rule-card">
+                <div class="rule-icon video-icon">🎬</div>
+                <div class="rule-content">
+                  <h4 class="rule-name">The 2-Video Ceiling Rule</h4>
+                  <p class="rule-desc">
+                    Since Video = 2.0 slots, <b>never assign more than 2 active video projects</b> to a single creator (4.0 slots = 80%). The remaining 1.0 slot should only accommodate 1 quick graphic or social task.
+                  </p>
+                </div>
+              </div>
+
+              <div class="rule-card">
+                <div class="rule-icon balance-icon">⚖️</div>
+                <div class="rule-content">
+                  <h4 class="rule-name">Golden Studio Portfolios</h4>
+                  <p class="rule-desc">
+                    <b>Video Specialist:</b> 2 Videos (4.0) + 1 Graphic (1.0) = 5.0 slots (100%)<br/>
+                    <b>Hybrid Designer:</b> 1 Video (2.0) + 1 Web (1.5) + 1 Graphic (1.0) = 4.5 slots (90%)<br/>
+                    <b>Graphic Production:</b> 5 Graphics (5 × 1.0) = 5.0 slots (100%)
+                  </p>
+                </div>
+              </div>
+
+              <div class="rule-card">
+                <div class="rule-icon alert-icon">⚡</div>
+                <div class="rule-content">
+                  <h4 class="rule-name">Bottleneck Rebalance Trigger</h4>
+                  <p class="rule-desc">
+                    When a designer reaches <b>≥ 4.5 slots</b> or has <b>≥ 2 overdue deliverables</b>, click the <span class="sparkle-hint">✨</span> icon on their projects to transfer tasks to teammates with Available or Normal capacity.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Reading Capacity Levels -->
+          <div class="guide-section">
+            <h3 class="guide-sec-title">3. Capacity Status Meter Indicators</h3>
+            <div class="status-legend-row">
+              <div class="legend-item">
+                <span class="legend-dot" style="background: #21A1F7;"></span>
+                <span class="legend-title">Available (0.0 slots)</span>
+                <span class="legend-sub">Ready for immediate dispatch</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot" style="background: #10B981;"></span>
+                <span class="legend-title">Normal (0.1–3.5 slots)</span>
+                <span class="legend-sub">Optimal creative throughput</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot" style="background: #F59E0B;"></span>
+                <span class="legend-title">High Load (3.6–4.4 slots)</span>
+                <span class="legend-sub">Heavy workload; monitor closely</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot" style="background: #F97316;"></span>
+                <span class="legend-title">At Capacity (4.5–5.0 slots)</span>
+                <span class="legend-sub">100% full; pause new intake</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot" style="background: #EF4444;"></span>
+                <span class="legend-title">Overloaded (&gt; 5.0 slots)</span>
+                <span class="legend-sub">Exceeds capacity; rebalance required</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="guide-footer">
+          <FluentButton appearance="primary" onclick={() => (showGuideModal = false)}>
+            Got it
           </FluentButton>
         </div>
       </div>
@@ -1771,5 +1975,226 @@
     padding: 14px 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(11, 17, 33, 0.98);
+  }
+
+  /* ═══ ART DIRECTOR CAPACITY & BALANCING GUIDE MODAL ════════════ */
+  .guide-modal {
+    width: 95%;
+    max-width: 680px;
+    max-height: 90vh;
+    background: #0F172A;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+  }
+
+  .guide-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.98);
+    flex-shrink: 0;
+  }
+
+  .guide-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(33, 161, 247, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .guide-body {
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
+
+  .guide-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .guide-sec-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #F8FAFC;
+    letter-spacing: -0.2px;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  .guide-text {
+    font-size: 12.5px;
+    color: #94A3B8;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .guide-text b {
+    color: #F1F5F9;
+  }
+
+  /* Discipline Table */
+  .discipline-table-wrap {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+
+  .discipline-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+  }
+
+  .discipline-table th {
+    background: rgba(30, 41, 59, 0.8);
+    color: #94A3B8;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 10.5px;
+    letter-spacing: 0.5px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .discipline-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: #CBD5E1;
+  }
+  .discipline-table tr:last-child td {
+    border-bottom: none;
+  }
+  .discipline-table code {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #38BDF8;
+  }
+
+  .badge-slot {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 800;
+    font-size: 11px;
+    background: rgba(33, 161, 247, 0.15);
+    color: #38BDF8;
+    border: 1px solid rgba(33, 161, 247, 0.3);
+  }
+
+  /* Rules Grid */
+  .rules-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .rule-card {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .rule-icon {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .rule-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .rule-name {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #F8FAFC;
+    margin: 0;
+  }
+
+  .rule-desc {
+    font-size: 12px;
+    color: #94A3B8;
+    line-height: 1.45;
+    margin: 0;
+  }
+  .rule-desc b {
+    color: #F1F5F9;
+  }
+
+  .sparkle-hint {
+    color: #D4AF37;
+    font-weight: 800;
+  }
+
+  /* Status Legend */
+  .status-legend-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .legend-item {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-bottom: 2px;
+  }
+
+  .legend-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #F8FAFC;
+  }
+
+  .legend-sub {
+    font-size: 10.5px;
+    color: #94A3B8;
+    line-height: 1.25;
+  }
+
+  .guide-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 14px 22px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(11, 17, 33, 0.98);
+    flex-shrink: 0;
   }
 </style>

@@ -371,7 +371,7 @@ class TeamService {
 
     const CATEGORY_SLA_MAP = {
       'D': { name: 'Graphic & Print Design', slaDays: 3, weight: 1.0, shortLabel: 'Graphic' },
-      'S': { name: 'Social Media Content', slaDays: 2, weight: 0.7, shortLabel: 'Social' },
+      'S': { name: 'Social Media Content', slaDays: 2, weight: 0.8, shortLabel: 'Social' },
       'E': { name: 'E-Commerce', slaDays: 3, weight: 1.0, shortLabel: 'E-Com' },
       'W': { name: 'Web Design', slaDays: 5, weight: 1.5, shortLabel: 'Web' },
       'V': { name: 'Video Production', slaDays: 7, weight: 2.0, shortLabel: 'Video' },
@@ -464,7 +464,7 @@ class TeamService {
           presetType: catCfg.name,
           presetCode: p.presetCode || 'D',
           slaDays: catCfg.slaDays,
-          slotWeight: totalPts,
+          slotWeight: catCfg.weight,
           totalWeight: totalPts,
           shortLabel: catCfg.shortLabel,
           subtasks,
@@ -483,44 +483,38 @@ class TeamService {
         return s === 'in-progress' || s === 'review' || s === 'revision';
       };
 
-      // Calculate Category & Subtask-Weighted Active In-Flight Load
-      // ONLY projects actively in-flight consume designer capacity: in-progress, review, revision
+      // Calculate Discipline-Weighted Active In-Flight Capacity Slots (5.0 slots max)
+      // Only active projects consume capacity slots (Graphic = 1.0, Video = 2.0, Web = 1.5, Branding = 2.5, Social = 0.8)
       let weightedLoad = 0;
+      let totalDeliverablePts = 0;
       memberProjects.filter(p => isActiveStatus(p.status)).forEach(p => {
-        let pWeight = (p.slotWeight || 1.0);
-        if (Array.isArray(p.subtasks) && p.subtasks.length > 0) {
-          const activeSubtasks = p.subtasks.filter(st => {
-            const s = (st.status || 'in-progress').toLowerCase();
-            return s !== 'approved' && s !== 'done' && s !== 'completed';
-          });
-          pWeight = activeSubtasks.reduce((sum, st) => sum + (typeof st.weight === 'number' ? st.weight : 1.0), 0);
-        } else if (typeof p.categoryWeight === 'number' && p.categoryWeight > 0) {
-          pWeight = p.categoryWeight;
-        }
-        weightedLoad += pWeight;
+        const catCfg = resolveCategoryConfig(p.presetType, p.presetCode);
+        weightedLoad += (catCfg.weight || 1.0);
+        totalDeliverablePts += (p.totalWeight || catCfg.weight || 1.0);
       });
       weightedLoad = Math.round(weightedLoad * 10) / 10;
+      totalDeliverablePts = Math.round(totalDeliverablePts * 10) / 10;
 
       const activeCount = memberProjects.filter(p => isActiveStatus(p.status)).length;
       const backlogCount = memberProjects.filter(p => (p.status || '').toLowerCase() === 'backlog').length;
 
       // Studio Capacity scale (Max recommended studio bandwidth: 5.0 slot points)
-      // 0 pts = Available (ready for assignment)
-      // 0.1 - 3.5 pts = Normal (healthy active load)
-      // 3.6 - 4.4 pts = High Workload (heavy workload)
-      // 4.5 - 5.0 pts = At Capacity (maximum utilization)
-      // > 5.0 pts OR >= 5 active projects = Overloaded (exceeds capacity bottleneck)
+      // 0 slots = Available (ready for assignment)
+      // 0.1 - 3.5 slots = Normal (healthy active load)
+      // 3.6 - 4.4 slots = High Workload (heavy workload)
+      // 4.5 - 5.0 slots = At Capacity (maximum utilization)
+      // > 5.0 slots OR > 5 active projects = Overloaded (exceeds capacity bottleneck)
       let capacityPercent = Math.min(100, Math.round((weightedLoad / 5.0) * 100));
       let capacityStatus = 'Normal';
       let capacityColor = '#10B981'; // Green
 
-      if (weightedLoad > 5.0 || (w.active && w.active >= 5) || activeCount >= 5) {
+      if (weightedLoad > 5.0 || (w.active && w.active > 5) || activeCount > 5) {
         capacityStatus = 'Overloaded';
         capacityColor = '#EF4444'; // Red
-      } else if (weightedLoad >= 4.5) {
+      } else if (weightedLoad >= 4.5 || (w.active && w.active === 5) || activeCount === 5) {
         capacityStatus = 'At Capacity';
         capacityColor = '#F97316'; // Orange
-      } else if (weightedLoad >= 2.5 || (w.active && w.active >= 3) || activeCount >= 3) {
+      } else if (weightedLoad >= 3.0 || (w.active && w.active >= 3) || activeCount >= 3) {
         capacityStatus = 'High Workload';
         capacityColor = '#F59E0B'; // Amber
       } else if (weightedLoad === 0 && (!w.active || w.active === 0) && activeCount === 0) {
@@ -551,6 +545,7 @@ class TeamService {
         workload: {
           ...w,
           weightedLoad,
+          totalDeliverablePts,
           capacityPercent,
           backlogCount
         },

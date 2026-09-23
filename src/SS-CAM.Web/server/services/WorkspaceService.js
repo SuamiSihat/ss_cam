@@ -402,9 +402,34 @@ class WorkspaceService {
     const deadline = frontmatter.deadline || '';
     const created = frontmatter.created || this.inferCreatedDate(folderName, fullPath);
 
-    // Count deliverables in canonical 05_DELIVERABLES (with fallback to legacy names)
-    const deliverableCount = this.countFiles(path.join(fullPath, '05_DELIVERABLES')) +
-                             this.countFiles(path.join(fullPath, '04_WORK_IN_PROGRESS'));
+    // Count deliverables in canonical 05_DELIVERABLES, 04_Production, 04_Export_Packages, and WIP
+    let deliverableCount = 0;
+    const countedDelivDirs = new Set();
+    const candidateFolders = ['05_DELIVERABLES', '05_Deliverables', '04_Production', '04_Export_Packages', '04_Final_Exports', '04_WORK_IN_PROGRESS'];
+    for (const cf of candidateFolders) {
+      const dirP = path.join(fullPath, cf);
+      if (fs.existsSync(dirP) && !countedDelivDirs.has(dirP)) {
+        countedDelivDirs.add(dirP);
+        deliverableCount += this.countFiles(dirP);
+      }
+    }
+    if (deliverableCount === 0) {
+      try {
+        const subdirs = fs.readdirSync(fullPath, { withFileTypes: true });
+        for (const sub of subdirs) {
+          if (sub.isDirectory()) {
+            const lower = sub.name.toLowerCase();
+            if (lower.includes('export') || lower.includes('production') || lower.includes('deliverable')) {
+              const dirP = path.join(fullPath, sub.name);
+              if (!countedDelivDirs.has(dirP)) {
+                countedDelivDirs.add(dirP);
+                deliverableCount += this.countFiles(dirP);
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
 
     // Check overdue and due soon (within 48 hours / 2 days)
     let isOverdue = false;
@@ -807,10 +832,13 @@ class WorkspaceService {
 
     const isAllowedWorkloadRole = (staffOrName) => {
       if (!staffOrName) return false;
+      let memberObj = null;
       let role = '';
       let dept = '';
+
       if (typeof staffOrName === 'object' && staffOrName !== null) {
-        role = staffOrName.role || '';
+        memberObj = staffOrName;
+        role = staffOrName.role || staffOrName.officialTitle || '';
         dept = staffOrName.department || '';
       } else {
         const found = staffRoster.find(s => 
@@ -819,7 +847,8 @@ class WorkspaceService {
           (s.username && s.username.toLowerCase() === String(staffOrName).toLowerCase())
         );
         if (found) {
-          role = found.role || '';
+          memberObj = found;
+          role = found.role || found.officialTitle || '';
           dept = found.department || '';
         } else {
           // If not in staff roster and matches job ID pattern, not allowed
@@ -827,9 +856,31 @@ class WorkspaceService {
           role = String(staffOrName);
         }
       }
+
+      // If this staff member has active creative, design, copywriter or admin roles, include them
+      if (memberObj) {
+        try {
+          const TeamService = require('./TeamService');
+          if (typeof TeamService.isCreativeOrAdminRole === 'function') {
+            return TeamService.isCreativeOrAdminRole(memberObj);
+          }
+        } catch (e) {}
+
+        const rolesArr = Array.isArray(memberObj.roles) ? memberObj.roles.map(r => String(r).toLowerCase()) : [];
+        if (rolesArr.includes('designer') || rolesArr.includes('admin') || rolesArr.includes('copywriter') || rolesArr.includes('creative')) {
+          return true;
+        }
+      }
+
       const r = role.toLowerCase();
       const d = dept.toLowerCase();
-      // Exclude managers, CEOs, executive directors, and marketing/sales heads
+
+      // If role string contains creative disciplines, include them
+      if (r.includes('designer') || r.includes('copy') || r.includes('creative') || r.includes('art director') || r.includes('multimedia')) {
+        return true;
+      }
+
+      // Exclude standalone managers, CEOs, executive directors, and marketing/sales heads
       if (r.includes('manager') || r.includes('ceo') || r.includes('chief') ||
           r.includes('head of') || r.includes('executive') || r.includes('director of') ||
           d.includes('executive') || d.includes('management') || d.includes('marketing & sales') ||
@@ -907,17 +958,17 @@ class WorkspaceService {
 
     const designerWorkload = Object.values(designerMap).filter(item => isAllowedWorkloadRole(item.designer)).map(item => {
       const active = item.active || 0;
-      const capacityPercent = Math.min(100, Math.round((active / 4) * 100));
+      const capacityPercent = Math.min(100, Math.round((active / 5) * 100));
       let capacityStatus = 'Normal';
       let capacityColor = '#10B981';
 
-      if (active > 4) {
+      if (active > 5) {
         capacityStatus = 'Overloaded';
         capacityColor = '#EF4444';
-      } else if (active === 4) {
+      } else if (active === 5) {
         capacityStatus = 'At Capacity';
         capacityColor = '#F97316';
-      } else if (active > 2) {
+      } else if (active >= 3) {
         capacityStatus = 'High Load';
         capacityColor = '#F59E0B';
       } else if (active === 0) {
