@@ -1,5 +1,23 @@
 # SS-CAM FIX LOG
 
+## v4.10.1 Post-Release Maintenance & Fixes — 2026-09-23
+- **Studio Notes Navigation Crash Resolution (`QuickNotePage.xaml`, `QuickNotePage.xaml.cs`)**:
+  - **Premature SelectionChanged Elimination**: Removed `IsSelected="True"` from `CmbSort` in XAML. In WPF, child items with `IsSelected="True"` fire `SelectionChanged` immediately during BAML parsing before following controls like `NotesList` are created, causing `ApplyNoteFilter()` to fail on null references. Default selection is now assigned safely during `OnPageLoaded`.
+  - **WPF-UI SymbolRegular Enum Correction**: Corrected invalid `Symbol="FullScreen24"` on `BtnToggleZen` to `Symbol="FullScreenMaximize24"`.
+  - **Lifecycle & Null Guards**: Added `if (!IsLoaded || ...) return;` guards to `OnSortChanged`, `OnSearchNotesChanged`, `OnCategoryChanged`, `OnPriorityChanged`, and `OnNoteSelected`. Added `if (_notes == null || NotesList == null) return;` and null check on `TxtNoteCount` inside `ApplyNoteFilter()`.
+  - **Dropdown Standard & Token Cleanup**: Enforced `Height="36" MinHeight="36"` on `CmbSort`, `CmbCategory`, and `CmbPriority`, widened category/priority selectors to 135px, and replaced undefined resource token `SubtitleBackgroundFillColorDefaultBrush` with canonical `CardBackgroundFillColorSecondaryBrush`.
+- **Project Creator Category Presets (`ProjectCreatorPage.xaml`, `ProjectCreatorPage.xaml.cs`)**:
+  - Added dedicated `Video Shooting` category preset with automatic deliverables scaffolding and task presets.
+  - Enforced ComboBox height standards (`MinHeight="36"`) and vertical alignment across creator forms.
+- **SS-CAM Web Portal Deliverables & Preview Enhancements (`deliverables-view.js`, `task-detail-modal.js`, `api.js`)**:
+  - Filtered out Synology system files (`SYNOFILE_THUMB_*`) and `@eaDir` metadata folders from deliverables and file previews.
+  - Enabled direct image preview modals and file download actions for deliverables and subtasks.
+  - Corrected Harussani workload metrics calculation and capacity modeling with clear UI guidance.
+- **Verification**:
+  - Source Guardian: PASS (9 passed, 1 warned, 0 failed; UTF-8 BOM enforced on all files).
+  - MSBuild Release: PASS (`SS-CAM.exe` compiled cleanly).
+  - Runtime STA Instantiation: QuickNotePage instantiated cleanly with 0 exceptions (`Page Title: Quick Notes & Markdown Studio`).
+
 ## v4.10.1 — 2026-09-15 (Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine)
 - **Assembly Version**: `4.10.1.0`
 - **Official SuamiSihat Radio Live Stream Migration (`RadioStreamService.cs`, `MainViewModel.cs`, `StudioRadioScreen.kt`)**:

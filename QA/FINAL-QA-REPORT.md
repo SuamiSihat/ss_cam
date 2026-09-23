@@ -33,6 +33,9 @@
 | AIB-01 | AI Assistant | AI Creative Brief Completeness Validator | `GeminiDesktopService.cs` and `GeminiService.js` audit deliverables, audience, aspect ratios, core hooks, and brand tokens with Art Director scoring (0-100) and offline fallback. | **Resolved** |
 | AIC-01 | AI Preflight | Copywriting Style & KKM Compliance Preflight | Audits hook velocity and scans against KKM / LIU prohibited advertising claims with actionable alternatives before live campaigns. | **Resolved** |
 | NOT-01 | Quick Notes | Notion & Evernote Inspired Quick Notes Studio | Overhauled `QuickNotePage.xaml` with 12-emoji page icon picker, inline title editor, property matrix bar, distraction-free Zen mode, search clear button, 6 filter chips, multi-factor sort, 4 Notion callouts, tables, and starter templates. | **Resolved** |
+| NOT-02 | Quick Notes | Studio Notes Navigation Crash Fix | Fixed XAML `SymbolRegular` format exception (`FullScreen24` -> `FullScreenMaximize24`), eliminated premature `SelectionChanged` event firing before `NotesList` initialization, and added full lifecycle `!IsLoaded` null guards. | **Resolved** |
+| PRJ-01 | Project Creator | Video Shooting Category Preset & Standards | Added `Video Shooting` category preset with default task templates and standardized ComboBox heights (`MinHeight="36"`). | **Resolved** |
+| WEB-01 | Web Portal | Deliverables Preview & Synology Filter | Filtered out `SYNOFILE_THUMB_*` and `@eaDir` metadata folders; enabled direct image preview modals and downloads for deliverables/subtasks. | **Resolved** |
 
 ---
 

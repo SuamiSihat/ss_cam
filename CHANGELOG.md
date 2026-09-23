@@ -4,6 +4,21 @@ All notable SS-CAM changes are documented here.
 
 ## [4.10.1] - 2026-09-15 (Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine)
 
+### Fixed & Refined — Studio Notes, Project Presets & Web Deliverables (2026-09-23)
+- **Studio Notes Navigation Crash Resolution (`QuickNotePage.xaml`, `QuickNotePage.xaml.cs`)**:
+  - Resolved `TargetInvocationException` / `NullReferenceException` when navigating to Studio Notes. Removed `IsSelected="True"` on `CmbSort` in XAML which triggered premature `SelectionChanged` events during BAML parsing before `NotesList` was instantiated. Default selection is now assigned safely during `OnPageLoaded`.
+  - Corrected invalid symbol attribute `Symbol="FullScreen24"` to valid `Symbol="FullScreenMaximize24"` in `Wpf.Ui.Controls.SymbolRegular`.
+  - Implemented `!IsLoaded` lifecycle guards across `OnSortChanged`, `OnSearchNotesChanged`, `OnCategoryChanged`, `OnPriorityChanged`, and `OnNoteSelected`.
+  - Guarded `ApplyNoteFilter()` against uninitialized `NotesList` and `TxtNoteCount`.
+  - Upgraded ComboBoxes to Fluent 2 standard `Height="36" MinHeight="36"` and replaced `SubtitleBackgroundFillColorDefaultBrush` with canonical `CardBackgroundFillColorSecondaryBrush`.
+- **Project Creator Presets & Standards (`ProjectCreatorPage.xaml`, `ProjectCreatorPage.xaml.cs`)**:
+  - Added `Video Shooting` category preset with standardized deliverables and production tasks.
+  - Enforced ComboBox height standard (`MinHeight="36"`) and vertical alignment across creator forms.
+- **Web Portal Deliverables & File Handling (`SS-CAM.Web`)**:
+  - Filtered out Synology thumbnail files (`SYNOFILE_THUMB_*`) and `@eaDir` directories from deliverables lists and previews.
+  - Enabled direct image previews and download actions for deliverables and subtask attachments.
+  - Calibrated team capacity calculation and workload distribution metrics.
+
 ### Added & Refined — Official SuamiSihat Radio Stream Migration (`RadioStreamService.cs`, `MainViewModel.cs`, `StudioRadioScreen.kt`)
 - **Official SuamiSihat Radio Live Stream**:
   - Migrated primary stream endpoint from `https://dj.suamisihat.myds.me/listen/suamisihat-radio/radio.mp3` to `https://radio.suamisihat.myds.me/listen` (broadcasting 192 kbps MP3 with embedded ICY real-time metadata).

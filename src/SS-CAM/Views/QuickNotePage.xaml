@@ -128,7 +128,7 @@
                     </Border>
 
                     <!-- Subheader: Note count + Sort selector -->
-                    <Border DockPanel.Dock="Top" Background="{DynamicResource SubtitleBackgroundFillColorDefaultBrush}"
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,1" Padding="12,5">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -139,9 +139,9 @@
                                         FontSize="11" FontWeight="Medium"
                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
                             <ComboBox x:Name="CmbSort" Grid.Column="1" SelectionChanged="OnSortChanged"
-                                      Height="34" FontSize="11.5" Padding="10,0" VerticalContentAlignment="Center"
+                                      Height="36" MinHeight="36" FontSize="11.5" Padding="10,0" VerticalContentAlignment="Center"
                                       ToolTip="Sort notes list">
-                                <ComboBoxItem Content="Recently Edited" IsSelected="True"/>
+                                <ComboBoxItem Content="Recently Edited"/>
                                 <ComboBoxItem Content="Date Created"/>
                                 <ComboBoxItem Content="Title (A-Z)"/>
                                 <ComboBoxItem Content="Priority"/>
@@ -274,7 +274,7 @@
                     <Border DockPanel.Dock="Top" Height="3" Background="{DynamicResource FluentBrand80}" CornerRadius="8,8,0,0"/>
 
                     <!-- Notion Page Header & Property Matrix (Only visible when a note is active) -->
-                    <Border x:Name="PanelPageHeader" DockPanel.Dock="Top" Background="{DynamicResource SubtitleBackgroundFillColorDefaultBrush}"
+                    <Border x:Name="PanelPageHeader" DockPanel.Dock="Top" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Padding="16,12"
                             Visibility="Collapsed">
                         <StackPanel>
@@ -332,7 +332,7 @@
                                     <ui:Button x:Name="BtnToggleZen" Click="OnToggleZenClicked"
                                                Height="30" Width="30" Padding="0" Cursor="Hand" Margin="0,0,6,0"
                                                ToolTip="Toggle Distraction-Free Focus Mode">
-                                        <ui:SymbolIcon Symbol="FullScreen24" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <ui:SymbolIcon Symbol="FullScreenMaximize24" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </ui:Button>
 
                                     <!-- Delete Note Button -->
@@ -359,7 +359,7 @@
                                         <ui:TextBlock Text="&#x1F3F7;&#xFE0F;" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                         <ui:TextBlock Text="Category:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                         <ComboBox x:Name="CmbCategory" SelectionChanged="OnCategoryChanged"
-                                                  Height="34" Width="125" FontSize="11.5" Padding="10,0" VerticalContentAlignment="Center" ToolTip="Set note category">
+                                                  Height="36" MinHeight="36" Width="135" FontSize="11.5" Padding="10,0" VerticalContentAlignment="Center" ToolTip="Set note category">
                                             <ComboBoxItem Content="General"/>
                                             <ComboBoxItem Content="Brief"/>
                                             <ComboBoxItem Content="Meeting"/>
@@ -375,7 +375,7 @@
                                         <ui:TextBlock Text="&#x26A1;" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                         <ui:TextBlock Text="Priority:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                         <ComboBox x:Name="CmbPriority" SelectionChanged="OnPriorityChanged"
-                                                  Height="34" Width="120" FontSize="11.5" Padding="10,0" VerticalContentAlignment="Center" ToolTip="Set note priority">
+                                                  Height="36" MinHeight="36" Width="135" FontSize="11.5" Padding="10,0" VerticalContentAlignment="Center" ToolTip="Set note priority">
                                             <ComboBoxItem Content="Normal"/>
                                             <ComboBoxItem Content="Medium (P1)"/>
                                             <ComboBoxItem Content="High (P2)"/>
@@ -435,7 +435,7 @@
                     </Border>
 
                     <!-- Notion Markdown & Block Formatting Toolbar -->
-                    <Border x:Name="PanelMarkdownToolbar" DockPanel.Dock="Top" Background="{DynamicResource SubtitleBackgroundFillColorDefaultBrush}"
+                    <Border x:Name="PanelMarkdownToolbar" DockPanel.Dock="Top" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Padding="12,6"
                             Visibility="Collapsed">
                         <Grid>
@@ -598,7 +598,7 @@
                     </Border>
 
                     <!-- Bottom Telemetry & Sync Strip -->
-                    <Border DockPanel.Dock="Bottom" Background="{DynamicResource SubtitleBackgroundFillColorDefaultBrush}"
+                    <Border DockPanel.Dock="Bottom" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0"
                             Padding="14,6" CornerRadius="0,0,8,8">
                         <Grid>
@@ -759,7 +759,7 @@
                                 </Grid.RowDefinitions>
 
                                 <!-- Drawer Header -->
-                                <Border Grid.Row="0" Background="{DynamicResource SubtitleBackgroundFillColorDefaultBrush}"
+                                <Border Grid.Row="0" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
                                         BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1"
                                         Padding="14,10">
                                     <Grid>

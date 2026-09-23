@@ -38,6 +38,10 @@ namespace SS_CAM.Views
         {
             try
             {
+                if (CmbSort != null && CmbSort.SelectedIndex < 0)
+                {
+                    CmbSort.SelectedIndex = 0;
+                }
                 UpdateFilterButtonStyles();
                 SetupAutoSaveTimer();
                 RefreshNoteList();
@@ -68,8 +72,11 @@ namespace SS_CAM.Views
                     }
                 });
 
-                // Refresh UI after background sync completes
-                RefreshNoteList();
+                // Refresh UI after background sync completes if page is still active
+                if (IsLoaded)
+                {
+                    RefreshNoteList();
+                }
             }
             catch (Exception ex)
             {
@@ -145,7 +152,7 @@ namespace SS_CAM.Views
 
         private void OnNoteSelected(object sender, SelectionChangedEventArgs e)
         {
-            if (_isLoading) return;
+            if (!IsLoaded || _isLoading || NotesList == null) return;
             SaveCurrentNote();
 
             QuickNoteItem selected = NotesList.SelectedItem as QuickNoteItem;
@@ -284,7 +291,7 @@ namespace SS_CAM.Views
 
         private void OnCategoryChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_isLoading || _currentNote == null) return;
+            if (!IsLoaded || _isLoading || _currentNote == null || CmbCategory == null) return;
             ComboBoxItem item = CmbCategory.SelectedItem as ComboBoxItem;
             if (item != null)
             {
@@ -314,7 +321,7 @@ namespace SS_CAM.Views
 
         private void OnPriorityChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_isLoading || _currentNote == null) return;
+            if (!IsLoaded || _isLoading || _currentNote == null || CmbPriority == null) return;
             int idx = CmbPriority.SelectedIndex;
             if (idx < 0) return;
             NotePriority newPriority = (NotePriority)idx;
@@ -442,6 +449,7 @@ namespace SS_CAM.Views
                     ? Visibility.Visible
                     : Visibility.Collapsed;
             }
+            if (!IsLoaded || NotesList == null) return;
             ApplyNoteFilter();
         }
 
@@ -497,9 +505,10 @@ namespace SS_CAM.Views
 
         private void OnSortChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (CmbSort != null)
+            if (!IsLoaded || CmbSort == null) return;
+            _currentSortIndex = CmbSort.SelectedIndex;
+            if (NotesList != null)
             {
-                _currentSortIndex = CmbSort.SelectedIndex;
                 ApplyNoteFilter();
             }
         }
@@ -554,7 +563,7 @@ namespace SS_CAM.Views
 
         private void ApplyNoteFilter()
         {
-            if (_notes == null) return;
+            if (_notes == null || NotesList == null) return;
 
             // Apply Sorting first
             _notes.Sort(delegate(QuickNoteItem a, QuickNoteItem b)
@@ -630,7 +639,10 @@ namespace SS_CAM.Views
                 LoadNoteIntoWorkspace(null);
             }
 
-            TxtNoteCount.Text = string.Format("{0} note{1}", filtered.Count, filtered.Count == 1 ? "" : "s");
+            if (TxtNoteCount != null)
+            {
+                TxtNoteCount.Text = string.Format("{0} note{1}", filtered.Count, filtered.Count == 1 ? "" : "s");
+            }
             _isLoading = false;
         }
 
