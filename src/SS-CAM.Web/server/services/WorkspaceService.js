@@ -552,7 +552,17 @@ class WorkspaceService {
   countFiles(dir) {
     if (!fs.existsSync(dir)) return 0;
     try {
-      return fs.readdirSync(dir).filter(f => !f.startsWith('.')).length;
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      return entries.filter(entry => {
+        if (entry.isDirectory()) return false;
+        const name = entry.name;
+        const upper = name.toUpperCase();
+        const lower = name.toLowerCase();
+        if (name.startsWith('.') || name.startsWith('~') || name.startsWith('@')) return false;
+        if (upper.includes('SYNOFILE_THUMB')) return false;
+        if (lower === 'thumbs.db' || lower === 'desktop.ini' || lower === '.ds_store') return false;
+        return true;
+      }).length;
     } catch (e) {
       return 0;
     }

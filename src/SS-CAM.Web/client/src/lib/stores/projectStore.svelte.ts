@@ -5,6 +5,18 @@ import type { Project, DeliverableItem, FilterState, DashboardData } from '$lib/
 import { ApiClient } from '$lib/services/api';
 import { appState } from './appState.svelte';
 
+export function isRealDeliverable(d: DeliverableItem): boolean {
+  if (!d || !d.filename) return false;
+  const name = d.filename;
+  const upper = name.toUpperCase();
+  const lower = name.toLowerCase();
+  if (upper.includes('SYNOFILE_THUMB')) return false;
+  if (name.startsWith('.') || name.startsWith('~') || name.startsWith('@')) return false;
+  if (lower.includes('@eadir')) return false;
+  if (lower === 'thumbs.db' || lower === 'desktop.ini' || lower === '.ds_store') return false;
+  return true;
+}
+
 class ProjectStore {
   projects = $state<Project[]>([]);
   deliverables = $state<DeliverableItem[]>([]);
@@ -105,7 +117,7 @@ class ProjectStore {
     try {
       const res = await ApiClient.getProject(id);
       this.selectedProject = res.project;
-      this.activeDeliverables = res.deliverables || [];
+      this.activeDeliverables = (res.deliverables || []).filter(isRealDeliverable);
     } catch (err: any) {
       if (!silent) {
         appState.addToast(`Failed to load project details: ${err.message}`, 'error');
@@ -123,7 +135,7 @@ class ProjectStore {
     }
     try {
       const res = await ApiClient.getDeliverables();
-      this.deliverables = res.deliverables || [];
+      this.deliverables = (res.deliverables || []).filter(isRealDeliverable);
     } catch (err: any) {
       if (!silent) appState.addToast(`Failed to load deliverables: ${err.message}`, 'error');
     } finally {

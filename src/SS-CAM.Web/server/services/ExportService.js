@@ -105,7 +105,12 @@ class ExportService {
     const walk = (current, relPrefix) => {
       const entries = fs.readdirSync(current, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.name.startsWith('.') || entry.name.startsWith('~lock~') || entry.name.toLowerCase() === 'thumbs.db') continue;
+        const name = entry.name;
+        const upper = name.toUpperCase();
+        const lower = name.toLowerCase();
+
+        if (name.startsWith('.') || name.startsWith('~') || name.startsWith('@') || lower === 'thumbs.db' || lower === 'desktop.ini' || lower === '.ds_store' || upper.includes('SYNOFILE_THUMB')) continue;
+        if (entry.isDirectory() && (lower === '@eadir' || lower.includes('@eadir') || lower === 'node_modules')) continue;
 
         const full = path.join(current, entry.name);
         const rel = path.join(relPrefix, entry.name).replace(/\\/g, '/');

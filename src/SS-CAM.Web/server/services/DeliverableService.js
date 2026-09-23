@@ -34,7 +34,7 @@ class DeliverableService {
       for (const entry of entries) {
         if (!entry.isDirectory()) continue;
         const name = entry.name;
-        if (name.startsWith('.') || name.startsWith('~') || name.toLowerCase() === 'node_modules' || name.toLowerCase() === '$recycle.bin') continue;
+        if (name.startsWith('.') || name.startsWith('~') || name.startsWith('@') || name.toLowerCase().includes('@eadir') || name.toLowerCase() === 'node_modules' || name.toLowerCase() === '$recycle.bin') continue;
 
         const dirPath = path.join(projectFullPath, name);
         const lowerName = name.toLowerCase();
@@ -106,11 +106,16 @@ class DeliverableService {
         try {
           const entries = fs.readdirSync(currentDir, { withFileTypes: true });
           for (const entry of entries) {
-            if (entry.name.startsWith('.') || entry.name.startsWith('~') || entry.name.toLowerCase() === 'thumbs.db') continue;
+            const name = entry.name;
+            const upper = name.toUpperCase();
+            const lower = name.toLowerCase();
+
+            // Strictly filter out Synology thumbnails, hidden system files, and metadata
+            if (name.startsWith('.') || name.startsWith('~') || name.startsWith('@') || lower === 'thumbs.db' || lower === 'desktop.ini' || lower === '.ds_store' || upper.includes('SYNOFILE_THUMB')) continue;
 
             const fullEntryPath = path.join(currentDir, entry.name);
             if (entry.isDirectory()) {
-              if (!['node_modules', '.git', '$recycle.bin'].includes(entry.name.toLowerCase())) {
+              if (!['node_modules', '.git', '$recycle.bin', '@eadir', '@synoresource', '@synoeastream'].includes(lower) && !lower.includes('@eadir') && !name.startsWith('@')) {
                 scanDirectoryForMedia(fullEntryPath);
               }
               continue;

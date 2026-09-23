@@ -226,13 +226,15 @@
     specs: string;
     weight: number;
     status: string;
+    deliverableId: string;
   }>({
     id: '',
     name: '',
     type: 'master_video',
     specs: '',
     weight: 1.0,
-    status: 'draft'
+    status: 'draft',
+    deliverableId: ''
   });
 
   const subtaskStats = $derived.by(() => {
@@ -246,6 +248,58 @@
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { list, total, completed, inProgress, totalWeight: Math.round(totalWeight * 10) / 10, percent };
   });
+
+  function getDeliverableForSubtask(st: any, deliverables: DeliverableItem[]): DeliverableItem | null {
+    if (!st || !deliverables || deliverables.length === 0) return null;
+
+    // 1. Explicit link via deliverableId or filename
+    if (st.deliverableId) {
+      const found = deliverables.find(d => d.id === st.deliverableId || d.filename === st.deliverableId);
+      if (found) return found;
+    }
+    if (st.filename) {
+      const found = deliverables.find(d => d.filename.toLowerCase() === st.filename.toLowerCase());
+      if (found) return found;
+    }
+
+    const stId = String(st.id || '').toUpperCase();
+    const stName = String(st.name || '').toLowerCase();
+
+    // 2. Extract numeric / index identifier from st.id (e.g. G01 -> "01" or "1", KV01 -> "01", V02 -> "02", ST-03 -> "03")
+    const idNumMatch = stId.match(/(\d+)/);
+    if (idNumMatch) {
+      const numStr = idNumMatch[1];
+      const paddedNum = numStr.padStart(2, '0');
+      const unpaddedNum = String(parseInt(numStr, 10));
+
+      for (const d of deliverables) {
+        const fn = d.filename.toLowerCase();
+        const patterns = [
+          new RegExp(`(?:^|[\\s_\\-\\.])${paddedNum}(?:[\\s_\\-\\.]|$)`, 'i'),
+          new RegExp(`(?:^|[\\s_\\-\\.])${unpaddedNum}(?:[\\s_\\-\\.]|$)`, 'i'),
+          new RegExp(`poster\\s*0?${unpaddedNum}\\b`, 'i'),
+          new RegExp(`artwork\\s*0?${unpaddedNum}\\b`, 'i'),
+          new RegExp(`cut\\s*0?${unpaddedNum}\\b`, 'i'),
+          new RegExp(`v0?${unpaddedNum}\\b`, 'i'),
+          new RegExp(`g0?${unpaddedNum}\\b`, 'i')
+        ];
+        if (patterns.some(pat => pat.test(fn))) {
+          return d;
+        }
+      }
+    }
+
+    // 3. Name keyword matching
+    for (const d of deliverables) {
+      const fn = d.filename.toLowerCase();
+      const words = stName.split(/[\s_\-]+/).filter(w => w.length >= 4 && !['artwork', 'unique', 'master', 'variation'].includes(w));
+      if (words.length > 0 && words.some(w => fn.includes(w))) {
+        return d;
+      }
+    }
+
+    return null;
+  }
 
   function getNextSubtaskId(): string {
     const list = Array.isArray(currentFrontmatter.subtasks) ? currentFrontmatter.subtasks : [];
@@ -267,7 +321,8 @@
       type: isVideo ? (nextId === 'V01' ? 'master_video' : 'hook_variation') : (nextId === 'ST-01' ? 'key_visual' : 'resize'),
       specs: isVideo ? '9:16, 1080x1920' : '1:1, 1080x1080',
       weight: isVideo && nextId === 'V01' ? 2.0 : 1.0,
-      status: 'draft'
+      status: 'draft',
+      deliverableId: ''
     };
     showSubtaskModal = true;
   }
@@ -280,7 +335,8 @@
       type: st.type || 'master_video',
       specs: st.specs || '',
       weight: typeof st.weight === 'number' ? st.weight : 1.0,
-      status: st.status || 'draft'
+      status: st.status || 'draft',
+      deliverableId: st.deliverableId || ''
     };
     showSubtaskModal = true;
   }
@@ -307,7 +363,8 @@
             type: subtaskForm.type,
             specs: subtaskForm.specs.trim(),
             weight: Number(subtaskForm.weight) || 1.0,
-            status: subtaskForm.status
+            status: subtaskForm.status,
+            deliverableId: subtaskForm.deliverableId || ''
           };
         }
         return st;
@@ -325,7 +382,8 @@
           type: subtaskForm.type,
           specs: subtaskForm.specs.trim(),
           weight: Number(subtaskForm.weight) || 1.0,
-          status: subtaskForm.status
+          status: subtaskForm.status,
+          deliverableId: subtaskForm.deliverableId || ''
         }
       ];
     }
@@ -1054,12 +1112,53 @@
                         <div class="doc-badge">{d.ext ? d.ext.toUpperCase() : 'FILE'}</div>
                       {/if}
                       <span class="format-pill">{d.format || (d.ext ? d.ext.toUpperCase() : 'MEDIA')}</span>
+
+                      <!-- Hover Action Bar overlay on thumbnail -->
+                      <div class="del-card-overlay-actions" onclick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          class="del-overlay-btn btn-preview"
+                          onclick={() => openLightbox(d)}
+                          title="Preview in full lightbox"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                          <span>Preview</span>
+                        </button>
+                        {#if d.downloadUrl}
+                          <a
+                            href={d.downloadUrl}
+                            download={d.filename}
+                            class="del-overlay-btn btn-download"
+                            title="Download {d.filename}"
+                            onclick={(e) => e.stopPropagation()}
+                          >
+                            <FluentIcons name="download" size={13} />
+                            <span>Download</span>
+                          </a>
+                        {/if}
+                      </div>
                     </div>
                     <div class="del-details">
                       <div class="del-filename" title={d.filename}>{d.filename}</div>
                       <div class="del-meta-row">
                         <span>{d.sizeFormatted || (d.sizeBytes ? ((d.sizeBytes / (1024 * 1024)).toFixed(2) + ' MB') : '0.00 MB')}</span>
-                        <span class="status-tag status-{d.status || 'review'}">{d.status || 'review'}</span>
+                        <div class="del-meta-actions" onclick={(e) => e.stopPropagation()}>
+                          <span class="status-tag status-{d.status || 'review'}">{d.status || 'review'}</span>
+                          {#if d.downloadUrl}
+                            <a
+                              href={d.downloadUrl}
+                              download={d.filename}
+                              class="del-inline-dl-btn"
+                              title="Direct Download {d.filename}"
+                              onclick={(e) => e.stopPropagation()}
+                            >
+                              <FluentIcons name="download" size={12} />
+                            </a>
+                          {/if}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1404,6 +1503,7 @@
                 {#each subtaskStats.list as st}
                   {@const isDone = ['approved', 'done', 'completed'].includes((st.status || '').toLowerCase())}
                   {@const isProgress = ['in-progress', 'in_progress', 'progress'].includes((st.status || '').toLowerCase())}
+                  {@const matched = getDeliverableForSubtask(st, projectStore.activeDeliverables)}
                   <div class="subtask-column-card" class:is-done={isDone}>
                     <div class="subtask-card-header-line">
                       <div class="subtask-card-identity">
@@ -1452,6 +1552,60 @@
                           {#if st.specs}
                             <span class="st-badge-specs" title={st.specs}>{st.specs}</span>
                           {/if}
+                        </div>
+                      {/if}
+
+                      <!-- Linked Deliverable File Preview & Download Banner -->
+                      {#if matched}
+                        <div class="st-linked-media-row">
+                          <button
+                            type="button"
+                            class="st-media-thumb-box"
+                            onclick={() => openLightbox(matched)}
+                            title="Preview {matched.filename} in lightbox"
+                          >
+                            {#if matched.isImage || matched.previewType === 'image'}
+                              <img src={matched.previewUrl} alt={matched.filename} loading="lazy" />
+                            {:else if matched.isVideo || matched.previewType === 'video'}
+                              <FluentIcons name="video" size={14} color="#0078D4" />
+                            {:else if matched.isPdf || matched.previewType === 'pdf'}
+                              <FluentIcons name="file" size={14} color="#EF4444" />
+                            {:else}
+                              <span class="st-media-raw-ext">{matched.ext?.toUpperCase() || 'FILE'}</span>
+                            {/if}
+                          </button>
+
+                          <!-- svelte-ignore a11y_click_events_have_key_events -->
+                          <!-- svelte-ignore a11y_no_static_element_interactions -->
+                          <div class="st-media-meta" onclick={() => openLightbox(matched)} title="Preview {matched.filename} in Lightbox">
+                            <span class="st-media-filename" title={matched.filename}>{matched.filename}</span>
+                            <span class="st-media-filesize">{matched.sizeFormatted || ((matched.sizeBytes / (1024 * 1024)).toFixed(2) + ' MB')}</span>
+                          </div>
+
+                          <div class="st-media-buttons" onclick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              class="st-btn-media-action preview"
+                              onclick={() => openLightbox(matched)}
+                              title="Preview in Lightbox"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                              </svg>
+                            </button>
+                            {#if matched.downloadUrl}
+                              <a
+                                href={matched.downloadUrl}
+                                download={matched.filename}
+                                class="st-btn-media-action download"
+                                title="Download {matched.filename}"
+                                onclick={(e) => e.stopPropagation()}
+                              >
+                                <FluentIcons name="download" size={12} />
+                              </a>
+                            {/if}
+                          </div>
                         </div>
                       {/if}
                     </div>
@@ -1611,6 +1765,16 @@
               bind:value={subtaskForm.specs}
             />
           </div>
+        </div>
+
+        <div class="subtask-form-group">
+          <label class="form-label" for="st-form-deliverable">Linked Output File</label>
+          <select id="st-form-deliverable" class="form-select" bind:value={subtaskForm.deliverableId}>
+            <option value="">(Auto-detect from project media)</option>
+            {#each projectStore.activeDeliverables as deliv}
+              <option value={deliv.id}>{deliv.filename} ({deliv.sizeFormatted || deliv.format})</option>
+            {/each}
+          </select>
         </div>
 
         <div class="subtask-form-group">
@@ -2272,6 +2436,81 @@
     justify-content: space-between;
     font-size: 11px;
     color: var(--text-tertiary);
+    align-items: center;
+  }
+
+  .del-card-overlay-actions {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 15, 29, 0.72);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+    z-index: 5;
+  }
+  .deliverable-card:hover .del-card-overlay-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .del-overlay-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+  .del-overlay-btn.btn-preview {
+    background: #0078D4;
+    color: #FFFFFF;
+  }
+  .del-overlay-btn.btn-preview:hover {
+    background: #106EBE;
+    transform: translateY(-1px);
+  }
+  .del-overlay-btn.btn-download {
+    background: rgba(255, 255, 255, 0.15);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .del-overlay-btn.btn-download:hover {
+    background: rgba(255, 255, 255, 0.28);
+    transform: translateY(-1px);
+  }
+
+  .del-meta-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .del-inline-dl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--surface-card-border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.12s ease;
+  }
+  .del-inline-dl-btn:hover {
+    background: var(--brand-primary, #0078D4);
+    color: #FFFFFF;
+    border-color: var(--brand-primary, #0078D4);
   }
 
   .status-tag {
@@ -3095,6 +3334,97 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  /* Subtask Card Linked Deliverable Row */
+  .st-linked-media-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 6px;
+    transition: all 0.15s ease;
+  }
+  .st-linked-media-row:hover {
+    border-color: rgba(0, 120, 212, 0.4);
+    background: rgba(0, 0, 0, 0.28);
+  }
+  .st-media-thumb-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    background: #0B1120;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    padding: 0;
+  }
+  .st-media-thumb-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.15s ease;
+  }
+  .st-media-thumb-box:hover img {
+    transform: scale(1.08);
+  }
+  .st-media-raw-ext {
+    font-size: 8.5px;
+    font-weight: 800;
+    color: var(--text-tertiary);
+  }
+  .st-media-meta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    cursor: pointer;
+  }
+  .st-media-filename {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .st-media-filesize {
+    font-size: 10px;
+    color: var(--text-tertiary);
+  }
+  .st-media-buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .st-btn-media-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--surface-card-border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.12s ease;
+  }
+  .st-btn-media-action:hover {
+    background: var(--brand-primary, #0078D4);
+    color: #FFFFFF;
+    border-color: var(--brand-primary, #0078D4);
+    transform: scale(1.04);
   }
 
   .subtasks-column-empty {

@@ -532,7 +532,7 @@ This is the project brief content.
     fs.mkdirSync(copyDir, { recursive: true });
     fs.mkdirSync(srcDir, { recursive: true });
 
-    // Write mixed files
+    // Write mixed files including Synology thumbnails and cache files
     fs.writeFileSync(path.join(delivDir, 'master_packaging_v1.png'), 'dummy-png-data');
     fs.writeFileSync(path.join(delivDir, 'product_catalogue_final.pdf'), 'dummy-pdf-data');
     fs.writeFileSync(path.join(prodDir, 'social_reel_1080p.mp4'), 'dummy-mp4-data');
@@ -540,6 +540,16 @@ This is the project brief content.
     fs.writeFileSync(path.join(keywordExportDir, 'display_ad_1200x628.jpg'), 'dummy-jpg-data');
     fs.writeFileSync(path.join(copyDir, 'COPY.md'), '# Copywriting text should be excluded from gallery');
     fs.writeFileSync(path.join(srcDir, 'packaging_master.afdesign'), 'raw-vector-source-data');
+
+    // Create Synology DSM @eaDir thumbnails and root thumb files
+    const eaDir = path.join(delivDir, '@eaDir');
+    fs.mkdirSync(eaDir, { recursive: true });
+    fs.writeFileSync(path.join(eaDir, 'SYNOFILE_THUMB_M.jpg'), 'dummy-syno-thumb');
+    fs.writeFileSync(path.join(eaDir, 'SYNOFILE_THUMB_s.jpg'), 'dummy-syno-thumb');
+    fs.writeFileSync(path.join(delivDir, 'SYNOFILE_THUMB_XL.jpg'), 'dummy-syno-thumb');
+    fs.writeFileSync(path.join(delivDir, 'SYNOFILE_THUMB_SM.jpg'), 'dummy-syno-thumb');
+    fs.writeFileSync(path.join(delivDir, 'thumbs.db'), 'dummy-thumbs-db');
+    fs.writeFileSync(path.join(delivDir, '.DS_Store'), 'dummy-ds-store');
 
     const deliverables = DeliverableService.getProjectDeliverables(testDir);
 
@@ -554,6 +564,13 @@ This is the project brief content.
     assert.ok(filenames.includes('display_ad_1200x628.jpg'), 'Must include EXPORT keyword folder deliverable');
     assert.strictEqual(filenames.includes('COPY.md'), false, 'COPY.md must NEVER be in deliverables gallery');
     assert.strictEqual(filenames.includes('packaging_master.afdesign'), false, 'Source files must not be in deliverables gallery');
+    assert.strictEqual(filenames.some(f => f.toUpperCase().includes('SYNOFILE_THUMB')), false, 'SYNOFILE_THUMB must NEVER be in deliverables');
+    assert.strictEqual(filenames.some(f => f.toLowerCase() === 'thumbs.db'), false, 'thumbs.db must NEVER be in deliverables');
+
+    // Assert WorkspaceService.countFiles excludes SYNOFILE_THUMB and @eaDir
+    const WorkspaceService = require('../services/WorkspaceService');
+    const realDelivCount = WorkspaceService.countFiles(delivDir);
+    assert.strictEqual(realDelivCount, 2, 'WorkspaceService.countFiles must return 2 (excluding @eaDir, SYNOFILE_THUMB, thumbs.db, .DS_Store)');
 
     // Assert preview URLs and flags
     const pngDel = deliverables.find(d => d.filename === 'master_packaging_v1.png');
