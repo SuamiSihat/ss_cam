@@ -326,21 +326,17 @@ fun TeamWorkloadContentView(
             val initial = member.name.firstOrNull()?.toString()?.uppercase() ?: "S"
             val avatarColor = parseHexColor(member.avatarColor)
 
-            val capacityPercent = when {
-                assignedCount == 0 -> 0.0f
-                assignedCount in 1..2 -> 0.40f
-                assignedCount in 3..4 -> 0.75f
-                else -> 1.0f
-            }
+            // Canonical 5-slot capacity model (1 slot = 20%, 5 slots = 100% capacity)
+            val capacityPercent = (assignedCount / 5.0f).coerceIn(0.0f, 1.0f)
 
             val statusColor = if (colors.isMonochrome) {
-                if (assignedCount >= 4) Color(0xFF18181B) else Color(0xFF71717A)
+                if (assignedCount >= 5) Color(0xFF18181B) else Color(0xFF71717A)
             } else {
                 when {
                     assignedCount == 0 -> colors.textMuted
-                    assignedCount >= 4 -> Color(0xFFE53E3E) // High load
-                    assignedCount in 2..3 -> SshWarmGoldBright // Moderate
-                    else -> SshSuccessGreen // Available
+                    assignedCount >= 5 -> Color(0xFFE53E3E) // Full / Over Capacity (5+ slots)
+                    assignedCount in 3..4 -> SshWarmGoldBright // Moderate Load (60-80%)
+                    else -> SshSuccessGreen // Available / Healthy (20-40%)
                 }
             }
 

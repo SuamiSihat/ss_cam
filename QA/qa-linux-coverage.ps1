@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-# SS-CAM Linux v4.6.2 — Functional Coverage & Smoke Test QA Script
+# SS-CAM Linux v4.10.1 — Functional Coverage & Smoke Test QA Script
 param()
 
 $ErrorActionPreference = "Continue"
@@ -32,7 +32,7 @@ function Warn([string]$label, [bool]$cond, [string]$note = "") {
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "     SS-CAM Linux v4.6.1 -- Functional Coverage QA Smoke Test" -ForegroundColor Cyan
+Write-Host "     SS-CAM Linux v4.10.1 -- Functional Coverage QA Smoke Test" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
 

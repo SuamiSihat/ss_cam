@@ -6,15 +6,18 @@
 **Configuration**: Release (MSBuild 4.8 / .NET Framework 4.8 / Svelte 5 / Android Jetpack Compose)  
 **Source Guardian**: **PASS — 8 passed, 1 warned, 0 failed**  
 **Smoke & Web Test Suite**: **PASS — 41 passed, 0 failed (100%)** (34 Unit/Integration + 7 Administration)  
-**Android Build**: **BUILD CONFIGURED & SIGNED (versionCode 4100, versionName 4.10.1, AAB & APK)**  
+**Android Build**: **BUILD CONFIGURED & SIGNED (versionCode 4101, versionName 4.10.1, AAB & APK)**  
+**Linux Desktop Build**: **BUILD SUCCESSFUL (Release self-contained single-file binary & tarball v4.10.1)**  
 **Windows Desktop Build**: **BUILD SUCCESSFUL (Release single-file executable v4.10.1)**  
 
 ---
 
 ### Build & Code Quality Status
 - Windows Desktop Release build: **PASS** (`dist/SS-CAM-v4.10.1.exe` & `dist/SS-CAM.exe` — single-file binary)
+- Linux Desktop Release package: **PASS** (`dist/SS-CAM-v4.10.1-linux-x64.tar.gz` & `publish/ss-cam-linux-x64.tar.gz` — self-contained linux-x64)
+- Linux Functional Smoke Test: **PASS** (74 passed, 0 warned, 0 failed — 100%)
+- Android Release Packages: **PASS** (`dist/SS-CAM-v4.10.1-android-release.aab` & `dist/SS-CAM-v4.10.1-android-release.apk` — signed RSA 2048)
 - Web Production test suite: **PASS** (34 unit/integration tests + 7 administration smoke tests passed cleanly)
-- Android App Bundle (AAB): **PASS** (`src/SS-CAM.Android/app/build.gradle.kts`)
 - Source Guardian: **PASS** (8 passed / 1 warned / 0 failed, UTF-8 BOM verified on all files, 0 raw Unicode attribute warnings)
 - Cross-Platform Synchronization: **PASS** (Web, Windows Desktop, and Mobile Companion sync creative orders, live task telemetry, radio streams, and user profiles live)
 - Brand System & Fluent 2 Icons: **PASS** (100% theme-adaptive DynamicResource tokens, Segoe Fluent vector icons, 16 SS Brand tokens)
@@ -41,5 +44,6 @@
 
 ### Executable Binaries & Packages
 - Windows Desktop: `dist/SS-CAM-v4.10.1.exe` and `dist/SS-CAM.exe`
-- Android Companion: `src/SS-CAM.Android/`
+- Linux Desktop: `dist/SS-CAM-v4.10.1-linux-x64.tar.gz` and `publish/ss-cam-linux-x64.tar.gz`
+- Android Companion: `dist/SS-CAM-v4.10.1-android-release.aab` and `dist/SS-CAM-v4.10.1-android-release.apk`
 - Web Portal: `src/SS-CAM.Web/`

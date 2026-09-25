@@ -44,7 +44,12 @@ fun ManageProjectBottomSheet(
     val safeDeliverables = project.safeDeliverableCount
 
     var currentStatus by remember { mutableStateOf(project.normalizedStatus) }
-    var currentSubtasks by remember(project.subtasks) { mutableStateOf(project.subtasks) }
+    var currentSubtasks by remember(project.subtasks) {
+        mutableStateOf(project.subtasks.filter {
+            !it.name.contains("SYNOFILE_THUMB", ignoreCase = true) &&
+            !it.name.contains("@eaDir", ignoreCase = true)
+        })
+    }
     var readmeText by remember {
         mutableStateOf(
             "# $safeTitle\n\n" +

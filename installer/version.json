@@ -1,6 +1,6 @@
 {
-  "version": "4.6.2",
-  "releaseNotes": "SS-CAM v4.6.2 Release — NAS Temporary Attachment Vault (_Orders/), Web Request Multi-File Upload, Role Detection Fix, Desktop Project Creator Auto-Ingestion & 01_BRIEF_ASSETS Handover.",
-  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.6.2/SS-CAM-v4.6.2.exe",
-  "publishedAt": "2026-09-08"
+  "version": "4.10.1",
+  "releaseNotes": "SS-CAM v4.10.1 Release — Official SuamiSihat Radio Stream Upgrade, Native M3U/M3U8 Playlist Engine, Studio Notes Overhaul, Myers LCS Markdown Diff, Video Shooting Category Preset & Deliverables Preview.",
+  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.10.1/SS-CAM-v4.10.1.exe",
+  "publishedAt": "2026-09-15"
 }

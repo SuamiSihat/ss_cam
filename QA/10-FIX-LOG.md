@@ -13,9 +13,22 @@
   - Filtered out Synology system files (`SYNOFILE_THUMB_*`) and `@eaDir` metadata folders from deliverables and file previews.
   - Enabled direct image preview modals and file download actions for deliverables and subtasks.
   - Corrected Harussani workload metrics calculation and capacity modeling with clear UI guidance.
+- **SS-CAM Linux Native Desktop Package Synchronization (`SS-CAM.Linux.csproj`, `MainViewModel.cs`, `build-linux-package.ps1`, `install-linux.sh`, `version.json`)**:
+  - Updated Linux Avalonia UI application version and csproj to `v4.10.1` (`<Version>4.10.1</Version>`, `_appVersion = "v4.10.1-linux"`).
+  - Synchronized installer scripts (`install-linux.sh`, `install.sh`, `docs/install-linux.sh`, `docs/install.sh`) to reference `v4.10.1`.
+  - Rebuilt and packaged the Linux self-contained single-file binary: generated `dist/SS-CAM-v4.10.1-linux-x64.tar.gz` (40.53 MB) and mirrored to `publish/ss-cam-linux-x64.tar.gz` and `dist/ss-cam-linux-x64.tar.gz`.
+  - Executed Linux smoke & coverage test suite: 74 passed, 0 warned, 0 failed (100% pass rate).
+- **SS-CAM Android Companion App Upgrade & Signing (`build.gradle.kts`, `SettingsProfileScreen.kt`, `TeamHubScreen.kt`, `ManageProjectBottomSheet.kt`, `build-android-release.ps1`)**:
+  - Bumped Android version codes to `versionCode = 4101` and `versionName = "4.10.1"`.
+  - Updated hardcoded UI version badges and footer in `SettingsProfileScreen.kt` to `v4.10.1 (Build 4101)`.
+  - Aligned team capacity model in `TeamHubScreen.kt` with canonical 5-slot standard (`assignedCount / 5.0f * 100%`).
+  - Filtered Synology thumbnail cache files (`SYNOFILE_THUMB_*` and `@eaDir`) from `ManageProjectBottomSheet.kt`.
+  - Compiled, Proguard-minified, and RSA-signed Android App Bundle (`dist/SS-CAM-v4.10.1-android-release.aab` — 5.76 MB) and standalone release APK (`dist/SS-CAM-v4.10.1-android-release.apk` — 3.24 MB).
 - **Verification**:
   - Source Guardian: PASS (9 passed, 1 warned, 0 failed; UTF-8 BOM enforced on all files).
   - MSBuild Release: PASS (`SS-CAM.exe` compiled cleanly).
+  - Linux Native Release Build: PASS (`SS-CAM.Linux` net10.0 self-contained single-file x64 binary compiled and packaged).
+  - Android Release Build: PASS (`bundleRelease` and `assembleRelease` passed with verified RSA 2048 signing).
   - Runtime STA Instantiation: QuickNotePage instantiated cleanly with 0 exceptions (`Page Title: Quick Notes & Markdown Studio`).
 
 ## v4.10.1 — 2026-09-15 (Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine)

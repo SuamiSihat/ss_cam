@@ -33,6 +33,7 @@ Write-Host "============================================================" -Foreg
 Write-Host "`n[1/5] Checking Build Environment..." -ForegroundColor Yellow
 
 $jdkCandidates = @(
+    "C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot",
     "C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot",
     "C:\Program Files\Java\jdk-17",
     "C:\Program Files\Android\Android Studio\jbr",
@@ -41,14 +42,17 @@ $jdkCandidates = @(
 
 $foundJdk = $null
 foreach ($jdk in $jdkCandidates) {
-    if (![string]::IsNullOrWhiteSpace($jdk) -and (Test-Path "$jdk\bin\javac.exe")) {
-        $foundJdk = $jdk
-        break
+    if (![string]::IsNullOrWhiteSpace($jdk)) {
+        $cleanJdk = $jdk.TrimEnd('\', '/')
+        if (Test-Path "$cleanJdk\bin\javac.exe") {
+            $foundJdk = $cleanJdk
+            break
+        }
     }
 }
 
 if ($null -eq $foundJdk) {
-    Write-Error "JDK 17 not found. Please install Microsoft OpenJDK 17 LTS."
+    Write-Error "JDK 17 or JDK 21 not found. Please install Microsoft OpenJDK."
 }
 
 $env:JAVA_HOME = $foundJdk
@@ -135,10 +139,21 @@ if (Test-Path $aabPath) {
     Write-Host "  Bundle Size:   $sizeMb MB" -ForegroundColor White
     Write-Host "  Signature:     $(if ($isSigned) { 'VERIFIED (RSA 2048)' } else { 'UNSIGNED' })" -ForegroundColor $(if ($isSigned) { 'Green' } else { 'Red' })
     
+    $distDir = Join-Path $repoRoot "dist"
+    if (-not (Test-Path $distDir)) { New-Item -ItemType Directory -Path $distDir -Force | Out-Null }
+    
+    $vName = if (![string]::IsNullOrWhiteSpace($VersionName)) { $VersionName } else { "4.10.1" }
+    $distAab = Join-Path $distDir "SS-CAM-v$vName-android-release.aab"
+    Copy-Item $aabPath $distAab -Force
+    Write-Host "  -> Copied to:  $distAab" -ForegroundColor Green
+    
     if ($BuildApk) {
         $apkPath = Join-Path $androidDir "app\build\outputs\apk\release\app-release.apk"
         if (Test-Path $apkPath) {
+            $distApk = Join-Path $distDir "SS-CAM-v$vName-android-release.apk"
+            Copy-Item $apkPath $distApk -Force
             Write-Host "  APK Output:    $apkPath" -ForegroundColor White
+            Write-Host "  -> Copied to:  $distApk" -ForegroundColor Green
         }
     }
     
@@ -147,22 +162,18 @@ if (Test-Path $aabPath) {
     Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
     $releaseNotes = @"
 <en-GB>
-- Real-Time Multi-Platform Sync with Desktop & Web
-- 2x2 Bento Studio Telemetry dashboard
-- Persistent Offline Mode with auto-queue sync
-- Quick Notes with user isolation & markdown
-- Standby Desk Companion clock & focus timer
-- Studio Radio & live AzuraCast metadata
-- Android 15 & Jetpack Compose optimizations
+- Official SuamiSihat live radio stream upgrade (192 kbps MP3 with ICY real-time metadata)
+- 5-slot team capacity model & synchronized workload metrics
+- Filtered Synology thumbnail cache from deliverables & subtasks
+- v4.10.1 ecosystem parity across Windows, Linux & Mobile
+- Android 15 & Jetpack Compose performance optimizations
 </en-GB>
 <ms-MY>
-- Sinkronisasi masa-nyata antara Desktop, Web & Mobile
-- Papan pemuka telemetri studio Bento 2x2
-- Mod luar talian dengan auto-sync data
-- Quick Notes peribadi & pasukan (Markdown)
-- Jam meja Standby Desk Mode & pemasa fokus
-- Radio studio siaran langsung AzuraCast
-- Pengoptimuman Android 15 & Jetpack Compose
+- Naik taraf siaran radio langsung SuamiSihat (192 kbps MP3 dengan metadata ICY masa nyata)
+- Model kapasiti pasukan 5-slot & metrik beban kerja disegerakkan
+- Penapisan fail thumbnail Synology daripada senarai deliverables & subtask
+- Keselarasan ekosistem v4.10.1 merentasi Windows, Linux & Mudah Alih
+- Pengoptimuman prestasi Android 15 & Jetpack Compose
 </ms-MY>
 "@
     Write-Host $releaseNotes -ForegroundColor Gray
