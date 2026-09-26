@@ -398,6 +398,7 @@ class WorkspaceService {
     // Compute status
     const status = frontmatter.status || 'backlog';
     const priority = frontmatter.priority || 'medium';
+    const designer = frontmatter.designer || 'Unassigned';
     const deadline = frontmatter.deadline || '';
     const created = frontmatter.created || frontmatter.createdDate || this.inferCreatedDate(folderName, fullPath);
     const startDate = frontmatter.startDate || frontmatter.start_date || created;
