@@ -34,8 +34,18 @@ public static class FrontmatterService
                 item.Client = GetValue(fm, "client", string.Empty);
                 item.Deadline = GetValue(fm, "deadline", string.Empty);
                 item.CreatedDate = GetValue(fm, "created", string.Empty);
+                if (string.IsNullOrWhiteSpace(item.CreatedDate))
+                    item.CreatedDate = GetValue(fm, "created_date", string.Empty);
+
+                item.StartDate = GetValue(fm, "start_date", string.Empty);
+                if (string.IsNullOrWhiteSpace(item.StartDate))
+                    item.StartDate = GetValue(fm, "startDate", item.CreatedDate);
+
                 item.Priority = GetValue(fm, "priority", "medium");
                 item.Duration = GetValue(fm, "duration", string.Empty);
+                if (string.IsNullOrWhiteSpace(item.Duration))
+                    item.Duration = ProjectStatusItem.CalculateDuration(item.StartDate, item.Deadline);
+
                 item.Revision = int.TryParse(GetValue(fm, "revision", "0"), out int rev) ? rev : 0;
                 item.Tags = ParseTags(GetValue(fm, "tags", string.Empty));
             }
@@ -60,9 +70,10 @@ public static class FrontmatterService
             sb.AppendLine($"designer: {item.Designer}");
             sb.AppendLine($"client: {item.Client}");
             sb.AppendLine($"created: {item.CreatedDate}");
+            sb.AppendLine($"start_date: {item.StartDate}");
             sb.AppendLine($"deadline: {item.Deadline}");
-            sb.AppendLine($"priority: {item.Priority}");
             sb.AppendLine($"duration: {item.Duration}");
+            sb.AppendLine($"priority: {item.Priority}");
             sb.AppendLine($"revision: {item.Revision}");
             sb.AppendLine($"tags: [{string.Join(", ", item.Tags)}]");
             sb.AppendLine(Delimiter);

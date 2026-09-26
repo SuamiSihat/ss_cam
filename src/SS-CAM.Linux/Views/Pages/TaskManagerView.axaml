@@ -87,6 +87,9 @@
                                                 <Border Background="{Binding DeadlineBadgeBackground}" CornerRadius="4" Padding="5,1">
                                                     <TextBlock Text="{Binding DeadlineDisplay}" FontSize="9.5" FontWeight="Bold" Foreground="{Binding DeadlineBadgeForeground}"/>
                                                 </Border>
+                                                <Border Background="#043388" CornerRadius="4" Padding="5,1" IsVisible="{Binding HasDuration}">
+                                                    <TextBlock Text="{Binding Duration}" FontSize="9.5" FontWeight="Bold" Foreground="#38BDF8"/>
+                                                </Border>
                                             </StackPanel>
                                             <Grid ColumnDefinitions="*, Auto">
                                                 <TextBlock Text="{Binding Designer}" Foreground="#64748B" FontSize="10.5" VerticalAlignment="Center"/>
@@ -123,6 +126,9 @@
                                                 <Border Background="{Binding DeadlineBadgeBackground}" CornerRadius="4" Padding="5,1">
                                                     <TextBlock Text="{Binding DeadlineDisplay}" FontSize="9.5" FontWeight="Bold" Foreground="{Binding DeadlineBadgeForeground}"/>
                                                 </Border>
+                                                <Border Background="#043388" CornerRadius="4" Padding="5,1" IsVisible="{Binding HasDuration}">
+                                                    <TextBlock Text="{Binding Duration}" FontSize="9.5" FontWeight="Bold" Foreground="#38BDF8"/>
+                                                </Border>
                                             </StackPanel>
                                             <Grid ColumnDefinitions="*, Auto">
                                                 <TextBlock Text="{Binding Designer}" Foreground="#64748B" FontSize="10.5" VerticalAlignment="Center"/>
@@ -158,6 +164,9 @@
                                                 </Border>
                                                 <Border Background="{Binding DeadlineBadgeBackground}" CornerRadius="4" Padding="5,1">
                                                     <TextBlock Text="{Binding DeadlineDisplay}" FontSize="9.5" FontWeight="Bold" Foreground="{Binding DeadlineBadgeForeground}"/>
+                                                </Border>
+                                                <Border Background="#043388" CornerRadius="4" Padding="5,1" IsVisible="{Binding HasDuration}">
+                                                    <TextBlock Text="{Binding Duration}" FontSize="9.5" FontWeight="Bold" Foreground="#38BDF8"/>
                                                 </Border>
                                             </StackPanel>
                                             <Grid ColumnDefinitions="*, Auto">

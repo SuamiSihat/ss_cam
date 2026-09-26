@@ -95,6 +95,10 @@ namespace SS_CAM.Linux.ViewModels
         [ObservableProperty] private CanvasPlatformPreset? _selectedPlatformPreset;
         [ObservableProperty] private int _slaTargetDays = 3;
         [ObservableProperty] private string _slaDeadlineDisplay = "Target Due Date: 3 Days";
+        [ObservableProperty] private string _createdDate = DateTime.Now.ToString("yyyy-MM-dd");
+        [ObservableProperty] private string _startDate = DateTime.Now.ToString("yyyy-MM-dd");
+        [ObservableProperty] private string _deadline = DateTime.Now.AddDays(3).ToString("yyyy-MM-dd");
+        [ObservableProperty] private string _duration = "3 days";
         [ObservableProperty] private string _previewFolderPath = "";
         [ObservableProperty] private string _previewCopyMarkdown = "";
         [ObservableProperty] private string _previewYamlFrontmatter = "";
@@ -448,16 +452,10 @@ namespace SS_CAM.Linux.ViewModels
             var tasks = new List<ProjectStatusItem>();
             foreach (var rp in snapshot.RecentProjects)
             {
-                tasks.Add(new ProjectStatusItem
-                {
-                    Project = rp.Project,
-                    FullPath = rp.FullPath,
-                    Designer = rp.Designer,
-                    CreatedDate = DateTime.Now.ToString("yyyy-MM-dd"),
-                    Status = "in-progress",
-                    Priority = "medium",
-                    Deadline = DateTime.Now.AddDays(3).ToString("yyyy-MM-dd")
-                });
+                var item = FrontmatterService.ReadStatus(rp.FullPath);
+                if (string.IsNullOrWhiteSpace(item.Project)) item.Project = rp.Project;
+                if (string.IsNullOrWhiteSpace(item.Designer)) item.Designer = rp.Designer;
+                tasks.Add(item);
             }
 
             // Add demo mock tasks if scan is empty
@@ -487,13 +485,31 @@ namespace SS_CAM.Linux.ViewModels
         partial void OnSelectedSubBrandChanged(string value) => UpdateProjectCreatorPreviews();
         partial void OnProjectIdSuffixChanged(string value) => UpdateProjectCreatorPreviews();
         partial void OnProjectTitleChanged(string value) => UpdateProjectCreatorPreviews();
+        partial void OnStartDateChanged(string value) => RecalculateDuration();
+        partial void OnDeadlineChanged(string value) => RecalculateDuration();
+        partial void OnSlaTargetDaysChanged(int value)
+        {
+            var dl = MalaysiaHolidayService.CalculateWorkingDaysDeadline(DateTime.Today, value > 0 ? value : 3);
+            Deadline = dl.ToString("yyyy-MM-dd");
+            SlaDeadlineDisplay = $"SLA Target: {value} Days • Due: {Deadline}";
+            RecalculateDuration();
+        }
+
+        private void RecalculateDuration()
+        {
+            Duration = ProjectStatusItem.CalculateDuration(StartDate, Deadline);
+            UpdateProjectCreatorPreviews();
+        }
+
         partial void OnSelectedCategoryPresetChanged(CategoryPreset? value)
         {
             if (value != null)
             {
                 SlaTargetDays = value.SlaDays;
                 var deadline = MalaysiaHolidayService.CalculateWorkingDaysDeadline(DateTime.Today, value.SlaDays);
-                SlaDeadlineDisplay = $"SLA Target: {value.SlaDays} Days • Due: {deadline:yyyy-MM-dd}";
+                Deadline = deadline.ToString("yyyy-MM-dd");
+                SlaDeadlineDisplay = $"SLA Target: {value.SlaDays} Days • Due: {Deadline}";
+                RecalculateDuration();
             }
             UpdateProjectCreatorPreviews();
         }
@@ -532,7 +548,10 @@ $@"project_id: {dateCode}_{cleanSuffix}_{cleanBrand}
 title: ""{ProjectTitle}""
 sub_brand: {cleanBrand}
 designer: {SelectedDesigner}
-created_date: {DateTime.Now:yyyy-MM-dd}
+created_date: {CreatedDate}
+start_date: {StartDate}
+deadline: {Deadline}
+duration: {Duration}
 category: {SelectedCategoryPreset?.Name ?? "Graphic Design"}
 status: in-progress
 priority: medium
@@ -556,7 +575,11 @@ priority: medium
                     SelectedCategoryPreset?.Name ?? "Graphic Design",
                     null,
                     ProjectBriefMarkdown,
-                    SelectedDesigner
+                    SelectedDesigner,
+                    CreatedDate,
+                    StartDate,
+                    Deadline,
+                    Duration
                 );
 
                 StatusMessage = $"✔ Project generated at: {createdPath}";
@@ -718,11 +741,11 @@ priority: medium
         {
             return new List<ProjectStatusItem>
             {
-                new() { Project = "202609_0001D_SSH_Brand_Identity_Master", Designer = "Harussani", Status = "in-progress", Priority = "urgent", Deadline = DateTime.Today.AddDays(2).ToString("yyyy-MM-dd"), CreatedDate = DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") },
-                new() { Project = "202609_0002S_SSC_Kopi_Tongkat_Ali_MetaAds", Designer = "Adam", Status = "in-progress", Priority = "high", Deadline = DateTime.Today.AddDays(3).ToString("yyyy-MM-dd"), CreatedDate = DateTime.Today.AddDays(-2).ToString("yyyy-MM-dd") },
-                new() { Project = "202609_0003V_SSW_Testimonial_Reels_Video", Designer = "Sarah", Status = "review", Priority = "medium", Deadline = DateTime.Today.AddDays(4).ToString("yyyy-MM-dd"), CreatedDate = DateTime.Today.AddDays(-5).ToString("yyyy-MM-dd") },
-                new() { Project = "202609_0004P_SSE_Shopee_Product_Hero_Banner", Designer = "Afif", Status = "backlog", Priority = "low", Deadline = DateTime.Today.AddDays(7).ToString("yyyy-MM-dd"), CreatedDate = DateTime.Today.AddDays(-3).ToString("yyyy-MM-dd") },
-                new() { Project = "202608_0012D_SST_DAM_Web_Portal_Dashboard", Designer = "Harussani", Status = "done", Priority = "medium", Deadline = DateTime.Today.AddDays(-2).ToString("yyyy-MM-dd"), CreatedDate = DateTime.Today.AddDays(-10).ToString("yyyy-MM-dd") }
+                new() { Project = "202609_0001D_SSH_Brand_Identity_Master", Designer = "Harussani", Status = "in-progress", Priority = "urgent", Deadline = DateTime.Today.AddDays(2).ToString("yyyy-MM-dd"), StartDate = DateTime.Today.ToString("yyyy-MM-dd"), CreatedDate = DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd"), Duration = "2 days" },
+                new() { Project = "202609_0002S_SSC_Kopi_Tongkat_Ali_MetaAds", Designer = "Adam", Status = "in-progress", Priority = "high", Deadline = DateTime.Today.AddDays(3).ToString("yyyy-MM-dd"), StartDate = DateTime.Today.ToString("yyyy-MM-dd"), CreatedDate = DateTime.Today.AddDays(-2).ToString("yyyy-MM-dd"), Duration = "3 days" },
+                new() { Project = "202609_0003V_SSW_Testimonial_Reels_Video", Designer = "Sarah", Status = "review", Priority = "medium", Deadline = DateTime.Today.AddDays(4).ToString("yyyy-MM-dd"), StartDate = DateTime.Today.AddDays(-2).ToString("yyyy-MM-dd"), CreatedDate = DateTime.Today.AddDays(-5).ToString("yyyy-MM-dd"), Duration = "6 days" },
+                new() { Project = "202609_0004P_SSE_Shopee_Product_Hero_Banner", Designer = "Afif", Status = "backlog", Priority = "low", Deadline = DateTime.Today.AddDays(7).ToString("yyyy-MM-dd"), StartDate = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd"), CreatedDate = DateTime.Today.AddDays(-3).ToString("yyyy-MM-dd"), Duration = "6 days" },
+                new() { Project = "202608_0012D_SST_DAM_Web_Portal_Dashboard", Designer = "Harussani", Status = "done", Priority = "medium", Deadline = DateTime.Today.AddDays(-2).ToString("yyyy-MM-dd"), StartDate = DateTime.Today.AddDays(-8).ToString("yyyy-MM-dd"), CreatedDate = DateTime.Today.AddDays(-10).ToString("yyyy-MM-dd"), Duration = "6 days" }
             };
         }
 

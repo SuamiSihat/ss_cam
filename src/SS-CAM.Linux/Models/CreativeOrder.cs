@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace SS_CAM.Linux.Models
 {
@@ -14,7 +15,42 @@ namespace SS_CAM.Linux.Models
         public string Material { get; set; } = "";
         public string MaterialType { get; set; } = "";
         public string Copy { get; set; } = "";
-        public string TargetDate { get; set; } = "";
+        private string _targetDate = "";
+        public string TargetDate
+        {
+            get => _targetDate;
+            set
+            {
+                _targetDate = value ?? "";
+                if (string.IsNullOrWhiteSpace(_deadline)) _deadline = _targetDate;
+            }
+        }
+
+        private string _deadline = "";
+        public string Deadline
+        {
+            get => !string.IsNullOrWhiteSpace(_deadline) ? _deadline : TargetDate;
+            set
+            {
+                _deadline = value ?? "";
+                _targetDate = value ?? "";
+            }
+        }
+
+        public string CreatedDate { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
+        public string StartDate { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
+
+        private string _duration = "";
+        public string Duration
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(_duration)) return _duration;
+                return CalculateDuration(StartDate, Deadline);
+            }
+            set => _duration = value ?? "";
+        }
+
         public string AttachmentNote { get; set; } = "";
         public string Requester { get; set; } = "Staff";
         public string RequesterRole { get; set; } = "";
@@ -24,6 +60,21 @@ namespace SS_CAM.Linux.Models
         public string? AssignedTo { get; set; } = null;
         public string? ProjectId { get; set; } = null;
         public string InternalNote { get; set; } = "";
+
+        private int _attachmentCount;
+        public int AttachmentCount
+        {
+            get
+            {
+                if (Attachments != null && Attachments.Count > 0) return Attachments.Count;
+                if (AttachmentFiles != null && AttachmentFiles.Count > 0) return AttachmentFiles.Count;
+                return _attachmentCount;
+            }
+            set => _attachmentCount = value;
+        }
+
+        public List<string> AttachmentFiles { get; set; } = new();
+        public List<OrderAttachmentItem> Attachments { get; set; } = new();
 
         public string SafeTitle => string.IsNullOrWhiteSpace(Title) ? "Untitled Request" : Title.Trim();
         public string SafeEntity => string.IsNullOrWhiteSpace(Entity) ? "SSH" : Entity.Trim().ToUpperInvariant();
@@ -149,5 +200,80 @@ namespace SS_CAM.Linux.Models
                 return clean.Length > 120 ? clean.Substring(0, 117) + "..." : clean;
             }
         }
+
+        public static string CalculateDuration(string? startStr, string? endStr)
+        {
+            if (DateTime.TryParse(startStr, out var s) && DateTime.TryParse(endStr, out var e))
+            {
+                int days = (int)Math.Round((e.Date - s.Date).TotalDays);
+                if (days <= 0) return "Same day (1d)";
+                if (days == 1) return "1 day";
+                if (days % 7 == 0) return $"{days / 7}w ({days}d)";
+                return $"{days} days";
+            }
+            return "";
+        }
+    }
+
+    /// <summary>
+    /// Represents an attachment file stored in the NAS order vault.
+    /// </summary>
+    public class OrderAttachmentItem
+    {
+        public string Filename { get; set; } = "";
+        public long SizeBytes { get; set; }
+        public string SizeFormatted { get; set; } = "";
+        public string FilePath { get; set; } = "";
+        public string Url { get; set; } = "";
+        public string UploadedAt { get; set; } = "";
+
+        public string DisplaySize
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(SizeFormatted)) return SizeFormatted;
+                if (SizeBytes < 1024) return $"{SizeBytes} B";
+                if (SizeBytes < 1024 * 1024) return $"{SizeBytes / 1024.0:0.#} KB";
+                return $"{SizeBytes / (1024.0 * 1024.0):0.#} MB";
+            }
+        }
+    }
+
+    /// <summary>
+    /// Lightweight order item used in dropdowns, ProjectCreator linking, and attachment ingestion.
+    /// </summary>
+    public class CreativeOrderItem
+    {
+        public string Id { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string SubBrand { get; set; } = "";
+        public string RequesterName { get; set; } = "";
+        public string RequesterEmail { get; set; } = "";
+        public string DeliverableType { get; set; } = "";
+        public string Priority { get; set; } = "";
+        public string Deadline { get; set; } = "";
+        public string CreatedDate { get; set; } = "";
+        public string StartDate { get; set; } = "";
+        public string Duration { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string ProjectId { get; set; } = "";
+        public string CreatedAt { get; set; } = "";
+        public string UpdatedAt { get; set; } = "";
+        public int AttachmentCount { get; set; }
+        public System.Collections.Generic.List<string> AttachmentFiles { get; set; } = new();
+        public System.Collections.Generic.List<OrderAttachmentItem> Attachments { get; set; } = new();
+
+        public string DisplayText
+        {
+            get
+            {
+                string attachBadge = AttachmentCount > 0 ? $" [📎 {AttachmentCount} files]" : "";
+                string brand = !string.IsNullOrWhiteSpace(SubBrand) ? $"[{SubBrand}] " : "";
+                return $"{brand}{Id} | {Title ?? "Untitled"}{attachBadge}";
+            }
+        }
+
+        public override string ToString() => DisplayText;
     }
 }

@@ -52,7 +52,15 @@ public class WorkspaceService
         return results.OrderByDescending(p => p.CreatedDate).ToList();
     }
 
-    public ProjectStatusItem CreateProject(string brand, string projectTitle, string designer, string client, string priority, string deadline)
+    public ProjectStatusItem CreateProject(
+        string brand, 
+        string projectTitle, 
+        string designer, 
+        string client, 
+        string priority, 
+        string deadline,
+        string? startDate = null,
+        string? createdDate = null)
     {
         string nowYear = DateTime.Now.ToString("yyyy");
         string nowMonth = DateTime.Now.ToString("yyyyMM") + "_" + DateTime.Now.ToString("MMMM");
@@ -76,6 +84,11 @@ public class WorkspaceService
         Directory.CreateDirectory(Path.Combine(projectPath, "04_WORK_IN_PROGRESS"));
         Directory.CreateDirectory(Path.Combine(projectPath, "05_DELIVERABLES"));
 
+        string cleanCreated = !string.IsNullOrWhiteSpace(createdDate) ? createdDate : DateTime.Now.ToString("yyyy-MM-dd");
+        string cleanStart = !string.IsNullOrWhiteSpace(startDate) ? startDate : cleanCreated;
+        string cleanDeadline = !string.IsNullOrWhiteSpace(deadline) ? deadline : DateTime.Now.AddDays(3).ToString("yyyy-MM-dd");
+        string cleanDuration = ProjectStatusItem.CalculateDuration(cleanStart, cleanDeadline);
+
         // Initialize COPY.md template
         string copyMdPath = Path.Combine(projectPath, "03_COPYWRITING", "COPY.md");
         if (!File.Exists(copyMdPath))
@@ -83,7 +96,10 @@ public class WorkspaceService
             string copyTemplate = $@"---
 brand: {brand}
 project: {projectTitle}
-created: {DateTime.Now:yyyy-MM-dd}
+created: {cleanCreated}
+start_date: {cleanStart}
+deadline: {cleanDeadline}
+duration: {cleanDuration}
 author: {designer}
 ---
 
@@ -107,8 +123,10 @@ author: {designer}
             Designer = designer,
             Client = client,
             Priority = priority,
-            Deadline = deadline,
-            CreatedDate = DateTime.Now.ToString("yyyy-MM-dd"),
+            Deadline = cleanDeadline,
+            CreatedDate = cleanCreated,
+            StartDate = cleanStart,
+            Duration = cleanDuration,
             Tags = new List<string> { brand, "design", "campaign" },
             HasFrontmatter = true
         };

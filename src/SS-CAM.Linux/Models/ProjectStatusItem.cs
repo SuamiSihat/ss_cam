@@ -12,12 +12,26 @@ namespace SS_CAM.Linux.Models
         public string Client { get; set; } = "";
         public string Deadline { get; set; } = "";
         public string CreatedDate { get; set; } = "";   // YYYY-MM-DD
+        public string StartDate { get; set; } = "";     // YYYY-MM-DD
         public string Priority { get; set; } = "medium"; // low|medium|high|urgent
         public int Revision { get; set; } = 0;
         public List<string> Tags { get; set; } = new List<string>();
         public bool HasFrontmatter { get; set; } = false;
         public string Duration { get; set; } = "";
         public string NotesBody { get; set; } = "";
+
+        public bool HasDuration => !string.IsNullOrWhiteSpace(Duration);
+
+        public string StartDateDisplay
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(StartDate)) return "N/A";
+                if (DateTime.TryParse(StartDate, out var dt))
+                    return dt.ToString("yyyy-MM-dd");
+                return StartDate;
+            }
+        }
 
         public DateTime ParsedCreatedDate
         {
@@ -173,6 +187,19 @@ namespace SS_CAM.Linux.Models
                 }
                 return "#94A3B8";
             }
+        }
+
+        public static string CalculateDuration(string? startStr, string? endStr)
+        {
+            if (DateTime.TryParse(startStr, out var s) && DateTime.TryParse(endStr, out var e))
+            {
+                int days = (int)Math.Round((e.Date - s.Date).TotalDays);
+                if (days <= 0) return "Same day (1d)";
+                if (days == 1) return "1 day";
+                if (days % 7 == 0) return $"{days / 7}w ({days}d)";
+                return $"{days} days";
+            }
+            return "";
         }
     }
 }

@@ -46,6 +46,30 @@
                                 <TextBox Text="{Binding ProjectTitle}"/>
                             </StackPanel>
 
+                            <!-- 4-Date Production Schedule Strip -->
+                            <Border Background="#090D16" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="12,10">
+                                <Grid ColumnDefinitions="*, 8, *, 8, *, 8, *">
+                                    <StackPanel Grid.Column="0" Spacing="4">
+                                        <TextBlock Text="Created Date" FontSize="10.5" FontWeight="Bold" Foreground="#94A3B8"/>
+                                        <TextBox Text="{Binding CreatedDate}" FontSize="12"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Spacing="4">
+                                        <TextBlock Text="Start Date" FontSize="10.5" FontWeight="Bold" Foreground="#94A3B8"/>
+                                        <TextBox Text="{Binding StartDate}" FontSize="12"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="4" Spacing="4">
+                                        <TextBlock Text="Deadline" FontSize="10.5" FontWeight="Bold" Foreground="#94A3B8"/>
+                                        <TextBox Text="{Binding Deadline}" FontSize="12"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="6" Spacing="4">
+                                        <TextBlock Text="Duration" FontSize="10.5" FontWeight="Bold" Foreground="#38BDF8"/>
+                                        <Border Background="#043388" CornerRadius="4" Padding="6,7" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Duration}" FontSize="11.5" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
                             <!-- Integrated Markdown Brief Editor -->
                             <StackPanel Spacing="6">
                                 <TextBlock Text="Creative Brief / Script Notes" FontSize="11" FontWeight="Bold" Foreground="#94A3B8"/>
@@ -61,6 +85,11 @@
                                                 <Button Content="H2" Command="{Binding InsertMarkdownCommand}" CommandParameter="&#10;## Heading 2&#10;" FontWeight="SemiBold" Padding="8,2" Background="Transparent" Foreground="#F8FAFC"/>
                                                 <Button Content="* List" Command="{Binding InsertMarkdownCommand}" CommandParameter="&#10;- Item&#10;" Padding="8,2" Background="Transparent" Foreground="#F8FAFC"/>
                                                 <Button Content="— HR" Command="{Binding InsertMarkdownCommand}" CommandParameter="&#10;---&#10;" Padding="8,2" Background="Transparent" Foreground="#F8FAFC"/>
+                                                <Border Width="1" Background="#334155" Height="16" Margin="4,0"/>
+                                                <Button Content="🔗 Link" Command="{Binding InsertMarkdownCommand}" CommandParameter="[Title](https://suamisihat.com.my)" Padding="8,2" Background="Transparent" Foreground="#38BDF8"/>
+                                                <Button Content="🖼️ Image" Command="{Binding InsertMarkdownCommand}" CommandParameter="![Alt Text](url)" Padding="8,2" Background="Transparent" Foreground="#F8FAFC"/>
+                                                <Button Content="📊 Table" Command="{Binding InsertMarkdownCommand}" CommandParameter="&#10;| Column 1 | Column 2 |&#10;|---|---|&#10;| Item 1 | Details |&#10;" Padding="8,2" Background="Transparent" Foreground="#F8FAFC"/>
+                                                <Button Content="📎 Attach" Command="{Binding InsertMarkdownCommand}" CommandParameter="[📎 AttachmentName](Brief_Assets/filename.pdf)" Padding="8,2" Background="Transparent" Foreground="#F8FAFC"/>
                                             </StackPanel>
                                         </Border>
                                         <TextBox Text="{Binding ProjectBriefMarkdown}" AcceptsReturn="True" Height="120" BorderThickness="0" Background="Transparent" Padding="8"/>

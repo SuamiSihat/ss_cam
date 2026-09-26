@@ -42,7 +42,11 @@ namespace SS_CAM.Linux.Services
             string presetType, 
             List<string>? extraSubFolders = null,
             string briefMarkdown = "",
-            string designer = "Designer")
+            string designer = "Designer",
+            string? createdDate = null,
+            string? startDate = null,
+            string? deadline = null,
+            string? duration = null)
         {
             if (!ValidateRootDirectory(rootDirectory, out var valError))
             {
@@ -90,6 +94,11 @@ namespace SS_CAM.Linux.Services
             var monthlyRoot = Path.Combine(yearPath, monthFolder);
             var projectRoot = Path.Combine(monthlyRoot, folderName);
 
+            var cleanCreated = !string.IsNullOrWhiteSpace(createdDate) ? createdDate : DateTime.Now.ToString("yyyy-MM-dd");
+            var cleanStart = !string.IsNullOrWhiteSpace(startDate) ? startDate : cleanCreated;
+            var cleanDeadline = !string.IsNullOrWhiteSpace(deadline) ? deadline : DateTime.Now.AddDays(3).ToString("yyyy-MM-dd");
+            var cleanDuration = !string.IsNullOrWhiteSpace(duration) ? duration : Models.ProjectStatusItem.CalculateDuration(cleanStart, cleanDeadline);
+
             // Canonical 5-Folder hierarchy
             var subFolders = new List<string>
             {
@@ -124,13 +133,47 @@ $@"project_id: {dateCode}_{cleanProjectNumber}_{cleanSubBrand}
 title: ""{projectName}""
 sub_brand: {cleanSubBrand}
 designer: {designer}
-created_date: {DateTime.Now:yyyy-MM-dd}
+created_date: {cleanCreated}
+start_date: {cleanStart}
+deadline: {cleanDeadline}
+duration: {cleanDuration}
 category: {presetType}
 status: in-progress
 priority: medium
 version: 1.0.0
 ";
             File.WriteAllText(yamlPath, yamlContent, System.Text.Encoding.UTF8);
+
+            // Write README.md with Frontmatter for TaskManager / WorkspaceScanner
+            var readmePath = Path.Combine(projectRoot, "README.md");
+            var readmeContent = 
+$@"---
+status: in-progress
+designer: {designer}
+client: {cleanSubBrand}
+created: {cleanCreated}
+start_date: {cleanStart}
+deadline: {cleanDeadline}
+duration: {cleanDuration}
+priority: medium
+tags: [{cleanSubBrand}, {presetType}]
+---
+
+# {folderName}
+
+- **Project ID**: {dateCode}_{cleanProjectNumber}_{cleanSubBrand}
+- **Designer**: {designer}
+- **Brand / Entity**: {cleanSubBrand}
+- **Category**: {presetType}
+- **Created Date**: {cleanCreated}
+- **Start Date**: {cleanStart}
+- **Target Deadline**: {cleanDeadline}
+- **Turnaround Duration**: {cleanDuration}
+
+## Deliverable Brief
+{projectName}
+";
+            File.WriteAllText(readmePath, readmeContent, System.Text.Encoding.UTF8);
 
             // Write 01_BRIEFS/COPY.md or 03_WORKING_FILES/COPY.md
             var copyPath = Path.Combine(projectRoot, "01_BRIEFS", "COPY.md");

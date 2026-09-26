@@ -159,7 +159,12 @@ public static class CreativeOrderService
                             try
                             {
                                 var order = JsonConvert.DeserializeObject<CreativeOrder>(line);
-                                if (order != null) orders.Add(order);
+                                if (order != null)
+                                {
+                                    EnrichOrderAttachments(order, workspaceRoot);
+                                    order.Duration = CreativeOrder.CalculateDuration(order.StartDate, order.Deadline);
+                                    orders.Add(order);
+                                }
                             }
                             catch { }
                         }
@@ -182,6 +187,11 @@ public static class CreativeOrderService
             var liveOrders = await FetchOrdersFromApiAsync(designerUsername).ConfigureAwait(false);
             if (liveOrders != null && liveOrders.Count > 0)
             {
+                foreach (var o in liveOrders)
+                {
+                    EnrichOrderAttachments(o, workspaceRoot);
+                    o.Duration = CreativeOrder.CalculateDuration(o.StartDate, o.Deadline);
+                }
                 string filePath = GetOrdersFilePath(workspaceRoot);
                 await SaveOrdersAsync(workspaceRoot, liveOrders).ConfigureAwait(false);
                 return liveOrders.OrderByDescending(o => o.SubmittedAt).ToList();
@@ -324,6 +334,29 @@ public static class CreativeOrderService
             Directory.CreateDirectory(artworkDir);
             Directory.CreateDirectory(exportsDir);
 
+            // Copy Order Attachments to 01_Brief_and_Copy/Brief_Assets
+            string briefAssetsDir = Path.Combine(briefDir, "Brief_Assets");
+            int attachmentsCopied = CopyAttachmentsToProject(workspaceRoot, order.Id, briefAssetsDir);
+
+            string createdStr = !string.IsNullOrWhiteSpace(order.CreatedDate) ? order.CreatedDate : (!string.IsNullOrWhiteSpace(order.SubmittedAt) ? order.SubmittedAt : DateTime.Now.ToString("yyyy-MM-dd"));
+            string startStr = !string.IsNullOrWhiteSpace(order.StartDate) ? order.StartDate : DateTime.Now.ToString("yyyy-MM-dd");
+            string deadlineStr = !string.IsNullOrWhiteSpace(order.Deadline) ? order.Deadline : (!string.IsNullOrWhiteSpace(order.TargetDate) ? order.TargetDate : DateTime.Now.AddDays(3).ToString("yyyy-MM-dd"));
+            string durationStr = !string.IsNullOrWhiteSpace(order.Duration) ? order.Duration : CreativeOrder.CalculateDuration(startStr, deadlineStr);
+
+            var attachmentListBuilder = new StringBuilder();
+            if (attachmentsCopied > 0 && Directory.Exists(briefAssetsDir))
+            {
+                attachmentListBuilder.AppendLine("\n---");
+                attachmentListBuilder.AppendLine($"\n## Attached Brief Assets ({attachmentsCopied})");
+                foreach (var file in Directory.GetFiles(briefAssetsDir))
+                {
+                    string fname = Path.GetFileName(file);
+                    var fi = new FileInfo(file);
+                    string sizeStr = fi.Length > 1048576 ? $"{fi.Length / 1048576.0:0.#} MB" : $"{fi.Length / 1024.0:0.#} KB";
+                    attachmentListBuilder.AppendLine($"- [{fname}](Brief_Assets/{fname}) ({sizeStr})");
+                }
+            }
+
             // Generate COPY.md
             string copyFilePath = Path.Combine(briefDir, "COPY.md");
             string copyContent = $@"# Copywriting & Script Studio — {order.SafeTitle}
@@ -332,9 +365,11 @@ public static class CreativeOrderService
 - **Entity**: {order.SafeEntity} ({order.EntityFullName})
 - **Priority**: {order.PriorityLabel}
 - **Target Format**: {order.FormatLabel}
-- **Target Due Date**: {order.TargetDate}
+- **Created Date**: {createdStr}
+- **Start Date**: {startStr}
+- **Target Due Date / Deadline**: {deadlineStr}
+- **Estimated Duration**: {durationStr}
 - **Requester**: {order.Requester} ({order.RequesterRole})
-- **Created**: {DateTime.Now:yyyy-MM-dd HH:mm}
 
 ---
 
@@ -346,18 +381,22 @@ public static class CreativeOrderService
 
 ## Production / Requester Notes
 {(string.IsNullOrWhiteSpace(order.AttachmentNote) ? "_No special attachment notes._" : order.AttachmentNote.Trim())}
+{attachmentListBuilder}
 ";
             File.WriteAllText(copyFilePath, copyContent, Encoding.UTF8);
 
             // Generate README.md
             string readmePath = Path.Combine(targetProjectDir, "README.md");
-            string effectiveDeadline = !string.IsNullOrWhiteSpace(order.TargetDate) ? order.TargetDate : DateTime.Now.AddDays(3).ToString("yyyy-MM-dd");
+            string attachedBriefNote = attachmentsCopied > 0 ? $"### Attached Brief Assets\nImported {attachmentsCopied} file(s) into [`01_Brief_and_Copy/Brief_Assets`](01_Brief_and_Copy/Brief_Assets).\n\n" : "";
 
             string readmeContent = $@"---
 status: in_progress
 designer: {designerStaffId}
 client: {entityCode}
-deadline: {effectiveDeadline}
+created: {createdStr}
+start_date: {startStr}
+deadline: {deadlineStr}
+duration: {durationStr}
 priority: {order.PriorityBadge.ToLowerInvariant()}
 order_id: {order.Id}
 tags: [{entityCode}, {order.Format ?? "asset"}]
@@ -370,9 +409,11 @@ tags: [{entityCode}, {order.Format ?? "asset"}]
 - **Designer**: {designerName} ({designerStaffId})
 - **Brand / Entity**: {entityCode} - {order.EntityFullName}
 - **Platform / Format**: {order.FormatLabel}
-- **Target Deadline**: {effectiveDeadline}
+- **Created Date**: {createdStr}
+- **Start Date**: {startStr}
+- **Target Deadline**: {deadlineStr}
+- **Turnaround Duration**: {durationStr}
 - **Requester**: {order.Requester} ({order.RequesterRole})
-- **Created**: {DateTime.Now:yyyy-MM-dd HH:mm}
 
 ## Deliverable Brief
 {order.SafeTitle}
@@ -380,7 +421,7 @@ tags: [{entityCode}, {order.Format ?? "asset"}]
 ### Copywriting & Script Reference
 The complete brief and approved script are maintained in [`01_Brief_and_Copy/COPY.md`](01_Brief_and_Copy/COPY.md).
 
-### Requester Notes
+{attachedBriefNote}### Requester Notes
 {(string.IsNullOrWhiteSpace(order.AttachmentNote) ? "None." : order.AttachmentNote)}
 ";
             File.WriteAllText(readmePath, readmeContent, Encoding.UTF8);
@@ -390,6 +431,77 @@ The complete brief and approved script are maintained in [`01_Brief_and_Copy/COP
 
             return targetProjectDir;
         });
+    }
+
+    public static int CopyAttachmentsToProject(string workspaceRoot, string orderId, string briefAssetsDir)
+    {
+        if (string.IsNullOrWhiteSpace(workspaceRoot) || string.IsNullOrWhiteSpace(orderId) || string.IsNullOrWhiteSpace(briefAssetsDir))
+            return 0;
+
+        try
+        {
+            string orderVaultDir = Path.Combine(workspaceRoot, "_Orders", orderId);
+            if (!Directory.Exists(orderVaultDir)) return 0;
+
+            if (!Directory.Exists(briefAssetsDir))
+                Directory.CreateDirectory(briefAssetsDir);
+
+            int copied = 0;
+            var files = Directory.GetFiles(orderVaultDir)
+                .Where(f => !Path.GetFileName(f).StartsWith(".") && !Path.GetFileName(f).StartsWith("~") && Path.GetFileName(f) != "creative-orders.jsonl");
+
+            foreach (string src in files)
+            {
+                string dest = Path.Combine(briefAssetsDir, Path.GetFileName(src));
+                File.Copy(src, dest, true);
+                copied++;
+            }
+
+            return copied;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[CreativeOrderService.Linux] CopyAttachmentsToProject error: {ex.Message}");
+            return 0;
+        }
+    }
+
+    private static void EnrichOrderAttachments(CreativeOrder order, string workspaceRoot)
+    {
+        if (order == null || string.IsNullOrWhiteSpace(order.Id) || string.IsNullOrWhiteSpace(workspaceRoot)) return;
+        try
+        {
+            string orderVaultDir = Path.Combine(workspaceRoot, "_Orders", order.Id);
+            if (Directory.Exists(orderVaultDir))
+            {
+                var files = Directory.GetFiles(orderVaultDir)
+                    .Where(f => !Path.GetFileName(f).StartsWith(".") && !Path.GetFileName(f).StartsWith("~") && Path.GetFileName(f) != "creative-orders.jsonl")
+                    .ToList();
+
+                if (order.Attachments == null) order.Attachments = new List<OrderAttachmentItem>();
+
+                foreach (var file in files)
+                {
+                    var fi = new FileInfo(file);
+                    if (!order.Attachments.Any(a => string.Equals(a.Filename, fi.Name, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        order.Attachments.Add(new OrderAttachmentItem
+                        {
+                            Filename = fi.Name,
+                            SizeBytes = fi.Length,
+                            FilePath = fi.FullName,
+                            Url = $"/api/orders/{order.Id}/attachments/{Uri.EscapeDataString(fi.Name)}",
+                            UploadedAt = fi.CreationTimeUtc.ToString("o")
+                        });
+                    }
+                }
+                order.AttachmentCount = order.Attachments.Count;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[CreativeOrderService.Linux] EnrichOrderAttachments error: {ex.Message}");
+        }
     }
 
     private static int AutoCalculateNextProjectId(string workspaceRoot)
