@@ -70,6 +70,11 @@ namespace SS_CAM.Views
                 TargetDirectoryInput.Text = root;
             }
 
+            if (TxtProjectCreatedDate != null) TxtProjectCreatedDate.Text = DateTime.Today.ToString("yyyy-MM-dd");
+            if (ProjectStartDatePicker != null) ProjectStartDatePicker.SelectedDate = DateTime.Today;
+            if (ProjectDeadlinePicker != null) ProjectDeadlinePicker.SelectedDate = DateTime.Today.AddDays(3);
+            UpdateProjectDuration();
+
             ReloadCategoryPresets();
             PopulateDropdowns();
             AutoCalculateNextProjectId();
@@ -77,6 +82,23 @@ namespace SS_CAM.Views
             UpdateLivePreview();
             LoadRecentProjects();
             LoadCreativeOrders();
+        }
+
+        private void OnProjectDateChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdateProjectDuration();
+        }
+
+        private void UpdateProjectDuration()
+        {
+            if (ProjectStartDatePicker == null || ProjectDeadlinePicker == null || TxtProjectDuration == null) return;
+            DateTime? start = ProjectStartDatePicker.SelectedDate;
+            DateTime? end = ProjectDeadlinePicker.SelectedDate;
+            if (start.HasValue && end.HasValue)
+            {
+                string dur = CreativeOrder.CalculateDuration(start.Value.ToString("yyyy-MM-dd"), end.Value.ToString("yyyy-MM-dd"));
+                TxtProjectDuration.Text = !string.IsNullOrWhiteSpace(dur) ? dur : "Same day";
+            }
         }
 
         private void ReloadCategoryPresets()
@@ -890,7 +912,19 @@ namespace SS_CAM.Views
 
                 string designerName = !string.IsNullOrWhiteSpace(currentProfile.DesignerName) ? currentProfile.DesignerName : (currentProfile.StaffId ?? "");
                 DateTime targetDeadline = CategoryPresetService.CalculateTargetDeadline(selectedPreset);
-                string deadlineFormatted = targetDeadline.ToString("yyyy-MM-dd");
+                string createdDateFormatted = (TxtProjectCreatedDate != null && !string.IsNullOrWhiteSpace(TxtProjectCreatedDate.Text))
+                    ? TxtProjectCreatedDate.Text.Trim()
+                    : DateTime.Today.ToString("yyyy-MM-dd");
+                string startDateFormatted = (ProjectStartDatePicker != null && ProjectStartDatePicker.SelectedDate.HasValue)
+                    ? ProjectStartDatePicker.SelectedDate.Value.ToString("yyyy-MM-dd")
+                    : createdDateFormatted;
+                string deadlineFormatted = (ProjectDeadlinePicker != null && ProjectDeadlinePicker.SelectedDate.HasValue)
+                    ? ProjectDeadlinePicker.SelectedDate.Value.ToString("yyyy-MM-dd")
+                    : targetDeadline.ToString("yyyy-MM-dd");
+                string durationText = (TxtProjectDuration != null && !string.IsNullOrWhiteSpace(TxtProjectDuration.Text))
+                    ? TxtProjectDuration.Text.Trim()
+                    : CreativeOrder.CalculateDuration(startDateFormatted, deadlineFormatted);
+
                 string presetName = selectedPreset != null ? selectedPreset.Name : (PresetComboBox.SelectedItem != null ? PresetComboBox.SelectedItem.ToString() : "Graphic & Print Design");
 
                 CreativeOrderItem selectedOrder = LinkedOrderComboBox != null ? LinkedOrderComboBox.SelectedItem as CreativeOrderItem : null;
@@ -905,12 +939,18 @@ namespace SS_CAM.Views
                     orderId,
                     string.IsNullOrWhiteSpace(canvaLink) ? null : canvaLink,
                     subtasks,
-                    categoryWeight);
+                    categoryWeight,
+                    createdDateFormatted,
+                    startDateFormatted,
+                    durationText);
 
-                string readmeContent = string.Format("{0}\n# {1}\n\n- **Created**: {2:yyyy-MM-dd HH:mm}\n- **Designer**: {3}\n- **Project ID**: {4}\n- **Preset**: {5}\n- **Platform**: {6}\n- **Platform Specs**: {7}\n\n## Project Brief & Remarks\n{8}\n",
+                string readmeContent = string.Format("{0}\n# {1}\n\n- **Created**: {2}\n- **Start Date**: {3}\n- **Deadline**: {4}\n- **Turnaround Duration**: {5}\n- **Designer**: {6}\n- **Project ID**: {7}\n- **Preset**: {8}\n- **Platform**: {9}\n- **Platform Specs**: {10}\n\n## Project Brief & Remarks\n{11}\n",
                     frontmatter,
                     folderName,
-                    DateTime.Now,
+                    createdDateFormatted,
+                    startDateFormatted,
+                    deadlineFormatted,
+                    durationText,
                     designerName,
                     ProjectIdInput.Text,
                     PresetComboBox.SelectedItem,
@@ -1072,6 +1112,27 @@ namespace SS_CAM.Views
                     ProjectDescriptionInput.Text = briefNotes;
                 }
 
+                // Synchronize 4-Date Production Timeline
+                DateTime parsedDate;
+                if (!string.IsNullOrWhiteSpace(item.CreatedDate))
+                {
+                    if (TxtProjectCreatedDate != null) TxtProjectCreatedDate.Text = item.CreatedDate;
+                }
+                if (!string.IsNullOrWhiteSpace(item.StartDate) && DateTime.TryParse(item.StartDate, out parsedDate))
+                {
+                    if (ProjectStartDatePicker != null) ProjectStartDatePicker.SelectedDate = parsedDate;
+                }
+                else if (ProjectStartDatePicker != null)
+                {
+                    ProjectStartDatePicker.SelectedDate = DateTime.Today;
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.Deadline) && DateTime.TryParse(item.Deadline, out parsedDate))
+                {
+                    if (ProjectDeadlinePicker != null) ProjectDeadlinePicker.SelectedDate = parsedDate;
+                }
+                UpdateProjectDuration();
+
                 if (OrderAttachmentsBadge != null)
                 {
                     OrderAttachmentsBadge.Text = item.AttachmentCount > 0
@@ -1081,6 +1142,11 @@ namespace SS_CAM.Views
             }
             else
             {
+                if (TxtProjectCreatedDate != null) TxtProjectCreatedDate.Text = DateTime.Today.ToString("yyyy-MM-dd");
+                if (ProjectStartDatePicker != null) ProjectStartDatePicker.SelectedDate = DateTime.Today;
+                if (ProjectDeadlinePicker != null) ProjectDeadlinePicker.SelectedDate = DateTime.Today.AddDays(3);
+                UpdateProjectDuration();
+
                 if (OrderAttachmentsBadge != null)
                 {
                     OrderAttachmentsBadge.Text = "";
@@ -1524,6 +1590,30 @@ namespace SS_CAM.Views
             ProjectDescriptionInput.Text = ProjectDescriptionInput.Text.Insert(pos, insert);
             ProjectDescriptionInput.SelectionStart = pos + insert.Length;
             ProjectDescriptionInput.Focus();
+        }
+
+        private void OnMdTable(object sender, System.Windows.RoutedEventArgs e)
+        {
+            string table = "\n| Item / Angle | Script / Copy | Status |\n| :--- | :--- | :--- |\n| **Hook 1** | Stop scrolling if you want... | `Draft` |\n| **Body Offer** | Exclusive bundle promo | `Ready` |\n| **CTA** | Click the link below | `Ready` |\n";
+            int pos = ProjectDescriptionInput.SelectionStart;
+            ProjectDescriptionInput.Text = ProjectDescriptionInput.Text.Insert(pos, table);
+            ProjectDescriptionInput.SelectionStart = pos + table.Length;
+            ProjectDescriptionInput.Focus();
+        }
+
+        private void OnMdLink(object sender, System.Windows.RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("[", "](https://)");
+        }
+
+        private void OnMdImage(object sender, System.Windows.RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("![", "](image_path)");
+        }
+
+        private void OnMdAttachment(object sender, System.Windows.RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("[📎 ", "](attachment_path)");
         }
 
         // ─── Asset Staging Dropzone (Smart Ingester) ────────────────────────

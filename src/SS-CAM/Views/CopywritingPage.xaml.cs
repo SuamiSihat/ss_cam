@@ -282,6 +282,7 @@ namespace SS_CAM.Views
                 ColSplitter.Width = new GridLength(0, GridUnitType.Pixel);
                 ColLivePreview.Width = new GridLength(0, GridUnitType.Pixel);
 
+                if (CopyEditorToolbar != null) CopyEditorToolbar.Visibility = Visibility.Collapsed;
                 CopyScriptEditor.Visibility = Visibility.Collapsed;
                 RenderedCopyViewer.Visibility = Visibility.Visible;
                 LiveGridSplitter.Visibility = Visibility.Collapsed;
@@ -306,6 +307,7 @@ namespace SS_CAM.Views
                 ColSplitter.Width = new GridLength(12, GridUnitType.Pixel);
                 ColLivePreview.Width = new GridLength(1, GridUnitType.Star);
 
+                if (CopyEditorToolbar != null) CopyEditorToolbar.Visibility = Visibility.Visible;
                 CopyScriptEditor.Visibility = Visibility.Visible;
                 RenderedCopyViewer.Visibility = Visibility.Collapsed;
                 LiveGridSplitter.Visibility = Visibility.Visible;
@@ -327,6 +329,7 @@ namespace SS_CAM.Views
                 ColSplitter.Width = new GridLength(0, GridUnitType.Pixel);
                 ColLivePreview.Width = new GridLength(0, GridUnitType.Pixel);
 
+                if (CopyEditorToolbar != null) CopyEditorToolbar.Visibility = Visibility.Visible;
                 CopyScriptEditor.Visibility = Visibility.Visible;
                 RenderedCopyViewer.Visibility = Visibility.Collapsed;
                 LiveGridSplitter.Visibility = Visibility.Collapsed;
@@ -348,6 +351,7 @@ namespace SS_CAM.Views
                 ColSplitter.Width = new GridLength(0, GridUnitType.Pixel);
                 ColLivePreview.Width = new GridLength(1, GridUnitType.Star);
 
+                if (CopyEditorToolbar != null) CopyEditorToolbar.Visibility = Visibility.Collapsed;
                 CopyScriptEditor.Visibility = Visibility.Collapsed;
                 RenderedCopyViewer.Visibility = Visibility.Collapsed;
                 LiveGridSplitter.Visibility = Visibility.Collapsed;
@@ -926,6 +930,97 @@ namespace SS_CAM.Views
             string projectTitle = selectedProject != null ? selectedProject.Name : "Project";
             string snippet = CopywritingDesktopService.GetPresetTemplate(presetKey, projectTitle);
             InsertSnippetText(Environment.NewLine + snippet + Environment.NewLine);
+        }
+
+        private void ApplyMarkdownWrap(string prefix, string suffix = null, bool lineStart = false)
+        {
+            if (CopyScriptEditor == null) return;
+            suffix = suffix ?? prefix;
+            string sel = CopyScriptEditor.SelectedText;
+            int start = CopyScriptEditor.SelectionStart;
+            int length = CopyScriptEditor.SelectionLength;
+
+            string replacement;
+            int newCaret;
+
+            if (lineStart)
+            {
+                replacement = prefix + (string.IsNullOrEmpty(sel) ? "Item" : sel);
+                newCaret = start + replacement.Length;
+            }
+            else if (!string.IsNullOrEmpty(sel))
+            {
+                replacement = prefix + sel + suffix;
+                newCaret = start + replacement.Length;
+            }
+            else
+            {
+                replacement = prefix + "text" + suffix;
+                newCaret = start + prefix.Length;
+            }
+
+            CopyScriptEditor.SelectedText = replacement;
+            if (length == 0)
+            {
+                CopyScriptEditor.Select(start + prefix.Length, 4);
+            }
+            else
+            {
+                CopyScriptEditor.SelectionStart = newCaret;
+            }
+            CopyScriptEditor.Focus();
+            SetStatusBadge("Unsaved Changes", false);
+        }
+
+        private void OnMdBold(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("**");
+        }
+
+        private void OnMdItalic(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("*");
+        }
+
+        private void OnMdCode(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("`");
+        }
+
+        private void OnMdHeading(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("## ", "", true);
+        }
+
+        private void OnMdList(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("- ", "", true);
+        }
+
+        private void OnMdTable(object sender, RoutedEventArgs e)
+        {
+            if (CopyScriptEditor == null) return;
+            string table = Environment.NewLine + "| Item / Angle | Script / Copy | Status |" + Environment.NewLine + "| :--- | :--- | :--- |" + Environment.NewLine + "| **Hook 1** | Stop scrolling if you want... | `Draft` |" + Environment.NewLine + "| **Body Offer** | Exclusive bundle promo | `Ready` |" + Environment.NewLine + "| **CTA** | Click the link below | `Ready` |" + Environment.NewLine;
+            int pos = CopyScriptEditor.SelectionStart;
+            CopyScriptEditor.Text = CopyScriptEditor.Text.Insert(pos, table);
+            CopyScriptEditor.SelectionStart = pos + table.Length;
+            CopyScriptEditor.Focus();
+            SetStatusBadge("Unsaved Changes", false);
+        }
+
+        private void OnMdLink(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("[", "](https://)");
+        }
+
+        private void OnMdImage(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("![", "](image_path)");
+        }
+
+        private void OnMdAttachment(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("[📎 ", "](attachment_path)");
         }
 
         private void InsertSnippetText(string snippet)

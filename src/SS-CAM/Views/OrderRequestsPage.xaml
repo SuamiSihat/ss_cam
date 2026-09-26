@@ -378,40 +378,76 @@
                                                   FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                   TextWrapping="Wrap" Margin="0,0,0,10"/>
 
-                                    <!-- Submitter Metadata Strip -->
-                                    <Border Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="6" Padding="12,8">
+                                    <!-- Submitter & Production Timeline Strip -->
+                                    <Border Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="6" Padding="12,10">
                                         <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
                                             <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <!-- Requester -->
-                                            <StackPanel Grid.Column="0">
+                                            <!-- Row 0: Requester & Format Specs -->
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
                                                 <ui:TextBlock Text="Requester" FontSize="10.5" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                                <ui:TextBlock x:Name="TxtDetailRequester" Text="Staff Name" FontSize="12" FontWeight="SemiBold"
-                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,1,0,0"/>
-                                                <ui:TextBlock x:Name="TxtDetailRequesterRole" Text="Role / Department" FontSize="10.5"
-                                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                                    <ui:TextBlock x:Name="TxtDetailRequester" Text="Staff Name" FontSize="12" FontWeight="SemiBold"
+                                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                    <ui:TextBlock Text=" • " FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                    <ui:TextBlock x:Name="TxtDetailRequesterRole" Text="Role / Department" FontSize="11"
+                                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </StackPanel>
                                             </StackPanel>
 
-                                            <!-- Target Deadline -->
-                                            <StackPanel Grid.Column="1">
-                                                <ui:TextBlock Text="Target Deadline" FontSize="10.5" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                                <ui:TextBlock x:Name="TxtDetailTargetDate" Text="2026-09-18" FontSize="12" FontWeight="SemiBold"
-                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,1,0,0"/>
-                                                <ui:TextBlock x:Name="TxtDetailDeadlineStatus" Text="On Track" FontSize="10.5"
-                                                              Foreground="#10B981"/>
-                                            </StackPanel>
-
-                                            <!-- Format / Deliverable -->
-                                            <StackPanel Grid.Column="2">
+                                            <StackPanel Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2">
                                                 <ui:TextBlock Text="Format &amp; Canvas" FontSize="10.5" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                                <ui:TextBlock x:Name="TxtDetailFormat" Text="1:1 Feed Post" FontSize="12" FontWeight="SemiBold"
+                                                <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                                    <ui:TextBlock x:Name="TxtDetailFormat" Text="1:1 Feed Post" FontSize="12" FontWeight="SemiBold"
+                                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                    <ui:TextBlock Text=" • " FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                    <ui:TextBlock x:Name="TxtDetailFormatSpecs" Text="1080 x 1080 px | 72 DPI" FontSize="11"
+                                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- Row 2: 4-Date Production Schedule Strip -->
+                                            <!-- 1. Created Date -->
+                                            <StackPanel Grid.Row="2" Grid.Column="0">
+                                                <ui:TextBlock Text="1. Created Date" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <ui:TextBlock x:Name="TxtDetailCreatedDate" Text="2026-09-18" FontSize="12" FontWeight="SemiBold"
                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,1,0,0"/>
-                                                <ui:TextBlock x:Name="TxtDetailFormatSpecs" Text="1080 x 1080 px | 72 DPI" FontSize="10.5"
-                                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+
+                                            <!-- 2. Start Date -->
+                                            <StackPanel Grid.Row="2" Grid.Column="1">
+                                                <ui:TextBlock Text="2. Start Date" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <ui:TextBlock x:Name="TxtDetailStartDate" Text="2026-09-18" FontSize="12" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,1,0,0"/>
+                                            </StackPanel>
+
+                                            <!-- 3. Target Deadline -->
+                                            <StackPanel Grid.Row="2" Grid.Column="2">
+                                                <ui:TextBlock Text="3. Target Deadline" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                                    <ui:TextBlock x:Name="TxtDetailTargetDate" Text="2026-09-21" FontSize="12" FontWeight="SemiBold"
+                                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                    <ui:TextBlock x:Name="TxtDetailDeadlineStatus" Text="On Track" FontSize="10" FontWeight="SemiBold"
+                                                                  Foreground="#10B981" Margin="6,1,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- 4. Turnaround Duration -->
+                                            <StackPanel Grid.Row="2" Grid.Column="3">
+                                                <ui:TextBlock Text="4. Turnaround" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="#A7F3D0" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,2,0,0" HorizontalAlignment="Left">
+                                                    <ui:TextBlock x:Name="TxtDetailDuration" Text="⏱️ 3 days" FontSize="11" FontWeight="Bold" Foreground="#065F46"/>
+                                                </Border>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -473,6 +509,72 @@
                                     </StackPanel>
                                     <ui:TextBlock x:Name="TxtDetailAttachmentNote" Text="No additional notes."
                                                   FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </ui:Card>
+
+                            <!-- Attachment Vault Card -->
+                            <ui:Card x:Name="CardAttachmentsVault" Padding="14" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <ui:SymbolIcon Symbol="Attach24" FontSize="14" Foreground="{DynamicResource FluentBrand80}" Margin="0,0,6,0"/>
+                                            <ui:TextBlock Text="Attached Reference Files &amp; Assets" FontSize="12" FontWeight="SemiBold"
+                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                            <ui:TextBlock x:Name="TxtDetailAttachmentCount" Text="(0 files)" FontSize="11"
+                                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <ui:Button Appearance="Secondary" Height="26" Padding="8,0" Click="OnOpenOrderFolderClicked"
+                                                       Cursor="Hand" ToolTip="Open order attachments folder in Windows Explorer">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ui:SymbolIcon Symbol="FolderOpen24" FontSize="12" Margin="0,0,4,0"/>
+                                                    <ui:TextBlock Text="Open Order Vault Folder" FontSize="10.5"/>
+                                                </StackPanel>
+                                            </ui:Button>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Attachments List -->
+                                    <ItemsControl x:Name="ListDetailAttachments">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                                        BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,0,0,4">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <ui:SymbolIcon Symbol="Document24" FontSize="14" Foreground="{DynamicResource FluentBrand80}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <ui:TextBlock Text="{Binding Filename}" FontSize="11.5" FontWeight="SemiBold"
+                                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                            <ui:TextBlock Text="{Binding DisplaySize}" FontSize="10"
+                                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                        </StackPanel>
+                                                        <ui:Button Grid.Column="3" Appearance="Secondary" Height="24" Padding="8,0"
+                                                                   Click="OnOpenAttachmentFileClicked" Tag="{Binding FilePath}"
+                                                                   Cursor="Hand" ToolTip="Open file with default system app">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <ui:SymbolIcon Symbol="ArrowUpRight24" FontSize="11" Margin="0,0,4,0"/>
+                                                                <ui:TextBlock Text="Open" FontSize="10.5"/>
+                                                            </StackPanel>
+                                                        </ui:Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <ui:TextBlock x:Name="TxtNoAttachments" Text="No file attachments in this order request (text brief only)."
+                                                  FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="2,4,0,0" Visibility="Collapsed"/>
                                 </StackPanel>
                             </ui:Card>
 

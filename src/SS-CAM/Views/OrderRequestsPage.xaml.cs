@@ -276,18 +276,30 @@ namespace SS_CAM.Views
             TxtDetailRequester.Text = order.Requester ?? "Unknown";
             TxtDetailRequesterRole.Text = order.RequesterRole ?? "Staff";
 
+            // 4-Date Production Schedule
+            string createdStr = !string.IsNullOrWhiteSpace(order.CreatedDate)
+                ? order.CreatedDate
+                : (!string.IsNullOrWhiteSpace(order.SubmittedAt) ? order.SubmittedAt.Split('T')[0] : DateTime.Today.ToString("yyyy-MM-dd"));
+            TxtDetailCreatedDate.Text = createdStr;
+
+            string startStr = !string.IsNullOrWhiteSpace(order.StartDate) ? order.StartDate : createdStr;
+            TxtDetailStartDate.Text = startStr;
+
             // Deadline
             TxtDetailTargetDate.Text = order.FormattedTargetDate;
             if (order.IsOverdue)
             {
-                TxtDetailDeadlineStatus.Text = "Overdue Target";
+                TxtDetailDeadlineStatus.Text = "Overdue";
                 TxtDetailDeadlineStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
             }
             else
             {
-                TxtDetailDeadlineStatus.Text = "Target Active";
+                TxtDetailDeadlineStatus.Text = "Active";
                 TxtDetailDeadlineStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
             }
+
+            string durationStr = !string.IsNullOrWhiteSpace(order.Duration) ? order.Duration : CreativeOrder.CalculateDuration(startStr, order.Deadline);
+            TxtDetailDuration.Text = string.Format("⏱️ {0}", !string.IsNullOrWhiteSpace(durationStr) ? durationStr : "—");
 
             // Format & Specs
             TxtDetailFormat.Text = order.FormatLabel;
@@ -307,6 +319,22 @@ namespace SS_CAM.Views
             else
             {
                 CardProductionNotes.Visibility = Visibility.Collapsed;
+            }
+
+            // Attachments
+            if (order.Attachments != null && order.Attachments.Count > 0)
+            {
+                ListDetailAttachments.ItemsSource = order.Attachments;
+                ListDetailAttachments.Visibility = Visibility.Visible;
+                TxtNoAttachments.Visibility = Visibility.Collapsed;
+                TxtDetailAttachmentCount.Text = string.Format("({0} file{1})", order.Attachments.Count, order.Attachments.Count == 1 ? "" : "s");
+            }
+            else
+            {
+                ListDetailAttachments.ItemsSource = null;
+                ListDetailAttachments.Visibility = Visibility.Collapsed;
+                TxtNoAttachments.Visibility = Visibility.Visible;
+                TxtDetailAttachmentCount.Text = "(0 files)";
             }
 
             // Assignee sync
@@ -354,9 +382,9 @@ namespace SS_CAM.Views
 
                 string targetPid = order.ProjectId;
                 TxtExistingProjectPath.Text = string.Format("Project: {0} (Resolving path...)", targetPid);
-                System.Threading.Tasks.Task.Run(() => ResolveExistingProjectDirectory(targetPid)).ContinueWith(t =>
+                System.Threading.Tasks.Task.Run(async () =>
                 {
-                    string dir = t.Result;
+                    string dir = await System.Threading.Tasks.Task.Run(() => ResolveExistingProjectDirectory(targetPid));
                     Dispatcher.Invoke(() =>
                     {
                         if (_selectedOrder != null && _selectedOrder.ProjectId == targetPid)
@@ -670,6 +698,49 @@ namespace SS_CAM.Views
             {
                 item.IsSelected = true;
                 item.Focus();
+            }
+        }
+
+        private void OnOpenOrderFolderClicked(object sender, RoutedEventArgs e)
+        {
+            if (_selectedOrder == null) return;
+            try
+            {
+                string ws = !string.IsNullOrWhiteSpace(_workspaceRoot) ? _workspaceRoot : NasConfigSyncService.DiscoverWorkspaceRoot();
+                string ordersDir = !string.IsNullOrWhiteSpace(ws) ? Path.Combine(ws, "_Orders", _selectedOrder.Id) : null;
+                if (!string.IsNullOrWhiteSpace(ordersDir) && Directory.Exists(ordersDir))
+                {
+                    Process.Start(new ProcessStartInfo { FileName = ordersDir, UseShellExecute = true });
+                }
+                else
+                {
+                    NotificationService.ShowWarning("Folder Not Found", "Order directory does not exist on NAS: " + (ordersDir ?? _selectedOrder.Id));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[OrderRequestsPage] OnOpenOrderFolderClicked error: " + ex.Message);
+            }
+        }
+
+        private void OnOpenAttachmentFileClicked(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as FrameworkElement;
+            string path = btn != null ? btn.Tag as string : null;
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
+                }
+                catch (Exception ex)
+                {
+                    NotificationService.ShowError("Cannot Open File", ex.Message);
+                }
+            }
+            else
+            {
+                NotificationService.ShowWarning("File Not Found", "The attachment file could not be found on disk.");
             }
         }
 

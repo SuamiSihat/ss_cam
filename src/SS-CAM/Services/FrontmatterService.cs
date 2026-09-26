@@ -42,6 +42,7 @@ namespace SS_CAM.Services
                 item.Client = GetValue(fm, "client", "");
                 item.Deadline = GetValue(fm, "deadline", "");
                 item.CreatedDate = GetValue(fm, "created", "");
+                item.StartDate = GetValue(fm, "start_date", GetValue(fm, "startDate", ""));
                 item.Priority = GetValue(fm, "priority", "medium");
                 item.Duration = GetValue(fm, "duration", "");
                 item.Revision = ParseInt(GetValue(fm, "revision", "0"));
@@ -49,6 +50,14 @@ namespace SS_CAM.Services
                 if (string.IsNullOrWhiteSpace(item.CreatedDate))
                 {
                     item.CreatedDate = InferCreatedDate(projectFolderPath, item.Project);
+                }
+                if (string.IsNullOrWhiteSpace(item.StartDate))
+                {
+                    item.StartDate = item.CreatedDate;
+                }
+                if (string.IsNullOrWhiteSpace(item.Duration) && !string.IsNullOrWhiteSpace(item.StartDate) && !string.IsNullOrWhiteSpace(item.Deadline))
+                {
+                    item.Duration = ProjectStatusItem.CalculateDuration(item.StartDate, item.Deadline);
                 }
 
                 string tagsRaw = GetValue(fm, "tags", "");
@@ -167,9 +176,13 @@ namespace SS_CAM.Services
             sb.AppendLine(string.Format("client: {0}", item.Client ?? ""));
             sb.AppendLine(string.Format("deadline: {0}", item.Deadline ?? ""));
             sb.AppendLine(string.Format("created: {0}", item.CreatedDate ?? ""));
+            if (!string.IsNullOrWhiteSpace(item.StartDate))
+                sb.AppendLine(string.Format("start_date: {0}", item.StartDate));
             sb.AppendLine(string.Format("priority: {0}", item.Priority ?? "medium"));
             if (!string.IsNullOrWhiteSpace(item.Duration))
                 sb.AppendLine(string.Format("duration: {0}", item.Duration));
+            else if (!string.IsNullOrWhiteSpace(item.StartDate) && !string.IsNullOrWhiteSpace(item.Deadline))
+                sb.AppendLine(string.Format("duration: {0}", ProjectStatusItem.CalculateDuration(item.StartDate, item.Deadline)));
             if (!string.IsNullOrWhiteSpace(item.CanvaUrl))
                 sb.AppendLine(string.Format("canva_url: {0}", item.CanvaUrl));
             if (item.CategoryWeight > 0)
@@ -215,17 +228,25 @@ namespace SS_CAM.Services
         /// <summary>
         /// Generates the default frontmatter block for a new project.
         /// </summary>
-        public static string BuildDefaultFrontmatter(string designerStaffId, string client, string deadline = null, string categoryPreset = null, string orderId = null, string canvaUrl = null, List<ProjectSubtaskItem> subtasks = null, double categoryWeight = 1.0)
+        public static string BuildDefaultFrontmatter(string designerStaffId, string client, string deadline = null, string categoryPreset = null, string orderId = null, string canvaUrl = null, List<ProjectSubtaskItem> subtasks = null, double categoryWeight = 1.0, string createdDate = null, string startDate = null, string duration = null)
         {
+            string cDate = !string.IsNullOrWhiteSpace(createdDate) ? createdDate : DateTime.Today.ToString("yyyy-MM-dd");
+            string sDate = !string.IsNullOrWhiteSpace(startDate) ? startDate : cDate;
+            string dur = !string.IsNullOrWhiteSpace(duration) ? duration : ProjectStatusItem.CalculateDuration(sDate, deadline);
+
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(Delimiter);
             sb.AppendLine("status: backlog");
             sb.AppendLine(string.Format("designer: {0}", designerStaffId ?? ""));
             sb.AppendLine(string.Format("client: {0}", client ?? ""));
             sb.AppendLine(string.Format("deadline: {0}", deadline ?? ""));
-            sb.AppendLine(string.Format("created: {0}", DateTime.Today.ToString("yyyy-MM-dd")));
+            sb.AppendLine(string.Format("created: {0}", cDate));
+            sb.AppendLine(string.Format("start_date: {0}", sDate));
             sb.AppendLine("priority: medium");
-            sb.AppendLine("duration: ");
+            if (!string.IsNullOrWhiteSpace(dur))
+                sb.AppendLine(string.Format("duration: {0}", dur));
+            else
+                sb.AppendLine("duration: ");
             if (categoryWeight > 0)
             {
                 sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "category_weight: {0:0.#}", categoryWeight));

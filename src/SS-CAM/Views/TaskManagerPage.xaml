@@ -521,6 +521,44 @@
                                 </StackPanel>
                             </Grid>
 
+                            <!-- Markdown Quick Formatting Toolbar (Visible in Edit Mode) -->
+                            <Border x:Name="ReadmeEditToolbar" DockPanel.Dock="Top"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1" CornerRadius="4" Padding="4,2" Margin="0,0,0,8"
+                                    Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:Button Click="OnMdBold" Appearance="Secondary" Height="24" Width="26" Padding="0" Margin="1,0" ToolTip="Bold (**text**)">
+                                        <ui:TextBlock Text="B" FontWeight="Bold" FontSize="11"/>
+                                    </ui:Button>
+                                    <ui:Button Click="OnMdItalic" Appearance="Secondary" Height="24" Width="26" Padding="0" Margin="1,0" ToolTip="Italic (*text*)">
+                                        <ui:TextBlock Text="I" FontStyle="Italic" FontSize="11"/>
+                                    </ui:Button>
+                                    <ui:Button Click="OnMdH2" Appearance="Secondary" Height="24" Width="26" Padding="0" Margin="1,0" ToolTip="Heading 2 (## Title)">
+                                        <ui:TextBlock Text="H2" FontWeight="Bold" FontSize="10"/>
+                                    </ui:Button>
+                                    <ui:Button Click="OnMdCode" Appearance="Secondary" Height="24" Width="26" Padding="0" Margin="1,0" ToolTip="Code (`code`)">
+                                        <ui:TextBlock Text="&lt;&gt;" FontSize="10" FontFamily="Cascadia Code, Consolas"/>
+                                    </ui:Button>
+                                    <ui:Button Click="OnMdList" Appearance="Secondary" Height="24" Width="26" Padding="0" Margin="1,0" ToolTip="Bullet List (- item)">
+                                        <ui:SymbolIcon Symbol="List24" FontSize="11"/>
+                                    </ui:Button>
+                                    <Border Width="1" Background="{DynamicResource CardStrokeColorDefaultBrush}" Margin="3,1,3,1"/>
+                                    <ui:Button Click="OnMdTable" Appearance="Secondary" Height="24" Width="26" Padding="0" Margin="1,0" ToolTip="Table (| Col 1 | Col 2 |)">
+                                        <ui:SymbolIcon Symbol="Table24" FontSize="11"/>
+                                    </ui:Button>
+                                    <ui:Button Click="OnMdLink" Appearance="Secondary" Height="24" Width="26" Padding="0" Margin="1,0" ToolTip="Link ([Title](url))">
+                                        <ui:SymbolIcon Symbol="Link24" FontSize="11"/>
+                                    </ui:Button>
+                                    <ui:Button Click="OnMdImage" Appearance="Secondary" Height="24" Width="26" Padding="0" Margin="1,0" ToolTip="Image (![alt](path))">
+                                        <ui:SymbolIcon Symbol="Image24" FontSize="11"/>
+                                    </ui:Button>
+                                    <ui:Button Click="OnMdAttachment" Appearance="Secondary" Height="24" Width="26" Padding="0" Margin="1,0" ToolTip="Attachment / File Link ([File](path))">
+                                        <ui:SymbolIcon Symbol="Attach24" FontSize="11"/>
+                                    </ui:Button>
+                                </StackPanel>
+                            </Border>
+
                             <!-- README Content Area (Fills entire left column height) -->
                             <Grid VerticalAlignment="Stretch">
                                 <FlowDocumentScrollViewer x:Name="DetailReadmeRendered"
@@ -748,6 +786,8 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="10"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
                                 <!-- Status -->
@@ -775,26 +815,38 @@
                                     </ComboBox>
                                 </StackPanel>
 
-                                <!-- Deadline -->
-                                <StackPanel Grid.Row="2" Grid.Column="0">
-                                    <ui:TextBlock Text="Deadline (YYYY-MM-DD)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
-                                    <DatePicker x:Name="DetailDeadline" Height="34" FontSize="11.5" Padding="4" VerticalContentAlignment="Center" SelectedDateChanged="OnDateChanged"/>
-                                </StackPanel>
-
                                 <!-- Created Date -->
-                                <StackPanel Grid.Row="2" Grid.Column="2">
+                                <StackPanel Grid.Row="2" Grid.Column="0">
                                     <ui:TextBlock Text="Created Date (YYYY-MM-DD)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
                                     <DatePicker x:Name="DetailCreatedDate" Height="34" FontSize="11.5" Padding="4" VerticalContentAlignment="Center" SelectedDateChanged="OnDateChanged"/>
                                 </StackPanel>
 
-                                <!-- Task Duration -->
+                                <!-- Start Date -->
+                                <StackPanel Grid.Row="2" Grid.Column="2">
+                                    <ui:TextBlock Text="Start Date (YYYY-MM-DD)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <DatePicker x:Name="DetailStartDate" Height="34" FontSize="11.5" Padding="4" VerticalContentAlignment="Center" SelectedDateChanged="OnDateChanged"/>
+                                </StackPanel>
+
+                                <!-- Deadline -->
                                 <StackPanel Grid.Row="4" Grid.Column="0">
-                                    <ui:TextBlock Text="Duration (e.g. 3d, 5h)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
-                                    <ui:TextBox x:Name="DetailDuration" Height="34" FontSize="11.5" Padding="8,4" VerticalContentAlignment="Center" PlaceholderText="e.g. 3d"/>
+                                    <ui:TextBlock Text="Deadline (YYYY-MM-DD)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <DatePicker x:Name="DetailDeadline" Height="34" FontSize="11.5" Padding="4" VerticalContentAlignment="Center" SelectedDateChanged="OnDateChanged"/>
+                                </StackPanel>
+
+                                <!-- Task Duration -->
+                                <StackPanel Grid.Row="4" Grid.Column="2">
+                                    <ui:TextBlock Text="Turnaround Duration" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <ui:TextBox x:Name="DetailDuration" Height="34" FontSize="11.5" Padding="8,4" VerticalContentAlignment="Center" PlaceholderText="e.g. 3 days"/>
+                                </StackPanel>
+
+                                <!-- Task Owner / Designer -->
+                                <StackPanel Grid.Row="6" Grid.Column="0">
+                                    <ui:TextBlock Text="Task Owner / Designer" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <ComboBox x:Name="DetailDesigner" Height="34" FontSize="11.5" Padding="8,4" VerticalContentAlignment="Center" IsEditable="True"/>
                                 </StackPanel>
 
                                 <!-- Revision with Stepper Controls (+ / -) -->
-                                <StackPanel Grid.Row="4" Grid.Column="2">
+                                <StackPanel Grid.Row="6" Grid.Column="2">
                                     <ui:TextBlock Text="Revision Round" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -812,18 +864,12 @@
                                     </Grid>
                                 </StackPanel>
 
-                                <!-- Task Owner / Designer -->
-                                <StackPanel Grid.Row="6" Grid.Column="0">
-                                    <ui:TextBlock Text="Task Owner / Designer" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
-                                    <ComboBox x:Name="DetailDesigner" Height="34" FontSize="11.5" Padding="8,4" VerticalContentAlignment="Center" IsEditable="True"/>
-                                </StackPanel>
-
                                 <!-- Handover Action Button -->
-                                <StackPanel Grid.Row="6" Grid.Column="2" VerticalAlignment="Bottom">
+                                <StackPanel Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3">
                                     <ui:Button x:Name="BtnDetailHandover" Appearance="Secondary" Height="34" HorizontalAlignment="Stretch" Click="OnDetailHandoverClicked" ToolTip="Hand over this task to the selected designer and save immediately">
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <ui:SymbolIcon Symbol="ArrowSwap24" FontSize="13" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                            <ui:TextBlock Text="Hand Over Task" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <ui:TextBlock Text="Hand Over Task to Designer" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </ui:Button>
                                 </StackPanel>

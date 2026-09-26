@@ -1407,12 +1407,37 @@
                 </div>
 
                 <div class="prop-group">
+                  <span class="prop-label">Created Date</span>
+                  <div class="prop-value">
+                    <FluentIcons name="calendar" size={13} />
+                    <span style="margin-left: 6px;">{p.createdDate ? String(p.createdDate).split('T')[0] : (p.created ? String(p.created).split('T')[0] : '—')}</span>
+                  </div>
+                </div>
+
+                <div class="prop-group">
+                  <span class="prop-label">Start Date</span>
+                  <div class="prop-value">
+                    <FluentIcons name="calendar" size={13} />
+                    <span style="margin-left: 6px;">{p.startDate ? String(p.startDate).split('T')[0] : (p.created ? String(p.created).split('T')[0] : '—')}</span>
+                  </div>
+                </div>
+
+                <div class="prop-group">
                   <span class="prop-label">Campaign Deadline</span>
                   <div class="prop-value">
                     <FluentIcons name="calendar" size={13} />
-                    <span style="margin-left: 6px;">{p.deadline ? String(p.deadline).split('T')[0] : '2026-08-30'}</span>
+                    <span style="margin-left: 6px;">{p.deadline ? String(p.deadline).split('T')[0] : '—'}</span>
                   </div>
                 </div>
+
+                {#if p.duration}
+                  <div class="prop-group">
+                    <span class="prop-label">Turnaround Duration</span>
+                    <div class="prop-value">
+                      <span class="brand-chip" style="font-size: 11px;">⏱️ {p.duration}</span>
+                    </div>
+                  </div>
+                {/if}
 
                 <div class="prop-group">
                   <span class="prop-label">Deliverables Storage</span>

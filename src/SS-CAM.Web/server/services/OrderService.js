@@ -93,6 +93,25 @@ function getOrdersFilePath() {
   return localFile;
 }
 
+function calculateDuration(startStr, endStr) {
+  if (!startStr || !endStr) return '';
+  try {
+    const s = new Date(startStr);
+    const e = new Date(endStr);
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return '';
+    s.setHours(0, 0, 0, 0);
+    e.setHours(0, 0, 0, 0);
+    const diffMs = e.getTime() - s.getTime();
+    const days = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    if (days < 0) return '0 days';
+    if (days === 0) return 'Same day';
+    if (days === 1) return '1 day';
+    return `${days} days`;
+  } catch (err) {
+    return '';
+  }
+}
+
 // ─── Order Normalization (Cross-Platform C# Desktop & Web Interop) ────────────
 
 /**
@@ -110,6 +129,14 @@ function normalizeOrder(raw) {
   const finalStatus   = String(raw.status || raw.Status || 'pending').toLowerCase();
   const finalPriority = String(raw.priority || raw.Priority || 'tier_1').toLowerCase();
   const finalEntity   = String(raw.entity || raw.Entity || 'SSH').toUpperCase();
+
+  const rawCreated = raw.createdDate || raw.CreatedDate || raw.created || raw.submittedAt || raw.SubmittedAt || new Date().toISOString();
+  const createdDate = String(rawCreated).split('T')[0];
+  const targetDate  = String(raw.targetDate || raw.TargetDate || raw.deadline || raw.Deadline || '').split('T')[0];
+  const rawStart    = raw.startDate || raw.StartDate || raw.start_date || createdDate;
+  const startDate   = String(rawStart).split('T')[0];
+  const deadline    = targetDate;
+  const duration    = raw.duration || raw.Duration || calculateDuration(startDate, deadline);
 
   return {
     id,
@@ -132,8 +159,16 @@ function normalizeOrder(raw) {
     MaterialType:   finalMaterial,
     copy:           raw.copy           || raw.Copy           || '',
     Copy:           raw.copy           || raw.Copy           || '',
-    targetDate:     raw.targetDate     || raw.TargetDate     || '',
-    TargetDate:     raw.targetDate     || raw.TargetDate     || '',
+    createdDate,
+    CreatedDate:    createdDate,
+    startDate,
+    StartDate:      startDate,
+    targetDate,
+    TargetDate:     targetDate,
+    deadline,
+    Deadline:       deadline,
+    duration,
+    Duration:       duration,
     attachmentNote: raw.attachmentNote || raw.AttachmentNote || '',
     AttachmentNote: raw.attachmentNote || raw.AttachmentNote || '',
     requester:      raw.requester      || raw.Requester      || 'Unknown',
@@ -426,7 +461,11 @@ function submitOrder(payload) {
     material,
     materialType,
     copy,
+    createdDate: incomingCreatedDate,
+    startDate: incomingStartDate,
     targetDate,
+    deadline: incomingDeadline,
+    duration: incomingDuration,
     attachmentNote,
     requester,
     requesterRole,
@@ -439,7 +478,13 @@ function submitOrder(payload) {
   if (!priority)                     throw new Error('Priority tier is required.');
   if (!format)                       throw new Error('Format & size is required.');
   if (!copy || !copy.trim())         throw new Error('Copy / script field is required.');
-  if (!targetDate)                   throw new Error('Target date is required.');
+  const rawDeadline = targetDate || incomingDeadline;
+  if (!rawDeadline)                  throw new Error('Target date / deadline is required.');
+
+  const effectiveCreated = String(incomingCreatedDate || new Date().toISOString()).split('T')[0];
+  const effectiveDeadline = String(rawDeadline).split('T')[0];
+  const effectiveStart = String(incomingStartDate || effectiveCreated).split('T')[0];
+  const effectiveDuration = incomingDuration || calculateDuration(effectiveStart, effectiveDeadline);
 
   const id = generateOrderId();
   const nasPath = path.join(getOrdersVaultDir(), id);
@@ -448,26 +493,55 @@ function submitOrder(payload) {
 
   const order = {
     id,
+    Id:             id,
     title:          title.trim(),
+    Title:          title.trim(),
     entity,
+    Entity:         entity,
     priority,
+    Priority:       priority,
     channel:        determinedChannel,
+    Channel:        determinedChannel,
     format,
+    Format:         format,
     customSize:     (customSize || '').trim(),
+    CustomSize:     (customSize || '').trim(),
     material:       finalMaterial,
+    Material:       finalMaterial,
     materialType:   finalMaterial,
+    MaterialType:   finalMaterial,
     copy:           copy.trim(),
-    targetDate,
+    Copy:           copy.trim(),
+    createdDate:    effectiveCreated,
+    CreatedDate:    effectiveCreated,
+    startDate:      effectiveStart,
+    StartDate:      effectiveStart,
+    targetDate:     effectiveDeadline,
+    TargetDate:     effectiveDeadline,
+    deadline:       effectiveDeadline,
+    Deadline:       effectiveDeadline,
+    duration:       effectiveDuration,
+    Duration:       effectiveDuration,
     attachmentNote: (attachmentNote || '').trim(),
+    AttachmentNote: (attachmentNote || '').trim(),
     requester:      requester || 'Unknown',
+    Requester:      requester || 'Unknown',
     requesterRole:  requesterRole || '',
+    RequesterRole:  requesterRole || '',
     status:         'pending',
+    Status:         'pending',
     submittedAt:    new Date().toISOString(),
+    SubmittedAt:    new Date().toISOString(),
     updatedAt:      new Date().toISOString(),
+    UpdatedAt:      new Date().toISOString(),
     comments:       [],
+    Comments:       [],
     assignedTo:     null,
+    AssignedTo:     null,
     projectId:      null,
+    ProjectId:      null,
     attachments:    [],
+    Attachments:    [],
     nasPath
   };
 
@@ -512,7 +586,9 @@ function updateOrder(id, patch) {
 
   const allowed = [
     'title', 'entity', 'priority', 'channel', 'format', 'customSize',
-    'material', 'materialType', 'copy', 'targetDate', 'attachmentNote',
+    'material', 'materialType', 'copy', 'createdDate', 'CreatedDate',
+    'startDate', 'StartDate', 'targetDate', 'TargetDate', 'deadline', 'Deadline',
+    'duration', 'Duration', 'attachmentNote',
     'status', 'assignedTo', 'projectId', 'comments', 'internalNote', 'attachments'
   ];
   const updated = { ...orders[idx], updatedAt: new Date().toISOString() };
@@ -531,6 +607,15 @@ function updateOrder(id, patch) {
     updated.material = patch.materialType;
   }
 
+  // Recalculate duration if start or target dates were patched
+  if (patch.startDate !== undefined || patch.StartDate !== undefined || patch.deadline !== undefined || patch.Deadline !== undefined || patch.targetDate !== undefined || patch.TargetDate !== undefined) {
+    const s = updated.startDate || updated.StartDate || updated.createdDate;
+    const d = updated.deadline || updated.Deadline || updated.targetDate || updated.TargetDate;
+    const dur = calculateDuration(s, d);
+    updated.duration = dur;
+    updated.Duration = dur;
+  }
+
   orders[idx] = updated;
   writeOrders(orders);
   return getOrder(id);
@@ -544,6 +629,7 @@ function cancelOrder(id) {
 }
 
 module.exports = {
+  calculateDuration,
   getOrdersVaultDir,
   getOrderDir,
   listOrders,

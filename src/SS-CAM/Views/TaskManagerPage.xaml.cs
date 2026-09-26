@@ -815,6 +815,17 @@ namespace SS_CAM.Views
             else
                 DetailCreatedDate.SelectedDate = null;
 
+            if (DetailStartDate != null)
+            {
+                DateTime dtStart;
+                if (DateTime.TryParse(item.StartDate, out dtStart))
+                    DetailStartDate.SelectedDate = dtStart;
+                else if (DetailCreatedDate.SelectedDate.HasValue)
+                    DetailStartDate.SelectedDate = DetailCreatedDate.SelectedDate.Value;
+                else
+                    DetailStartDate.SelectedDate = null;
+            }
+
             if (DetailDuration != null) DetailDuration.Text = item.Duration ?? "";
             DetailRevision.Text = item.Revision.ToString();
             if (DetailDesigner != null) DetailDesigner.Text = item.Designer ?? "";
@@ -840,16 +851,25 @@ namespace SS_CAM.Views
         {
             if (_isPopulatingDetail) return;
             
-            if (DetailCreatedDate != null && DetailDeadline != null && DetailDuration != null)
+            DateTime? start = DetailStartDate != null && DetailStartDate.SelectedDate.HasValue
+                ? DetailStartDate.SelectedDate
+                : (DetailCreatedDate != null ? DetailCreatedDate.SelectedDate : null);
+
+            if (start.HasValue && DetailDeadline != null && DetailDeadline.SelectedDate.HasValue && DetailDuration != null)
             {
-                if (DetailCreatedDate.SelectedDate.HasValue && DetailDeadline.SelectedDate.HasValue)
+                TimeSpan diff = DetailDeadline.SelectedDate.Value - start.Value;
+                if (diff.TotalDays == 0)
                 {
-                    TimeSpan diff = DetailDeadline.SelectedDate.Value - DetailCreatedDate.SelectedDate.Value;
-                    if (diff.TotalDays >= 0)
-                    {
-                        int days = (int)diff.TotalDays;
-                        DetailDuration.Text = days == 1 ? "1 Day" : string.Format("{0} Days", days);
-                    }
+                    DetailDuration.Text = "Same day";
+                }
+                else if (diff.TotalDays > 0)
+                {
+                    int days = (int)diff.TotalDays;
+                    DetailDuration.Text = days == 1 ? "1 day" : string.Format("{0} days", days);
+                }
+                else
+                {
+                    DetailDuration.Text = "Overdue";
                 }
             }
         }
@@ -866,6 +886,7 @@ namespace SS_CAM.Views
 
         private void SwitchToReadmePreviewMode()
         {
+            if (ReadmeEditToolbar != null) ReadmeEditToolbar.Visibility = Visibility.Collapsed;
             if (DetailReadmePreview != null && DetailReadmeRendered != null)
             {
                 DetailReadmeRendered.Document = MarkdownHelper.ToFlowDocument(DetailReadmePreview.Text);
@@ -878,6 +899,7 @@ namespace SS_CAM.Views
 
         private void SwitchToReadmeEditMode()
         {
+            if (ReadmeEditToolbar != null) ReadmeEditToolbar.Visibility = Visibility.Visible;
             if (DetailReadmePreview != null && DetailReadmeRendered != null)
             {
                 DetailReadmeRendered.Visibility = Visibility.Collapsed;
@@ -885,6 +907,95 @@ namespace SS_CAM.Views
             }
             if (BtnModePreview != null) BtnModePreview.Appearance = ControlAppearance.Secondary;
             if (BtnModeEdit != null) BtnModeEdit.Appearance = ControlAppearance.Primary;
+        }
+
+        private void ApplyMarkdownWrap(string prefix, string suffix = null, bool lineStart = false)
+        {
+            if (DetailReadmePreview == null) return;
+            suffix = suffix ?? prefix;
+            string sel = DetailReadmePreview.SelectedText;
+            int start = DetailReadmePreview.SelectionStart;
+            int length = DetailReadmePreview.SelectionLength;
+
+            string replacement;
+            int newCaret;
+
+            if (lineStart)
+            {
+                replacement = prefix + (string.IsNullOrEmpty(sel) ? "Item" : sel);
+                newCaret = start + replacement.Length;
+            }
+            else if (!string.IsNullOrEmpty(sel))
+            {
+                replacement = prefix + sel + suffix;
+                newCaret = start + replacement.Length;
+            }
+            else
+            {
+                replacement = prefix + "text" + suffix;
+                newCaret = start + prefix.Length;
+            }
+
+            DetailReadmePreview.SelectedText = replacement;
+            if (length == 0)
+            {
+                DetailReadmePreview.Select(start + prefix.Length, 4);
+            }
+            else
+            {
+                DetailReadmePreview.SelectionStart = newCaret;
+            }
+            DetailReadmePreview.Focus();
+        }
+
+        private void OnMdBold(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("**");
+        }
+
+        private void OnMdItalic(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("*");
+        }
+
+        private void OnMdCode(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("`");
+        }
+
+        private void OnMdH2(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("## ", "", true);
+        }
+
+        private void OnMdList(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("- ", "", true);
+        }
+
+        private void OnMdTable(object sender, RoutedEventArgs e)
+        {
+            if (DetailReadmePreview == null) return;
+            string table = "\n| Item / Angle | Script / Copy | Status |\n| :--- | :--- | :--- |\n| **Hook 1** | Stop scrolling if you want... | `Draft` |\n| **Body Offer** | Exclusive bundle promo | `Ready` |\n| **CTA** | Click the link below | `Ready` |\n";
+            int pos = DetailReadmePreview.SelectionStart;
+            DetailReadmePreview.Text = DetailReadmePreview.Text.Insert(pos, table);
+            DetailReadmePreview.SelectionStart = pos + table.Length;
+            DetailReadmePreview.Focus();
+        }
+
+        private void OnMdLink(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("[", "](https://)");
+        }
+
+        private void OnMdImage(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("![", "](image_path)");
+        }
+
+        private void OnMdAttachment(object sender, RoutedEventArgs e)
+        {
+            ApplyMarkdownWrap("[📎 ", "](attachment_path)");
         }
 
         private void OnOpenRawReadmeClicked(object sender, RoutedEventArgs e)
@@ -965,6 +1076,13 @@ namespace SS_CAM.Views
                     : "";
             }
 
+            if (DetailStartDate != null)
+            {
+                _editingProject.StartDate = DetailStartDate.SelectedDate.HasValue 
+                    ? DetailStartDate.SelectedDate.Value.ToString("yyyy-MM-dd") 
+                    : "";
+            }
+
             if (DetailDuration != null)
                 _editingProject.Duration = DetailDuration.Text.Trim();
 
@@ -1024,6 +1142,13 @@ namespace SS_CAM.Views
             {
                 _editingProject.CreatedDate = DetailCreatedDate.SelectedDate.HasValue 
                     ? DetailCreatedDate.SelectedDate.Value.ToString("yyyy-MM-dd") 
+                    : "";
+            }
+
+            if (DetailStartDate != null)
+            {
+                _editingProject.StartDate = DetailStartDate.SelectedDate.HasValue 
+                    ? DetailStartDate.SelectedDate.Value.ToString("yyyy-MM-dd") 
                     : "";
             }
 

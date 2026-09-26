@@ -398,9 +398,9 @@ class WorkspaceService {
     // Compute status
     const status = frontmatter.status || 'backlog';
     const priority = frontmatter.priority || 'medium';
-    const designer = frontmatter.designer || this.extractDesignerFromPath(fullPath);
     const deadline = frontmatter.deadline || '';
-    const created = frontmatter.created || this.inferCreatedDate(folderName, fullPath);
+    const created = frontmatter.created || frontmatter.createdDate || this.inferCreatedDate(folderName, fullPath);
+    const startDate = frontmatter.startDate || frontmatter.start_date || created;
 
     // Count deliverables in canonical 05_DELIVERABLES, 04_Production, 04_Export_Packages, and WIP
     let deliverableCount = 0;
@@ -506,6 +506,20 @@ class WorkspaceService {
       }
     }
 
+    let duration = frontmatter.duration || '';
+    if (!duration && startDate && deadline) {
+      try {
+        const s = new Date(startDate);
+        const e = new Date(deadline);
+        if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+          s.setHours(0, 0, 0, 0);
+          e.setHours(0, 0, 0, 0);
+          const diffDays = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
+          duration = diffDays <= 0 ? (diffDays === 0 ? 'Same day' : '0 days') : (diffDays === 1 ? '1 day' : `${diffDays} days`);
+        }
+      } catch (e) {}
+    }
+
     return {
       id: folderName,
       folderName,
@@ -522,10 +536,12 @@ class WorkspaceService {
       manager: frontmatter.manager || 'Unassigned',
       department: frontmatter.department || 'General',
       created,
+      createdDate: created,
+      startDate,
       deadline,
       deadlineDisplay,
       completedAt,
-      duration: frontmatter.duration || '',
+      duration,
       revision: frontmatter.revision || 0,
       tags: frontmatter.tags || [],
       isOverdue,

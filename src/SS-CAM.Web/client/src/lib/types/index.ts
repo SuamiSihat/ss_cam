@@ -48,7 +48,12 @@ export interface ProjectFrontmatter {
   brand?: string;
   manager?: string;
   department?: string;
+  created?: string;
+  createdDate?: string;
+  start_date?: string;
+  startDate?: string;
   deadline?: string;
+  duration?: string;
   priority?: ProjectPriority;
   presetType?: string;
   canva_url?: string;
@@ -119,7 +124,10 @@ export interface Project {
   priority: ProjectPriority;
   presetType: string;
   created: string;
+  createdDate?: string;
+  startDate?: string;
   deadline?: string;
+  duration?: string;
   completedAt?: string;
   isOverdue?: boolean;
   isDueSoon?: boolean;
@@ -141,6 +149,63 @@ export interface Project {
   categoryWeight?: number | null;
   subtaskProgressDisplay?: string;
   deadlineDisplay?: string;
+}
+
+export interface OrderAttachmentItem {
+  filename: string;
+  size: number;
+  sizeFormatted: string;
+  uploadedAt: string;
+  url: string;
+}
+
+export interface CreativeOrder {
+  id: string;
+  Id?: string;
+  title: string;
+  Title?: string;
+  entity: string;
+  Entity?: string;
+  priority: string;
+  Priority?: string;
+  channel: string;
+  Channel?: string;
+  format: string;
+  Format?: string;
+  customSize?: string;
+  material?: string;
+  materialType?: string;
+  copy: string;
+  Copy?: string;
+  createdDate?: string;
+  CreatedDate?: string;
+  startDate?: string;
+  StartDate?: string;
+  targetDate?: string;
+  TargetDate?: string;
+  deadline?: string;
+  Deadline?: string;
+  duration?: string;
+  Duration?: string;
+  attachmentNote?: string;
+  AttachmentNote?: string;
+  requester: string;
+  Requester?: string;
+  requesterRole?: string;
+  RequesterRole?: string;
+  status: string;
+  Status?: string;
+  submittedAt: string;
+  SubmittedAt?: string;
+  updatedAt?: string;
+  UpdatedAt?: string;
+  assignedTo?: string | null;
+  projectId?: string | null;
+  attachments?: OrderAttachmentItem[];
+  Attachments?: OrderAttachmentItem[];
+  attachmentCount?: number;
+  nasPath?: string;
+  comments?: any[];
 }
 
 export interface DashboardKPIs {

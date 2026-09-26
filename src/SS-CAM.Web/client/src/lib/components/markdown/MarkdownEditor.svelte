@@ -109,6 +109,18 @@
     insertBlock(table);
   }
 
+  function insertLink() {
+    wrapSelection('[', '](https://)', 'Link text');
+  }
+
+  function insertImage() {
+    wrapSelection('![', '](https://)', 'Image description');
+  }
+
+  function insertAttachment() {
+    wrapSelection('[📎 ', '](path_or_url)', 'Attachment Name');
+  }
+
   function insertCallout(type: 'NOTE' | 'IMPORTANT' | 'WARNING' | 'TIP') {
     const callout = `> [!${type}]\n> Enter critical campaign requirements, compliance checks, or brand guidelines here.`;
     insertBlock(callout);
@@ -139,6 +151,9 @@
         <button class="tool-btn" onclick={() => wrapSelection('## ', '', 'Heading 2')} title="Heading 2">H2</button>
         <button class="tool-btn" onclick={() => insertBlock('- [ ] New task item')} title="Checklist Task Checkbox">☑ Task</button>
         <button class="tool-btn" onclick={() => insertTable()} title="Insert 3x3 Table">▦ Table</button>
+        <button class="tool-btn" onclick={insertLink} title="Insert Link">🔗 Link</button>
+        <button class="tool-btn" onclick={insertImage} title="Insert Image">🖼️ Image</button>
+        <button class="tool-btn" onclick={insertAttachment} title="Insert File Attachment">📎 Attachment</button>
 
         <span class="tool-divider"></span>
 

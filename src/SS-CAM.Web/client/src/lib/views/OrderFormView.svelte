@@ -34,6 +34,10 @@
     assignedTo: string | null;
     projectId: string | null;
     attachments?: OrderAttachment[];
+    createdDate?: string;
+    startDate?: string;
+    deadline?: string;
+    duration?: string;
     attachmentCount?: number;
     nasPath?: string;
   }
@@ -62,11 +66,99 @@
   let f_customSize     = $state('');
   let f_material       = $state('');
   let f_copy           = $state('');
+  let f_createdDate    = $state(new Date().toISOString().split('T')[0]);
+  let f_startDate      = $state(new Date().toISOString().split('T')[0]);
+  let f_deadline       = $state('');
   let f_targetDate     = $state('');
   let f_attachmentNote = $state('');
   let f_files          = $state<UploadFileItem[]>([]);
   let formError        = $state('');
   let submitSuccess    = $state(false);
+
+  function calculateDuration(startStr?: string, endStr?: string): string {
+    if (!startStr || !endStr) return '';
+    try {
+      const s = new Date(startStr);
+      const e = new Date(endStr);
+      if (isNaN(s.getTime()) || isNaN(e.getTime())) return '';
+      s.setHours(0, 0, 0, 0);
+      e.setHours(0, 0, 0, 0);
+      const diffMs = e.getTime() - s.getTime();
+      const days = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      if (days < 0) return '0 days';
+      if (days === 0) return 'Same day';
+      if (days === 1) return '1 day';
+      return `${days} days`;
+    } catch {
+      return '';
+    }
+  }
+
+  let f_duration = $derived.by(() => {
+    const s = f_startDate || f_createdDate;
+    const e = f_deadline || f_targetDate;
+    return calculateDuration(s, e);
+  });
+
+  let copyTextareaEl = $state<HTMLTextAreaElement | null>(null);
+
+  function wrapCopySelection(prefix: string, suffix: string = prefix, defaultPlaceholder: string = 'text') {
+    if (!copyTextareaEl) {
+      f_copy += `${prefix}${defaultPlaceholder}${suffix}`;
+      return;
+    }
+    const start = copyTextareaEl.selectionStart;
+    const end = copyTextareaEl.selectionEnd;
+    const selected = f_copy.substring(start, end) || defaultPlaceholder;
+    const rep = `${prefix}${selected}${suffix}`;
+    f_copy = f_copy.substring(0, start) + rep + f_copy.substring(end);
+    setTimeout(() => {
+      if (copyTextareaEl) {
+        copyTextareaEl.focus();
+        copyTextareaEl.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+      }
+    }, 10);
+  }
+
+  function insertCopyBlock(block: string) {
+    if (!copyTextareaEl) {
+      f_copy += `\n${block}\n`;
+      return;
+    }
+    const start = copyTextareaEl.selectionStart;
+    const end = copyTextareaEl.selectionEnd;
+    const before = f_copy.substring(0, start);
+    const after = f_copy.substring(end);
+    const needsPrefix = before.length > 0 && !before.endsWith('\n\n');
+    f_copy = before + (needsPrefix ? '\n\n' : '') + block + '\n\n' + after;
+    setTimeout(() => {
+      if (copyTextareaEl) {
+        copyTextareaEl.focus();
+        const newPos = start + (needsPrefix ? 2 : 0) + block.length + 2;
+        copyTextareaEl.setSelectionRange(newPos, newPos);
+      }
+    }, 10);
+  }
+
+  function insertCopyTable() {
+    insertCopyBlock(`| Item / Angle | Script / Copy | Status |
+| :--- | :--- | :--- |
+| **Hook 1** | Stop scrolling if you want... | \`Draft\` |
+| **Body Offer** | Exclusive bundle promo | \`Ready\` |
+| **CTA** | Click the link below | \`Ready\` |`);
+  }
+
+  function insertCopyLink() {
+    wrapCopySelection('[', '](https://)', 'Link text');
+  }
+
+  function insertCopyImage() {
+    wrapCopySelection('![', '](https://)', 'Image description');
+  }
+
+  function insertCopyAttachment() {
+    wrapCopySelection('[📎 ', '](file_or_nas_path)', 'Attachment Name');
+  }
 
   // ─── Constants ─────────────────────────────────────────────────────────────
   const ENTITIES = [
@@ -222,7 +314,10 @@
     f_customSize     = '';
     f_material       = '';
     f_copy           = '';
-    f_targetDate     = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
+    f_createdDate    = new Date().toISOString().split('T')[0];
+    f_startDate      = new Date().toISOString().split('T')[0];
+    f_deadline       = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
+    f_targetDate     = f_deadline;
     f_attachmentNote = '';
     f_files          = [];
     showForm = true;
@@ -240,7 +335,10 @@
     f_customSize     = order.customSize || '';
     f_material       = order.material || order.materialType || '';
     f_copy           = order.copy || '';
-    f_targetDate     = order.targetDate || '';
+    f_createdDate    = (order.createdDate || order.submittedAt || '').split('T')[0] || new Date().toISOString().split('T')[0];
+    f_startDate      = (order.startDate || f_createdDate).split('T')[0];
+    f_deadline       = (order.deadline || order.targetDate || '').split('T')[0];
+    f_targetDate     = f_deadline;
     f_attachmentNote = order.attachmentNote || '';
     f_files          = [];
     showForm         = true;
@@ -342,6 +440,12 @@
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     formError    = '';
+    const finalDeadline = f_deadline || f_targetDate;
+    if (!finalDeadline) {
+      formError = 'Please specify a target delivery date / deadline.';
+      return;
+    }
+
     isSubmitting = true;
     try {
       if (editingOrderId) {
@@ -356,7 +460,11 @@
             customSize:     f_customSize.trim(),
             material:       f_material,
             copy:           f_copy.trim(),
-            targetDate:     f_targetDate,
+            createdDate:    f_createdDate,
+            startDate:      f_startDate,
+            targetDate:     finalDeadline,
+            deadline:       finalDeadline,
+            duration:       f_duration,
             attachmentNote: f_attachmentNote.trim(),
           }),
         });
@@ -391,7 +499,11 @@
             customSize:     f_customSize.trim(),
             material:       f_material,
             copy:           f_copy.trim(),
-            targetDate:     f_targetDate,
+            createdDate:    f_createdDate,
+            startDate:      f_startDate,
+            targetDate:     finalDeadline,
+            deadline:       finalDeadline,
+            duration:       f_duration,
             attachmentNote: f_attachmentNote.trim(),
             attachments:    f_files.map(f => ({ filename: f.filename, fileData: f.fileData }))
           }),
@@ -878,54 +990,116 @@
               {/if}
             </div>
 
-            <!-- 5. Brief / Copy -->
+            <!-- 5. Brief / Copy with Markdown Quick Toolbar -->
             <div class="field">
-              <label class="field-label" for="f-copy">
-                Brief &amp; Copy
-                <span class="req-mark" aria-hidden="true">*</span>
-              </label>
+              <div class="field-label-row">
+                <label class="field-label" for="f-copy">
+                  Brief &amp; Copy (Markdown)
+                  <span class="req-mark" aria-hidden="true">*</span>
+                </label>
+                <div class="markdown-quick-toolbar" role="toolbar" aria-label="Markdown formatting tools">
+                  <button type="button" class="md-tool-btn" title="Bold (**text**)" onclick={() => wrapCopySelection('**', '**', 'bold text')}>
+                    <strong>B</strong>
+                  </button>
+                  <button type="button" class="md-tool-btn" title="Italic (*text*)" onclick={() => wrapCopySelection('*', '*', 'italic text')}>
+                    <em>I</em>
+                  </button>
+                  <button type="button" class="md-tool-btn" title="Heading 2 (## Heading)" onclick={() => wrapCopySelection('## ', '', 'Heading')}>
+                    H2
+                  </button>
+                  <button type="button" class="md-tool-btn" title="Inline Code (`code`)" onclick={() => wrapCopySelection('`', '`', 'code')}>
+                    &lt;/&gt;
+                  </button>
+                  <button type="button" class="md-tool-btn" title="Task Item (- [ ] Task)" onclick={() => wrapCopySelection('- [ ] ', '', 'Task')}>
+                    ☑
+                  </button>
+                  <span class="md-tool-sep"></span>
+                  <button type="button" class="md-tool-btn" title="Insert Table" onclick={insertCopyTable}>
+                    <iconify-icon icon="fluent:table-24-regular" style="font-size:13px; vertical-align: -2px;"></iconify-icon> Table
+                  </button>
+                  <button type="button" class="md-tool-btn" title="Insert Link" onclick={insertCopyLink}>
+                    <iconify-icon icon="fluent:link-24-regular" style="font-size:13px; vertical-align: -2px;"></iconify-icon> Link
+                  </button>
+                  <button type="button" class="md-tool-btn" title="Insert Image" onclick={insertCopyImage}>
+                    <iconify-icon icon="fluent:image-24-regular" style="font-size:13px; vertical-align: -2px;"></iconify-icon> Image
+                  </button>
+                  <button type="button" class="md-tool-btn" title="Insert Attachment" onclick={insertCopyAttachment}>
+                    <iconify-icon icon="fluent:attach-24-regular" style="font-size:13px; vertical-align: -2px;"></iconify-icon> Attach
+                  </button>
+                </div>
+              </div>
               <textarea
                 id="f-copy"
                 class="textarea"
+                bind:this={copyTextareaEl}
                 bind:value={f_copy}
                 placeholder="Include: headline, promotion price, call-to-action, doctor name, and any specific messaging guidelines. You may also paste a SSNAS folder path or Google Drive link to your raw assets."
-                rows="5"
+                rows="6"
                 required
               ></textarea>
               <p class="field-hint">
-                The more complete this field, the fewer clarification rounds required.
+                Markdown formatting, tables, image embeds, links, and attachment tags are fully supported.
               </p>
             </div>
 
-            <!-- 6. Target Date + Reference Link -->
-            <div class="field-row">
-              <div class="field" style="flex: 1; min-width: 0;">
-                <label class="field-label" for="f-date">
-                  Target Delivery Date
-                  <span class="req-mark" aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="f-date"
-                  class="input"
-                  type="date"
-                  bind:value={f_targetDate}
-                  min={new Date().toISOString().split('T')[0]}
-                  required
-                />
+            <!-- 6. Production Timeline (Created Date, Start Date, Target Deadline, Turnaround) -->
+            <div class="field">
+              <div class="field-label">
+                Production Schedule &amp; Turnaround
+                <span class="req-mark" aria-hidden="true">*</span>
               </div>
-              <div class="field" style="flex: 1; min-width: 0;">
-                <label class="field-label" for="f-ref">
-                  Asset Reference
-                  <span class="optional-label">Optional</span>
-                </label>
-                <input
-                  id="f-ref"
-                  class="input"
-                  type="text"
-                  bind:value={f_attachmentNote}
-                  placeholder="\\SSNAS\Creative-Team\... or drive.google.com/..."
-                />
+              <div class="date-strip-grid">
+                <div class="date-cell">
+                  <span class="date-cell-label">1. Created Date</span>
+                  <div class="date-readonly-badge" title="Order Creation Date">
+                    <iconify-icon icon="fluent:calendar-add-24-regular" style="font-size:14px; color:var(--text-tertiary);"></iconify-icon>
+                    <span>{f_createdDate}</span>
+                  </div>
+                </div>
+                <div class="date-cell">
+                  <label class="date-cell-label" for="f-start-date">2. Start Date</label>
+                  <input
+                    id="f-start-date"
+                    class="input date-picker-input"
+                    type="date"
+                    bind:value={f_startDate}
+                    required
+                  />
+                </div>
+                <div class="date-cell">
+                  <label class="date-cell-label" for="f-deadline-date">3. Target Deadline</label>
+                  <input
+                    id="f-deadline-date"
+                    class="input date-picker-input"
+                    type="date"
+                    bind:value={f_deadline}
+                    oninput={() => f_targetDate = f_deadline}
+                    min={f_startDate || new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+                <div class="date-cell">
+                  <span class="date-cell-label">4. Est. Turnaround</span>
+                  <div class="duration-badge {f_duration ? 'active' : ''}">
+                    <iconify-icon icon="fluent:timer-24-regular" style="font-size:14px;"></iconify-icon>
+                    <span>{f_duration || 'Calculated'}</span>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="f-ref">
+                Asset Reference / External Link
+                <span class="optional-label">Optional</span>
+              </label>
+              <input
+                id="f-ref"
+                class="input"
+                type="text"
+                bind:value={f_attachmentNote}
+                placeholder="\\SSNAS\Creative-Team\... or drive.google.com/..."
+              />
             </div>
 
             <!-- 7. File Attachments (NAS _Orders Vault) -->
@@ -1101,7 +1275,12 @@
                 </div>
               </td>
               <td>
-                <span class="meta-cell">{fmtDate(order.targetDate)}</span>
+                <div class="date-stack">
+                  <span class="meta-cell">{fmtDate(order.deadline || order.targetDate)}</span>
+                  {#if order.duration || calculateDuration(order.startDate, order.deadline || order.targetDate)}
+                    <span class="duration-pill" title="Turnaround Duration from Start Date to Deadline">⏱️ {order.duration || calculateDuration(order.startDate, order.deadline || order.targetDate)}</span>
+                  {/if}
+                </div>
               </td>
               <td>
                 <span class="meta-cell">{order.requester}</span>
@@ -1179,8 +1358,20 @@
                         </div>
                       {/if}
                       <div class="detail-col">
-                        <span class="detail-label">Date Submitted</span>
-                        <span class="detail-val">{fmtDate(order.submittedAt)}</span>
+                        <span class="detail-label">Created Date</span>
+                        <span class="detail-val">{fmtDate(order.createdDate || order.submittedAt)}</span>
+                      </div>
+                      <div class="detail-col">
+                        <span class="detail-label">Start Date</span>
+                        <span class="detail-val">{fmtDate(order.startDate) || '—'}</span>
+                      </div>
+                      <div class="detail-col">
+                        <span class="detail-label">Target Deadline</span>
+                        <span class="detail-val">{fmtDate(order.deadline || order.targetDate)}</span>
+                      </div>
+                      <div class="detail-col">
+                        <span class="detail-label">Turnaround Duration</span>
+                        <span class="detail-val" style="font-weight: 700; color: var(--brand-accent);">⏱️ {order.duration || calculateDuration(order.startDate, order.deadline || order.targetDate) || '—'}</span>
                       </div>
                       {#if order.assignedTo}
                         <div class="detail-col">
@@ -2677,4 +2868,122 @@
     white-space: nowrap;
     border-width: 0;
   }
+
+  /* ── Markdown Quick Toolbar ── */
+  .field-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .markdown-quick-toolbar {
+    display: inline-flex;
+    align-items: center;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: var(--radius-sm, 6px);
+    padding: 2px 4px;
+    gap: 3px;
+  }
+  .md-tool-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 11.5px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .md-tool-btn:hover {
+    background: var(--surface-card-border);
+    color: var(--text-primary);
+  }
+  .md-tool-sep {
+    display: inline-block;
+    width: 1px;
+    height: 14px;
+    background: var(--surface-card-border);
+    margin: 0 2px;
+  }
+
+  /* ── Date Strip Grid & Badges ── */
+  .date-strip-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 720px) {
+    .date-strip-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .date-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .date-cell-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .date-readonly-badge {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 13px;
+    color: var(--text-secondary);
+    user-select: none;
+  }
+  .date-picker-input {
+    height: 36px;
+  }
+  .duration-badge {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    background: var(--surface-card);
+    border: 1px dashed var(--surface-card-border);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+  }
+  .duration-badge.active {
+    border-style: solid;
+    border-color: #A7F3D0;
+    background: #ECFDF5;
+    color: #065F46;
+  }
+  .date-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .duration-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #065F46;
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    padding: 1px 6px;
+    border-radius: 10px;
+    width: fit-content;
+  }
+
 </style>

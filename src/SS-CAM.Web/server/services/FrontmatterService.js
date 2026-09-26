@@ -148,6 +148,39 @@ flowchart LR
       frontmatter.revision = parseInt(frontmatter.revision, 10) || 0;
     }
 
+    // 4 Canonical Dates Normalization
+    if (frontmatter.start_date && !frontmatter.startDate) {
+      frontmatter.startDate = frontmatter.start_date;
+    } else if (frontmatter.startDate && !frontmatter.start_date) {
+      frontmatter.start_date = frontmatter.startDate;
+    }
+
+    if (frontmatter.created && !frontmatter.createdDate) {
+      frontmatter.createdDate = frontmatter.created;
+    } else if (frontmatter.createdDate && !frontmatter.created) {
+      frontmatter.created = frontmatter.createdDate;
+    }
+
+    if (frontmatter.targetDate && !frontmatter.deadline) {
+      frontmatter.deadline = frontmatter.targetDate;
+    }
+
+    // Calculate duration from startDate (or created) to deadline
+    const sDate = frontmatter.startDate || frontmatter.start_date || frontmatter.createdDate || frontmatter.created;
+    const dDate = frontmatter.deadline || frontmatter.targetDate;
+    if (sDate && dDate && !frontmatter.duration) {
+      try {
+        const s = new Date(sDate);
+        const e = new Date(dDate);
+        if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+          s.setHours(0, 0, 0, 0);
+          e.setHours(0, 0, 0, 0);
+          const diffDays = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
+          frontmatter.duration = diffDays <= 0 ? (diffDays === 0 ? 'Same day' : '0 days') : (diffDays === 1 ? '1 day' : `${diffDays} days`);
+        }
+      } catch (e) {}
+    }
+
     return { frontmatter, body };
   }
 
@@ -197,6 +230,38 @@ flowchart LR
       ...existingFm,
       ...updatedFrontmatter
     };
+
+    // Ensure 4 canonical date fields are synchronized
+    if (mergedFrontmatter.startDate && !mergedFrontmatter.start_date) {
+      mergedFrontmatter.start_date = mergedFrontmatter.startDate;
+    } else if (mergedFrontmatter.start_date && !mergedFrontmatter.startDate) {
+      mergedFrontmatter.startDate = mergedFrontmatter.start_date;
+    }
+
+    if (mergedFrontmatter.createdDate && !mergedFrontmatter.created) {
+      mergedFrontmatter.created = mergedFrontmatter.createdDate;
+    } else if (mergedFrontmatter.created && !mergedFrontmatter.createdDate) {
+      mergedFrontmatter.createdDate = mergedFrontmatter.created;
+    }
+
+    if (mergedFrontmatter.targetDate && !mergedFrontmatter.deadline) {
+      mergedFrontmatter.deadline = mergedFrontmatter.targetDate;
+    }
+
+    const sDate = mergedFrontmatter.startDate || mergedFrontmatter.start_date || mergedFrontmatter.createdDate || mergedFrontmatter.created;
+    const dDate = mergedFrontmatter.deadline || mergedFrontmatter.targetDate;
+    if (sDate && dDate) {
+      try {
+        const s = new Date(sDate);
+        const e = new Date(dDate);
+        if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+          s.setHours(0, 0, 0, 0);
+          e.setHours(0, 0, 0, 0);
+          const diffDays = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
+          mergedFrontmatter.duration = diffDays <= 0 ? (diffDays === 0 ? 'Same day' : '0 days') : (diffDays === 1 ? '1 day' : `${diffDays} days`);
+        }
+      } catch (e) {}
+    }
 
     const finalBody = newBody !== null && newBody !== undefined ? newBody : existingBody;
     const finalContent = this.serializeContent(mergedFrontmatter, finalBody);

@@ -189,6 +189,8 @@ namespace SS_CAM.Services
                                         CreativeOrder order = JsonConvert.DeserializeObject<CreativeOrder>(line);
                                         if (order != null)
                                         {
+                                            EnrichOrderAttachments(order, workspaceRoot);
+                                            order.Duration = CreativeOrder.CalculateDuration(order.StartDate, order.Deadline);
                                             orders.Add(order);
                                         }
                                     }
@@ -216,6 +218,44 @@ namespace SS_CAM.Services
             });
         }
 
+        private static void EnrichOrderAttachments(CreativeOrder order, string workspaceRoot)
+        {
+            if (order == null || string.IsNullOrWhiteSpace(order.Id) || string.IsNullOrWhiteSpace(workspaceRoot)) return;
+            try
+            {
+                string orderVaultDir = Path.Combine(workspaceRoot, "_Orders", order.Id);
+                if (Directory.Exists(orderVaultDir))
+                {
+                    var files = Directory.GetFiles(orderVaultDir)
+                        .Where(f => !Path.GetFileName(f).StartsWith(".") && !Path.GetFileName(f).StartsWith("~") && Path.GetFileName(f) != "creative-orders.jsonl")
+                        .ToList();
+
+                    if (order.Attachments == null) order.Attachments = new List<OrderAttachmentItem>();
+
+                    foreach (var file in files)
+                    {
+                        var fi = new FileInfo(file);
+                        if (!order.Attachments.Any(a => string.Equals(a.Filename, fi.Name, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            order.Attachments.Add(new OrderAttachmentItem
+                            {
+                                Filename = fi.Name,
+                                SizeBytes = fi.Length,
+                                FilePath = fi.FullName,
+                                Url = "/api/orders/" + order.Id + "/attachments/" + Uri.EscapeDataString(fi.Name),
+                                UploadedAt = fi.CreationTimeUtc.ToString("o")
+                            });
+                        }
+                    }
+                    order.AttachmentCount = order.Attachments.Count;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[CreativeOrderService] EnrichOrderAttachments error: " + ex.Message);
+            }
+        }
+
         /// <summary>
         /// Asynchronously loads all creative orders. Attempts live synchronization with Web Portal / Cloud API,
         /// falling back to the local Synology NAS ledger file if offline.
@@ -231,6 +271,11 @@ namespace SS_CAM.Services
                     // Cache to local NAS ledger file for offline resilience and local tool integration
                     string filePath = GetOrdersFilePath(workspaceRoot);
                     SaveOrdersInternal(filePath, liveOrders);
+                    foreach (var o in liveOrders)
+                    {
+                        EnrichOrderAttachments(o, workspaceRoot);
+                        o.Duration = CreativeOrder.CalculateDuration(o.StartDate, o.Deadline);
+                    }
                     return liveOrders.OrderByDescending(o => o.SubmittedAt).ToList();
                 }
             }
@@ -451,6 +496,29 @@ namespace SS_CAM.Services
                 Directory.CreateDirectory(artworkDir);
                 Directory.CreateDirectory(exportsDir);
 
+                // Copy Order Attachments to 01_Brief_and_Copy/Brief_Assets
+                string briefAssetsDir = Path.Combine(briefDir, "Brief_Assets");
+                int attachmentsCopied = CopyAttachmentsToProject(workspaceRoot, order.Id, briefAssetsDir);
+
+                string createdStr = !string.IsNullOrWhiteSpace(order.CreatedDate) ? order.CreatedDate : (!string.IsNullOrWhiteSpace(order.SubmittedAt) ? order.SubmittedAt : DateTime.Now.ToString("yyyy-MM-dd"));
+                string startStr = !string.IsNullOrWhiteSpace(order.StartDate) ? order.StartDate : DateTime.Now.ToString("yyyy-MM-dd");
+                string deadlineStr = !string.IsNullOrWhiteSpace(order.Deadline) ? order.Deadline : (!string.IsNullOrWhiteSpace(order.TargetDate) ? order.TargetDate : DateTime.Now.AddDays(3).ToString("yyyy-MM-dd"));
+                string durationStr = !string.IsNullOrWhiteSpace(order.Duration) ? order.Duration : CreativeOrder.CalculateDuration(startStr, deadlineStr);
+
+                StringBuilder attachmentListBuilder = new StringBuilder();
+                if (attachmentsCopied > 0 && Directory.Exists(briefAssetsDir))
+                {
+                    attachmentListBuilder.AppendLine("\n---");
+                    attachmentListBuilder.AppendLine(string.Format("\n## Attached Brief Assets ({0})", attachmentsCopied));
+                    foreach (var file in Directory.GetFiles(briefAssetsDir))
+                    {
+                        string fname = Path.GetFileName(file);
+                        var fi = new FileInfo(file);
+                        string sizeStr = fi.Length > 1048576 ? string.Format("{0:0.#} MB", fi.Length / 1048576.0) : string.Format("{0:0.#} KB", fi.Length / 1024.0);
+                        attachmentListBuilder.AppendLine(string.Format("- [{0}](Brief_Assets/{0}) ({1})", fname, sizeStr));
+                    }
+                }
+
                 // 6. Generate COPY.md with Order's Exact Copy Script
                 string copyFilePath = Path.Combine(briefDir, "COPY.md");
                 string copyContent = string.Format(
@@ -460,20 +528,23 @@ namespace SS_CAM.Services
 - **Entity**: {2} ({3})
 - **Priority**: {4}
 - **Target Format**: {5}
-- **Target Due Date**: {6}
-- **Requester**: {7} ({8})
-- **Created**: {9:yyyy-MM-dd HH:mm}
+- **Created Date**: {6}
+- **Start Date**: {7}
+- **Target Due Date / Deadline**: {8}
+- **Estimated Duration**: {9}
+- **Requester**: {10} ({11})
 
 ---
 
 ## Approved Copy / Script Content
 
-{10}
+{12}
 
 ---
 
 ## Production / Requester Notes
-{11}
+{13}
+{14}
 ",
                     order.SafeTitle,
                     order.Id,
@@ -481,67 +552,77 @@ namespace SS_CAM.Services
                     order.EntityFullName,
                     order.PriorityLabel,
                     order.FormatLabel,
-                    order.TargetDate,
+                    createdStr,
+                    startStr,
+                    deadlineStr,
+                    durationStr,
                     order.Requester,
                     order.RequesterRole,
-                    DateTime.Now,
                     string.IsNullOrWhiteSpace(order.Copy) ? "_No copy script provided._" : order.Copy.Trim(),
-                    string.IsNullOrWhiteSpace(order.AttachmentNote) ? "_No special attachment notes._" : order.AttachmentNote.Trim()
+                    string.IsNullOrWhiteSpace(order.AttachmentNote) ? "_No special attachment notes._" : order.AttachmentNote.Trim(),
+                    attachmentListBuilder.ToString()
                 );
 
                 File.WriteAllText(copyFilePath, copyContent, Encoding.UTF8);
 
                 // 7. Generate README.md with YAML Frontmatter
                 string readmePath = Path.Combine(targetProjectDir, "README.md");
-                string effectiveDeadline = !string.IsNullOrWhiteSpace(order.TargetDate) ? order.TargetDate : DateTime.Now.AddDays(3).ToString("yyyy-MM-dd");
 
                 string readmeContent = string.Format(
 @"---
 status: in_progress
 designer: {0}
 client: {1}
-deadline: {2}
-priority: {3}
-order_id: {4}
-tags: [{1}, {5}]
+created: {2}
+start_date: {3}
+deadline: {4}
+duration: {5}
+priority: {6}
+order_id: {7}
+tags: [{1}, {8}]
 ---
 
-# {6}
+# {9}
 
-- **Project ID**: {7}
-- **Order ID**: {8}
-- **Designer**: {9} ({0})
-- **Brand / Entity**: {1} - {10}
-- **Platform / Format**: {11}
-- **Target Deadline**: {2}
-- **Requester**: {12} ({13})
-- **Created**: {14:yyyy-MM-dd HH:mm}
+- **Project ID**: {10}
+- **Order ID**: {7}
+- **Designer**: {11} ({0})
+- **Brand / Entity**: {1} - {12}
+- **Platform / Format**: {13}
+- **Created Date**: {2}
+- **Start Date**: {3}
+- **Target Deadline**: {4}
+- **Turnaround Duration**: {5}
+- **Requester**: {14} ({15})
 
 ## Deliverable Brief
-{15}
+{16}
 
 ### Copywriting & Script Reference
 The complete brief and approved script are maintained in [`01_Brief_and_Copy/COPY.md`](01_Brief_and_Copy/COPY.md).
 
+{17}
 ### Requester Notes
-{16}
+{18}
 ",
                     designerStaffId ?? "0001D",
                     entityCode,
-                    effectiveDeadline,
+                    createdStr,
+                    startStr,
+                    deadlineStr,
+                    durationStr,
                     order.PriorityBadge.ToLowerInvariant(),
                     order.Id,
                     order.Format ?? "asset",
                     folderName,
                     formattedProjectId,
-                    order.Id,
                     designerName ?? "Designer",
                     order.EntityFullName,
                     order.FormatLabel,
                     order.Requester,
                     order.RequesterRole,
-                    DateTime.Now,
                     order.SafeTitle,
+                    attachmentsCopied > 0 ? string.Format("### Attached Brief Assets\nImported {0} file(s) into [`01_Brief_and_Copy/Brief_Assets`](01_Brief_and_Copy/Brief_Assets).\n", attachmentsCopied) : "",
                     string.IsNullOrWhiteSpace(order.AttachmentNote) ? "None." : order.AttachmentNote
                 );
 
@@ -702,6 +783,13 @@ The complete brief and approved script are maintained in [`01_Brief_and_Copy/COP
                         string id = (string)obj["id"] ?? (string)obj["Id"] ?? "";
                         if (string.IsNullOrWhiteSpace(id)) continue;
 
+                        string targetDate = (string)obj["targetDate"] ?? (string)obj["deadline"] ?? (string)obj["TargetDate"] ?? "";
+                        string startDate = (string)obj["startDate"] ?? (string)obj["start_date"] ?? (string)obj["StartDate"] ?? "";
+                        string createdDate = (string)obj["createdDate"] ?? (string)obj["created"] ?? (string)obj["submittedAt"] ?? (string)obj["createdAt"] ?? (string)obj["SubmittedAt"] ?? "";
+                        if (string.IsNullOrWhiteSpace(createdDate)) createdDate = DateTime.Now.ToString("yyyy-MM-dd");
+                        if (string.IsNullOrWhiteSpace(startDate)) startDate = createdDate;
+                        string duration = (string)obj["duration"] ?? ProjectStatusItem.CalculateDuration(startDate, targetDate);
+
                         CreativeOrderItem item = new CreativeOrderItem
                         {
                             Id = id,
@@ -711,12 +799,16 @@ The complete brief and approved script are maintained in [`01_Brief_and_Copy/COP
                             RequesterEmail = (string)obj["requesterEmail"] ?? "",
                             DeliverableType = (string)obj["format"] ?? (string)obj["deliverableType"] ?? (string)obj["Format"] ?? "Standard Asset",
                             Priority = (string)obj["priority"] ?? (string)obj["Priority"] ?? "medium",
-                            Deadline = (string)obj["targetDate"] ?? (string)obj["deadline"] ?? (string)obj["TargetDate"] ?? "",
+                            Deadline = targetDate,
+                            CreatedDate = createdDate,
+                            StartDate = startDate,
+                            Duration = duration,
                             Description = (string)obj["copy"] ?? (string)obj["description"] ?? (string)obj["Copy"] ?? "",
                             Status = (string)obj["status"] ?? (string)obj["Status"] ?? "pending",
                             ProjectId = (string)obj["projectId"] ?? (string)obj["ProjectId"],
                             CreatedAt = (string)obj["submittedAt"] ?? (string)obj["createdAt"] ?? (string)obj["SubmittedAt"] ?? "",
-                            UpdatedAt = (string)obj["updatedAt"] ?? (string)obj["UpdatedAt"] ?? ""
+                            UpdatedAt = (string)obj["updatedAt"] ?? (string)obj["UpdatedAt"] ?? "",
+                            Attachments = new List<OrderAttachmentItem>()
                         };
 
                         // Check physical attachments in _Orders/<orderId>/
@@ -732,6 +824,18 @@ The complete brief and approved script are maintained in [`01_Brief_and_Copy/COP
                                         .ToList();
                                     item.AttachmentCount = files.Count;
                                     item.AttachmentFiles = files.Select(f => Path.GetFileName(f)).ToList();
+                                    foreach (var file in files)
+                                    {
+                                        var fi = new FileInfo(file);
+                                        item.Attachments.Add(new OrderAttachmentItem
+                                        {
+                                            Filename = fi.Name,
+                                            SizeBytes = fi.Length,
+                                            FilePath = fi.FullName,
+                                            Url = "/api/orders/" + id + "/attachments/" + Uri.EscapeDataString(fi.Name),
+                                            UploadedAt = fi.CreationTimeUtc.ToString("o")
+                                        });
+                                    }
                                 }
                                 catch (Exception ex)
                                 {

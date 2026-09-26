@@ -1,4 +1,4 @@
-<Page x:Class="SS_CAM.Views.ProjectCreatorPage"
+﻿<Page x:Class="SS_CAM.Views.ProjectCreatorPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -90,6 +90,62 @@
                                     <ui:TextBox x:Name="ProjectNameInput" Text="brand campaign" Height="36" TextChanged="OnFormInputChanged"/>
                                 </StackPanel>
 
+                                <!-- 4-Date Production Schedule Strip -->
+                                <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,14">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <ui:SymbolIcon Symbol="CalendarClock24" FontSize="14" Foreground="{DynamicResource FluentBrand80}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock Text="Production Timeline &amp; Delivery Turnaround" FontSize="11.5" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- 1. Created Date -->
+                                            <StackPanel Grid.Column="0">
+                                                <ui:TextBlock Text="1. Created Date" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                                <Border Background="{DynamicResource TextControlBackground}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Height="36" Padding="8,0" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <ui:SymbolIcon Symbol="Calendar24" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,4,0"/>
+                                                        <ui:TextBlock x:Name="TxtProjectCreatedDate" Text="2026-09-26" FontSize="11" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+
+                                            <!-- 2. Start Date -->
+                                            <StackPanel Grid.Column="2">
+                                                <ui:TextBlock Text="2. Start Date" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                                <DatePicker x:Name="ProjectStartDatePicker" Height="36" Padding="4" VerticalContentAlignment="Center" FontSize="11.5" SelectedDateChanged="OnProjectDateChanged"/>
+                                            </StackPanel>
+
+                                            <!-- 3. Target Deadline -->
+                                            <StackPanel Grid.Column="4">
+                                                <ui:TextBlock Text="3. Target Deadline" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                                <DatePicker x:Name="ProjectDeadlinePicker" Height="36" Padding="4" VerticalContentAlignment="Center" FontSize="11.5" SelectedDateChanged="OnProjectDateChanged"/>
+                                            </StackPanel>
+
+                                            <!-- 4. Turnaround Duration -->
+                                            <StackPanel Grid.Column="6">
+                                                <ui:TextBlock Text="4. Est. Turnaround" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="#A7F3D0" BorderThickness="1" CornerRadius="4" Height="36" Padding="8,0">
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <ui:SymbolIcon Symbol="Timer24" FontSize="13" Foreground="#059669" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                        <ui:TextBlock x:Name="TxtProjectDuration" Text="3 days" FontSize="11.5" FontWeight="Bold" Foreground="#065F46" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
                                 <StackPanel>
                                     <ui:TextBlock Text="Project Brief / Remarks" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
 
@@ -108,6 +164,11 @@
                                                     <ui:Button x:Name="MdHeading" Content="H2" Click="OnMdHeading" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="SemiBold" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Heading 2 (## heading)"/>
                                                     <ui:Button x:Name="MdList" Content="* List" Click="OnMdList" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="List item (- item)"/>
                                                     <ui:Button x:Name="MdSep" Content="- HR" Click="OnMdSep" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Horizontal rule (---)"/>
+                                                    <Border Width="1" Background="{DynamicResource CardStrokeColorDefaultBrush}" Margin="4,3"/>
+                                                    <ui:Button x:Name="MdTable" Content="Table" Click="OnMdTable" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Insert Markdown Table"/>
+                                                    <ui:Button x:Name="MdLink" Content="Link" Click="OnMdLink" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Insert Link ([text](url))"/>
+                                                    <ui:Button x:Name="MdImage" Content="Image" Click="OnMdImage" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Insert Image (![alt](url))"/>
+                                                    <ui:Button x:Name="MdAttachment" Content="Attach" Click="OnMdAttachment" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Insert Attachment Link ([📎 name](path))"/>
                                                 </StackPanel>
                                             </Border>
 

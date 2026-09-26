@@ -21,7 +21,43 @@ namespace SS_CAM.Models
         public string Material { get; set; }
         public string MaterialType { get; set; }
         public string Copy { get; set; }
-        public string TargetDate { get; set; }
+        
+        private string _targetDate;
+        public string TargetDate
+        {
+            get { return _targetDate; }
+            set
+            {
+                _targetDate = value;
+                if (string.IsNullOrWhiteSpace(_deadline)) _deadline = value;
+            }
+        }
+
+        private string _deadline;
+        public string Deadline
+        {
+            get { return !string.IsNullOrWhiteSpace(_deadline) ? _deadline : TargetDate; }
+            set
+            {
+                _deadline = value;
+                _targetDate = value;
+            }
+        }
+
+        public string CreatedDate { get; set; }
+        public string StartDate { get; set; }
+
+        private string _duration;
+        public string Duration
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(_duration)) return _duration;
+                return CalculateDuration(StartDate, Deadline);
+            }
+            set { _duration = value; }
+        }
+
         public string AttachmentNote { get; set; }
         public string Requester { get; set; }
         public string RequesterRole { get; set; }
@@ -44,7 +80,11 @@ namespace SS_CAM.Models
             Material = string.Empty;
             MaterialType = string.Empty;
             Copy = string.Empty;
+            CreatedDate = DateTime.Now.ToString("yyyy-MM-dd");
+            StartDate = DateTime.Now.ToString("yyyy-MM-dd");
             TargetDate = DateTime.Now.AddDays(3).ToString("yyyy-MM-dd");
+            Deadline = TargetDate;
+            Duration = "3 days";
             AttachmentNote = string.Empty;
             Requester = "Staff";
             RequesterRole = "Team Member";
@@ -54,6 +94,8 @@ namespace SS_CAM.Models
             AssignedTo = null;
             ProjectId = null;
             InternalNote = string.Empty;
+            Attachments = new List<OrderAttachmentItem>();
+            AttachmentFiles = new List<string>();
         }
 
         // ─── Computed Properties for WPF UI ──────────────────────────────────────
@@ -269,8 +311,58 @@ namespace SS_CAM.Models
             }
         }
 
-        public int AttachmentCount { get; set; }
+        private int _attachmentCount;
+        public int AttachmentCount
+        {
+            get
+            {
+                if (Attachments != null && Attachments.Count > 0) return Attachments.Count;
+                if (AttachmentFiles != null && AttachmentFiles.Count > 0) return AttachmentFiles.Count;
+                return _attachmentCount;
+            }
+            set { _attachmentCount = value; }
+        }
+
         public List<string> AttachmentFiles { get; set; }
+        public List<OrderAttachmentItem> Attachments { get; set; }
+
+        public static string CalculateDuration(string startStr, string endStr)
+        {
+            DateTime s, e;
+            if (DateTime.TryParse(startStr, out s) && DateTime.TryParse(endStr, out e))
+            {
+                int days = (int)Math.Round((e.Date - s.Date).TotalDays);
+                if (days <= 0) return "Same day (1d)";
+                if (days == 1) return "1 day";
+                if (days % 7 == 0) return string.Format("{0}w ({1}d)", days / 7, days);
+                return string.Format("{0} days", days);
+            }
+            return "";
+        }
+    }
+
+    /// <summary>
+    /// Represents an attachment file stored in the NAS order vault.
+    /// </summary>
+    public class OrderAttachmentItem
+    {
+        public string Filename { get; set; }
+        public long SizeBytes { get; set; }
+        public string SizeFormatted { get; set; }
+        public string FilePath { get; set; }
+        public string Url { get; set; }
+        public string UploadedAt { get; set; }
+
+        public string DisplaySize
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(SizeFormatted)) return SizeFormatted;
+                if (SizeBytes < 1024) return string.Format("{0} B", SizeBytes);
+                if (SizeBytes < 1024 * 1024) return string.Format("{0:0.#} KB", SizeBytes / 1024.0);
+                return string.Format("{0:0.#} MB", SizeBytes / (1024.0 * 1024.0));
+            }
+        }
     }
 
     /// <summary>
@@ -286,6 +378,9 @@ namespace SS_CAM.Models
         public string DeliverableType { get; set; }
         public string Priority { get; set; }
         public string Deadline { get; set; }
+        public string CreatedDate { get; set; }
+        public string StartDate { get; set; }
+        public string Duration { get; set; }
         public string Description { get; set; }
         public string Status { get; set; }
         public string ProjectId { get; set; }
@@ -293,10 +388,12 @@ namespace SS_CAM.Models
         public string UpdatedAt { get; set; }
         public int AttachmentCount { get; set; }
         public List<string> AttachmentFiles { get; set; }
+        public List<OrderAttachmentItem> Attachments { get; set; }
 
         public CreativeOrderItem()
         {
             AttachmentFiles = new List<string>();
+            Attachments = new List<OrderAttachmentItem>();
         }
 
         public string DisplayText

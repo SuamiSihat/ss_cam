@@ -12,6 +12,7 @@ namespace SS_CAM.Models
         public string Client { get; set; }
         public string Deadline { get; set; }
         public string CreatedDate { get; set; }   // YYYY-MM-DD
+        public string StartDate { get; set; }     // YYYY-MM-DD
         public string Priority { get; set; }      // low|medium|high|urgent
         public int Revision { get; set; }
         public List<string> Tags { get; set; }
@@ -82,8 +83,23 @@ namespace SS_CAM.Models
             CategoryWeight = 1.0;
             HasFrontmatter = false;
             CreatedDate = "";
+            StartDate = "";
             Duration = "";
             CanvaUrl = "";
+        }
+
+        public static string CalculateDuration(string startDateStr, string deadlineStr)
+        {
+            DateTime s, e;
+            if (DateTime.TryParse(startDateStr, out s) && DateTime.TryParse(deadlineStr, out e))
+            {
+                int days = (int)Math.Round((e.Date - s.Date).TotalDays);
+                if (days <= 0) return "Same day (1d)";
+                if (days == 1) return "1 day";
+                if (days % 7 == 0) return string.Format("{0}w ({1}d)", days / 7, days);
+                return string.Format("{0} days", days);
+            }
+            return "";
         }
 
         public int TotalSubtasksCount
