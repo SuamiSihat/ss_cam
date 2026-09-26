@@ -4,7 +4,7 @@
 
 Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Brand Asset Inspector · Synology NAS Native · Multi-Platform
 
-[![Release](https://img.shields.io/badge/release-v4.10.1-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.10.1)
+[![Release](https://img.shields.io/badge/release-v4.10.2-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.10.2)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20Linux%20%7C%20Android%20%7C%20Docker-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%208.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
 [![Web Stack](https://img.shields.io/badge/web-Svelte%205%20%2B%20Node.js%2020-ff3e00?style=flat-square)](https://svelte.dev)
@@ -12,6 +12,18 @@ Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Br
 [![License](https://img.shields.io/badge/licence-Internal%20Use-orange?style=flat-square)](./installer/EULA.txt)
 
 ---
+
+## 🚀 What's New in v4.10.2 ("Cross-Platform 4-Date Schema Synchronization, Brief Attachment Handover & Universal Markdown Studio")
+
+* **📅 Universal 4-Date Lifecycle Across Ecosystem**:
+  * **Canonical Temporal Schema**: Standardized on 4 explicit dates across Web Portal, Windows Desktop, Linux Avalonia, and Android: **Created Date** (draft timestamp), **Start Date** (sprint kickoff), **Deadline** (due date), and **Duration** (auto-calculated turnaround).
+  * **Dynamic Turnaround Duration**: Automatically computes friendly durations (`Same day (1d)`, `X days`, `Xw (Yd)`) on date selection with zero manual math.
+* **📎 Order Attachment Vault & Brief Handover Pipeline**:
+  * **Order Attachment Multi-File Upload**: Web portal orders accept multi-file drag-and-drop attachments stored securely in `_Orders/<orderId>/`.
+  * **One-Click Handover to Projects**: Automatically copies all brief assets into `01_Brief_and_Copy/Brief_Assets/` upon project generation.
+  * **Clickable Markdown Integration**: Embeds asset tables and links in `01_Brief_and_Copy/COPY.md` and links order references in `README.md` YAML frontmatter.
+* **✍️ Universal Markdown Studio Toolbar**:
+  * Rich Markdown authoring across Web Management Portal and Desktop Copywriting Studio with H1-H3, Bold, Italic, Lists, Checklists, Blockquotes, Code, Hyperlinks, Images, and Table scaffolding.
 
 ## 🚀 What's New in v4.10.1 ("Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine")
 

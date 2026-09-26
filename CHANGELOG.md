@@ -2,6 +2,32 @@
 
 All notable SS-CAM changes are documented here.
 
+## [4.10.2] - 2026-09-26 (Cross-Platform 4-Date Schema Synchronization, Brief Attachment Handover & Universal Markdown Studio)
+
+### Added & Synchronized — Canonical 4-Date Schema Across Ecosystem
+- **Universal 4-Date Lifecycle**:
+  - Implemented exact temporal tracking across Web Management Portal, Windows Desktop, Linux Desktop (Avalonia), and Android Companion App:
+    1. **Created Date (`createdDate` / `created`)**: Immutable timestamp recorded when order request or project is initially drafted.
+    2. **Start Date (`startDate` / `start_date`)**: Explicit project kickoff date for sprint planning and timeline alignment.
+    3. **Deadline (`deadline`)**: Target completion / deliverable submission due date.
+    4. **Duration (`duration`)**: Auto-calculated elapsed turnaround time in human-friendly canonical format (`Same day (1d)`, `X days`, `Xw (Yd)`).
+  - Synchronized date parsing across all layers protecting against ISO-8601 timestamps (`2026-09-26T11:00:00Z`) or bare date representations (`YYYY-MM-DD`).
+  - Integrated dynamic duration recalculation on date picker updates across all creation and editing workflows.
+
+### Added & Refined — Order Attachment Vault & Project Brief Handover
+- **Order Attachment Ingestion & Pipeline Handover**:
+  - Web Portal: Multi-file attachment drag-and-drop upload with size, MIME type detection, and storage in `_Orders/<orderId>/`.
+  - Windows Desktop (`CreativeOrderService.cs`): Automatic vault enrichment scanning `_Orders/<orderId>/` and seamless handover during project creation.
+  - Standardized Brief Asset Location: Attachments are copied directly into `01_Brief_and_Copy/Brief_Assets/` upon project generation.
+  - Script & Markdown Integration: Generates clickable Markdown tables and hyperlinks in `01_Brief_and_Copy/COPY.md` referencing `Brief_Assets/<file>`.
+  - YAML Frontmatter: Populates `README.md` with complete order ID, 4-date schema, and project metadata.
+
+### Added & Refined — Universal Markdown Studio Toolbar
+- **Full-Featured Markdown Authoring**:
+  - Integrated comprehensive Markdown editor toolbars across Web Management Portal (`CreativeOrdersView.svelte`, `CopywritingStudioView.svelte`) and Desktop (`CopywritingPage.xaml`).
+  - Added dedicated actions for H1, H2, H3, Bold, Italic, Bullet List, Numbered List, Task Checklist, Blockquote, Code Block, Link insertion, Image insertion, and Data Table scaffolding.
+  - Full keyboard accessibility and auto-indentation support.
+
 ## [4.10.1] - 2026-09-15 (Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine)
 
 ### Fixed & Refined — Studio Notes, Project Presets & Web Deliverables (2026-09-23)

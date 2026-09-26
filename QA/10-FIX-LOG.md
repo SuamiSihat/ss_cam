@@ -1,6 +1,25 @@
 # SS-CAM FIX LOG
 
-## v4.10.1 Post-Release Maintenance & Fixes — 2026-09-23
+## v4.10.2 — 2026-09-26 (Cross-Platform 4-Date Schema Synchronization, Brief Attachment Handover & Universal Markdown Studio)
+- **Universal 4-Date Temporal Schema Synchronization**:
+  - Aligned Web Portal, Windows Desktop, Linux Avalonia Desktop, and Android Companion App on the canonical 4-date schema: `createdDate`, `startDate`, `deadline`, and auto-calculated `duration`.
+  - Added robust date parsing across all platforms handling both ISO-8601 timestamps and date-only strings without timezone offset drift.
+  - Implemented automatic duration calculation in `CreativeOrder.cs`, `ProjectStatusItem.cs`, `order-service.js`, and `Models.kt`.
+- **Order Attachment Ingestion & Project Brief Handover**:
+  - Implemented multi-file drag-and-drop attachment upload on Web Management Portal storing files under `_Orders/<orderId>/`.
+  - Windows Desktop (`CreativeOrderService.cs`): Added automatic enrichment scanning `_Orders/<orderId>/` and handover to project briefs (`01_Brief_and_Copy/Brief_Assets/`).
+  - Generated clickable Markdown tables and hyperlinks in `01_Brief_and_Copy/COPY.md` pointing to brief assets.
+  - Populated `README.md` YAML frontmatter with full order reference and 4-date metadata.
+- **Universal Markdown Editor Toolbars**:
+  - Integrated full Markdown editing toolbars (H1-H3, Bold, Italic, Lists, Checklists, Blockquotes, Code, Links, Images, Tables) into Web Management Portal (`CreativeOrdersView.svelte`, `CopywritingStudioView.svelte`) and Desktop (`CopywritingPage.xaml`).
+- **End-to-End Verification**:
+  - Created `QA/verify_order_handshake.ps1` verifying order ingestion, project generation, attachment handover, frontmatter parsing, and status updates (30/30 PASS).
+  - Web Portal Test Suite: 34/34 PASS.
+  - Source Guardian: 9 passed, 0 failed.
+  - Windows Desktop MSBuild: PASS (`dist/SS-CAM-v4.10.2.exe`).
+  - Linux Desktop `dotnet build`: PASS (`net10.0` 0 errors).
+  - Android Companion App Gradle: PASS (`compileDebugKotlin` 0 errors).
+
 - **Studio Notes Navigation Crash Resolution (`QuickNotePage.xaml`, `QuickNotePage.xaml.cs`)**:
   - **Premature SelectionChanged Elimination**: Removed `IsSelected="True"` from `CmbSort` in XAML. In WPF, child items with `IsSelected="True"` fire `SelectionChanged` immediately during BAML parsing before following controls like `NotesList` are created, causing `ApplyNoteFilter()` to fail on null references. Default selection is now assigned safely during `OnPageLoaded`.
   - **WPF-UI SymbolRegular Enum Correction**: Corrected invalid `Symbol="FullScreen24"` on `BtnToggleZen` to `Symbol="FullScreenMaximize24"`.
