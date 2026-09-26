@@ -1050,9 +1050,10 @@ fun VerticalTimelineProjectCard(
         else -> Color(0xFF64748B)
     }
 
-    val startDateStr = project.parsedCreatedDate?.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy")) ?: project.formattedCreated
+    val startDateStr = (project.parsedStartDate ?: project.parsedCreatedDate)?.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy")) ?: (if (project.safeStartDate.isNotBlank()) project.safeStartDate else project.formattedCreated)
     val deadlineStr = project.parsedDeadlineDate?.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy")) ?: project.formattedDeadline
-    val dateRangeText = "$startDateStr  →  $deadlineStr"
+    val durationText = if (project.hasDuration) " (${project.safeDuration})" else ""
+    val dateRangeText = "$startDateStr  →  $deadlineStr$durationText"
 
     val cardSurface = @Composable {
         Surface(

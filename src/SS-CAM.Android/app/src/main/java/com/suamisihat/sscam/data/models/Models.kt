@@ -29,6 +29,8 @@ data class ProjectItem(
     @SerializedName("client") val client: String? = "",
     @SerializedName("deadline") val deadline: String? = "",
     @SerializedName("created") val created: String? = "",
+    @SerializedName("startDate") val startDate: String? = "",
+    @SerializedName("duration") val duration: String? = "",
     @SerializedName("priority") val priority: String? = "medium",
     @SerializedName("revision") val revision: Int? = 0,
     @SerializedName("tags") val tags: List<String>? = emptyList(),
@@ -101,6 +103,30 @@ data class ProjectItem(
             }
         }
 
+    val safeStartDate: String
+        get() = startDate.orEmpty().ifBlank { created.orEmpty() }
+
+    val safeDuration: String
+        get() {
+            if (!duration.isNullOrBlank()) return duration
+            return calculateDuration(safeStartDate, deadline.orEmpty())
+        }
+
+    val hasDuration: Boolean
+        get() = safeDuration.isNotBlank()
+
+    val parsedStartDate: java.time.LocalDate?
+        get() {
+            val s = (startDate ?: created).orEmpty().trim().trim('"', '\'')
+            if (s.isBlank()) return null
+            return try {
+                val dateStr = if (s.contains("T")) s.substringBefore("T") else s
+                java.time.LocalDate.parse(dateStr.trim())
+            } catch (e: Exception) {
+                null
+            }
+        }
+
     val parsedCreatedDate: java.time.LocalDate?
         get() {
             val c = created.orEmpty().trim().trim('"', '\'')
@@ -126,14 +152,14 @@ data class ProjectItem(
         }
 
     val effectiveStartDate: java.time.LocalDate
-        get() = parsedCreatedDate ?: parsedDeadlineDate ?: java.time.LocalDate.MIN
+        get() = parsedStartDate ?: parsedCreatedDate ?: parsedDeadlineDate ?: java.time.LocalDate.MIN
 
     val effectiveEndDate: java.time.LocalDate
-        get() = parsedDeadlineDate ?: parsedCreatedDate ?: java.time.LocalDate.MAX
+        get() = parsedDeadlineDate ?: parsedStartDate ?: parsedCreatedDate ?: java.time.LocalDate.MAX
 
     fun isActiveOn(date: java.time.LocalDate): Boolean {
-        val start = parsedCreatedDate ?: parsedDeadlineDate ?: return false
-        val due = parsedDeadlineDate ?: parsedCreatedDate ?: return false
+        val start = parsedStartDate ?: parsedCreatedDate ?: parsedDeadlineDate ?: return false
+        val due = parsedDeadlineDate ?: parsedStartDate ?: parsedCreatedDate ?: return false
         val s = if (due.isBefore(start)) due else start
         val e = if (due.isBefore(start)) start else due
         return !date.isBefore(s) && !date.isAfter(e)
@@ -294,6 +320,13 @@ data class CreativeOrder(
     @SerializedName("format") val format: String = "1_1_feed",
     @SerializedName("copy") val copy: String = "",
     @SerializedName("targetDate") val targetDate: String = "",
+    @SerializedName("createdDate") val createdDate: String? = null,
+    @SerializedName("startDate") val startDate: String? = null,
+    @SerializedName("deadline") val deadline: String? = null,
+    @SerializedName("duration") val duration: String? = null,
+    @SerializedName("attachmentCount") val attachmentCount: Int = 0,
+    @SerializedName("attachments") val attachments: List<OrderAttachmentItem> = emptyList(),
+    @SerializedName("attachmentFiles") val attachmentFiles: List<String> = emptyList(),
     @SerializedName("attachmentNote") val attachmentNote: String = "",
     @SerializedName("requester") val requester: String = "Unknown",
     @SerializedName("requesterRole") val requesterRole: String = "",
@@ -312,6 +345,26 @@ data class CreativeOrder(
 
     val safeEntity: String
         get() = entity.ifBlank { "SSH" }
+
+    val safeCreatedDate: String
+        get() = createdDate ?: submittedAt.substringBefore("T").ifBlank { "N/A" }
+
+    val safeStartDate: String
+        get() = startDate ?: safeCreatedDate
+
+    val safeDeadline: String
+        get() = deadline ?: targetDate
+
+    val safeDuration: String
+        get() {
+            if (!duration.isNullOrBlank()) return duration
+            return calculateDuration(safeStartDate, safeDeadline)
+        }
+
+    val effectiveAttachmentCount: Int
+        get() = if (attachments.isNotEmpty()) attachments.size
+                else if (attachmentFiles.isNotEmpty()) attachmentFiles.size
+                else attachmentCount
 
     val priorityBadge: String
         get() = when (priority.lowercase()) {
@@ -356,6 +409,42 @@ data class CreativeOrder(
         }
 }
 
+data class OrderAttachmentItem(
+    @SerializedName("filename") val filename: String = "",
+    @SerializedName("sizeBytes") val sizeBytes: Long = 0L,
+    @SerializedName("sizeFormatted") val sizeFormatted: String = "",
+    @SerializedName("filePath") val filePath: String = "",
+    @SerializedName("url") val url: String = "",
+    @SerializedName("uploadedAt") val uploadedAt: String = ""
+) {
+    val displaySize: String
+        get() {
+            if (sizeFormatted.isNotBlank()) return sizeFormatted
+            return when {
+                sizeBytes < 1024 -> "$sizeBytes B"
+                sizeBytes < 1024 * 1024 -> String.format("%.1f KB", sizeBytes / 1024.0)
+                else -> String.format("%.1f MB", sizeBytes / (1024.0 * 1024.0))
+            }
+        }
+}
+
+fun calculateDuration(startStr: String, endStr: String): String {
+    if (startStr.isBlank() || endStr.isBlank()) return ""
+    return try {
+        val s = java.time.LocalDate.parse(startStr.substringBefore("T").trim())
+        val e = java.time.LocalDate.parse(endStr.substringBefore("T").trim())
+        val days = java.time.temporal.ChronoUnit.DAYS.between(s, e)
+        when {
+            days <= 0L -> "Same day (1d)"
+            days == 1L -> "1 day"
+            days % 7L == 0L -> "${days / 7}w (${days}d)"
+            else -> "$days days"
+        }
+    } catch (_: Exception) {
+        ""
+    }
+}
+
 data class CreateOrderRequest(
     @SerializedName("title") val title: String,
     @SerializedName("entity") val entity: String,
@@ -363,6 +452,10 @@ data class CreateOrderRequest(
     @SerializedName("format") val format: String,
     @SerializedName("copy") val copy: String,
     @SerializedName("targetDate") val targetDate: String,
+    @SerializedName("createdDate") val createdDate: String? = null,
+    @SerializedName("startDate") val startDate: String? = null,
+    @SerializedName("deadline") val deadline: String? = null,
+    @SerializedName("duration") val duration: String? = null,
     @SerializedName("attachmentNote") val attachmentNote: String = "",
     @SerializedName("requester") val requester: String = "Harussani",
     @SerializedName("requesterRole") val requesterRole: String = "Admin, Designer",

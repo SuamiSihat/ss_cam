@@ -816,7 +816,11 @@ fun CompanionAppScreen(
                                         requester = req.requester,
                                         requesterRole = req.requesterRole,
                                         status = "pending",
-                                        submittedAt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).format(now)
+                                        submittedAt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).format(now),
+                                        createdDate = req.createdDate,
+                                        startDate = req.startDate,
+                                        deadline = req.deadline,
+                                        duration = req.duration
                                     )
                                     orders = listOf(newOrder) + orders
                                     ProjectCacheManager.saveOrders(context, orders)

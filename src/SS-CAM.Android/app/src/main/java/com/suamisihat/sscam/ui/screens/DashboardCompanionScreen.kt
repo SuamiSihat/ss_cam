@@ -1073,8 +1073,35 @@ fun DashboardCompanionScreen(
                             Text(detailOrder.requester, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = colors.textPrimary)
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("Target Date", fontSize = 10.sp, color = colors.textMuted)
-                            Text(detailOrder.targetDate, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = colors.textPrimary)
+                            Text("Schedule", fontSize = 10.sp, color = colors.textMuted)
+                            val schedText = if (detailOrder.safeDuration.isNotBlank()) {
+                                "${detailOrder.safeStartDate} → ${detailOrder.safeDeadline} (${detailOrder.safeDuration})"
+                            } else {
+                                "${detailOrder.safeStartDate} → ${detailOrder.safeDeadline}"
+                            }
+                            Text(schedText, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = colors.textPrimary)
+                        }
+                    }
+
+                    if (detailOrder.effectiveAttachmentCount > 0) {
+                        Surface(
+                            color = colors.primary.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.AttachFile, contentDescription = null, tint = colors.primary, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "${detailOrder.effectiveAttachmentCount} attachment file(s) attached",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.primary
+                                )
+                            }
                         }
                     }
                 }
@@ -1089,11 +1116,18 @@ fun DashboardCompanionScreen(
         var newPriority by remember { mutableStateOf("tier_1") }
         var newFormat by remember { mutableStateOf("9_16_video") }
         var newCopy by remember { mutableStateOf("") }
+        var newStartDate by remember {
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+            mutableStateOf(sdf.format(java.util.Date()))
+        }
         var newTargetDate by remember {
             val cal = java.util.Calendar.getInstance()
             cal.add(java.util.Calendar.DAY_OF_YEAR, 3)
             val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
             mutableStateOf(sdf.format(cal.time))
+        }
+        val calculatedDuration = remember(newStartDate, newTargetDate) {
+            com.suamisihat.sscam.data.models.calculateDuration(newStartDate, newTargetDate)
         }
         var newAttachment by remember { mutableStateOf("") }
 
@@ -1103,6 +1137,7 @@ fun DashboardCompanionScreen(
                 Button(
                     onClick = {
                         if (newTitle.isNotBlank() && newCopy.isNotBlank()) {
+                            val todayStr = java.time.LocalDate.now().toString()
                             onSubmitNewOrder(
                                 CreateOrderRequest(
                                     title = newTitle.trim(),
@@ -1111,7 +1146,11 @@ fun DashboardCompanionScreen(
                                     format = newFormat,
                                     copy = newCopy.trim(),
                                     targetDate = newTargetDate,
-                                    attachmentNote = newAttachment.trim()
+                                    attachmentNote = newAttachment.trim(),
+                                    createdDate = todayStr,
+                                    startDate = newStartDate,
+                                    deadline = newTargetDate,
+                                    duration = calculatedDuration
                                 )
                             )
                             showNewOrderModal = false
@@ -1246,13 +1285,34 @@ fun DashboardCompanionScreen(
                         maxLines = 4
                     )
 
-                    OutlinedTextField(
-                        value = newTargetDate,
-                        onValueChange = { newTargetDate = it },
-                        label = { Text("Target Date (YYYY-MM-DD) *") },
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = newStartDate,
+                            onValueChange = { newStartDate = it },
+                            label = { Text("Start Date *") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = newTargetDate,
+                            onValueChange = { newTargetDate = it },
+                            label = { Text("Deadline *") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                    }
+
+                    if (calculatedDuration.isNotBlank()) {
+                        Text(
+                            text = "Auto-calculated Duration: $calculatedDuration",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.primary
+                        )
+                    }
 
                     OutlinedTextField(
                         value = newAttachment,
