@@ -830,17 +830,37 @@ namespace SS_CAM.Services
                     AllStations.Insert(0, GetInitialDStation());
                 }
 
-                // Ensure SuamiSihat Radio is present as the pinned first station
-                var existingSs = AllStations.FirstOrDefault(s => s.Id == "preset_suamisihat" || s.StreamUrl.Contains("radio.suamisihat.myds.me") || s.StreamUrl.Contains("dj.suamisihat.myds.me"));
-                if (existingSs == null)
+                // Ensure pinned stations from TenantConfig are present
+                var config = TenantConfigService.Current;
+                PluginConfig radioConfig;
+                if (config != null && config.Plugins.TryGetValue("radio-player", out radioConfig) && radioConfig.Enabled)
                 {
-                    AllStations.Insert(0, GetSuamiSihatRadioStation());
-                }
-                else
-                {
-                    existingSs.StreamUrl = "https://radio.suamisihat.myds.me/listen";
-                    existingSs.Name = "SuamiSihat Radio";
-                    existingSs.Genre = "Health / Lifestyle (Official)";
+                    if (radioConfig.PinnedStations != null)
+                    {
+                        // Add pinned stations in reverse order to keep them at the top
+                        for (int i = radioConfig.PinnedStations.Count - 1; i >= 0; i--)
+                        {
+                            var pinned = radioConfig.PinnedStations[i];
+                            var existing = AllStations.FirstOrDefault(s => s.Id == pinned.Id || s.StreamUrl.Contains(pinned.StreamUrl));
+                            if (existing == null)
+                            {
+                                AllStations.Insert(0, new RadioStation
+                                {
+                                    Id = pinned.Id,
+                                    Name = pinned.Name,
+                                    StreamUrl = pinned.StreamUrl,
+                                    Genre = "Pinned (Tenant Config)",
+                                    IsFavorite = false,
+                                    IsPreset = true
+                                });
+                            }
+                            else
+                            {
+                                existing.StreamUrl = pinned.StreamUrl;
+                                existing.Name = pinned.Name;
+                            }
+                        }
+                    }
                 }
 
                 SyncConfigStations();
@@ -872,12 +892,12 @@ namespace SS_CAM.Services
             }
         }
 
-        public static RadioStation GetSuamiSihatRadioStation()
+        public static RadioStation GetCorporateRadioStation()
         {
             return new RadioStation
             {
-                Id = "preset_suamisihat",
-                Name = "SuamiSihat Radio",
+                Id = "preset_corporate",
+                Name = "Corporate Radio",
                 Genre = "Health / Lifestyle (Official)",
                 StreamUrl = "https://radio.suamisihat.myds.me/listen",
                 IconEmoji = "📻",
@@ -920,7 +940,7 @@ namespace SS_CAM.Services
         {
             return new List<RadioStation>
             {
-                GetSuamiSihatRadioStation(),
+                GetCorporateRadioStation(),
                 GetInitialDStation(),
                 GetBabymetalStation(),
                 new RadioStation

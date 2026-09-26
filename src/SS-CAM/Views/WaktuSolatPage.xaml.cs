@@ -27,6 +27,14 @@ namespace SS_CAM.Views
         {
             InitializeComponent();
 
+            PluginConfig waktuConfig = null;
+            if (TenantConfigService.Current.Plugins != null && 
+                TenantConfigService.Current.Plugins.TryGetValue("waktu-solat", out waktuConfig) && 
+                !string.IsNullOrWhiteSpace(waktuConfig.DefaultZone))
+            {
+                _currentZone = waktuConfig.DefaultZone;
+            }
+
             // Populate zone combo
             ZoneCombo.ItemsSource = PrayerTimeService.Zones;
             ZoneCombo.SelectedIndex = 0;

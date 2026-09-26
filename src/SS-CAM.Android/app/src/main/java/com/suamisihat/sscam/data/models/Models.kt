@@ -2,6 +2,15 @@ package com.suamisihat.sscam.data.models
 
 import com.google.gson.annotations.SerializedName
 
+object ProjectStatusConstants {
+    const val BACKLOG = "backlog"
+    const val IN_PROGRESS = "in_progress"
+    const val REVIEW = "in_review"
+    const val REVISION = "revision"
+    const val APPROVED = "done"
+    const val ON_HOLD = "on_hold"
+}
+
 data class ProjectsResponse(
     @SerializedName("total") val total: Int = 0,
     @SerializedName("projects") val projects: List<ProjectItem> = emptyList()

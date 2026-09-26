@@ -43,7 +43,8 @@ namespace SS_CAM.Views
             _playlist.Clear();
 
             string payloadDir = PayloadInstallerService.FindPayloadDirectory();
-            string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SuamiSihat");
+            string folderName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppFolderName)) ? TenantConfigService.Current.AppFolderName : "Corporate";
+            string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), folderName);
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
 
             string[] searchDirs = new[]
@@ -56,7 +57,7 @@ namespace SS_CAM.Views
                 baseDir
             };
 
-            string[] trackNames = new[] { "SuamiSihatNew", "Ssclinicsong" };
+            string[] trackNames = new[] { "CorporateTheme", "BrandSong" };
             string[] extensions = new[] { ".m4a", ".mp3", ".wav", ".ogg" };
 
             foreach (string name in trackNames)

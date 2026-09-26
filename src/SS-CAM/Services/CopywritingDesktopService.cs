@@ -53,6 +53,12 @@ namespace SS_CAM.Services
         {
             if (string.IsNullOrWhiteSpace(projectTitle)) projectTitle = "Project Copywriting";
 
+            string brandName = "Jenama Kami";
+            if (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppName))
+            {
+                brandName = TenantConfigService.Current.AppName;
+            }
+
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(string.Format("# ✍️ Copywriting & Script Studio: {0}", projectTitle));
             sb.AppendLine();
@@ -72,7 +78,7 @@ namespace SS_CAM.Services
             sb.AppendLine();
             sb.AppendLine("### Angle 2: Social Proof & Urgency");
             sb.AppendLine("> **Headline**: \"Lebih 15,000+ Pelanggan Berpuas Hati — Stok Terhad!\"");
-            sb.AppendLine("> **Primary Text**: Nikmati keyakinan diri tahap maksimum dengan ramuan herba terpilih SuamiSihat.");
+            sb.AppendLine(string.Format("> **Primary Text**: Nikmati keyakinan diri tahap maksimum dengan ramuan herba terpilih {0}.", brandName));
             sb.AppendLine("> **CTA**: [ Dapatkan Tawaran Eksklusif Hari Ini ]");
             sb.AppendLine();
             sb.AppendLine("---");
@@ -83,7 +89,7 @@ namespace SS_CAM.Services
             sb.AppendLine("| :--- | :--- | :--- |");
             sb.AppendLine("| **00:00 - 00:03** | Close-up botol, pencahayaan dramatik, audio swoosh | *\"Bang, kalau selalu rasa lemau balik kerja, dengar ni kejap...\"* |");
             sb.AppendLine("| **00:03 - 00:07** | B-roll lelaki bertenaga bekerja & bersenam | *\"Rahsia stamina padu bukan kopi biasa, tapi khasiat herba gred premium.\"* |");
-            sb.AppendLine("| **00:07 - 00:12** | Unboxing packaging premium SuamiSihat | *\"Lulus KKM, 100% bahan selamat dan terbukti berkesan.\"* |");
+            sb.AppendLine(string.Format("| **00:07 - 00:12** | Unboxing packaging premium {0} | *\"Lulus KKM, 100% bahan selamat dan terbukti berkesan.\"* |", brandName));
             sb.AppendLine("| **00:12 - 00:15** | CTA end card & promo link | *\"Klik beg kuning atau link di bio sekarang sebelum promosi tamat!\"* |");
             sb.AppendLine();
             sb.AppendLine("---");

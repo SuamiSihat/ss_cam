@@ -6,6 +6,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Text;
 using System.Windows.Media.Imaging;
+using SS_CAM.Models;
 
 namespace SS_CAM.Services
 {
@@ -73,7 +74,7 @@ namespace SS_CAM.Services
 
         public QrCodeOptions()
         {
-            Content = "https://suamisihat.com.my";
+            Content = QrCodeEncoderService.GetDefaultUrl();
             ErrorCorrection = QrErrorCorrectionLevel.H;
             ForegroundColor = Color.FromArgb(255, 2, 32, 87);
             ForegroundColor2 = Color.FromArgb(255, 33, 161, 247);
@@ -123,6 +124,26 @@ namespace SS_CAM.Services
             }
         }
 
+        public static string GetDefaultUrl()
+        {
+            PluginConfig qrConfig = null;
+            if (TenantConfigService.Current != null && TenantConfigService.Current.Plugins != null && TenantConfigService.Current.Plugins.TryGetValue("qr-code-studio", out qrConfig) && !string.IsNullOrWhiteSpace(qrConfig.DefaultContent))
+            {
+                return qrConfig.DefaultContent;
+            }
+            return "https://corporate.com.my";
+        }
+
+        public static string GetFilenamePrefix()
+        {
+            PluginConfig qrConfig = null;
+            if (TenantConfigService.Current != null && TenantConfigService.Current.Plugins != null && TenantConfigService.Current.Plugins.TryGetValue("qr-code-studio", out qrConfig) && !string.IsNullOrWhiteSpace(qrConfig.FilenamePrefix))
+            {
+                return qrConfig.FilenamePrefix;
+            }
+            return "Corporate";
+        }
+
         public double CalculateContrastRatio(Color c1, Color c2)
         {
             double l1 = GetLuminance(c1) + 0.05;
@@ -144,7 +165,7 @@ namespace SS_CAM.Services
         public Bitmap GenerateQrCodeBitmap(QrCodeOptions options)
         {
             if (options == null) options = new QrCodeOptions();
-            if (string.IsNullOrWhiteSpace(options.Content)) options.Content = "https://suamisihat.com.my";
+            if (string.IsNullOrWhiteSpace(options.Content)) options.Content = QrCodeEncoderService.GetDefaultUrl();
             bool[,] matrix = GenerateQrMatrix(options.Content, options.ErrorCorrection);
 
             int modules = matrix.GetLength(0);
@@ -338,7 +359,7 @@ namespace SS_CAM.Services
         {
             if (options == null) options = new QrCodeOptions();
 
-            if (string.IsNullOrWhiteSpace(options.Content)) options.Content = "https://suamisihat.com.my";
+            if (string.IsNullOrWhiteSpace(options.Content)) options.Content = QrCodeEncoderService.GetDefaultUrl();
             bool[,] matrix = GenerateQrMatrix(options.Content, options.ErrorCorrection);
 
             int modules = matrix.GetLength(0);
@@ -535,7 +556,7 @@ namespace SS_CAM.Services
         {
             if (options == null) options = new QrCodeOptions();
             
-            if (string.IsNullOrWhiteSpace(options.Content)) options.Content = "https://suamisihat.com.my";
+            if (string.IsNullOrWhiteSpace(options.Content)) options.Content = QrCodeEncoderService.GetDefaultUrl();
             bool[,] matrix = GenerateQrMatrix(options.Content, options.ErrorCorrection);
 
             int modules = matrix.GetLength(0);
@@ -884,7 +905,7 @@ namespace SS_CAM.Services
 
         private bool[,] GenerateQrMatrix(string text, QrErrorCorrectionLevel ecLevel)
         {
-            if (string.IsNullOrEmpty(text)) text = "https://suamisihat.com.my";
+            if (string.IsNullOrEmpty(text)) text = QrCodeEncoderService.GetDefaultUrl();
 
             try
             {

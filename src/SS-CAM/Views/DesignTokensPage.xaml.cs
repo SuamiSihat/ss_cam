@@ -15,7 +15,16 @@ namespace SS_CAM.Views
     public partial class DesignTokensPage : Page
     {
         // ── Constants ─────────────────────────────────────────────────────────
-        private const string FLUENT_CSS_URL = "https://assets.suamisihat.myds.me/assets/css/fluent.css";
+        private static string FLUENT_CSS_URL
+        {
+            get
+            {
+                string assetUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AssetPortalUrl))
+                    ? TenantConfigService.Current.AssetPortalUrl.TrimEnd('/')
+                    : "https://assets.corporate.myds.me";
+                return string.Format("{0}/assets/css/fluent.css", assetUrl);
+            }
+        }
 
         // ── State ─────────────────────────────────────────────────────────────
         private static readonly HttpClient _http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
@@ -317,9 +326,12 @@ namespace SS_CAM.Views
         {
             try
             {
+                string assetUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AssetPortalUrl))
+                    ? TenantConfigService.Current.AssetPortalUrl.TrimEnd('/')
+                    : "https://assets.corporate.myds.me";
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName        = "https://assets.suamisihat.myds.me/pages/brand-system",
+                    FileName        = string.Format("{0}/pages/brand-system", assetUrl),
                     UseShellExecute = true,
                 });
             }

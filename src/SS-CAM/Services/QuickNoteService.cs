@@ -18,13 +18,24 @@ namespace SS_CAM.Services
     }
 
     /// <summary>
-    /// Manages Markdown note files stored in %LOCALAPPDATA%\SuamiSihat\SS-CAM\Notes\.
+    /// Manages Markdown note files stored in %LOCALAPPDATA%\<AppFolderName>\SS-CAM\Notes\.
     /// Each note is a plain .md file with optional YAML frontmatter header.
     /// </summary>
     public static class QuickNoteService
     {
         private static readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
-        private const string WebPortalNotesApiUrl = "https://creative.suamisihat.myds.me/api/notes";
+        private static string WebPortalNotesApiUrl
+        {
+            get
+            {
+                if (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.PortalUrl))
+                {
+                    string url = TenantConfigService.Current.PortalUrl;
+                    return (url.EndsWith("/") ? url : url + "/") + "api/notes";
+                }
+                return "https://creative.corporate.local/api/notes";
+            }
+        }
 
         private static string NotesDirectory
         {
@@ -680,7 +691,7 @@ namespace SS_CAM.Services
             return "# 📋 Client Feedback & Revision Log\n\n" +
                    "> [!WARNING] Scope Alert\n" +
                    "> Revisions outside the original approved brief require Art Director sign-off.\n\n" +
-                   "**Client / Brand:** SuamiSihat Clinic  \n" +
+                   "**Client / Brand:** Corporate Clinic  \n" +
                    "**Revision Round:** Round 2  \n" +
                    "**Date Received:** " + DateTime.Now.ToString("dd MMM yyyy") + "  \n\n" +
                    "### 🔍 Requested Changes\n" +
@@ -698,7 +709,7 @@ namespace SS_CAM.Services
         {
             return "# 📋 Welcome to Studio Notes\n\n" +
                    "> [!NOTE] Creative Scratchpad & Direct-Response Studio\n" +
-                   "> Quick scratchpad for SuamiSihat campaigns, ad copy hooks, meeting decisions, and video briefs.\n\n" +
+                   "> Quick scratchpad for Corporate campaigns, ad copy hooks, meeting decisions, and video briefs.\n\n" +
                    "### 🚀 Key Features\n" +
                    "- **Live Markdown Preview**: Split, Edit, and Full Preview modes with full Notion block support.\n" +
                    "- **Notion Blocks**: Use `> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`, and `> [!DANGER]` callout boxes.\n" +

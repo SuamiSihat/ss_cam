@@ -91,12 +91,12 @@
                             <!-- Dynamic Input Container -->
                             <StackPanel x:Name="PanelUrlInput">
                                 <ui:TextBlock Text="Website or Destination URL" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBox x:Name="TxtUrl" Text="https://suamisihat.com.my" Padding="10,8" FontSize="12" TextChanged="OnInputTextChanged"/>
+                                <TextBox x:Name="TxtUrl" Padding="10,8" FontSize="12" TextChanged="OnInputTextChanged"/>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelTextInput" Visibility="Collapsed">
                                 <ui:TextBlock Text="Enter Text or Serial Code" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBox x:Name="TxtFreeText" Text="SuamiSihat Creative Assets Management" TextWrapping="Wrap" AcceptsReturn="True" Height="70" Padding="10,8" FontSize="12" TextChanged="OnInputTextChanged"/>
+                                <TextBox x:Name="TxtFreeText" Text="Corporate Creative Assets Management" TextWrapping="Wrap" AcceptsReturn="True" Height="70" Padding="10,8" FontSize="12" TextChanged="OnInputTextChanged"/>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelWifiInput" Visibility="Collapsed">
@@ -107,7 +107,7 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                         <ui:TextBlock Text="Wi-Fi SSID / Network Name" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                        <TextBox x:Name="TxtWifiSsid" Text="SuamiSihat_Office" Padding="10,8" FontSize="12" TextChanged="OnInputTextChanged"/>
+                                        <TextBox x:Name="TxtWifiSsid" Text="Corporate_Office" Padding="10,8" FontSize="12" TextChanged="OnInputTextChanged"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1">
                                         <ui:TextBlock Text="Encryption" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -130,7 +130,7 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                         <ui:TextBlock Text="Full Name" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                        <TextBox x:Name="TxtVCardName" Text="Harussani SuamiSihat" Padding="8,6" FontSize="12" TextChanged="OnInputTextChanged"/>
+                                        <TextBox x:Name="TxtVCardName" Text="Harussani Corporate" Padding="8,6" FontSize="12" TextChanged="OnInputTextChanged"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1">
                                         <ui:TextBlock Text="Phone Number" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -148,7 +148,7 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="1">
                                         <ui:TextBlock Text="Organization / Title" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                        <TextBox x:Name="TxtVCardOrg" Text="SuamiSihat Creative Studio" Padding="8,6" FontSize="12" TextChanged="OnInputTextChanged"/>
+                                        <TextBox x:Name="TxtVCardOrg" Text="Corporate Creative Studio" Padding="8,6" FontSize="12" TextChanged="OnInputTextChanged"/>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
@@ -157,7 +157,7 @@
                                 <ui:TextBlock Text="Phone Number (Include Country Code e.g. 60123456789)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBox x:Name="TxtWaPhone" Text="60123456789" Padding="10,8" FontSize="12" Margin="0,0,0,8" TextChanged="OnInputTextChanged"/>
                                 <ui:TextBlock Text="Preset Message (Optional)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBox x:Name="TxtWaMessage" Text="Hello SuamiSihat, I would like to inquire about creative brand assets." Padding="10,8" FontSize="12" TextChanged="OnInputTextChanged"/>
+                                <TextBox x:Name="TxtWaMessage" Text="Hello Corporate, I would like to inquire about creative brand assets." Padding="10,8" FontSize="12" TextChanged="OnInputTextChanged"/>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelEmailInput" Visibility="Collapsed">
@@ -283,7 +283,7 @@
                                 <ui:Button x:Name="BtnLogoSsIcon" Click="OnPresetLogoClicked" Tag="SS_ICON" Padding="12,6" Margin="0,0,6,6" Appearance="Primary">
                                     <StackPanel Orientation="Horizontal">
                                         <ui:TextBlock Text="&#xE734;" FontFamily="Segoe Fluent Icons" FontSize="11" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                        <ui:TextBlock Text="SuamiSihat Logo (ss_icon_light)" VerticalAlignment="Center"/>
+                                        <ui:TextBlock Text="Corporate Logo (ss_icon_light)" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </ui:Button>
                                 <ui:Button x:Name="BtnLogoNone" Click="OnPresetLogoClicked" Tag="NONE" Padding="12,6" Margin="0,0,6,6" Appearance="Secondary">No Logo</ui:Button>

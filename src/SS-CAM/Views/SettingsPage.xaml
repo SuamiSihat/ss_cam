@@ -70,7 +70,7 @@
                                     <ui:TextBlock Text="Designer Profile"
                                                   FontSize="14" FontWeight="Bold"
                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ui:TextBlock Text="Your identity across SS-CAM"
+                                    <ui:TextBlock Text="Your identity across the application"
                                                   FontSize="11"
                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                 </StackPanel>
@@ -535,7 +535,7 @@
                                         <StackPanel VerticalAlignment="Center">
                                             <ui:TextBlock Text="Brand Fonts" FontSize="13" FontWeight="SemiBold"
                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Install SS-CAM brand font family"
+                                            <ui:TextBlock Text="Install brand font family"
                                                           FontSize="11"
                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                         </StackPanel>
@@ -577,7 +577,7 @@
                                         <StackPanel VerticalAlignment="Center">
                                             <ui:TextBlock Text="Software Updates" FontSize="13" FontWeight="SemiBold"
                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Check for the latest SS-CAM version"
+                                            <ui:TextBlock Text="Check for the latest application version"
                                                           FontSize="11"
                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                         </StackPanel>

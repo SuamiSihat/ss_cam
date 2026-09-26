@@ -114,16 +114,13 @@ namespace SS_CAM.Models
         {
             get
             {
-                switch (SafeEntity)
+                if (Services.TenantConfigService.Current != null && Services.TenantConfigService.Current.Subsidiaries != null)
                 {
-                    case "SSC": return "SuamiSihat Healthcare / Clinic";
-                    case "SSH": return "SuamiSihat Holding";
-                    case "SSE": return "SuamiSihat E-Commerce";
-                    case "SSW": return "SuamiSihat Wellness";
-                    case "SST": return "SuamiSihat Technology";
-                    case "SS":  return "SuamiSihat Brand";
-                    default:    return SafeEntity;
+                    var sub = System.Linq.Enumerable.FirstOrDefault(Services.TenantConfigService.Current.Subsidiaries, s => s.Code == SafeEntity);
+                    if (sub != null && !string.IsNullOrWhiteSpace(sub.Name))
+                        return sub.Name;
                 }
+                return SafeEntity;
             }
         }
 
@@ -131,15 +128,13 @@ namespace SS_CAM.Models
         {
             get
             {
-                switch (SafeEntity)
+                if (Services.TenantConfigService.Current != null && Services.TenantConfigService.Current.Subsidiaries != null)
                 {
-                    case "SSC": return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#06B6D4")); // Teal
-                    case "SSH": return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6")); // Blue
-                    case "SSE": return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B5CF6")); // Purple
-                    case "SSW": return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981")); // Emerald
-                    case "SST": return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F97316")); // Orange
-                    default:    return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")); // Brand Blue
+                    var sub = System.Linq.Enumerable.FirstOrDefault(Services.TenantConfigService.Current.Subsidiaries, s => s.Code == SafeEntity);
+                    if (sub != null && !string.IsNullOrWhiteSpace(sub.ColorHex))
+                        return new SolidColorBrush((Color)ColorConverter.ConvertFromString(sub.ColorHex));
                 }
+                return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8")); // Default Gray
             }
         }
 

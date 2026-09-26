@@ -47,6 +47,10 @@ namespace SS_CAM
                     splash.UpdateStatus("Synchronizing NAS preferences...");
                     UserProfileService.LoadProfile();
 
+                    LogTrace("Step 3.5: PluginRegistry.Initialize");
+                    splash.UpdateStatus("Initializing application plugins...");
+                    PluginRegistry.Initialize();
+
                     LogTrace("Step 4: Preparing workstation shell");
                     splash.UpdateStatus("Preparing workstation shell...");
 

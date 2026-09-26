@@ -44,7 +44,7 @@ namespace SS_CAM.Views
             new DesignTip("Name Your Layers", "A file with 47 layers named 'Rectangle Copy 12' is unusable. Layer and group names like 'hero-bg', 'cta-button', 'logo-primary' make handoffs seamless."),
             new DesignTip("Bleed 3 mm on All Print Sides", "Any artwork that reaches the edge of the page must extend 3 mm beyond the trim line as bleed. Missing bleed causes white edges after cutting."),
             new DesignTip("Avoid Pure Black Text (#000000)", "Pure black on white creates harsh contrast that fatigues the eyes during reading. Use near-black (#1E293B or #0F172A) for body text instead."),
-            new DesignTip("Colour Psychology: Blue Signals Trust", "Blue is the single most universally trusted colour in healthcare and financial branding, which is why SuamiSihat's brand anchor is a deep blue (#043388)."),
+            new DesignTip("Colour Psychology: Blue Signals Trust", "Blue is the single most universally trusted colour in healthcare and financial branding, which is why Corporate's brand anchor is a deep blue (#043388)."),
             new DesignTip("Use SVG for Logos, Not PNG", "SVGs are resolution-independent — they look sharp on any screen and any size. PNGs pixelate when scaled. Deliver client logos as SVG whenever possible."),
             new DesignTip("Brand Consistency Over Creativity", "For established brands, consistency builds recognition faster than creative novelty. Reserve experimentation for campaign sub-identities and event branding."),
             new DesignTip("The Gestalt Principle of Proximity", "Elements placed near each other are perceived as belonging to the same group. Use spacing deliberately to form logical visual clusters."),

@@ -104,7 +104,30 @@ namespace SS_CAM
                 }
                 catch (Exception ex) { App.LogTrace("MainWindow: WorkSessionTracker error: " + ex.Message); }
 
-                // 7. Navigate to Dashboard on startup
+                // 7. Inject Dynamic Plugins into Navigation
+                try
+                {
+                    int index = RootNavigation.MenuItems.IndexOf(ToolsSeparator);
+                    if (index >= 0)
+                    {
+                        foreach (var plugin in PluginRegistry.ActivePlugins)
+                        {
+                            var navItem = new Wpf.Ui.Controls.NavigationViewItem
+                            {
+                                Content = plugin.DisplayName,
+                                Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = (Wpf.Ui.Controls.SymbolRegular)Enum.Parse(typeof(Wpf.Ui.Controls.SymbolRegular), plugin.NavIconGlyph) },
+                                TargetPageType = plugin.PageType,
+                                NavigationCacheMode = Wpf.Ui.Controls.NavigationCacheMode.Required,
+                                ToolTip = plugin.Description
+                            };
+                            RootNavigation.MenuItems.Insert(++index, navItem);
+                        }
+                    }
+                    App.LogTrace("MainWindow: Plugins injected into Navigation");
+                }
+                catch (Exception ex) { App.LogTrace("MainWindow: Plugin injection error: " + ex.Message); }
+
+                // 8. Navigate to Dashboard on startup
                 try { RootNavigation.Navigate(typeof(DashboardPage)); App.LogTrace("MainWindow: Navigated to DashboardPage"); }
                 catch (Exception ex) { App.LogTrace("MainWindow: Navigate Dashboard error: " + ex.Message); }
 
@@ -945,7 +968,8 @@ namespace SS_CAM
             // -- Update theme name label in sidebar footer --
             if (StatusThemeText != null)
             {
-                string themeName = (theme == AppTheme.Metamorphosis) ? "Metamorphosis" : (theme == AppTheme.Catppuccin ? "Catppuccin" : (theme == AppTheme.RosePine ? "Rosé Pine" : (theme == AppTheme.Nord ? "Nord Light" : "SuamiSihat Light")));
+                string defaultThemeName = (SS_CAM.Services.TenantConfigService.Current != null) ? SS_CAM.Services.TenantConfigService.Current.ThemeDefaultName : "SuamiSihat Light";
+                string themeName = (theme == AppTheme.Metamorphosis) ? "Metamorphosis" : (theme == AppTheme.Catppuccin ? "Catppuccin" : (theme == AppTheme.RosePine ? "Rosé Pine" : (theme == AppTheme.Nord ? "Nord Light" : defaultThemeName)));
                 StatusThemeText.Text = themeName;
             }
 
@@ -1000,7 +1024,8 @@ namespace SS_CAM
         {
             if (StatusNasText != null)
             {
-                StatusNasText.Text = "SSNAS Checking...";
+                string storageLabel = (SS_CAM.Services.TenantConfigService.Current != null) ? SS_CAM.Services.TenantConfigService.Current.StorageLabel : "SSNAS";
+                StatusNasText.Text = storageLabel + " Checking...";
                 StatusNasText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#64748B"));
             }
             if (NasStatusDot != null)
@@ -1057,7 +1082,8 @@ namespace SS_CAM
                     isOnline = false;
                 }
 
-                string statusText = isOnline ? "SSNAS Online" : "SSNAS Offline";
+                string storageLabel = (SS_CAM.Services.TenantConfigService.Current != null) ? SS_CAM.Services.TenantConfigService.Current.StorageLabel : "SSNAS";
+                string statusText = isOnline ? storageLabel + " Online" : storageLabel + " Offline";
 
                 if (Application.Current != null)
                 {

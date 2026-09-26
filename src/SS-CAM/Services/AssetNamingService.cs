@@ -29,7 +29,7 @@ namespace SS_CAM.Services
 
     public static class AssetNamingService
     {
-        // Standard naming pattern: YYYYMM_JOBID_BRAND_TITLE...
+        // Standard naming pattern: YYYYMM_PROJECTID_BRAND_TITLE...
         private static readonly Regex CanonicalPattern = new Regex(@"^\d{6}_[A-Z0-9]+_[A-Z0-9]+_.+", RegexOptions.IgnoreCase);
 
         public static AssetNamingAuditReport AuditProjectAssets(string projectFullPath)

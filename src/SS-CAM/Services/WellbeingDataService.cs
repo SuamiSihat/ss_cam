@@ -22,8 +22,9 @@ namespace SS_CAM.Services
 
         public WellbeingDataService()
         {
+            string folderName = (TenantConfigService.Current != null) ? TenantConfigService.Current.AppFolderName : "Corporate";
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var dir = Path.Combine(localAppData, "SuamiSihat", "SS-CAM", "wellbeing");
+            var dir = Path.Combine(localAppData, folderName, "SS-CAM", "wellbeing");
             if (!Directory.Exists(dir))
             {
                 Directory.CreateDirectory(dir);

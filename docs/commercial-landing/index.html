@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAM Studio — On-Premise Creative Operations & Asset Management</title>
+  <meta name="description" content="Studio-grade creative asset management, multi-user order tracking, and brand governance. Runs natively on Windows Desktop, Synology NAS, and Android with 100% offline-first privacy.">
+  <meta name="keywords" content="Creative Asset Management, DAM, Synology NAS, Self-Hosted, Design Tokens, Fluent 2, On-Premise">
+  <meta name="theme-color" content="#090B10">
+
+  <!-- Google Fonts & Iconify -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js" defer></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       1. NAVIGATION HEADER
+       ═══════════════════════════════════════════════════════════════════ -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#" class="brand-badge">
+        <div class="brand-icon">
+          <iconify-icon icon="fluent:flash-24-filled"></iconify-icon>
+        </div>
+        <span class="brand-title">CAM Studio</span>
+        <span class="brand-tag">v4.11 Core</span>
+      </a>
+
+      <nav class="nav-menu">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#architecture" class="nav-link">Architecture</a>
+        <a href="#pricing" class="nav-link">Pricing</a>
+        <a href="#download" class="nav-link">Downloads</a>
+        <a href="#docs" class="nav-link">Documentation</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="#download" class="btn-secondary">Download Core</a>
+        <a href="#pricing" class="btn-primary trigger-checkout" data-tier="Studio Business">
+          <iconify-icon icon="fluent:key-20-regular"></iconify-icon>
+          Get License
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       2. HERO SECTION
+       ═══════════════════════════════════════════════════════════════════ -->
+  <section class="hero">
+    <div class="pill-badge">
+      <span class="dot"></span>
+      <span>v4.11 Commercial Release • Multi-Tenant Plugin Architecture</span>
+    </div>
+
+    <h1 class="hero-title">
+      Studio-Grade Creative Operations.<br>
+      On Your Own Hardware.
+    </h1>
+
+    <p class="hero-subtitle">
+      The privacy-first creative asset management and operations platform built for high-performance studios, agencies, and regulated franchise networks. Runs directly on your Synology NAS and Windows workstations with zero cloud bandwidth caps.
+    </p>
+
+    <div class="hero-ctas">
+      <a href="#download" class="btn-primary btn-large">
+        <iconify-icon icon="fluent:arrow-download-24-filled"></iconify-icon>
+        Download Community Core (Free)
+      </a>
+      <a href="#pricing" class="btn-secondary btn-large trigger-checkout" data-tier="Studio Business">
+        Explore Business &amp; White-Label
+      </a>
+    </div>
+
+    <div class="trust-bar">
+      <div class="trust-item">
+        <iconify-icon icon="fluent:shield-checkmark-20-regular"></iconify-icon>
+        <span>100% Offline-First (Zero Cloud Leakage)</span>
+      </div>
+      <div class="trust-item">
+        <iconify-icon icon="fluent:server-multiple-20-regular"></iconify-icon>
+        <span>Synology DSM &amp; Docker Ready</span>
+      </div>
+      <div class="trust-item">
+        <iconify-icon icon="fluent:color-20-regular"></iconify-icon>
+        <span>Dynamic Tenant Design Tokens</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       3. WORKSTATION INTERACTIVE PREVIEW
+       ═══════════════════════════════════════════════════════════════════ -->
+  <section class="preview-showcase">
+    <div class="preview-window">
+      <div class="window-header">
+        <div class="window-dots">
+          <span class="dot-btn dot-close"></span>
+          <span class="dot-btn dot-min"></span>
+          <span class="dot-btn dot-max"></span>
+        </div>
+        <div class="window-title">CAM Studio Workstation — [Workspace: Master Creative Vault]</div>
+        <div style="width: 50px;"></div>
+      </div>
+
+      <div class="window-content">
+        <div class="mock-sidebar">
+          <div class="mock-nav-item active">
+            <iconify-icon icon="fluent:home-20-filled"></iconify-icon>
+            <span>Dashboard</span>
+          </div>
+          <div class="mock-nav-item">
+            <iconify-icon icon="fluent:folder-20-regular"></iconify-icon>
+            <span>Project Creator</span>
+          </div>
+          <div class="mock-nav-item">
+            <iconify-icon icon="fluent:document-bullet-list-20-regular"></iconify-icon>
+            <span>Creative Orders</span>
+          </div>
+          <div class="mock-nav-item">
+            <iconify-icon icon="fluent:color-20-regular"></iconify-icon>
+            <span>Design Tokens</span>
+          </div>
+          <div class="mock-nav-item">
+            <iconify-icon icon="fluent:qr-code-20-regular"></iconify-icon>
+            <span>QR Studio</span>
+          </div>
+          <div class="mock-nav-item">
+            <iconify-icon icon="fluent:heart-pulse-20-regular"></iconify-icon>
+            <span>Creative Wellbeing</span>
+          </div>
+          <div class="mock-nav-item">
+            <iconify-icon icon="fluent:settings-20-regular"></iconify-icon>
+            <span>Settings</span>
+          </div>
+        </div>
+
+        <div class="mock-main-content">
+          <div class="mock-stat-grid">
+            <div class="mock-card">
+              <div class="mock-card-label">Active Studio Vaults</div>
+              <div class="mock-card-val" style="color: #38BDF8;">12 Projects</div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-label">LAN Sync Throughput</div>
+              <div class="mock-card-val" style="color: #34D399;">10 Gbps Direct</div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-label">Regulatory Gateway</div>
+              <div class="mock-card-val" style="color: #A78BFA;">100% Compliant</div>
+            </div>
+          </div>
+
+          <div class="mock-card" style="flex-grow: 1;">
+            <div class="mock-card-label">Active Workspace Health &amp; Synology Docker Stream</div>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 10px;">
+              Connected to local Synology NAS Docker daemon via LAN SMB / REST API. High-bandwidth 4K video exports and PSD multilayer files process locally with sub-millisecond metadata query speeds.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       4. FEATURE PILLARS
+       ═══════════════════════════════════════════════════════════════════ -->
+  <section class="section" id="features">
+    <div class="section-header">
+      <div class="section-tag">Core Capabilities</div>
+      <h2 class="section-title">Engineered for Privacy, Speed, &amp; Control</h2>
+      <p class="section-desc">Everything high-growth creative teams require without the overhead, data exposure, or recurring gouging of cloud-only platforms.</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <iconify-icon icon="fluent:server-24-filled" style="font-size: 1.6rem;"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Local LAN Speed (10GbE)</h3>
+        <p class="feature-body">Work directly with 50GB video and 3D archives at local line rate. Stop waiting for cloud sync or paying outrageous egress fees to access your own assets.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <iconify-icon icon="fluent:shield-lock-24-filled" style="font-size: 1.6rem;"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Data Sovereignty &amp; PDPA</h3>
+        <p class="feature-body">Zero cloud storage exposure. Ideal for medical clinics, healthcare franchises, financial firms, and NDA-bound agencies with strict regulatory compliance.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <iconify-icon icon="fluent:slide-design-24-filled" style="font-size: 1.6rem;"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Multi-Tenant White-Labeling</h3>
+        <p class="feature-body">Inject custom logos, color palettes, organization codes, and web portals using a single immutable <code>TenantConfig.json</code> without code recompilation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       5. COMMERCIAL PRICING MATRIX
+       ═══════════════════════════════════════════════════════════════════ -->
+  <section class="section" id="pricing">
+    <div class="section-header">
+      <div class="section-tag">Predictable Investment</div>
+      <h2 class="section-title">Transparent, High-Margin Pricing</h2>
+      <p class="section-desc">Choose between self-serve community use or licensed enterprise team distribution.</p>
+    </div>
+
+    <div class="pricing-toggle-wrapper">
+      <span class="billing-label" id="label-monthly">Monthly Billing</span>
+      <div class="toggle-switch annual" id="pricing-toggle" role="button" aria-label="Toggle annual billing">
+        <div class="toggle-knob"></div>
+      </div>
+      <span class="billing-label active" id="label-annual">Annual Billing</span>
+      <span class="discount-badge">Save 17%</span>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Community Core -->
+      <div class="price-card">
+        <h3 class="tier-name">Community Core</h3>
+        <p class="tier-desc">Full workstation power for individual designers and solo creators.</p>
+        <div class="tier-price-box">
+          <span class="price-amount">$0</span>
+          <span class="price-period">/ Forever Free</span>
+        </div>
+        <ul class="tier-features">
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Native WPF Desktop App</li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Local project categorization</li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Basic QR &amp; Copywriting Studio</li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Public Wiki &amp; Community Forum</li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Standard generic theme</li>
+        </ul>
+        <a href="#download" class="btn-secondary" style="text-align: center;">Download Free</a>
+      </div>
+
+      <!-- Studio Business -->
+      <div class="price-card featured">
+        <div class="featured-ribbon">Most Popular</div>
+        <h3 class="tier-name">Studio Business</h3>
+        <p class="tier-desc">For creative agencies, studios, and production houses with team NAS.</p>
+        <div class="tier-price-box">
+          <span class="price-amount" id="price-business">$490</span>
+          <span class="price-period" id="period-business">/ year</span>
+        </div>
+        <ul class="tier-features">
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> <strong>Up to 15 team seats</strong></li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Synology NAS Web Portal Stack</li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Creative Order management</li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Automated software updates</li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Standard Email Support (24–48h SLA)</li>
+        </ul>
+        <a href="#" class="btn-primary trigger-checkout" data-tier="Studio Business" style="text-align: center; justify-content: center;">
+          Start Business License
+        </a>
+      </div>
+
+      <!-- Enterprise White-Label Partner -->
+      <div class="price-card">
+        <h3 class="tier-name">White-Label Partner</h3>
+        <p class="tier-desc">For franchise networks, multi-branch clinics, and enterprise agencies.</p>
+        <div class="tier-price-box">
+          <span class="price-amount" id="price-enterprise">$2,290</span>
+          <span class="price-period" id="period-enterprise">/ year</span>
+        </div>
+        <ul class="tier-features">
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> <strong>Unlimited team seats</strong></li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> <strong>100% White-Label Branding</strong></li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Custom Logomark, Colors &amp; Domain</li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Regulatory compliance ad gateway</li>
+          <li><iconify-icon icon="fluent:checkmark-16-filled" class="check-icon"></iconify-icon> Private WhatsApp/Slack Connect (4h SLA)</li>
+        </ul>
+        <a href="#" class="btn-secondary trigger-checkout" data-tier="Enterprise White-Label" style="text-align: center;">
+          Contact Enterprise
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       6. PLATFORM DOWNLOAD HUB
+       ═══════════════════════════════════════════════════════════════════ -->
+  <section class="section" id="download">
+    <div class="section-header">
+      <div class="section-tag">Distribution Hub</div>
+      <h2 class="section-title">Download For Your Platform</h2>
+      <p class="section-desc">Deploy CAM Studio across your workstations, servers, and companion devices.</p>
+    </div>
+
+    <div class="downloads-hub">
+      <div class="platform-tabs">
+        <button class="tab-btn active" data-tab="windows">
+          <iconify-icon icon="fluent:window-20-filled"></iconify-icon>
+          Windows
+        </button>
+        <button class="tab-btn" data-tab="synology">
+          <iconify-icon icon="fluent:server-20-filled"></iconify-icon>
+          Synology NAS / Docker
+        </button>
+        <button class="tab-btn" data-tab="linux">
+          <iconify-icon icon="fluent:terminal-20-filled"></iconify-icon>
+          Linux
+        </button>
+        <button class="tab-btn" data-tab="android">
+          <iconify-icon icon="fluent:phone-20-filled"></iconify-icon>
+          Android
+        </button>
+      </div>
+
+      <!-- Tab: Windows -->
+      <div class="tab-content active" id="tab-windows">
+        <h3>Windows Desktop Workstation</h3>
+        <p style="color: var(--text-secondary); margin: 8px 0 20px;">
+          Includes native Fluent 2 UI, Myers LCS visual diffing engine, and integrated command palette. Requires 64-bit Windows 10 or Windows 11.
+        </p>
+        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+          <a href="https://releases.getcam.dev/desktop/latest/CAM-Studio-Setup.exe" class="btn-primary">
+            <iconify-icon icon="fluent:arrow-download-20-filled"></iconify-icon>
+            Download Windows Installer (x64)
+          </a>
+          <span style="font-size: 0.85rem; color: var(--text-tertiary);">Version 4.11.0 • Authenticode EV Signed</span>
+        </div>
+      </div>
+
+      <!-- Tab: Synology NAS -->
+      <div class="tab-content" id="tab-synology">
+        <h3>Synology NAS 1-Click Docker Compose Stack</h3>
+        <p style="color: var(--text-secondary); margin: 8px 0 16px;">
+          Deploy the Web Portal and asset sync daemon in Synology Container Manager or any Linux Docker daemon in under 60 seconds:
+        </p>
+        <div class="code-box">
+          <button class="copy-btn">Copy Stack</button>
+          <code>version: '3.8'
+services:
+  cam-portal:
+    image: ghcr.io/product/cam-portal:latest
+    container_name: cam-studio-portal
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - /volume1/Creative-Vault:/app/vault
+      - ./config:/app/config:ro</code>
+        </div>
+      </div>
+
+      <!-- Tab: Linux -->
+      <div class="tab-content" id="tab-linux">
+        <h3>Linux Desktop &amp; Server</h3>
+        <p style="color: var(--text-secondary); margin: 8px 0 20px;">
+          Debian package and portable tarball bundle with systemd integration.
+        </p>
+        <a href="https://releases.getcam.dev/linux/latest/cam-studio-amd64.deb" class="btn-primary">
+          <iconify-icon icon="fluent:arrow-download-20-filled"></iconify-icon>
+          Download .deb Package (Ubuntu/Debian)
+        </a>
+      </div>
+
+      <!-- Tab: Android -->
+      <div class="tab-content" id="tab-android">
+        <h3>Android Companion App (Tablet &amp; Smart TV)</h3>
+        <p style="color: var(--text-secondary); margin: 8px 0 20px;">
+          Designed for in-clinic consultation tablets and TV signage players.
+        </p>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+          <a href="https://play.google.com/store/apps/details?id=com.product.cam" class="btn-primary">
+            <iconify-icon icon="fluent:play-20-filled"></iconify-icon>
+            Google Play Store
+          </a>
+          <a href="https://releases.getcam.dev/android/latest/cam-companion.apk" class="btn-secondary">
+            Direct APK Download
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       7. CHECKOUT / LICENSE MODAL
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="checkout-modal">
+    <div class="modal-card">
+      <button class="modal-close" id="modal-close-btn">&times;</button>
+      <h3 style="font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 8px;">
+        Activate <span id="modal-tier-name" style="color: var(--brand-primary);">Studio Business</span>
+      </h3>
+      <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 24px;">
+        Instant license delivery with hardware seat entitlement and downloadable <code>TenantConfig.json</code>.
+      </p>
+
+      <form onsubmit="event.preventDefault(); alert('Redirecting to secure merchant checkout...');">
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px;">Work Email</label>
+          <input type="email" required placeholder="director@yourstudio.com" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--bg-canvas); border: 1px solid var(--border-strong); color: #fff;">
+        </div>
+        <div style="margin-bottom: 24px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px;">Organization / Studio Name</label>
+          <input type="text" required placeholder="Acme Creative Agency" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--bg-canvas); border: 1px solid var(--border-strong); color: #fff;">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
+          Proceed to Secure Checkout
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       8. FOOTER
+       ═══════════════════════════════════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div>
+        <div class="brand-badge" style="margin-bottom: 16px;">
+          <div class="brand-icon">
+            <iconify-icon icon="fluent:flash-24-filled"></iconify-icon>
+          </div>
+          <span class="brand-title">CAM Studio</span>
+        </div>
+        <p style="font-size: 0.88rem; color: var(--text-secondary); max-width: 320px;">
+          The self-hosted creative asset management and operational brand governance suite. Built for studios, agencies, and regulated franchises.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#download">Downloads</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="#">Public Documentation</a></li>
+          <li><a href="#">Synology NAS Setup Guide</a></li>
+          <li><a href="#">Tenant Config Reference</a></li>
+          <li><a href="#">Release Changelog</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="#">Privacy Policy (PDPA Compliant)</a></li>
+          <li><a href="#">Commercial License Agreement</a></li>
+          <li><a href="#">Security &amp; Encryption</a></li>
+          <li><a href="#">Contact Support</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; 2026 CAM Studio. All rights reserved. Commercial Open-Core Edition.</span>
+      <span>Engineered for Synology DSM &bull; Windows &bull; Linux &bull; Android</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

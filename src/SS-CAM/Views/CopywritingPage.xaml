@@ -360,7 +360,7 @@
                                     <ui:Button Click="OnMdImage" Appearance="Secondary" Height="26" Width="28" Padding="0" Margin="1,0" ToolTip="Image Reference (![alt](path))">
                                         <ui:SymbolIcon Symbol="Image24" FontSize="12"/>
                                     </ui:Button>
-                                    <ui:Button Click="OnMdAttachment" Appearance="Secondary" Height="26" Width="28" Padding="0" Margin="1,0" ToolTip="Asset Attachment Link ([📎 File](path))">
+                                    <ui:Button Click="OnMdAttachment" Appearance="Secondary" Height="26" Width="28" Padding="0" Margin="1,0" ToolTip="Asset Attachment Link ([&#x1F4CE; File](path))">
                                         <ui:SymbolIcon Symbol="Attach24" FontSize="12"/>
                                     </ui:Button>
                                 </StackPanel>
@@ -516,7 +516,7 @@
                                                             </Border>
                                                             
                                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                                <ui:TextBlock Text="SuamiSihat&#x2122; Official" FontWeight="Bold" FontSize="12" Foreground="#FFFFFF"/>
+                                                                <ui:TextBlock Text="Corporate&#x2122; Official" FontWeight="Bold" FontSize="12" Foreground="#FFFFFF"/>
                                                                 <ui:TextBlock Text="WhatsApp Broadcast Live Preview" FontSize="9.5" Foreground="#DCF8C6"/>
                                                             </StackPanel>
 
@@ -548,9 +548,9 @@
                                                                             <ui:SymbolIcon Symbol="Globe24" FontSize="18" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                                         </Border>
                                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                                            <ui:TextBlock x:Name="TxtWhatsAppPreviewDomain" Text="SUAMISIHAT.CLINIC" FontSize="9" FontWeight="Bold" Foreground="#667781"/>
-                                                                            <ui:TextBlock x:Name="TxtWhatsAppPreviewTitle" Text="SuamiSihat&#x2122; Official Store &amp; Consultation" FontSize="11" FontWeight="SemiBold" Foreground="#111B21" TextTrimming="CharacterEllipsis"/>
-                                                                            <ui:TextBlock x:Name="TxtWhatsAppPreviewUrl" Text="https://suamisihat.clinic" FontSize="9.5" Foreground="#027EB5" TextTrimming="CharacterEllipsis"/>
+                                                                            <ui:TextBlock x:Name="TxtWhatsAppPreviewDomain" Text="CORPORATE.CLINIC" FontSize="9" FontWeight="Bold" Foreground="#667781"/>
+                                                                            <ui:TextBlock x:Name="TxtWhatsAppPreviewTitle" Text="Corporate&#x2122; Official Store &amp; Consultation" FontSize="11" FontWeight="SemiBold" Foreground="#111B21" TextTrimming="CharacterEllipsis"/>
+                                                                            <ui:TextBlock x:Name="TxtWhatsAppPreviewUrl" Text="https://corporate.clinic" FontSize="9.5" Foreground="#027EB5" TextTrimming="CharacterEllipsis"/>
                                                                         </StackPanel>
                                                                     </Grid>
                                                                 </Border>
@@ -585,7 +585,7 @@
 
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                             <StackPanel Orientation="Horizontal">
-                                                                <ui:TextBlock Text="SuamiSihat" FontWeight="SemiBold" FontSize="12.5"
+                                                                <ui:TextBlock Text="Corporate" FontWeight="SemiBold" FontSize="12.5"
                                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                                                 <ui:SymbolIcon Symbol="CheckmarkCircle24" FontSize="12" Foreground="#0084FF" Margin="4,0,0,0" VerticalAlignment="Center"/>
                                                             </StackPanel>
@@ -636,7 +636,7 @@
                                                             </Grid.ColumnDefinitions>
 
                                                             <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                                <ui:TextBlock x:Name="TxtMetaDomain" Text="SUAMISIHAT.CLINIC" FontSize="9.5" FontWeight="SemiBold"
+                                                                <ui:TextBlock x:Name="TxtMetaDomain" Text="CORPORATE.CLINIC" FontSize="9.5" FontWeight="SemiBold"
                                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                                 <ui:TextBlock x:Name="TxtMetaHeadline" Text="Dapatkan Konsultasi &amp; Rawatan Premium" FontSize="11" FontWeight="Bold"
                                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
@@ -747,7 +747,7 @@
                                                 <Border Background="#043388" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
                                                     <ui:TextBlock x:Name="TxtPropBrandPill" Text="SSE" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF"/>
                                                 </Border>
-                                                <ui:TextBlock x:Name="TxtPropBrandName" Text="SuamiSihat Ecommerce Sdn Bhd" FontSize="11.5"
+                                                <ui:TextBlock x:Name="TxtPropBrandName" Text="Corporate Ecommerce Sdn Bhd" FontSize="11.5"
                                                               TextTrimming="CharacterEllipsis" MaxWidth="210"
                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
                                             </StackPanel>

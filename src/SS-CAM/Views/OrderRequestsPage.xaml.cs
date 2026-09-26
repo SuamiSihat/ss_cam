@@ -58,6 +58,7 @@ namespace SS_CAM.Views
                     : NasConfigSyncService.DiscoverWorkspaceRoot();
 
                 PopulateAssigneeDropdown();
+                PopulateEntityFilter();
                 await ReloadOrdersQueueAsync();
             }
             catch (Exception ex)
@@ -114,6 +115,28 @@ namespace SS_CAM.Views
             }
         }
 
+        private void PopulateEntityFilter()
+        {
+            try
+            {
+                if (CmbEntityFilter == null) return;
+                List<string> items = new List<string> { "All Entities" };
+                if (TenantConfigService.Current != null && TenantConfigService.Current.Subsidiaries != null)
+                {
+                    foreach (var sub in TenantConfigService.Current.Subsidiaries)
+                    {
+                        items.Add(string.IsNullOrWhiteSpace(sub.DisplayName) ? sub.Name : sub.DisplayName);
+                    }
+                }
+                CmbEntityFilter.ItemsSource = items;
+                CmbEntityFilter.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[OrderRequestsPage] PopulateEntityFilter error: " + ex.Message);
+            }
+        }
+
         private async Task ReloadOrdersQueueAsync()
         {
             try
@@ -162,15 +185,28 @@ namespace SS_CAM.Views
                 string entityFilter = "all";
                 if (CmbEntityFilter != null && CmbEntityFilter.SelectedItem != null)
                 {
-                    ComboBoxItem item = CmbEntityFilter.SelectedItem as ComboBoxItem;
-                    if (item != null)
+                    string content = "";
+                    ComboBoxItem cbi = CmbEntityFilter.SelectedItem as ComboBoxItem;
+                    if (cbi != null)
                     {
-                        string content = item.Content != null ? item.Content.ToString() : "";
-                        if (content.StartsWith("SSC")) entityFilter = "SSC";
-                        else if (content.StartsWith("SSH")) entityFilter = "SSH";
-                        else if (content.StartsWith("SSE")) entityFilter = "SSE";
-                        else if (content.StartsWith("SSW")) entityFilter = "SSW";
-                        else if (content.StartsWith("SST")) entityFilter = "SST";
+                        content = cbi.Content != null ? cbi.Content.ToString() : "";
+                    }
+                    else
+                    {
+                        string strItem = CmbEntityFilter.SelectedItem as string;
+                        if (strItem != null)
+                        {
+                            content = strItem;
+                        }
+                    }
+
+                    if (!string.Equals(content, "All Entities", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(content))
+                    {
+                        var parts = content.Split('-');
+                        if (parts.Length > 0)
+                        {
+                            entityFilter = parts[0].Trim();
+                        }
                     }
                 }
 
@@ -489,9 +525,10 @@ namespace SS_CAM.Views
         {
             try
             {
+                string portalUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.PortalUrl)) ? TenantConfigService.Current.PortalUrl : "https://corporate.myds.me";
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = "https://creative.suamisihat.myds.me/#order-form",
+                    FileName = portalUrl + "/#order-form",
                     UseShellExecute = true
                 });
             }

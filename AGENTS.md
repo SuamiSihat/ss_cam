@@ -415,6 +415,15 @@ A feature is done when:
 
 **The intended user action produces the intended real-world result and the resulting state is verified.**
 
+# DUAL-TRACK DEVELOPMENT GOVERNANCE
+
+Single Trunk (`SS-Master`), Two Operational Editions (Commercial Generic Core + SuamiSihat Edition).
+
+1. **Default to Core:** All UI, viewmodels, and business logic must default to generic Core (`src/SS-CAM/`). Never hardcode tenant-specific URLs, brand literals, or proprietary corporate names into Core files.
+2. **Tenant Configuration:** Custom branding, portal endpoints, and subsidiary codes must be resolved via `TenantConfig.json` (`TenantConfigService.Current`) or modular plugin adapters (`IAppPlugin`).
+3. **No Code Forks:** Never create permanent branches or forks for white-label customers. All variations are runtime configuration selections.
+4. **Master Gatekeeper:** Run `.\QA\verify-dual-track.ps1 -Fix` before committing changes.
+
 ---
 
 # WORKSPACE AGENT SKILLS

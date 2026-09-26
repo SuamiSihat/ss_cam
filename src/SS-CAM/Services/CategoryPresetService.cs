@@ -10,11 +10,22 @@ namespace SS_CAM.Services
 {
     public class CategoryPresetService
     {
-        private static readonly string ConfigFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SuamiSihat",
-            "category_presets.json"
-        );
+        private static string ConfigFilePath
+        {
+            get
+            {
+                string folder = "CreativeAssetsApp";
+                if (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppName))
+                {
+                    folder = TenantConfigService.Current.AppName;
+                }
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    folder,
+                    "category_presets.json"
+                );
+            }
+        }
 
         public static List<CategoryPreset> GetDefaultPresets()
         {

@@ -262,16 +262,17 @@ namespace SS_CAM.Views
             YearComboBox.ItemsSource = years;
             YearComboBox.SelectedIndex = 0;
 
-            // Sub-brands matching official Brand System guidelines
-            List<string> subBrands = new List<string>
+            // Sub-brands from configuration
+            List<string> subBrands = new List<string>();
+            if (SS_CAM.Services.TenantConfigService.Current != null && SS_CAM.Services.TenantConfigService.Current.Subsidiaries != null)
             {
-                "SS - SuamiSihat",
-                "SSH - SuamiSihat Holding Sdn. Bhd.",
-                "SSC - SuamiSihat Healthcare Sdn. Bhd.",
-                "SSW - SuamiSihat Wellness Sdn. Bhd.",
-                "SSE - SuamiSihat Ecommerce Sdn. Bhd.",
-                "SST - SuamiSihat Technology Sdn. Bhd."
-            };
+                foreach (var sub in SS_CAM.Services.TenantConfigService.Current.Subsidiaries)
+                {
+                    subBrands.Add(string.IsNullOrWhiteSpace(sub.DisplayName) ? sub.Name : sub.DisplayName);
+                }
+            }
+            if (subBrands.Count == 0) subBrands.Add("Default - Creative Portal");
+
             SubBrandComboBox.ItemsSource = subBrands;
             SubBrandComboBox.SelectedIndex = 0;
 
@@ -678,13 +679,13 @@ namespace SS_CAM.Views
         private string GenerateFolderName()
         {
             string datePrefix = DateTime.Now.ToString("yyyyMM");
-            string jobId = ProjectIdInput != null && !string.IsNullOrWhiteSpace(ProjectIdInput.Text) ? ProjectIdInput.Text.Trim() : "0001D";
+            string projectId = ProjectIdInput != null && !string.IsNullOrWhiteSpace(ProjectIdInput.Text) ? ProjectIdInput.Text.Trim() : "0001D";
             string selectedBrandFull = SubBrandComboBox != null && SubBrandComboBox.SelectedItem != null ? SubBrandComboBox.SelectedItem.ToString() : "SS";
             string brandCode = GetSubBrandCode(selectedBrandFull);
             string name = ProjectNameInput != null && !string.IsNullOrWhiteSpace(ProjectNameInput.Text) ? ProjectNameInput.Text.Trim() : "project name";
 
             name = Regex.Replace(name, @"[\\/:*?""<>|]", "_");
-            return string.Format("{0}_{1}_{2}_{3}", datePrefix, jobId, brandCode, name);
+            return string.Format("{0}_{1}_{2}_{3}", datePrefix, projectId, brandCode, name);
         }
 
         private void UpdatePlatformCardHighlighting()
@@ -1180,9 +1181,10 @@ namespace SS_CAM.Views
 
                 string canvasFilePath = Path.Combine(fPath, fileName);
 
+                string folderNameConfig = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppFolderName)) ? TenantConfigService.Current.AppFolderName : "CreativeAssetsApp";
                 string appDataTemplates = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "SuamiSihat", "Templates", "starter_template" + ext
+                    folderNameConfig, "Templates", "starter_template" + ext
                 );
                 string workspaceTemplates = !string.IsNullOrWhiteSpace(workspaceRoot)
                     ? Path.Combine(workspaceRoot, "Templates", "starter_template" + ext)
@@ -1200,7 +1202,7 @@ namespace SS_CAM.Views
                 {
                     string platformSpecs = PlatformSpecsText != null ? PlatformSpecsText.Text : "Custom Dimensions";
                     string sampleHeader = string.Format(
-                        "// SuamiSihat Creative Asset Starter Canvas\n// Project ID: {0}\n// Title: {1}\n// Platform Specs: {2}\n// Created: {3:yyyy-MM-dd HH:mm:ss}\n",
+                        "// Creative Asset Starter Canvas\n// Project ID: {0}\n// Title: {1}\n// Platform Specs: {2}\n// Created: {3:yyyy-MM-dd HH:mm:ss}\n",
                         projectId, cleanTitle, platformSpecs, DateTime.Now
                     );
                     File.WriteAllText(canvasFilePath, sampleHeader);

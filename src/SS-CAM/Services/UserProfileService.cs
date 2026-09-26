@@ -12,7 +12,7 @@ namespace SS_CAM.Services
     {
         private static readonly string ConfigFilePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SuamiSihat",
+            "Corporate",
             "user_profile.json"
         );
 
@@ -81,7 +81,7 @@ namespace SS_CAM.Services
                         string nasAvatar = GetUserAvatarPath(ws, profile.StaffId);
                         if (!string.IsNullOrWhiteSpace(nasAvatar) && File.Exists(nasAvatar))
                         {
-                            string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SuamiSihat");
+                            string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Corporate");
                             if (!Directory.Exists(localApp)) Directory.CreateDirectory(localApp);
                             string localCached = Path.Combine(localApp, string.Format("avatar_{0}.jpg", profile.StaffId.Trim()));
 
@@ -504,7 +504,7 @@ namespace SS_CAM.Services
                     {
                         string base64 = avatarData.Substring(commaIndex + 1);
                         byte[] bytes = Convert.FromBase64String(base64);
-                        string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SuamiSihat");
+                        string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Corporate");
                         if (!Directory.Exists(localApp)) Directory.CreateDirectory(localApp);
                         string fileName = string.Format("avatar_{0}.jpg", string.IsNullOrWhiteSpace(staffId) ? "user" : staffId.Trim());
                         string targetPath = Path.Combine(localApp, fileName);
@@ -599,7 +599,7 @@ namespace SS_CAM.Services
         {
             try
             {
-                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SuamiSihat");
+                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Corporate");
                 if (Directory.Exists(path))
                 {
                     foreach (string file in Directory.GetFiles(path))

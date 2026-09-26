@@ -186,12 +186,6 @@
                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
                                     <ComboBox x:Name="CmbEntityFilter" Grid.Column="1" SelectionChanged="OnEntityFilterChanged"
                                               FontSize="11.5" Height="36" Padding="10,0" VerticalContentAlignment="Center">
-                                        <ComboBoxItem Content="All Entities (SSH, SSC, SSE, SSW, SST)" IsSelected="True"/>
-                                        <ComboBoxItem Content="SSC - Healthcare / Clinic"/>
-                                        <ComboBoxItem Content="SSH - SuamiSihat Holding"/>
-                                        <ComboBoxItem Content="SSE - E-Commerce"/>
-                                        <ComboBoxItem Content="SSW - Wellness"/>
-                                        <ComboBoxItem Content="SST - Technology"/>
                                     </ComboBox>
                                 </Grid>
                             </StackPanel>
@@ -399,7 +393,7 @@
                                                 <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
                                                     <ui:TextBlock x:Name="TxtDetailRequester" Text="Staff Name" FontSize="12" FontWeight="SemiBold"
                                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                                    <ui:TextBlock Text=" • " FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                    <ui:TextBlock Text=" &#x2022; " FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                     <ui:TextBlock x:Name="TxtDetailRequesterRole" Text="Role / Department" FontSize="11"
                                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </StackPanel>
@@ -410,7 +404,7 @@
                                                 <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
                                                     <ui:TextBlock x:Name="TxtDetailFormat" Text="1:1 Feed Post" FontSize="12" FontWeight="SemiBold"
                                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                                    <ui:TextBlock Text=" • " FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                    <ui:TextBlock Text=" &#x2022; " FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                     <ui:TextBlock x:Name="TxtDetailFormatSpecs" Text="1080 x 1080 px | 72 DPI" FontSize="11"
                                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </StackPanel>
@@ -446,7 +440,7 @@
                                             <StackPanel Grid.Row="2" Grid.Column="3">
                                                 <ui:TextBlock Text="4. Turnaround" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                 <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="#A7F3D0" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,2,0,0" HorizontalAlignment="Left">
-                                                    <ui:TextBlock x:Name="TxtDetailDuration" Text="⏱️ 3 days" FontSize="11" FontWeight="Bold" Foreground="#065F46"/>
+                                                    <ui:TextBlock x:Name="TxtDetailDuration" Text="&#x23F1;&#xFE0F; 3 days" FontSize="11" FontWeight="Bold" Foreground="#065F46"/>
                                                 </Border>
                                             </StackPanel>
                                         </Grid>

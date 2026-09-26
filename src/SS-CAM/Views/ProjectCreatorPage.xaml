@@ -1,4 +1,4 @@
-﻿<Page x:Class="SS_CAM.Views.ProjectCreatorPage"
+<Page x:Class="SS_CAM.Views.ProjectCreatorPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -168,7 +168,7 @@
                                                     <ui:Button x:Name="MdTable" Content="Table" Click="OnMdTable" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Insert Markdown Table"/>
                                                     <ui:Button x:Name="MdLink" Content="Link" Click="OnMdLink" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Insert Link ([text](url))"/>
                                                     <ui:Button x:Name="MdImage" Content="Image" Click="OnMdImage" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Insert Image (![alt](url))"/>
-                                                    <ui:Button x:Name="MdAttachment" Content="Attach" Click="OnMdAttachment" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Insert Attachment Link ([📎 name](path))"/>
+                                                    <ui:Button x:Name="MdAttachment" Content="Attach" Click="OnMdAttachment" Height="24" Padding="8,0" Background="Transparent" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="10" BorderThickness="0" Cursor="Hand" ToolTip="Insert Attachment Link ([&#x1F4CE; name](path))"/>
                                                 </StackPanel>
                                             </Border>
 

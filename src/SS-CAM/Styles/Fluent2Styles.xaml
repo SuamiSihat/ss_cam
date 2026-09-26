@@ -11,7 +11,7 @@
     <SolidColorBrush x:Key="FluentBrandLight" Color="#EBF4FE"/>
     <SolidColorBrush x:Key="FluentBrandTint" Color="#EBF4FE"/>
 
-    <!-- Official SuamiSihat Brand System Tokens (brand-system.html) -->
+    <!-- Official Corporate Brand System Tokens (brand-system.html) -->
     <SolidColorBrush x:Key="SSPrussianBlue" Color="#022057"/>
     <SolidColorBrush x:Key="SSBlue"         Color="#043388"/>
     <SolidColorBrush x:Key="SSAzure"        Color="#21A1F7"/>

@@ -3,6 +3,16 @@ using System.Collections.Generic;
 
 namespace SS_CAM.Models
 {
+    public static class ProjectStatusConstants
+    {
+        public const string Backlog = "backlog";
+        public const string InProgress = "in-progress";
+        public const string Review = "review";
+        public const string Revision = "revision";
+        public const string Approved = "approved";
+        public const string OnHold = "on-hold";
+    }
+
     public class ProjectStatusItem
     {
         public string Project { get; set; }       // folder name

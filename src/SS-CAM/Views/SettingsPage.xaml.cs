@@ -174,7 +174,8 @@ namespace SS_CAM.Views
             {
                 try
                 {
-                    string targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SuamiSihat");
+                    string folderName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppFolderName)) ? TenantConfigService.Current.AppFolderName : "CreativeAssetsApp";
+                    string targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), folderName);
                     if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
 
                     string staffPrefix = string.IsNullOrWhiteSpace(currentProfile.StaffId) ? "user" : currentProfile.StaffId.Trim();
@@ -273,7 +274,7 @@ namespace SS_CAM.Views
                 try
                 {
                     // Primary: GitHub Releases API (always reflects published releases)
-                    const string GithubApiUrl = "https://api.github.com/repos/SuamiSihat/ss_cam/releases/latest";
+                    const string GithubApiUrl = "https://api.github.com/repos/Corporate/ss_cam/releases/latest";
                     System.Net.ServicePointManager.SecurityProtocol =
                         System.Net.SecurityProtocolType.Tls12 | System.Net.SecurityProtocolType.Tls11;
 
@@ -300,7 +301,7 @@ namespace SS_CAM.Views
 
                         // Build the exe download URL from known naming convention
                         downloadUrl = string.Format(
-                            "https://github.com/SuamiSihat/ss_cam/releases/download/v{0}/SS-CAM-v{0}.exe",
+                            "https://github.com/Corporate/ss_cam/releases/download/v{0}/SS-CAM-v{0}.exe",
                             latestVersion);
                     }
                 }
@@ -311,8 +312,9 @@ namespace SS_CAM.Views
                     // Fallback: NAS version.json
                     try
                     {
+                        string fallbackUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.PortalUrl)) ? TenantConfigService.Current.PortalUrl.TrimEnd('/') + "/ss-cam/version.json" : "https://corporate.myds.me/ss-cam/version.json";
                         System.Net.ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, er) => true;
-                        System.Net.HttpWebRequest req2 = (System.Net.HttpWebRequest)System.Net.WebRequest.Create("https://suamisihat.myds.me/ss-cam/version.json");
+                        System.Net.HttpWebRequest req2 = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(fallbackUrl);
                         req2.Timeout = 5000;
                         req2.Method = "GET";
                         req2.Accept = "application/json";
@@ -507,7 +509,7 @@ namespace SS_CAM.Views
 
         private void OnResetProfileDefaults(object sender, RoutedEventArgs e)
         {
-            if (MessageBox.Show("Are you sure you want to reset profile credentials to default SS Branding details?\n\n• Name: SS Branding\n• Department: Creative Department\n• Email: branding@suamisihat.com\n• Staff ID: SS000X", "Reset Profile Defaults", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            if (MessageBox.Show("Are you sure you want to reset profile credentials to default Corporate Branding details?\n\n• Name: Corporate Branding\n• Department: Creative Department\n• Email: branding@company.com\n• Staff ID: CORP000X", "Reset Profile Defaults", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 currentProfile = UserProfileService.ResetToDefaults();
                 LoadProfileData();
@@ -521,8 +523,8 @@ namespace SS_CAM.Views
                     }
                 }
 
-                ProfileSaveStatus.Text = "Profile reset to default SS Branding credentials!";
-                MessageBox.Show("Profile identity successfully reset:\n• Name: SS Branding\n• Department: Creative Department\n• Email: branding@suamisihat.com\n• Staff ID: SS000X", "Reset Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                ProfileSaveStatus.Text = "Profile reset to default Corporate Branding credentials!";
+                MessageBox.Show("Profile identity successfully reset:\n• Name: Corporate Branding\n• Department: Creative Department\n• Email: branding@company.com\n• Staff ID: CORP000X", "Reset Complete", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 

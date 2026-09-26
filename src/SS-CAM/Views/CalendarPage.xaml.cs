@@ -1687,11 +1687,11 @@ namespace SS_CAM.Views
             {
                 if (DayDetailPanel != null) DayDetailPanel.Visibility = Visibility.Collapsed;
 
-                if (DrawerJobId != null)
+                if (DrawerProjectId != null)
                 {
                     string idText = !string.IsNullOrWhiteSpace(project.Project) ? project.Project : "PROJECT";
                     if (idText.Length > 18) idText = idText.Substring(0, 18);
-                    DrawerJobId.Text = idText;
+                    DrawerProjectId.Text = idText;
                 }
 
                 UpdateDrawerStatusBadge(project.Status);

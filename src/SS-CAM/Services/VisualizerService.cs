@@ -6,7 +6,7 @@ namespace SS_CAM.Services
 {
     public enum VisualizerMode
     {
-        HeroMesh,        // SuamiSihat Hero Mesh animated glowing aura (https://assets.suamisihat.myds.me/)
+        HeroMesh,        // Hero Mesh animated glowing aura
         SpectrumBars,    // Equalizer multi-bar frequency spectrum
         Waveform,        // Oscilloscope dynamic sine waveform
         WaterDrop        // Concentric liquid water drop ripple path

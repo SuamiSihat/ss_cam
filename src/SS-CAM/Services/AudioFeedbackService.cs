@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Media;
 using System.Windows;
@@ -238,7 +238,8 @@ namespace SS_CAM.Services
         private static string ResolveAudioPath(string fileName)
         {
             string payloadDir = PayloadInstallerService.FindPayloadDirectory();
-            string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SuamiSihat");
+            string folderName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppFolderName)) ? TenantConfigService.Current.AppFolderName : "Corporate";
+            string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), folderName);
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
 
             string mp3FileName = Path.ChangeExtension(fileName, ".mp3");

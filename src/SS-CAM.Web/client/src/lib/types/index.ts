@@ -21,7 +21,7 @@ export interface User {
   permissions: string[];
 }
 
-export type ProjectStatus = 'backlog' | 'in-progress' | 'review' | 'revision' | 'approved' | 'done' | 'on-hold';
+export type ProjectStatus = 'backlog' | 'in-progress' | 'review' | 'revision' | 'approved' | 'on-hold';
 export type ProjectPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface CreativeDirectionState {

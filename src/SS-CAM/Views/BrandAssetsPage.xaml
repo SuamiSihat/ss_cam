@@ -75,7 +75,7 @@
                         <ui:SymbolIcon Symbol="Color24" FontSize="24" Foreground="{DynamicResource FluentBrand80}" VerticalAlignment="Center" Margin="0,0,10,0"/>
                         <ui:TextBlock Text="Brand Assets &amp; Identity Vault" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <ui:TextBlock Text="Authoritative SuamiSihat&#x2122; color palettes, multi-format design tokens, sub-brand vector marks, and typography hierarchy." Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="13" Margin="0,2,0,0"/>
+                    <ui:TextBlock Text="Authoritative Corporate&#x2122; color palettes, multi-format design tokens, sub-brand vector marks, and typography hierarchy." Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="13" Margin="0,2,0,0"/>
                 </StackPanel>
                 <Border Grid.Column="1" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,6" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
@@ -398,7 +398,7 @@
                                     </Border>
                                     <!-- Wordmark preview -->
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <ui:TextBlock x:Name="LogoPreviewWordmark" Text="SuamiSihat&#x2122;" FontSize="22" FontWeight="Bold" Foreground="#022057"/>
+                                        <ui:TextBlock x:Name="LogoPreviewWordmark" Text="Corporate&#x2122;" FontSize="22" FontWeight="Bold" Foreground="#022057"/>
                                         <ui:TextBlock x:Name="LogoPreviewSubtext" Text="MEN'S HEALTH &amp; CLINICAL VITALITY" FontSize="10" FontWeight="SemiBold" Foreground="#043388" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Grid>

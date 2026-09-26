@@ -162,7 +162,7 @@ namespace SS_CAM.Views
 
         private void OnOpenMasterLogos(object sender, RoutedEventArgs e)
         {
-            OpenLogoSubFolder("00_logo_SuamiSihat");
+            OpenLogoSubFolder("00_logo_Corporate");
         }
 
         private void OnOpenSsHealth(object sender, RoutedEventArgs e)
@@ -195,8 +195,9 @@ namespace SS_CAM.Views
             try
             {
                 PayloadInstallerService.DeployBrandAssets();
+                string folderName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppFolderName)) ? TenantConfigService.Current.AppFolderName : "CreativeAssetsApp";
                 string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                string path = Path.Combine(localAppData, "SuamiSihat", "Assets", "Logos", subFolderName);
+                string path = Path.Combine(localAppData, folderName, "Assets", "Logos", subFolderName);
 
                 if (!Directory.Exists(path))
                 {
@@ -224,7 +225,8 @@ namespace SS_CAM.Views
             try
             {
                 PayloadInstallerService.DeployBrandAssets();
-                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SuamiSihat", "Assets");
+                string folderName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppFolderName)) ? TenantConfigService.Current.AppFolderName : "CreativeAssetsApp";
+                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), folderName, "Assets");
                 if (!Directory.Exists(path)) Directory.CreateDirectory(path);
                 Process.Start("explorer.exe", path);
             }
@@ -258,17 +260,20 @@ namespace SS_CAM.Views
 
         private void OnOpenServiceDashboard(object sender, RoutedEventArgs e)
         {
-            OpenUrl("https://suamisihat.myds.me");
+            string portalUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.PortalUrl)) ? TenantConfigService.Current.PortalUrl : "https://corporate.myds.me";
+            OpenUrl(portalUrl);
         }
 
         private void OnOpenInternalAssets(object sender, RoutedEventArgs e)
         {
-            OpenUrl("https://assets.suamisihat.myds.me/");
+            string assetUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AssetPortalUrl)) ? TenantConfigService.Current.AssetPortalUrl : "https://assets.corporate.myds.me/";
+            OpenUrl(assetUrl);
         }
 
         private void OnOpenPublicAssets(object sender, RoutedEventArgs e)
         {
-            OpenUrl("https://suamisihat.com.my/brand-assets");
+            string companyUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.CompanyUrl)) ? TenantConfigService.Current.CompanyUrl : "https://corporate.com.my";
+            OpenUrl(string.Format("{0}/brand-assets", companyUrl.TrimEnd('/')));
         }
 
         private void OpenUrl(string url)

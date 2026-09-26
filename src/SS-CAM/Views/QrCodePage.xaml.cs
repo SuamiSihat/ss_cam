@@ -39,6 +39,10 @@ namespace SS_CAM.Views
             try
             {
                 _isInitializing = false;
+                if (string.IsNullOrWhiteSpace(TxtUrl.Text))
+                {
+                    TxtUrl.Text = QrCodeEncoderService.GetDefaultUrl();
+                }
                 // Default logo: ss_icon_light
                 _currentOptions.LogoImage = LoadSsIconLogo();
                 RebuildQrCode();
@@ -210,7 +214,7 @@ namespace SS_CAM.Views
             switch (_activeContentType)
             {
                 case "TEXT":
-                    return TxtFreeText != null ? TxtFreeText.Text : "SuamiSihat";
+                    return TxtFreeText != null ? TxtFreeText.Text : "Corporate";
                 case "WIFI":
                     string ssid = TxtWifiSsid != null ? TxtWifiSsid.Text : "SS_Wifi";
                     string pass = TxtWifiPassword != null ? TxtWifiPassword.Text : "";
@@ -232,7 +236,7 @@ namespace SS_CAM.Views
                     return string.Format("mailto:{0}?subject={1}", mailTo, mailSub);
                 case "URL":
                 default:
-                    return TxtUrl != null ? TxtUrl.Text : "https://suamisihat.com.my";
+                    return TxtUrl != null ? TxtUrl.Text : QrCodeEncoderService.GetDefaultUrl();
             }
         }
 
@@ -552,7 +556,7 @@ namespace SS_CAM.Views
             if (CmbEyeDotShape != null) CmbEyeDotShape.SelectedIndex = 0;
             if (CmbErrorCorrection != null) CmbErrorCorrection.SelectedIndex = 0;
 
-            if (TxtUrl != null) TxtUrl.Text = "https://suamisihat.com.my";
+            if (TxtUrl != null) TxtUrl.Text = QrCodeEncoderService.GetDefaultUrl();
             if (TxtFg1Hex != null) TxtFg1Hex.Text = "#022057";
             if (TxtFg2Hex != null) TxtFg2Hex.Text = "#21A1F7";
             if (TxtBgHex != null) TxtBgHex.Text = "#FFFFFF";
@@ -566,7 +570,7 @@ namespace SS_CAM.Views
                 var dlg = new Microsoft.Win32.SaveFileDialog
                 {
                     Filter = "PNG Image (*.png)|*.png",
-                    FileName = string.Format("SuamiSihat_QRCode_PrintBundle_{0:yyyyMMdd_HHmmss}.png", DateTime.Now),
+                    FileName = string.Format("{0}_QRCode_PrintBundle_{1:yyyyMMdd_HHmmss}.png", QrCodeEncoderService.GetFilenamePrefix(), DateTime.Now),
                     Title = "Export Complete Print Package"
                 };
 
@@ -606,7 +610,7 @@ namespace SS_CAM.Views
                 var dlg = new Microsoft.Win32.SaveFileDialog
                 {
                     Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg",
-                    FileName = string.Format("SuamiSihat_QRCode_{0:yyyyMMdd_HHmmss}.png", DateTime.Now),
+                    FileName = string.Format("{0}_QRCode_{1:yyyyMMdd_HHmmss}.png", QrCodeEncoderService.GetFilenamePrefix(), DateTime.Now),
                     Title = "Export QR Code Image"
                 };
 
@@ -632,7 +636,7 @@ namespace SS_CAM.Views
                 var dlg = new Microsoft.Win32.SaveFileDialog
                 {
                     Filter = "Vector SVG (*.svg)|*.svg",
-                    FileName = string.Format("SuamiSihat_QRCode_{0:yyyyMMdd_HHmmss}.svg", DateTime.Now),
+                    FileName = string.Format("{0}_QRCode_{1:yyyyMMdd_HHmmss}.svg", QrCodeEncoderService.GetFilenamePrefix(), DateTime.Now),
                     Title = "Export QR Code Vector SVG"
                 };
 

@@ -605,7 +605,7 @@ namespace SS_CAM.Views
                 }
                 catch
                 {
-                    if (TxtWhatsAppPreviewDomain != null) TxtWhatsAppPreviewDomain.Text = "SUAMISIHAT.CLINIC";
+                    if (TxtWhatsAppPreviewDomain != null) TxtWhatsAppPreviewDomain.Text = "CORPORATE.CLINIC";
                 }
 
                 if (TxtWhatsAppPreviewUrl != null) TxtWhatsAppPreviewUrl.Text = url;
@@ -623,7 +623,7 @@ namespace SS_CAM.Views
 
             if (TxtMetaHeadline != null)
             {
-                TxtMetaHeadline.Text = !string.IsNullOrWhiteSpace(headline) ? headline : "SuamiSihat — Formulasi Tenaga & Vitaliti Maskulin Premium";
+                TxtMetaHeadline.Text = !string.IsNullOrWhiteSpace(headline) ? headline : "Corporate — Formulasi Tenaga & Vitaliti Maskulin Premium";
             }
 
             if (TxtMetaCtaButton != null)
@@ -641,12 +641,12 @@ namespace SS_CAM.Views
                 }
                 catch
                 {
-                    if (TxtMetaDomain != null) TxtMetaDomain.Text = "SUAMISIHAT.CLINIC";
+                    if (TxtMetaDomain != null) TxtMetaDomain.Text = "CORPORATE.CLINIC";
                 }
             }
             else
             {
-                if (TxtMetaDomain != null) TxtMetaDomain.Text = "SUAMISIHAT.CLINIC";
+                if (TxtMetaDomain != null) TxtMetaDomain.Text = "CORPORATE.CLINIC";
             }
 
             if (TxtMetaAdLiveContent != null)
@@ -902,7 +902,7 @@ namespace SS_CAM.Views
         // Quick Snippets Inserts
         private void OnSnippetWhatsappLinkClicked(object sender, RoutedEventArgs e)
         {
-            InsertSnippetText(Environment.NewLine + "👉 *Klik link untuk WhatsApp Direct:* https://suamisihat.clinic/wsap" + Environment.NewLine);
+            InsertSnippetText(Environment.NewLine + "👉 *Klik link untuk WhatsApp Direct:* https://corporate.clinic/wsap" + Environment.NewLine);
         }
 
         private void OnSnippetPromoVoucherClicked(object sender, RoutedEventArgs e)
@@ -1120,7 +1120,7 @@ namespace SS_CAM.Views
                 if (TxtPropDesignerInitial != null) TxtPropDesignerInitial.Text = "—";
                 TxtPropReviewer.Text = "Hasan · Manager";
                 TxtPropBrandPill.Text = "SS";
-                TxtPropBrandName.Text = "SuamiSihat";
+                TxtPropBrandName.Text = "Corporate";
                 TxtPropPriority.Text = "MEDIUM";
                 SetPriorityBadge("medium");
                 TxtPropDeadline.Text = "—";
@@ -1198,16 +1198,18 @@ namespace SS_CAM.Views
 
         private string GetSubsidiaryFullName(string code)
         {
-            if (string.IsNullOrWhiteSpace(code)) return "SuamiSihat Creative Production";
-            switch (code.ToUpperInvariant())
+            if (string.IsNullOrWhiteSpace(code)) return "Creative Production";
+            string upperCode = code.ToUpperInvariant();
+            
+            if (SS_CAM.Services.TenantConfigService.Current != null && SS_CAM.Services.TenantConfigService.Current.Subsidiaries != null)
             {
-                case "SSH": return "SuamiSihat Holding Sdn Bhd";
-                case "SSC": return "SuamiSihat Clinic / Healthcare";
-                case "SSW": return "SuamiSihat Wellness Sdn Bhd";
-                case "SSE": return "SuamiSihat Ecommerce Sdn Bhd";
-                case "SST": return "SuamiSihat Technology Sdn Bhd";
-                default: return "SuamiSihat Creative Production";
+                var sub = System.Linq.Enumerable.FirstOrDefault(SS_CAM.Services.TenantConfigService.Current.Subsidiaries, s => s.Code == upperCode);
+                if (sub != null && !string.IsNullOrWhiteSpace(sub.Name))
+                {
+                    return sub.Name;
+                }
             }
+            return "Creative Production";
         }
 
         private void SetPriorityBadge(string priority)

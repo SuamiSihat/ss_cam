@@ -46,7 +46,8 @@ namespace SS_CAM.Services
 
                 if (!Directory.Exists(fontSourceDir))
                 {
-                    fontSourceDir = Path.Combine(localAppData, "SuamiSihat", "Fonts");
+                    string folderName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppFolderName)) ? TenantConfigService.Current.AppFolderName : "CreativeAssetsApp";
+                    fontSourceDir = Path.Combine(localAppData, folderName, "Fonts");
                 }
 
                 if (Directory.Exists(fontSourceDir))
@@ -95,7 +96,8 @@ namespace SS_CAM.Services
             try
             {
                 string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                string assetsDir = Path.Combine(localAppData, "SuamiSihat", "Assets");
+                string folderName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppFolderName)) ? TenantConfigService.Current.AppFolderName : "CreativeAssetsApp";
+                string assetsDir = Path.Combine(localAppData, folderName, "Assets");
                 if (!Directory.Exists(assetsDir)) Directory.CreateDirectory(assetsDir);
 
                 string payloadDir = FindPayloadDirectory();
@@ -112,7 +114,7 @@ namespace SS_CAM.Services
                 string sourceAudio = !string.IsNullOrEmpty(payloadDir) ? Path.Combine(payloadDir, "Audio") : "";
                 if (Directory.Exists(sourceAudio))
                 {
-                    string targetAudio = Path.Combine(localAppData, "SuamiSihat", "Audio");
+                    string targetAudio = Path.Combine(localAppData, folderName, "Audio");
                     CopyDirectoryRecursive(sourceAudio, targetAudio);
                 }
 
@@ -163,9 +165,14 @@ namespace SS_CAM.Services
             {
                 string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
-                CreateUrlShortcut(Path.Combine(desktop, "SuamiSihat Service Dashboard.url"), "https://suamisihat.myds.me");
-                CreateUrlShortcut(Path.Combine(desktop, "SS Design System (Internal).url"), "https://assets.suamisihat.myds.me/");
-                CreateUrlShortcut(Path.Combine(desktop, "Public Brand Kits.url"), "https://suamisihat.com.my/brand-assets");
+                string appName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppName)) ? TenantConfigService.Current.AppName : "Creative Assets Management";
+                string portalUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.PortalUrl)) ? TenantConfigService.Current.PortalUrl : "https://suamisihat.myds.me";
+                string assetUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AssetPortalUrl)) ? TenantConfigService.Current.AssetPortalUrl : "https://assets.suamisihat.myds.me/";
+                string companyUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.CompanyUrl)) ? TenantConfigService.Current.CompanyUrl : "https://suamisihat.com.my";
+
+                CreateUrlShortcut(Path.Combine(desktop, string.Format("{0} Service Dashboard.url", appName)), portalUrl);
+                CreateUrlShortcut(Path.Combine(desktop, "Design System (Internal).url"), assetUrl);
+                CreateUrlShortcut(Path.Combine(desktop, "Public Brand Kits.url"), string.Format("{0}/brand-assets", companyUrl));
 
                 return "Desktop web shortcuts created successfully for Service Dashboard, SS Design System, and Brand Kits.";
             }
@@ -180,7 +187,8 @@ namespace SS_CAM.Services
             try
             {
                 string desktop      = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string shortcutPath = Path.Combine(desktop, "SuamiSihat Creative Assets Management.lnk");
+                string appName      = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppName)) ? TenantConfigService.Current.AppName : "Creative Assets Management";
+                string shortcutPath = Path.Combine(desktop, string.Format("{0}.lnk", appName));
                 string exePath      = Process.GetCurrentProcess().MainModule.FileName;
                 string workingDir   = Path.GetDirectoryName(exePath);
 

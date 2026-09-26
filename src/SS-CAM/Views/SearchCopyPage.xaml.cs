@@ -925,7 +925,8 @@ namespace SS_CAM.Views
 
             if (report.IssueCount == 0)
             {
-                MessageBox.Show(string.Format("All {0} audited deliverable assets follow SuamiSihat canonical naming standards.", report.TotalAudited), "Asset Naming Audit - 100% Compliant", MessageBoxButton.OK, MessageBoxImage.Information);
+                string appName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppName)) ? TenantConfigService.Current.AppName : "Corporate";
+                MessageBox.Show(string.Format("All {0} audited deliverable assets follow {1} canonical naming standards.", report.TotalAudited, appName), "Asset Naming Audit - 100% Compliant", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {

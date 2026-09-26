@@ -65,27 +65,45 @@ namespace SS_CAM.Services
             AddNav("Task Manager", "ClickUp-style Kanban board, task status & handovers", typeof(TaskManagerPage), "\uE73E");
             AddNav("Project Timeline", "Visual project timeline, Gantt chart & delivery deadlines", typeof(CalendarPage), "\uE787");
             AddNav("Studio Notes", "Team scratchpad, quick ideas & Markdown notes", typeof(QuickNotePage), "\uE70B");
-            AddNav("Creative Wellbeing", "Biometric radar, focus heatmap & hydration tracker", typeof(WellbeingPage), "\uEB51");
-            AddNav("Waktu Solat", "Accurate prayer times & Islamic calendar", typeof(WaktuSolatPage), "\uE823");
-            AddNav("Radio Player", "Curated lofi, synthwave & live audio visualizer", typeof(RadioPage), "\uE8D6");
-            AddNav("QR Code Studio", "Vector QR generator with custom logo embedding", typeof(QrCodePage), "\uED14");
+
+            // Add dynamic plugins from registry
+            foreach (var plugin in PluginRegistry.ActivePlugins)
+            {
+                string iconStr = "";
+                try 
+                {
+                    var symbol = (Wpf.Ui.Controls.SymbolRegular)Enum.Parse(typeof(Wpf.Ui.Controls.SymbolRegular), plugin.NavIconGlyph);
+                    iconStr = ((char)symbol).ToString();
+                } 
+                catch 
+                {
+                    iconStr = "\uE73E"; // Fallback icon
+                }
+                AddNav(plugin.DisplayName, plugin.Description, plugin.PageType, iconStr);
+            }
+
             AddNav("Workstation Health", "System storage, memory & network latency audits", typeof(WorkstationHealthPage), "\uE7BA");
             AddNav("Settings & Profile", "User profile, theme switcher & NAS configuration", typeof(SettingsPage), "\uE713");
 
             // 2. Brand Colors (Master Brand System v3.5.1)
-            AddColor("SuamiSihat Prussian Blue", "#022057", "--ss-prussian-blue", "Primary Corporate Deep Navy (RAL 5004 / Pantone 533 C)");
-            AddColor("SuamiSihat Brand Blue", "#043388", "--ss-blue", "Mid Navy Authority Blue (RAL 5002 / Pantone 287 C)");
-            AddColor("SuamiSihat Azure", "#21A1F7", "--ss-azure", "Vibrant Brand Accent (RAL 5012 / Pantone 299 C)");
-            AddColor("SuamiSihat Malibu", "#6DC6EC", "--ss-malibu", "Cyan Tint & Interactive Hover (RAL 5015 / Pantone 2915 C)");
-            AddColor("SuamiSihat Lion", "#BD9A73", "--ss-lion", "Premium Warm Gold Accent (Pantone 7503 C)");
-            AddColor("SuamiSihat Fawn", "#CCAC8D", "--ss-fawn", "Soft Sand Muted Secondary (Pantone 7502 C)");
-            AddColor("SuamiSihat Arylide", "#E5D15C", "--ss-arylide", "Warm Caution Yellow (RAL 1018)");
-            AddColor("SuamiSihat Banana", "#FCE53D", "--ss-banana", "High-Voltage Electric Alert (RAL 1016)");
-            AddColor("SSH Holding Gold", "#D97706", "--ss-holding-gold", "SuamiSihat Holdings Corporate Gold");
-            AddColor("SSC Clinic Cyan", "#0EA5E9", "--ss-clinic-cyan", "SuamiSihat Clinic Medical Cyan");
-            AddColor("SSW Wellness Teal", "#0D9488", "--ss-wellness-teal", "SuamiSihat Wellness Botanical Teal");
-            AddColor("SSE Enterprise Navy", "#1E3A8A", "--ss-enterprise-navy", "SuamiSihat Enterprise Executive Navy");
-            AddColor("SST Technology Indigo", "#4F46E5", "--ss-tech-indigo", "SuamiSihat Tech Innovation Indigo");
+            AddColor("Corporate Prussian Blue", "#022057", "--ss-prussian-blue", "Primary Corporate Deep Navy (RAL 5004 / Pantone 533 C)");
+            AddColor("Corporate Brand Blue", "#043388", "--ss-blue", "Mid Navy Authority Blue (RAL 5002 / Pantone 287 C)");
+            AddColor("Corporate Azure", "#21A1F7", "--ss-azure", "Vibrant Brand Accent (RAL 5012 / Pantone 299 C)");
+            AddColor("Corporate Malibu", "#6DC6EC", "--ss-malibu", "Cyan Tint & Interactive Hover (RAL 5015 / Pantone 2915 C)");
+            AddColor("Corporate Lion", "#BD9A73", "--ss-lion", "Premium Warm Gold Accent (Pantone 7503 C)");
+            AddColor("Corporate Fawn", "#CCAC8D", "--ss-fawn", "Soft Sand Muted Secondary (Pantone 7502 C)");
+            AddColor("Corporate Arylide", "#E5D15C", "--ss-arylide", "Warm Caution Yellow (RAL 1018)");
+            AddColor("Corporate Banana", "#FCE53D", "--ss-banana", "High-Voltage Electric Alert (RAL 1016)");
+            if (TenantConfigService.Current != null && TenantConfigService.Current.Subsidiaries != null)
+            {
+                foreach (var sub in TenantConfigService.Current.Subsidiaries)
+                {
+                    if (!string.IsNullOrWhiteSpace(sub.ColorHex))
+                    {
+                        AddColor(sub.Code + " Brand Color", sub.ColorHex, "--brand-" + sub.Code.ToLowerInvariant(), string.IsNullOrWhiteSpace(sub.Name) ? sub.Code : sub.Name);
+                    }
+                }
+            }
 
             // 3. Copywriting Hooks & CTAs
             AddCopy("Hook: Tenaga Lelaki Sejati", "Rahsia Tenaga Lelaki Sejati Kini Terbongkar — 100% Asli Tanpa Kompromi.", "Direct Authority Hook");

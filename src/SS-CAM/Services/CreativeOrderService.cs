@@ -24,7 +24,18 @@ namespace SS_CAM.Services
         private static readonly HttpClient _httpClient;
         private static string _cachedJwtToken = null;
         private static DateTime _tokenExpiry = DateTime.MinValue;
-        private const string DefaultApiBaseUrl = "https://creative.suamisihat.myds.me/";
+        private static string ApiBaseUrl
+        {
+            get
+            {
+                if (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.PortalUrl))
+                {
+                    string url = TenantConfigService.Current.PortalUrl;
+                    return url.EndsWith("/") ? url : url + "/";
+                }
+                return "https://creative.corporate.local/";
+            }
+        }
 
         static CreativeOrderService()
         {
@@ -109,7 +120,7 @@ namespace SS_CAM.Services
 
                 using (var content = new StringContent(json, Encoding.UTF8, "application/json"))
                 {
-                    var res = await _httpClient.PostAsync(DefaultApiBaseUrl + "api/auth/login", content).ConfigureAwait(false);
+                    var res = await _httpClient.PostAsync(ApiBaseUrl + "api/auth/login", content).ConfigureAwait(false);
                     if (res.IsSuccessStatusCode)
                     {
                         string body = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -138,7 +149,7 @@ namespace SS_CAM.Services
                 string token = await GetAuthTokenAsync(username).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(token)) return null;
 
-                using (var req = new HttpRequestMessage(HttpMethod.Get, DefaultApiBaseUrl + "api/orders"))
+                using (var req = new HttpRequestMessage(HttpMethod.Get, ApiBaseUrl + "api/orders"))
                 {
                     req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                     var res = await _httpClient.SendAsync(req).ConfigureAwait(false);
@@ -373,7 +384,7 @@ namespace SS_CAM.Services
                     if (projectId != null) patchDict["projectId"] = projectId;
                     if (internalNote != null) patchDict["internalNote"] = internalNote;
 
-                    using (var req = new HttpRequestMessage(new HttpMethod("PATCH"), DefaultApiBaseUrl + "api/orders/" + orderId))
+                    using (var req = new HttpRequestMessage(new HttpMethod("PATCH"), ApiBaseUrl + "api/orders/" + orderId))
                     {
                         req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                         req.Content = new StringContent(JsonConvert.SerializeObject(patchDict), Encoding.UTF8, "application/json");
@@ -411,7 +422,7 @@ namespace SS_CAM.Services
                 string token = await GetAuthTokenAsync(null).ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(token))
                 {
-                    using (var req = new HttpRequestMessage(HttpMethod.Delete, DefaultApiBaseUrl + "api/orders/" + orderId))
+                    using (var req = new HttpRequestMessage(HttpMethod.Delete, ApiBaseUrl + "api/orders/" + orderId))
                     {
                         req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                         await _httpClient.SendAsync(req).ConfigureAwait(false);

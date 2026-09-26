@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:views="clr-namespace:SS_CAM.Views"
-        Title="SuamiSihat Creative Assets Management v4.10.2" Height="820" Width="1280"
+        Title="Creative Assets Management v4.10.2" Height="820" Width="1280"
         MinHeight="680" MinWidth="1024"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
@@ -78,7 +78,7 @@
                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                 </ui:Button>
 
-                <ui:TextBlock x:Name="TitleBarAppTitle" Text="SS Creative Assets Management" FontSize="13" FontWeight="Bold"
+                <ui:TextBlock x:Name="TitleBarAppTitle" Text="Creative Assets Management" FontSize="13" FontWeight="Bold"
                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
             </StackPanel>
 
@@ -252,11 +252,7 @@
                 <ui:NavigationViewItem Content="Studio Notes"       Icon="{ui:SymbolIcon Document24}"    TargetPageType="{x:Type views:QuickNotePage}" NavigationCacheMode="Required" ToolTip="Quick scratchpad, briefs &amp; Markdown notes" />
 
                 <!-- 3. Studio Tools & Utilities -->
-                <ui:NavigationViewItemSeparator />
-                <ui:NavigationViewItem Content="QR Code Studio"     Icon="{ui:SymbolIcon QrCode24}"      TargetPageType="{x:Type views:QrCodePage}" NavigationCacheMode="Required" ToolTip="Vector QR codes for packaging &amp; marketing" />
-                <ui:NavigationViewItem Content="Waktu Solat"        Icon="{ui:SymbolIcon Clock24}"       TargetPageType="{x:Type views:WaktuSolatPage}" NavigationCacheMode="Required" ToolTip="Prayer times &amp; Islamic calendar" />
-                <ui:NavigationViewItem Content="Radio Player"       Icon="{ui:SymbolIcon MusicNote224}"  TargetPageType="{x:Type views:RadioPage}" NavigationCacheMode="Required" ToolTip="Ambient radio streams &amp; focus audio" />
-                <ui:NavigationViewItem Content="Creative Wellbeing" Icon="{ui:SymbolIcon Heart24}"       TargetPageType="{x:Type views:WellbeingPage}" NavigationCacheMode="Required" ToolTip="Ergonomics, breaks &amp; focus analytics" />
+                <ui:NavigationViewItemSeparator x:Name="ToolsSeparator" />
 
                 <ui:NavigationViewItemSeparator />
                 <ui:NavigationViewItem Content="Settings &amp; Profile" Icon="{ui:SymbolIcon Settings24}" TargetPageType="{x:Type views:SettingsPage}" NavigationCacheMode="Required" ToolTip="Designer preferences, NAS &amp; diagnostics" />
@@ -272,7 +268,7 @@
                                 ToolTip="Click to re-check Synology NAS connection">
                         <Ellipse x:Name="NasStatusDot" Width="8" Height="8" Fill="#94A3B8"
                                  VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <ui:TextBlock x:Name="StatusNasText" Text="SSNAS Offline" Foreground="{DynamicResource SidebarTextSecondaryBrush}"
+                        <ui:TextBlock x:Name="StatusNasText" Foreground="{DynamicResource SidebarTextSecondaryBrush}"
                                    FontSize="11" VerticalAlignment="Center"/>
                     </StackPanel>
                     <!-- Focus timer -->
@@ -301,7 +297,7 @@
                         <ui:TextBlock x:Name="StatusThemeIcon" Text="&#xE790;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource SidebarTextSecondaryBrush}"
                                    FontSize="12" VerticalAlignment="Center" Margin="0,0,7,0"
                                    Focusable="False"/>
-                        <ui:TextBlock x:Name="StatusThemeText" Text="SuamiSihat Light" Foreground="{DynamicResource SidebarTextSecondaryBrush}"
+                        <ui:TextBlock x:Name="StatusThemeText" Foreground="{DynamicResource SidebarTextSecondaryBrush}"
                                    FontSize="11" VerticalAlignment="Center"
                                    Focusable="False"/>
                     </StackPanel>

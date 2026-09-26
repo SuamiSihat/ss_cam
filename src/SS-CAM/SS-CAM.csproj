@@ -198,6 +198,14 @@
     <Compile Include="Models\DashboardModels.cs" />
     <Compile Include="Models\UserProfileModels.cs" />
     <Compile Include="Models\RadioStation.cs" />
+    <Compile Include="Models\TenantConfig.cs" />
+    <Compile Include="Models\IAppPlugin.cs" />
+    <Compile Include="Services\TenantConfigService.cs" />
+    <Compile Include="Services\PluginRegistry.cs" />
+    <Compile Include="Plugins\WaktuSolatPlugin.cs" />
+    <Compile Include="Plugins\CreativeWellbeingPlugin.cs" />
+    <Compile Include="Plugins\QrCodeStudioPlugin.cs" />
+    <Compile Include="Plugins\RadioPlayerPlugin.cs" />
     <Compile Include="Models\CategoryPreset.cs" />
     <Compile Include="Models\TeamNote.cs" />
     <Compile Include="Models\ProjectStatus.cs" />

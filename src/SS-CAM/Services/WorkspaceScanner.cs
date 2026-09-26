@@ -9,7 +9,7 @@ namespace SS_CAM.Services
 {
     public static class WorkspaceScanner
     {
-        // Job-ID segment must start with a digit (e.g. 0001D, 0002S).
+        // Project-ID segment must start with a digit (e.g. 0001D, 0002S).
         // This excludes month-container folders like 202608_August (letter-only segment)
         // while correctly matching all canonical project folder names.
         private static readonly Regex ProjectPattern = new Regex(
@@ -92,9 +92,9 @@ namespace SS_CAM.Services
                     }
 
                     result.TotalProjects++;
-                    string job = match.Groups[1].Value.ToUpperInvariant();
+                    string projectId = match.Groups[1].Value.ToUpperInvariant();
                     string brand = match.Groups[2].Value.ToUpperInvariant();
-                    string projectCode = GetProjectCode(job);
+                    string projectCode = GetProjectCode(projectId);
                     string type = projectCode.StartsWith("S") ? "Social Media" :
                         projectCode.StartsWith("V") ? "Video" :
                         projectCode.StartsWith("P") ? "Brand Identity" : "Graphic / Print";
@@ -330,7 +330,7 @@ namespace SS_CAM.Services
                     }
                 }
 
-                // 2. Extract job code (e.g. 0001D, 0004P) and map to staff directory
+                // 2. Extract project code (e.g. 0001D, 0004P) and map to staff directory
                 Match m = Regex.Match(projectName, @"^\d{6}_([A-Z0-9]+)_", RegexOptions.IgnoreCase);
                 if (m.Success)
                 {
@@ -621,12 +621,12 @@ namespace SS_CAM.Services
             return result;
         }
 
-        private static string GetProjectCode(string job)
+        private static string GetProjectCode(string projectId)
         {
-            Match oldFormat = Regex.Match(job, @"^([A-Z-]+)\d+$", RegexOptions.IgnoreCase);
+            Match oldFormat = Regex.Match(projectId, @"^([A-Z-]+)\d+$", RegexOptions.IgnoreCase);
             if (oldFormat.Success) return oldFormat.Groups[1].Value.ToUpperInvariant();
-            Match newFormat = Regex.Match(job, @"^\d+([A-Z-]+)$", RegexOptions.IgnoreCase);
-            return newFormat.Success ? newFormat.Groups[1].Value.ToUpperInvariant() : job.ToUpperInvariant();
+            Match newFormat = Regex.Match(projectId, @"^\d+([A-Z-]+)$", RegexOptions.IgnoreCase);
+            return newFormat.Success ? newFormat.Groups[1].Value.ToUpperInvariant() : projectId.ToUpperInvariant();
         }
 
         private static void AddCount(Dictionary<string, int> dictionary, string key)

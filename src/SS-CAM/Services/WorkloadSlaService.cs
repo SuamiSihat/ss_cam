@@ -266,7 +266,7 @@ namespace SS_CAM.Services
                     }
                 }
 
-                // 2. Extract job code (e.g. 0001D, 0004P) and map to staff directory
+                // 2. Extract project code (e.g. 0001D, 0004P) and map to staff directory
                 Match m = Regex.Match(projectName, @"^\d{6}_([A-Z0-9]+)_", RegexOptions.IgnoreCase);
                 if (m.Success)
                 {

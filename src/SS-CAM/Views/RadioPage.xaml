@@ -76,7 +76,7 @@
                  ClipToBounds="True">
             <Border CornerRadius="12" Background="#022057" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
                 <Grid x:Name="HeroMeshContainer" SizeChanged="OnHeroMeshSizeChanged" MouseMove="OnHeroMeshMouseMove" MouseLeave="OnHeroMeshMouseLeave" Background="#022057" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
-                <!-- SuamiSihat Hero Mesh Backdrop Animation Layer (HERO-BANNER-BACKGROUND.md standard) -->
+                <!-- Corporate Hero Mesh Backdrop Animation Layer (HERO-BANNER-BACKGROUND.md standard) -->
                 <Rectangle x:Name="HeroMeshAtmosphere" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <Rectangle.Fill>
                         <LinearGradientBrush x:Name="HeroMeshGrad" StartPoint="0,0" EndPoint="0,1">
@@ -87,7 +87,7 @@
                     </Rectangle.Fill>
                 </Rectangle>
 
-                <!-- Dynamic Pulsating Aura Glow Rings & SuamiSihat Men Icon Backdrop -->
+                <!-- Dynamic Pulsating Aura Glow Rings & Corporate Men Icon Backdrop -->
                 <Canvas x:Name="HeroMeshBackdropCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False">
                     <!-- Glowing Azure Aura Ring -->
                     <Ellipse x:Name="AuraRing1" Width="380" Height="380" Canvas.Right="-60" Canvas.Top="-120" Opacity="0.50">
@@ -153,7 +153,7 @@
                     <!-- 69 Scattered Floating Mars Symbols (♂) Canvas (Active only during audio playback) -->
                     <Canvas x:Name="ScatteredSymbolsCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False"/>
 
-                    <!-- SuamiSihat Floating Crest Icon (Active only during audio playback) -->
+                    <!-- Corporate Floating Crest Icon (Active only during audio playback) -->
                     <Canvas x:Name="SSLogoCanvas" Canvas.Right="240" Canvas.Top="25" Opacity="0" IsHitTestVisible="False">
                         <Grid Width="70" Height="70">
                             <Grid.RenderTransform>

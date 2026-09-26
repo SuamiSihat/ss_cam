@@ -311,7 +311,7 @@
                 </Grid>
 
                 <!-- Footer attribution -->
-                <ui:TextBlock Text="Waktu solat disediakan oleh JAKIM melalui api.waktusolat.app · SuamiSihat Digital Ecosystem"
+                <ui:TextBlock Text="Waktu solat disediakan oleh JAKIM melalui api.waktusolat.app · Corporate Digital Ecosystem"
                            FontSize="11" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,12,0,24"/>
 
             </StackPanel>
