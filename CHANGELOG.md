@@ -9,6 +9,7 @@ All notable SS-CAM changes are documented here.
   - Implemented `IAppPlugin` canonical contract and `PluginRegistry` for dynamic module registration, lifecycle initialization, and navigation injection.
   - Wrapped four auxiliary modules into self-contained plugins: `WaktuSolatPlugin`, `RadioPlayerPlugin`, `QrCodeStudioPlugin`, and `CreativeWellbeingPlugin`.
   - Added dynamic navigation binding in `MainWindow.xaml.cs` and `CommandPaletteService.cs` (`Ctrl + K`), seamlessly mounting or skipping modules based on tenant configuration.
+  - Introduced in-app **Pluggable Modules** management card in `SettingsPage.xaml` with Fluent 2 `<ui:ToggleSwitch>` controls and immediate hot-reload of sidebar navigation and Command Palette without requiring app restart.
 - **Dynamic Tenant Configuration Engine**:
   - Introduced `TenantConfig.cs` and `TenantConfigService.cs` to resolve custom branding, brand colors (`brandPrimary`, `brandTint`, `brandNavy`), application titles, custom endpoints, and category presets without code recompilation.
   - Neutralized all hardcoded internal branding literals across 20+ WPF views and services with dynamic lookups and generic fallbacks.

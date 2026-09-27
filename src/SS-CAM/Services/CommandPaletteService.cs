@@ -51,6 +51,11 @@ namespace SS_CAM.Services
             InitializeStaticItems();
         }
 
+        public static void InvalidateStaticItems()
+        {
+            InitializeStaticItems();
+        }
+
         private static void InitializeStaticItems()
         {
             _staticItems = new List<CommandPaletteItem>();

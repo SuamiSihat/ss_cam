@@ -4,6 +4,7 @@
 - **Modular Multi-Tenant Plugin Engine (`IAppPlugin`, `PluginRegistry`)**:
   - Abstracted auxiliary features (`WaktuSolatPlugin`, `RadioPlayerPlugin`, `QrCodeStudioPlugin`, `CreativeWellbeingPlugin`) into self-contained plugins implementing canonical `IAppPlugin` interface.
   - Dynamically registers navigation items in `MainWindow.xaml.cs` and Command Palette launcher (`CommandPaletteService.cs`) based on tenant capability enablement.
+  - Added in-app **Pluggable Modules** management card in `SettingsPage.xaml` with Fluent 2 `<ui:ToggleSwitch>` controls and immediate hot-reload (`MainWindow.RefreshPluginNavigation()`) without requiring app restart.
 - **Dynamic Tenant Configuration Engine (`TenantConfigService`)**:
   - Implemented `TenantConfig.cs` and `TenantConfigService.cs` supporting dynamic corporate branding, brand color palettes (`brandPrimary`, `brandTint`, `brandNavy`), custom endpoints, and category presets without binary recompilation.
   - Neutralized proprietary SuamiSihat literals across 20+ WPF views and services with generic enterprise fallbacks.

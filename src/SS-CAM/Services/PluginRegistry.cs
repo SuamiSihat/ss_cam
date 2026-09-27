@@ -15,7 +15,9 @@ namespace SS_CAM.Services
 
         public static void Initialize()
         {
+            _activePlugins.Clear();
             var config = TenantConfigService.Current;
+            if (config == null || config.Plugins == null) return;
 
             var availablePlugins = new List<IAppPlugin>
             {

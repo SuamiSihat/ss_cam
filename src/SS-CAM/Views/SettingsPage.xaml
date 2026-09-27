@@ -594,6 +594,128 @@
                         </StackPanel>
                     </ui:Card>
 
+                    <!-- Pluggable Modules Card -->
+                    <ui:Card Margin="0,0,0,16" Padding="20">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                <Border Width="32" Height="32" CornerRadius="8"
+                                        Background="{DynamicResource FluentBrandTint}"
+                                        Margin="0,0,10,0" VerticalAlignment="Center">
+                                    <ui:SymbolIcon Symbol="AppsAddIn24" FontSize="16"
+                                                   Foreground="{DynamicResource FluentBrand80}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <ui:TextBlock Text="Pluggable Modules &amp; Extensions"
+                                                  FontSize="14" FontWeight="Bold"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <ui:TextBlock Text="Enable or disable auxiliary studio tools &amp; widgets"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                  FontSize="11"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                                <StackPanel>
+
+                                    <!-- Waktu Solat Toggle -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="Clock24" FontSize="16"
+                                                       Foreground="{DynamicResource FluentBrand80}"
+                                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <ui:TextBlock Text="Waktu Solat &amp; Islamic Calendar" FontSize="13" FontWeight="SemiBold"
+                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                            <ui:TextBlock Text="Daily prayer times, azan notifications, and Hijri dates"
+                                                          FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginWaktuSolat"
+                                                         Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- Creative Wellbeing Toggle -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="Heart24" FontSize="16"
+                                                       Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <ui:TextBlock Text="Creative Wellbeing &amp; Ergonomics" FontSize="13" FontWeight="SemiBold"
+                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                            <ui:TextBlock Text="Desk ergonomics, 20-20-20 eye rest &amp; water hydration tracker"
+                                                          FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginWellbeing"
+                                                         Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- QR Code Studio Toggle -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="QrCode24" FontSize="16"
+                                                       Foreground="{DynamicResource FluentBrand80}"
+                                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <ui:TextBlock Text="QR Code Studio &amp; Generator" FontSize="13" FontWeight="SemiBold"
+                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                            <ui:TextBlock Text="Vector QR codes for packaging dielines &amp; marketing campaigns"
+                                                          FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginQrCode"
+                                                         Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- Radio Player Toggle -->
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="MusicNote224" FontSize="16"
+                                                       Foreground="{DynamicResource FluentBrand80}"
+                                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <ui:TextBlock Text="Radio Player &amp; Audio Visualizer" FontSize="13" FontWeight="SemiBold"
+                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                            <ui:TextBlock Text="Ambient radio streams, lofi beats &amp; real-time audio visualizer"
+                                                          FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginRadio"
+                                                         Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Hint bar -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,10,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Info24" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <ui:TextBlock Text="Toggling a module updates sidebar navigation and Ctrl + K immediately."
+                                                  FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ui:Card>
+
                     <!-- Category Presets Card -->
                     <ui:Card Margin="0,0,0,16" Padding="20">
                         <StackPanel>

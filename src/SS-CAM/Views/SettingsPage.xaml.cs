@@ -28,9 +28,84 @@ namespace SS_CAM.Views
             // Reserved for future cleanup
         }
 
+        private bool _isPluginLoading = false;
+
         private void OnPageLoaded(object sender, RoutedEventArgs e)
         {
             LoadProfileData();
+            LoadPluginStates();
+        }
+
+        private void LoadPluginStates()
+        {
+            try
+            {
+                _isPluginLoading = true;
+                if (TogglePluginWaktuSolat != null)
+                    TogglePluginWaktuSolat.IsChecked = TenantConfigService.IsPluginEnabled("waktu-solat");
+                if (TogglePluginWellbeing != null)
+                    TogglePluginWellbeing.IsChecked = TenantConfigService.IsPluginEnabled("creative-wellbeing");
+                if (TogglePluginQrCode != null)
+                    TogglePluginQrCode.IsChecked = TenantConfigService.IsPluginEnabled("qr-code-studio");
+                if (TogglePluginRadio != null)
+                    TogglePluginRadio.IsChecked = TenantConfigService.IsPluginEnabled("radio-player");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[SettingsPage] LoadPluginStates: " + ex.Message);
+            }
+            finally
+            {
+                _isPluginLoading = false;
+            }
+        }
+
+        private void OnPluginToggleClicked(object sender, RoutedEventArgs e)
+        {
+            if (_isPluginLoading) return;
+
+            var toggle = sender as Wpf.Ui.Controls.ToggleSwitch;
+            if (toggle == null) return;
+
+            string pluginId = null;
+            string pluginName = null;
+            bool isEnabled = toggle.IsChecked == true;
+
+            if (toggle == TogglePluginWaktuSolat)
+            {
+                pluginId = "waktu-solat";
+                pluginName = "Waktu Solat";
+            }
+            else if (toggle == TogglePluginWellbeing)
+            {
+                pluginId = "creative-wellbeing";
+                pluginName = "Creative Wellbeing";
+            }
+            else if (toggle == TogglePluginQrCode)
+            {
+                pluginId = "qr-code-studio";
+                pluginName = "QR Code Studio";
+            }
+            else if (toggle == TogglePluginRadio)
+            {
+                pluginId = "radio-player";
+                pluginName = "Radio Player";
+            }
+
+            if (pluginId != null)
+            {
+                TenantConfigService.SetPluginEnabled(pluginId, isEnabled);
+
+                // Dynamically update MainWindow navigation
+                var mainWindow = Application.Current.MainWindow as MainWindow;
+                if (mainWindow != null)
+                {
+                    mainWindow.RefreshPluginNavigation();
+                }
+
+                string status = isEnabled ? "enabled" : "disabled";
+                NotificationService.ShowInfo("Plugin Updated", string.Format("{0} module is now {1}.", pluginName, status));
+            }
         }
 
         private void LoadProfileData()

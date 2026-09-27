@@ -105,27 +105,7 @@ namespace SS_CAM
                 catch (Exception ex) { App.LogTrace("MainWindow: WorkSessionTracker error: " + ex.Message); }
 
                 // 7. Inject Dynamic Plugins into Navigation
-                try
-                {
-                    int index = RootNavigation.MenuItems.IndexOf(ToolsSeparator);
-                    if (index >= 0)
-                    {
-                        foreach (var plugin in PluginRegistry.ActivePlugins)
-                        {
-                            var navItem = new Wpf.Ui.Controls.NavigationViewItem
-                            {
-                                Content = plugin.DisplayName,
-                                Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = (Wpf.Ui.Controls.SymbolRegular)Enum.Parse(typeof(Wpf.Ui.Controls.SymbolRegular), plugin.NavIconGlyph) },
-                                TargetPageType = plugin.PageType,
-                                NavigationCacheMode = Wpf.Ui.Controls.NavigationCacheMode.Required,
-                                ToolTip = plugin.Description
-                            };
-                            RootNavigation.MenuItems.Insert(++index, navItem);
-                        }
-                    }
-                    App.LogTrace("MainWindow: Plugins injected into Navigation");
-                }
-                catch (Exception ex) { App.LogTrace("MainWindow: Plugin injection error: " + ex.Message); }
+                RefreshPluginNavigation();
 
                 // 8. Navigate to Dashboard on startup
                 try { RootNavigation.Navigate(typeof(DashboardPage)); App.LogTrace("MainWindow: Navigated to DashboardPage"); }
@@ -145,6 +125,56 @@ namespace SS_CAM
             catch (Exception fatalEx)
             {
                 App.LogTrace("MainWindow: Fatal OnLoaded exception: " + fatalEx);
+            }
+        }
+
+        public void RefreshPluginNavigation()
+        {
+            try
+            {
+                PluginRegistry.Initialize();
+                CommandPaletteService.InvalidateStaticItems();
+
+                if (RootNavigation == null || RootNavigation.MenuItems == null) return;
+
+                // Remove existing dynamic plugin items
+                var itemsToRemove = new List<object>();
+                foreach (var item in RootNavigation.MenuItems)
+                {
+                    var navItem = item as Wpf.Ui.Controls.NavigationViewItem;
+                    if (navItem != null && Equals(navItem.Tag, "PluginNavItem"))
+                    {
+                        itemsToRemove.Add(item);
+                    }
+                }
+                foreach (var item in itemsToRemove)
+                {
+                    RootNavigation.MenuItems.Remove(item);
+                }
+
+                // Re-insert currently active plugins after ToolsSeparator
+                int index = RootNavigation.MenuItems.IndexOf(ToolsSeparator);
+                if (index >= 0)
+                {
+                    foreach (var plugin in PluginRegistry.ActivePlugins)
+                    {
+                        var navItem = new Wpf.Ui.Controls.NavigationViewItem
+                        {
+                            Content = plugin.DisplayName,
+                            Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = (Wpf.Ui.Controls.SymbolRegular)Enum.Parse(typeof(Wpf.Ui.Controls.SymbolRegular), plugin.NavIconGlyph) },
+                            TargetPageType = plugin.PageType,
+                            NavigationCacheMode = Wpf.Ui.Controls.NavigationCacheMode.Required,
+                            ToolTip = plugin.Description,
+                            Tag = "PluginNavItem"
+                        };
+                        RootNavigation.MenuItems.Insert(++index, navItem);
+                    }
+                }
+                App.LogTrace("MainWindow: Plugins navigation refreshed");
+            }
+            catch (Exception ex)
+            {
+                App.LogTrace("MainWindow: RefreshPluginNavigation error: " + ex.Message);
             }
         }
 
