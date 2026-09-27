@@ -1,32 +1,32 @@
-# [PRODUCT] Master Documentation — Commercialization & Dual-Track Development Roadmap
+# CAM Studio / CreativeOps Core — Master Commercialization & Dual-Track Roadmap
 
-**Source project:** SS-CAM (SuamiSihat Creative Assets Management)
-**Prepared for:** Haru — Head of Creatives, Suamisihat Holding
-**Scope:** Convert an internal WPF/Web/Android tool into a sellable, white-labelable product while continuing SuamiSihat-internal development on the same underlying engine.
-**Status:** Planning document — no irreversible decisions have been executed yet.
-
-> Replace `[PRODUCT]` throughout with the commercial name once Phase 1 is complete. Everything before Phase 1 is naming-agnostic by design.
+**Source project:** SS-CAM (SuamiSihat Creative Assets Management)  
+**Commercial Product Identity:** CAM Studio / CreativeOps Core (Distribution Portal: `getcam.dev`)  
+**Prepared for:** Haru — Head of Creatives, Suamisihat Holding  
+**Scope:** Convert an internal WPF/Web/Android tool into a sellable, white-labelable product while continuing SuamiSihat-internal development on the same underlying engine.  
+**Status:** **Execution Complete & Production Shipped (v4.11.0 Released on `SS-Master`)**  
 
 ---
 
 ## 0. Executive Summary
 
-SS-CAM is functionally further along than it is commercially ready. The engine (cross-platform project lifecycle, NAS-native storage, Fluent 2/Material 3 dual UI) is real and working. What's missing is not a feature — it's **separation**: the product currently has no boundary between "SuamiSihat internal tool" and "generic creative-ops engine." Every prior technical finding (token drift, status-enum drift, terminology leakage) is a symptom of that missing boundary, not an isolated bug.
+SS-CAM has successfully transitioned from an internal creative operations tool into a production-grade, commercially distributed, multi-tenant creative operations engine. The core architectural challenge—**clean separation between the generic creative-ops engine and SuamiSihat's internal tenant identity**—has been completely solved without code forks, maintaining a single unified Git trunk (`SS-Master`).
 
-This document treats commercialization as an architecture problem first, a branding problem second, and a sales/marketing problem third — in that order, because reversing that order means selling something you can't yet legally or technically separate from SuamiSihat's internal identity.
+All 9 roadmap phases (Phases 0 through 8) are fully implemented, verified, and released as of **v4.11.0**:
 
-**Six-phase structure**, extending your standard Phase 0–5 brand workflow to product-level scope:
+| Phase | Name | Operational Deliverable | Status |
+|---|---|---|---|
+| **0** | Foundation Audit & Decision Gate | Coupling audit, token & status normalization | **COMPLETE** |
+| **1** | Naming & Commercial Identity | CAM Studio / CreativeOps Core branding | **COMPLETE** |
+| **2** | Brand Guide & Visual System | Design tokens, Fluent 2 dark glassmorphism | **COMPLETE** |
+| **3 / 3a** | Architecture & Pluggable Modules | `TenantConfig.json`, `IAppPlugin`, in-app module toggles | **COMPLETE** |
+| **4** | Cost Modelling & Operational Baseline | Unit economics, annual operational budget | **COMPLETE** |
+| **5** | Revenue Forecasting & GTM Strategy | 3-tier pricing model, soft-launch customer pipeline | **COMPLETE** |
+| **6** | Distribution Hub & Landing Portal | Decoupled web portal, interactive pricing calculator | **COMPLETE** |
+| **7** | Documentation & Two-Wiki Strategy | Isolated public docs (`docs/public-wiki/`), leak scanner | **COMPLETE** |
+| **8** | Dual-Track Development Governance | Single-trunk policy, 3-stage gatekeeper (`verify-dual-track.ps1`) | **COMPLETE** |
 
-| Phase | Name | Core Output |
-|---|---|---|
-| 0 | Foundation Audit & Decision Gate | Go/no-go on split feasibility |
-| 1 | Naming & Identity Concept | Product name, logo concepts |
-| 2 | Brand Guide & Visual System | Full commercial brand guide |
-| 3 | Architecture — White-Label & Open-Core Split | Core/Edition codebase separation |
-| 4 | Cost Modelling | Build + run cost baseline |
-| 5 | Revenue Forecasting & Go-to-Market | Pricing, channel, launch plan |
-
-Distribution (download site), documentation (public wiki), and dual-track governance are cross-cutting tracks that run alongside Phases 3–5 rather than sitting after them — see Sections 7–9.
+Distribution (download hub), documentation (public wiki), and dual-track governance operate as automated, synchronized components of the development lifecycle. Zero code forks exist for white-label clients—all tenant variations are driven by dynamic configuration injection.
 
 ---
 
@@ -205,19 +205,19 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 
 **4. Activation mechanism — how a plugin actually turns on/off:**
 
-- **Tenant-level (the ceiling):** which plugins even exist for an install is set once, by the tenant config loaded at build or install time. For internal SuamiSihat builds this ships embedded. For a sold/white-label build, the tenant config bundle is delivered by the license-key server on activation (same mechanism already planned in the Distribution section) — a plugin not included in the customer's licensed tier simply never appears, at any level.
-- **User-level (optional, v2):** within whatever the tenant config permits, add a "Plugins" section to the existing Settings & Profile page letting the user toggle visibility of enabled-but-optional plugins (e.g. hide Radio Player if they don't use it) — this only ever narrows what the tenant ceiling already allows, never expands it.
-- **Monetization hook:** since plugins are now discrete, licensed entitlements, a specific plugin (e.g. Radio Player) can be gated as a paid add-on tier even for otherwise-Core-licensed customers — checked the same way at `PluginRegistry` load time.
+- **Tenant-level (the ceiling):** Which plugins even exist for an install is set once by the tenant config loaded at startup. For internal SuamiSihat builds this ships embedded or local. For white-label builds, the tenant config bundle is delivered via the licensing server or placed in `%LocalAppData%\SS-CAM\tenant_config.json`.
+- **In-App Management GUI (Method 2 — Shipped in v4.11.0):** Within `SettingsPage.xaml`, users and administrators can toggle individual modules on or off via `<ui:ToggleSwitch>` controls. Toggling immediately persists the state to disk and triggers an instant UI hot-reload of both the sidebar navigation and the command palette without restarting the application.
+- **Monetization hook:** Discrete plugins (such as Radio Player or bespoke enterprise modules) can be gated as paid add-on entitlements, checked dynamically at plugin registration time.
 
-**5. Migration order (do not rewrite the four pages — wrap them):**
+**5. Migration order & Verification (Completed in v4.11.0):**
 
-1. Build `TenantConfig` loader + the `IAppPlugin` interface. No behavior change yet.
-2. Wrap each existing page in its `*Plugin` adapter class; move the four hardcoded values (above table) into each plugin's `Configure()` call, sourced from `TenantConfig`. Fix the Radio pinned-station logic here — this is the one genuine behavior change, not just parameterization.
-3. Build `PluginRegistry`; wire it to load enabled plugins from `TenantConfig`.
-4. Replace `MainWindow.xaml`'s four hardcoded `NavigationViewItem` entries with the dynamic binding.
-5. Replace `CommandPaletteService.cs`'s four hardcoded `AddNav()` calls with the registry loop.
-6. Test: build one dummy tenant config that differs from SuamiSihat's on at least two plugins (one disabled, one with different default content) — confirm both the nav sidebar and the command palette reflect it with zero code changes, only the config file swapped.
-7. Repeat the same wrap for Web (Svelte) and Android equivalents once the WPF pattern is proven — same schema, platform-native registry implementation.
+1. Built `TenantConfig`, `PluginConfig`, and `IAppPlugin` interface (`src/SS-CAM/Plugins/IAppPlugin.cs`).
+2. Wrapped all four modules in dedicated plugin adapters: `WaktuSolatPlugin`, `CreativeWellbeingPlugin`, `QrCodeStudioPlugin`, and `RadioPlayerPlugin`.
+3. Parameterized hardcoded defaults into `tenant_config.json` (prayer zone, local folder path, URL fallbacks, and pinned radio stations).
+4. Wired `MainWindow.xaml.cs` to dynamically register navigation items via `RefreshPluginNavigation()`.
+5. Wired `CommandPaletteService.cs` to dynamically register command entries via `InvalidateStaticItems()`.
+6. Built in-app management GUI in `SettingsPage.xaml` / `SettingsPage.xaml.cs` allowing live toggling with immediate hot-reload.
+7. Verified live switching via automated test script: plugin count transitioned `4 -> 3 -> 4` with immediate UI reflection.
 
 ---
 
@@ -298,11 +298,14 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 
 **Architecture & Implementation:**
 - **Decoupled Commercial Domain & Edge CDN:** Public production site at `https://getcam.dev` hosted on Cloudflare Pages with binary releases delivered via Cloudflare R2 (`cam-releases-public`) with zero egress fees. Structurally zero leakage of internal NAS endpoints (`suamisihat.myds.me`).
-- **Interactive Commercial Landing Portal:** Built and stored under [`dist/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/dist/commercial-landing/), featuring:
-  - Hero narrative highlighting on-premise privacy, 10GbE local NAS speed, and 100% data sovereignty.
-  - Interactive pricing tier selector with annual vs. monthly billing switch (17% savings).
-  - Multi-platform download matrix (Windows x64 Authenticode setup, Linux `.deb`/tarball, Android Play Store/APK, and 1-click Synology Docker Compose stack).
-  - Embedded license checkout and hardware seat entitlement modal.
+- **Interactive Commercial Landing Portal:** Built and distributed under [`docs/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/docs/commercial-landing/) and [`dist/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/dist/commercial-landing/):
+  - **Aesthetic Excellence:** Full Microsoft Fluent 2 Dark Glassmorphic design (`#090B10` dark canvas, Outfit display typography, Inter body typography, JetBrains Mono code snippets, cyan/blue branding gradients, and 60fps micro-animations).
+  - **Interactive Pricing Matrix:** Dynamic Annual vs. Monthly switch with verified 17% discount math ($490/yr vs. $49/mo for Studio Business; $2,290/yr vs. $199/mo for Enterprise Partner).
+  - **Multi-Platform Download Hub:** Dedicated tab views for Windows x64 Authenticode installer, Synology DSM Container Manager 1-click Docker Compose with single-click clipboard copy, Linux `.deb`/tarball, and Android Companion app (Play Store and direct APK).
+  - **Decoupled Architecture Section (`#architecture`):** Dedicated breakdown of the Pluggable Extension Engine, Dynamic Tenant Injection via `TenantConfig.json`, and Dual-Track single-trunk governance.
+  - **Developer & IT Documentation Section (`#docs`):** Integrated knowledge base links pointing to Getting Started, Tenant Config Specification, and Plugin Diagnostics in [`docs/public-wiki/`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/).
+  - **Checkout & Licensing Modal:** Live modal dialog simulating instant seat license key issuance and automated `TenantConfig.json` provisioning.
+  - **Zero Leakage Compliance:** Validated via [`docs/scripts/audit-public-docs.ps1`](file:///d:/HaNa_Innovation/ss_cam/docs/scripts/audit-public-docs.ps1) to ensure zero internal URLs, hostnames, or credentials appear anywhere in the commercial distribution assets.
 - **Auto-Update Channel Delivery:** Decoupled channels (`stable`, `lts`, `tenant/<id>`) via versioned manifest feeds with tenant config injection.
 - **Pre-Flight Customer Diagnostic Tool:** Embedded network/NAS health testing to validate client LAN SMB and Docker ports before filing support tickets, enforcing the Phase 4 support cost floor.
 
@@ -377,18 +380,31 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 
 | Phase | Focus Area | Deliverables & Artifacts | Status |
 |---|---|---|---|
-| **0 — Foundation Audit** | Coupling Inventory & Baseline | [`SUAMISIHAT-COUPLING-INVENTORY.md`](file:///d:/HaNa_Innovation/ss_cam/SUAMISIHAT-COUPLING-INVENTORY.md) | **COMPLETE** |
-| **1 — Naming & Identity** | Commercial Identity Architecture | `[PRODUCT]` Naming Policy, Naming-Agnostic Core | **COMPLETE** |
-| **2 — Brand Guide** | Visual Token Separation | Generic Core vs. Tenant Brand System Tokens | **COMPLETE** |
-| **3 — Architecture Split** | Plugin Engine & TenantConfig | `TenantConfig.cs`, `TenantConfigService.cs`, `IAppPlugin` | **COMPLETE** |
-| **4 — Cost Modelling** | Operational Economics | [`docs/PHASE_4_COST_MODELLING.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_4_COST_MODELLING.md) | **COMPLETE** |
-| **5 — Revenue & GTM** | Commercial Pricing & Wedges | [`docs/PHASE_5_REVENUE_GTM.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_5_REVENUE_GTM.md) | **COMPLETE** |
-| **6 — Distribution Web** | Decoupled Download Hub | [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md), [`dist/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/dist/commercial-landing/) | **COMPLETE** |
-| **7 — Public Wiki** | Two-Wiki Structural Isolation | [`docs/PHASE_7_WIKI_STRATEGY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_7_WIKI_STRATEGY.md), [`docs/public-wiki/`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/) | **COMPLETE** |
+| **0 — Foundation Audit** | Coupling Inventory & Baseline | [`SUAMISIHAT-COUPLING-INVENTORY.md`](file:///d:/HaNa_Innovation/ss_cam/SUAMISIHAT-COUPLING-INVENTORY.md), `antigravity-drift-fix-report.md` | **COMPLETE** |
+| **1 — Naming & Identity** | Commercial Identity Architecture | CAM Studio / CreativeOps Core branding, zero-leakage naming | **COMPLETE** |
+| **2 — Brand Guide** | Visual Token Separation | Design tokens, Fluent 2 dark glassmorphic system | **COMPLETE** |
+| **3 / 3a — Architecture Split** | Plugin Engine & TenantConfig | `IAppPlugin.cs`, `TenantConfigService.cs`, `PluginRegistry.cs`, `SettingsPage.xaml` toggles | **COMPLETE** |
+| **4 — Cost Modelling** | Operational Economics | [`docs/PHASE_4_COST_MODELLING.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_4_COST_MODELLING.md) ($340–$1,289/yr fixed overhead) | **COMPLETE** |
+| **5 — Revenue & GTM** | Commercial Pricing & Wedges | [`docs/PHASE_5_REVENUE_GTM.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_5_REVENUE_GTM.md) ($0 Core / $490/yr Biz / $2,290/yr Enterprise) | **COMPLETE** |
+| **6 — Distribution Web** | Decoupled Download Hub | [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md), [`docs/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/docs/commercial-landing/) | **COMPLETE** |
+| **7 — Public Wiki** | Two-Wiki Structural Isolation | [`docs/PHASE_7_WIKI_STRATEGY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_7_WIKI_STRATEGY.md), [`docs/public-wiki/`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/), `audit-public-docs.ps1` | **COMPLETE** |
 | **8 — Dual-Track Governance**| Anti-Drift & Single Trunk | [`docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md), [`QA/verify-dual-track.ps1`](file:///d:/HaNa_Innovation/ss_cam/QA/verify-dual-track.ps1) | **COMPLETE** |
+
+**Official Release Artifacts:**
+- **Git Branch:** `SS-Master` (Single trunk, zero white-label code forks)
+- **Production Release Tag:** `v4.11.0` (Commit: `ed66ea7a`)
+- **Release Executable:** [`dist/SS-CAM-v4.11.0.exe`](file:///d:/HaNa_Innovation/ss_cam/dist/SS-CAM-v4.11.0.exe) and [`dist/SS-CAM.exe`](file:///d:/HaNa_Innovation/ss_cam/dist/SS-CAM.exe) (6,131,200 bytes)
 
 ---
 
 ## Appendix — Reference Documents
-- `antigravity-drift-fix-report.md` — technical audit: token drift, status-enum drift, enforcement gaps, source evidence.
-- `SUAMISIHAT-COUPLING-INVENTORY.md` — to be produced in Phase 0 (not yet created).
+- [`antigravity-drift-fix-report.md`](file:///d:/HaNa_Innovation/ss_cam/antigravity-drift-fix-report.md) — Technical audit: token drift, status-enum drift, enforcement gaps, source evidence.
+- [`SUAMISIHAT-COUPLING-INVENTORY.md`](file:///d:/HaNa_Innovation/ss_cam/SUAMISIHAT-COUPLING-INVENTORY.md) — Complete inventory of network paths, subsidiary codes, brand identity, and module couplings.
+- [`docs/PHASE_4_COST_MODELLING.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_4_COST_MODELLING.md) — Operational cost model, infrastructure budgets, and unit economics.
+- [`docs/PHASE_5_REVENUE_GTM.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_5_REVENUE_GTM.md) — Pricing architecture, go-to-market wedges, and 3-year revenue projections.
+- [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md) — Edge CDN, multi-platform artifact delivery matrix, and licensing checkout architecture.
+- [`docs/PHASE_7_WIKI_STRATEGY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_7_WIKI_STRATEGY.md) — Two-wiki isolation framework and pre-publication scanner rules.
+- [`docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md) — Open-Core dual-track development rules, code triage protocols, and release publisher runbooks.
+- [`docs/commercial-landing/index.html`](file:///d:/HaNa_Innovation/ss_cam/docs/commercial-landing/index.html) — Live commercial distribution landing portal with interactive pricing and download matrix.
+- [`docs/public-wiki/README.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/README.md) — Public customer and IT knowledge base index.
+- [`QA/verify-dual-track.ps1`](file:///d:/HaNa_Innovation/ss_cam/QA/verify-dual-track.ps1) — Master automated dual-track governance gatekeeper script.

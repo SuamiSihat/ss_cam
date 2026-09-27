@@ -205,7 +205,44 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════════
-       5. COMMERCIAL PRICING MATRIX
+       5. DECOUPLED OPEN-CORE ARCHITECTURE
+       ═══════════════════════════════════════════════════════════════════ -->
+  <section class="section" id="architecture">
+    <div class="section-header">
+      <div class="section-tag">Decoupled Architecture</div>
+      <h2 class="section-title">One Core Engine. Zero Code Forks.</h2>
+      <p class="section-desc">Clean architectural separation between generic creative-ops engine and tenant-specific customizations.</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <iconify-icon icon="fluent:plug-connected-24-filled" style="font-size: 1.6rem;"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Pluggable Extension Engine</h3>
+        <p class="feature-body">Auxiliary modules implement the <code>IAppPlugin</code> contract. Enable or disable modules on the fly via in-app settings with live hot-reloading across the sidebar navigation and command palette.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <iconify-icon icon="fluent:document-settings-24-filled" style="font-size: 1.6rem;"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Dynamic Tenant Injection</h3>
+        <p class="feature-body">Every brand element—logomark, color palette, custom shortcuts, and LAN SMB mounts—is resolved at runtime via <code>TenantConfig.json</code>. White-label clients need zero custom source builds.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <iconify-icon icon="fluent:arrow-sync-circle-24-filled" style="font-size: 1.6rem;"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Dual-Track Governance</h3>
+        <p class="feature-body">A single Git trunk (<code>SS-Master</code>) powers both internal operations and commercial editions. Pre-commit gatekeepers enforce UTF-8 BOM, Fluent 2 controls, and zero proprietary credential leakage.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       6. COMMERCIAL PRICING MATRIX
        ═══════════════════════════════════════════════════════════════════ -->
   <section class="section" id="pricing">
     <div class="section-header">
@@ -384,7 +421,53 @@ services:
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════════
-       7. CHECKOUT / LICENSE MODAL
+       7. PUBLIC DOCUMENTATION & GUIDES
+       ═══════════════════════════════════════════════════════════════════ -->
+  <section class="section" id="docs">
+    <div class="section-header">
+      <div class="section-tag">Knowledge Base</div>
+      <h2 class="section-title">Developer &amp; IT Documentation</h2>
+      <p class="section-desc">Comprehensive setup guides, configuration specifications, and troubleshooting playbooks.</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <iconify-icon icon="fluent:book-compass-24-filled" style="font-size: 1.6rem;"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Getting Started Guide</h3>
+        <p class="feature-body">Workstation requirements, initial Windows desktop installation, and Synology DSM Container Manager deployment walkthrough.</p>
+        <a href="../public-wiki/01-GETTING-STARTED.md" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; color: var(--accent-cyan); text-decoration: none; margin-top: 16px; font-size: 0.9rem; font-weight: 500;">
+          Read Guide <iconify-icon icon="fluent:arrow-right-16-filled"></iconify-icon>
+        </a>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <iconify-icon icon="fluent:code-settings-24-filled" style="font-size: 1.6rem;"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Tenant Config Reference</h3>
+        <p class="feature-body">Full JSON schema reference for white-label branding, color tokens, storage path overrides, and custom navigation shortcuts.</p>
+        <a href="../public-wiki/02-TENANT-CONFIG-SPEC.md" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; color: var(--accent-cyan); text-decoration: none; margin-top: 16px; font-size: 0.9rem; font-weight: 500;">
+          View Schema <iconify-icon icon="fluent:arrow-right-16-filled"></iconify-icon>
+        </a>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <iconify-icon icon="fluent:wrench-screwdriver-24-filled" style="font-size: 1.6rem;"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Plugin System &amp; Diagnostics</h3>
+        <p class="feature-body">Plugin lifecycle, dynamic navigation registration, LAN SMB mount resolution, and pre-flight network diagnostics.</p>
+        <a href="../public-wiki/03-PLUGIN-SYSTEM.md" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; color: var(--accent-cyan); text-decoration: none; margin-top: 16px; font-size: 0.9rem; font-weight: 500;">
+          Explore Plugins <iconify-icon icon="fluent:arrow-right-16-filled"></iconify-icon>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       8. CHECKOUT / LICENSE MODAL
        ═══════════════════════════════════════════════════════════════════ -->
   <div class="modal-overlay" id="checkout-modal">
     <div class="modal-card">
@@ -413,7 +496,7 @@ services:
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════════
-       8. FOOTER
+       9. FOOTER
        ═══════════════════════════════════════════════════════════════════ -->
   <footer class="footer">
     <div class="footer-container">
@@ -442,10 +525,10 @@ services:
       <div class="footer-col">
         <h4>Resources</h4>
         <ul>
-          <li><a href="#">Public Documentation</a></li>
-          <li><a href="#">Synology NAS Setup Guide</a></li>
-          <li><a href="#">Tenant Config Reference</a></li>
-          <li><a href="#">Release Changelog</a></li>
+          <li><a href="../public-wiki/README.md" target="_blank">Public Documentation</a></li>
+          <li><a href="../public-wiki/01-GETTING-STARTED.md" target="_blank">Synology NAS Setup Guide</a></li>
+          <li><a href="../public-wiki/02-TENANT-CONFIG-SPEC.md" target="_blank">Tenant Config Reference</a></li>
+          <li><a href="#download">Release Changelog</a></li>
         </ul>
       </div>
 
