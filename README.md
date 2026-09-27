@@ -4,7 +4,7 @@
 
 Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Brand Asset Inspector · Synology NAS Native · Multi-Platform
 
-[![Release](https://img.shields.io/badge/release-v4.10.2-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.10.2)
+[![Release](https://img.shields.io/badge/release-v4.11.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.11.0)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20Linux%20%7C%20Android%20%7C%20Docker-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%208.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
 [![Web Stack](https://img.shields.io/badge/web-Svelte%205%20%2B%20Node.js%2020-ff3e00?style=flat-square)](https://svelte.dev)
@@ -12,6 +12,20 @@ Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Br
 [![License](https://img.shields.io/badge/licence-Internal%20Use-orange?style=flat-square)](./installer/EULA.txt)
 
 ---
+
+## 🚀 What's New in v4.11.0 ("Dual-Track Commercialization Architecture, Multi-Tenant Plugin Engine & Open-Core Governance")
+
+* **🧩 Modular Multi-Tenant Plugin Engine (`IAppPlugin`, `PluginRegistry`)**:
+  * **Decoupled Architecture**: Abstracted auxiliary modules into standalone pluggable components (`WaktuSolatPlugin`, `RadioPlayerPlugin`, `QrCodeStudioPlugin`, `CreativeWellbeingPlugin`).
+  * **Dynamic Navigation & Command Palette**: Automatic runtime mounting of enabled modules in sidebar navigation and global `Ctrl + K` Command Palette based on tenant capability settings.
+* **🏢 Dynamic Tenant Configuration Engine (`TenantConfigService`)**:
+  * **Runtime Customization**: Full tenant branding, brand primary/tint/navy color palette injection, and endpoint configuration loaded dynamically from `TenantConfig.json` without recompilation.
+  * **Core Neutralization**: All proprietary literals neutralized across 20+ desktop views and services with generic enterprise fallbacks.
+* **🌐 Commercial Distribution Hub & Public Documentation Suite**:
+  * **Commercial Landing Portal**: Fluent 2 dark glassmorphic customer landing page under `docs/commercial-landing/` with interactive pricing tier calculator ($0 Community Core, $490/yr Studio Business, $2,290/yr Enterprise White-Label) and multi-platform distribution links.
+  * **Clean Public Knowledge Base**: Dedicated, sanitised customer documentation under `docs/public-wiki/` (`01-GETTING-STARTED.md`, `02-TENANT-CONFIG-SPEC.md`, `03-PLUGIN-SYSTEM.md`, `04-TROUBLESHOOTING.md`) with automated leakage validation (`docs/scripts/audit-public-docs.ps1`).
+* **🛡️ Dual-Track Single-Trunk Governance (`QA/verify-dual-track.ps1`)**:
+  * **Automated 3-Stage Pre-Flight Gatekeeper**: Source Guardian UTF-8 BOM, Fluent 2 control standards, zero public documentation leakage verification, and Release MSBuild verification.
 
 ## 🚀 What's New in v4.10.2 ("Cross-Platform 4-Date Schema Synchronization, Brief Attachment Handover & Universal Markdown Studio")
 

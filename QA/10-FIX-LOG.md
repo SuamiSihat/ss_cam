@@ -1,5 +1,24 @@
 # SS-CAM FIX LOG
 
+## v4.11.0 — 2026-09-27 (Dual-Track Commercialization Architecture, Multi-Tenant Plugin Engine & Open-Core Governance)
+- **Modular Multi-Tenant Plugin Engine (`IAppPlugin`, `PluginRegistry`)**:
+  - Abstracted auxiliary features (`WaktuSolatPlugin`, `RadioPlayerPlugin`, `QrCodeStudioPlugin`, `CreativeWellbeingPlugin`) into self-contained plugins implementing canonical `IAppPlugin` interface.
+  - Dynamically registers navigation items in `MainWindow.xaml.cs` and Command Palette launcher (`CommandPaletteService.cs`) based on tenant capability enablement.
+- **Dynamic Tenant Configuration Engine (`TenantConfigService`)**:
+  - Implemented `TenantConfig.cs` and `TenantConfigService.cs` supporting dynamic corporate branding, brand color palettes (`brandPrimary`, `brandTint`, `brandNavy`), custom endpoints, and category presets without binary recompilation.
+  - Neutralized proprietary SuamiSihat literals across 20+ WPF views and services with generic enterprise fallbacks.
+- **Commercial Distribution & Public Knowledge Base Suite (Phases 4–7)**:
+  - Authored financial cost models (`docs/PHASE_4_COST_MODELLING.md`) and commercial pricing tiers (`docs/PHASE_5_REVENUE_GTM.md`).
+  - Built Fluent 2 dark glassmorphic commercial landing portal (`docs/commercial-landing/`) featuring an interactive pricing tier switcher ($0 Community Core, $490/yr Studio Business, $2,290/yr Enterprise White-Label).
+  - Published clean, isolated customer documentation (`docs/public-wiki/`) and automated leakage detection scanner (`docs/scripts/audit-public-docs.ps1`).
+- **Dual-Track Single-Trunk Governance (`QA/verify-dual-track.ps1`)**:
+  - Created automated 3-stage pre-flight gatekeeper validating Source Guardian compliance, zero public reference leakage, and Release build compilation.
+  - Codified dual-track open-core governance in `AGENTS.md` and `.agents/AGENTS.md`.
+- **End-to-End Release Verification**:
+  - Dual-Track Master Gatekeeper: 3/3 Stages PASS (100%).
+  - Web Portal Test Suite: 34/34 PASS.
+  - Windows Desktop MSBuild: PASS (`dist/SS-CAM-v4.11.0.exe` & `dist/SS-CAM.exe` — 6,126,592 bytes).
+
 ## v4.10.2 — 2026-09-26 (Cross-Platform 4-Date Schema Synchronization, Brief Attachment Handover & Universal Markdown Studio)
 - **Universal 4-Date Temporal Schema Synchronization**:
   - Aligned Web Portal, Windows Desktop, Linux Avalonia Desktop, and Android Companion App on the canonical 4-date schema: `createdDate`, `startDate`, `deadline`, and auto-calculated `duration`.

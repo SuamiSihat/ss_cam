@@ -1,6 +1,6 @@
 # SS-CAM Project Roadmap
 
-> **Living document.** Updated with every release. Last updated: 2026-09-11.
+> **Living document.** Updated with every release. Last updated: 2026-09-27.
 
 ---
 
@@ -53,10 +53,12 @@
 | **v4.9.1** | 2026-09-11 | **Direct-Manipulation Gantt Edge Drag-to-Resize, Real-Time Grid Snapping & Holiday Conflict Guard**: Interactive left/right resize handles on project timeline bars, live duration day counter, real-time Malaysian holiday off-day conflict detection, and bidirectional frontmatter sync |
 | **v4.10.0** | 2026-09-14 | **Smart Drag-and-Drop Vault Ingester, Myers LCS Diff Engine & AI Brief Intelligence**: Drag-and-drop auto-sorting into 5 canonical vault folders with non-destructive collision safety across Project Creator, Search & Copy, and Task Manager; Myers LCS line-by-line Markdown text diff engine with automatic timestamped snapshots and Fluent 2 Side-by-Side/Unified comparison dialog (`MarkdownDiffDialog`); online Gemini 1.5 REST & offline heuristic fallback brief completeness validator and KKM regulatory compliance preflight assistant |
 | **v4.10.1** | 2026-09-15 | **Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine**: Migrated primary live stream endpoint to `https://radio.suamisihat.myds.me/listen` (192 kbps MP3 with live ICY broadcast metadata) across Desktop, Linux, and Android; automatic local config migration for existing user presets; native M3U/M3U8/PLS stream resolution and on-the-fly proxy redirection; `#EXTINF` metadata attributes parsing with relative path resolution; 1-click station playlist export (`.m3u` / `.m3u8`), online URL import, and verified stream testing |
+| **v4.10.2** | 2026-09-26 | **Cross-Platform 4-Date Schema Synchronization, Brief Attachment Handover & Universal Markdown Studio**: Canonical 4-date temporal schema across Web, Desktop, Linux, and Android (Created, Start, Deadline, Turnaround Duration); order attachment multi-file vault with 1-click handover to project `01_Brief_and_Copy/Brief_Assets/`; universal rich Markdown authoring toolbar across Web and Desktop |
+| **v4.11.0** | 2026-09-27 | **Dual-Track Commercialization Architecture, Multi-Tenant Plugin Engine & Open-Core Governance**: Modular plugin contract (`IAppPlugin`, `PluginRegistry`) decoupling auxiliary modules; dynamic tenant branding & color injection (`TenantConfigService`); commercial distribution landing portal (`docs/commercial-landing/`) with pricing tier calculator; sanitised customer public wiki (`docs/public-wiki/`); automated 3-stage dual-track gatekeeper (`QA/verify-dual-track.ps1`) |
 
 ---
 
-## 🎯 Active Milestone — v4.11.0: Advanced Batch Operations & Studio Archive Vault (Target: Q4 2026)
+## 🎯 Active Milestone — v4.12.0: Advanced Batch Operations & Studio Archive Vault (Target: Q4 2026)
 
 ### 1. Batch Vault Archival & Auto-Pruning
 * Multi-select project archival with automated cold-storage ZIP compression, metadata cataloging, and NAS storage quota optimization.

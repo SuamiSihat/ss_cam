@@ -2,6 +2,31 @@
 
 All notable SS-CAM changes are documented here.
 
+## [4.11.0] - 2026-09-27 (Dual-Track Commercialization Architecture, Multi-Tenant Plugin Engine & Open-Core Governance)
+
+### Added & Architectural — Dual-Track Core & Plugin Engine (Phase 3/3a)
+- **Modular Plugin Engine**:
+  - Implemented `IAppPlugin` canonical contract and `PluginRegistry` for dynamic module registration, lifecycle initialization, and navigation injection.
+  - Wrapped four auxiliary modules into self-contained plugins: `WaktuSolatPlugin`, `RadioPlayerPlugin`, `QrCodeStudioPlugin`, and `CreativeWellbeingPlugin`.
+  - Added dynamic navigation binding in `MainWindow.xaml.cs` and `CommandPaletteService.cs` (`Ctrl + K`), seamlessly mounting or skipping modules based on tenant configuration.
+- **Dynamic Tenant Configuration Engine**:
+  - Introduced `TenantConfig.cs` and `TenantConfigService.cs` to resolve custom branding, brand colors (`brandPrimary`, `brandTint`, `brandNavy`), application titles, custom endpoints, and category presets without code recompilation.
+  - Neutralized all hardcoded internal branding literals across 20+ WPF views and services with dynamic lookups and generic fallbacks.
+
+### Added & Published — Commercial Distribution & Public Wiki Suite (Phases 4–7)
+- **Operational Cost Modelling & GTM Pricing Strategy**:
+  - Comprehensive operational models (`docs/PHASE_4_COST_MODELLING.md` and `docs/PHASE_5_REVENUE_GTM.md`) defining fixed overheads, marginal support costs, and commercial pricing tiers ($0 Community Core, $490/yr Studio Business, $2,290/yr Enterprise White-Label).
+- **Commercial Distribution Landing Portal**:
+  - Authored standalone Fluent 2 dark glassmorphic web portal under `docs/commercial-landing/` with interactive pricing switch, multi-platform download hub, and 1-click Synology Docker Compose stack.
+- **Two-Wiki Public Knowledge Base & Leakage Scanner**:
+  - Structurally isolated customer knowledge base under `docs/public-wiki/` (`01-GETTING-STARTED.md`, `02-TENANT-CONFIG-SPEC.md`, `03-PLUGIN-SYSTEM.md`, `04-TROUBLESHOOTING.md`).
+  - Implemented automated pre-publication scanner (`docs/scripts/audit-public-docs.ps1`) verifying zero internal reference leakage.
+
+### Added & Enforced — Dual-Track Governance & Single-Trunk Pipeline (Phase 8)
+- **Master Governance Gatekeeper (`QA/verify-dual-track.ps1`)**:
+  - Automated 3-stage validation combining Source Guardian (UTF-8 BOM, Fluent 2 controls, data safety, UI thread safety), documentation leakage scanning, and Release build compilation.
+  - Codified single-trunk governance rules in `AGENTS.md` and `.agents/AGENTS.md`.
+
 ## [4.10.2] - 2026-09-26 (Cross-Platform 4-Date Schema Synchronization, Brief Attachment Handover & Universal Markdown Studio)
 
 ### Added & Synchronized — Canonical 4-Date Schema Across Ecosystem
