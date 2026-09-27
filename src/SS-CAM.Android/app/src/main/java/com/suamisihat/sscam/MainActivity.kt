@@ -52,6 +52,11 @@ import kotlinx.coroutines.withContext
 class MainActivity : androidx.fragment.app.FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Initialize dynamic API configuration from saved preferences
+        com.suamisihat.sscam.data.api.ApiConfig.setBaseUrl(
+            com.suamisihat.sscam.data.api.ServerPreferences.getServerUrl(this)
+        )
+
         // Initialize high-priority deliverable, solat and studio notification channels
         com.suamisihat.sscam.service.SscamNotificationService.initNotificationChannels(this)
 
@@ -289,7 +294,9 @@ fun CompanionAppScreen(
     fun refreshLiveData() {
         coroutineScope.launch {
             isLoading = true
-            syncMessage = "Syncing with creative.suamisihat.myds.me..."
+            val activeServer = com.suamisihat.sscam.data.api.ServerPreferences.getServerUrl(context)
+            val serverHost = try { java.net.URI(activeServer).host ?: activeServer } catch (_: Exception) { activeServer }
+            syncMessage = "Syncing with $serverHost..."
             try {
                 withContext(Dispatchers.IO) {
                     val anonApi = SscamApiService.create()

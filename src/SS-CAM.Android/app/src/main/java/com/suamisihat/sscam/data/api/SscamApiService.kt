@@ -129,7 +129,17 @@ interface SscamApiService {
     companion object {
         const val DEFAULT_BASE_URL = "https://creative.suamisihat.myds.me/"
 
-        fun create(baseUrl: String = DEFAULT_BASE_URL, authToken: String? = null): SscamApiService {
+        fun create(
+            baseUrl: String? = null,
+            authToken: String? = null,
+            context: android.content.Context? = null
+        ): SscamApiService {
+            val targetUrl = when {
+                !baseUrl.isNullOrBlank() -> if (!baseUrl.endsWith("/")) "$baseUrl/" else baseUrl
+                context != null -> ServerPreferences.getServerUrl(context)
+                else -> ApiConfig.getBaseUrl()
+            }
+
             val logging = HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BASIC
             }
@@ -148,11 +158,27 @@ interface SscamApiService {
                 .build()
 
             return Retrofit.Builder()
-                .baseUrl(baseUrl)
+                .baseUrl(targetUrl)
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
                 .create(SscamApiService::class.java)
         }
+    }
+}
+
+/**
+ * In-memory global API configuration for dynamic server switching at runtime.
+ */
+object ApiConfig {
+    @Volatile
+    private var customBaseUrl: String? = null
+
+    fun setBaseUrl(url: String?) {
+        customBaseUrl = url?.trim()?.let { if (!it.endsWith("/")) "$it/" else it }
+    }
+
+    fun getBaseUrl(): String {
+        return customBaseUrl ?: SscamApiService.DEFAULT_BASE_URL
     }
 }

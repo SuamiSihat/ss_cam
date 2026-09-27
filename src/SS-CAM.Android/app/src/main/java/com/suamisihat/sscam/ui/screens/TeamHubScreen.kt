@@ -235,7 +235,7 @@ fun TeamWorkloadContentView(
                             color = colors.textPrimary
                         )
                         Text(
-                            text = "Connect to Synology NAS (creative.suamisihat.myds.me) to sync creative team roster.",
+                            text = "Connect to Web Portal server to sync creative team roster.",
                             fontSize = 11.sp,
                             color = colors.textSecondary,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center

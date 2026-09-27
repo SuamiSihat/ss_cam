@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suamisihat.sscam.AuthPreferences
+import com.suamisihat.sscam.data.api.ServerPreferences
 import com.suamisihat.sscam.data.models.ProjectItem
 import com.suamisihat.sscam.data.models.StaffMember
 import com.suamisihat.sscam.ui.components.*
@@ -49,7 +50,9 @@ fun SettingsProfileScreen(
     var keepAwake by remember { mutableStateOf(true) }
     var prayerAlerts by remember { mutableStateOf(true) }
     var deliverableAlerts by remember { mutableStateOf(true) }
-    var nasServerUrl by remember { mutableStateOf("https://creative.suamisihat.myds.me") }
+    var currentServerUrl by remember { mutableStateOf(ServerPreferences.getServerUrl(context)) }
+    var isServerConfigDialogOpen by remember { mutableStateOf(false) }
+    var tempServerUrlInput by remember { mutableStateOf(currentServerUrl) }
     var isPreferencesExpanded by remember { mutableStateOf(true) }
 
     val designerName = currentUserProfile?.name?.ifBlank { "Harussani" } ?: "Harussani"
@@ -124,7 +127,7 @@ fun SettingsProfileScreen(
             .padding(horizontal = 22.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. Editorial Header Bar (SETTINGS & PROFILE • v4.10.1)
+        // 1. Editorial Header Bar (SETTINGS & PROFILE • v4.11.0)
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -147,7 +150,7 @@ fun SettingsProfileScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, colors.primary.copy(alpha = 0.3f))
                     ) {
                         Text(
-                            text = "v4.10.1",
+                            text = "v4.11.0",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.primary,
@@ -906,6 +909,64 @@ fun SettingsProfileScreen(
 
                             HorizontalDivider(color = colors.border)
 
+                            // Portal Server Endpoint Configuration
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        tempServerUrlInput = currentServerUrl
+                                        isServerConfigDialogOpen = true
+                                    }
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            "Portal Server Endpoint",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = colors.textPrimary
+                                        )
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = if (ServerPreferences.isCustomServer(context)) colors.accent.copy(alpha = 0.15f) else colors.primary.copy(alpha = 0.12f),
+                                            border = androidx.compose.foundation.BorderStroke(
+                                                1.dp,
+                                                if (ServerPreferences.isCustomServer(context)) colors.accent.copy(alpha = 0.4f) else colors.primary.copy(alpha = 0.3f)
+                                            )
+                                        ) {
+                                            Text(
+                                                text = if (ServerPreferences.isCustomServer(context)) "CUSTOM LAN" else "DEFAULT",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (ServerPreferences.isCustomServer(context)) colors.accent else colors.primary,
+                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = currentServerUrl,
+                                        fontSize = 10.sp,
+                                        color = colors.textSecondary,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Configure Server Endpoint",
+                                    tint = colors.textSecondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            HorizontalDivider(color = colors.border)
+
                             // Application Version & Environment
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -914,7 +975,7 @@ fun SettingsProfileScreen(
                             ) {
                                 Column {
                                     Text("Application Version", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = colors.textPrimary)
-                                    Text("Production Release • Build 463", fontSize = 10.sp, color = colors.textSecondary)
+                                    Text("Dual-Track Release • Build 4110", fontSize = 10.sp, color = colors.textSecondary)
                                 }
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
@@ -922,7 +983,7 @@ fun SettingsProfileScreen(
                                     border = androidx.compose.foundation.BorderStroke(1.dp, colors.primary.copy(alpha = 0.3f))
                                 ) {
                                     Text(
-                                        text = "v4.10.1",
+                                        text = "v4.11.0",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = colors.primary,
@@ -977,7 +1038,7 @@ fun SettingsProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    "SS-CAM Studio Companion • v4.10.1 (Build 4101)",
+                    "SS-CAM Studio Companion • v4.11.0 (Build 4110)",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (colors.isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
@@ -1141,6 +1202,80 @@ fun SettingsProfileScreen(
             dismissButton = {
                 TextButton(onClick = { isConnectCardDialogOpen = false }) {
                     Text("Close", fontSize = 12.sp, color = colors.textPrimary)
+                }
+            },
+            containerColor = colors.surface
+        )
+    }
+
+    // Server Endpoint Configuration Dialog
+    if (isServerConfigDialogOpen) {
+        AlertDialog(
+            onDismissRequest = { isServerConfigDialogOpen = false },
+            title = {
+                Text(
+                    "Portal Server Endpoint",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "Configure the API and asset server endpoint. Connect to your custom LAN development server (e.g. http://192.168.1.100:4000) or enterprise tenant URL:",
+                        fontSize = 12.sp,
+                        color = colors.textSecondary
+                    )
+                    OutlinedTextField(
+                        value = tempServerUrlInput,
+                        onValueChange = { tempServerUrlInput = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("https://creative.suamisihat.myds.me") },
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp, color = colors.textPrimary)
+                    )
+                    Text(
+                        "Default: ${ServerPreferences.DEFAULT_SERVER_URL}",
+                        fontSize = 10.sp,
+                        color = colors.textSecondary
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val trimmed = tempServerUrlInput.trim()
+                        if (trimmed.isNotBlank()) {
+                            ServerPreferences.saveServerUrl(context, trimmed)
+                            currentServerUrl = ServerPreferences.getServerUrl(context)
+                            isServerConfigDialogOpen = false
+                            Toast.makeText(context, "Server updated: $currentServerUrl", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "URL cannot be empty", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+                ) {
+                    Text("Save & Reconnect", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = {
+                            ServerPreferences.resetToDefault(context)
+                            currentServerUrl = ServerPreferences.getServerUrl(context)
+                            tempServerUrlInput = currentServerUrl
+                            isServerConfigDialogOpen = false
+                            Toast.makeText(context, "Server reset to default", Toast.LENGTH_SHORT).show()
+                        }
+                    ) {
+                        Text("Reset Default", fontSize = 11.sp, color = colors.textSecondary)
+                    }
+                    TextButton(onClick = { isServerConfigDialogOpen = false }) {
+                        Text("Cancel", fontSize = 12.sp, color = colors.textPrimary)
+                    }
                 }
             },
             containerColor = colors.surface

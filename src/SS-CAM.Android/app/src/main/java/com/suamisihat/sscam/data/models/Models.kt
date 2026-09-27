@@ -298,7 +298,8 @@ data class StaffMember(
         get() {
             if (avatarUrl.isNotBlank()) return avatarUrl
             if (avatar.isNotBlank()) {
-                return if (avatar.startsWith("http") || avatar.startsWith("data:image/")) avatar else "https://creative.suamisihat.myds.me$avatar"
+                val cleanAvatar = if (avatar.startsWith("/")) avatar else "/$avatar"
+                return if (avatar.startsWith("http") || avatar.startsWith("data:image/")) avatar else "${com.suamisihat.sscam.data.api.ApiConfig.getBaseUrl().trimEnd('/')}$cleanAvatar"
             }
             return ""
         }
