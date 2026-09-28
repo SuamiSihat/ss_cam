@@ -90,12 +90,15 @@ namespace SS_CAM.Linux.Services
                     string content = File.ReadAllText(filePath, Encoding.UTF8);
                     if (!string.IsNullOrWhiteSpace(content)) return content;
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("[CopywritingDesktopService] LoadCopywriting read: " + ex.Message);
+                }
             }
 
             string defaultTemplate = GetDefaultTemplate(projectTitle);
             try { File.WriteAllText(filePath, defaultTemplate, Encoding.UTF8); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[CopywritingDesktopService] LoadCopywriting write default: " + ex.Message); }
             return defaultTemplate;
         }
 

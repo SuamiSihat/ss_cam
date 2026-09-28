@@ -94,7 +94,7 @@ class CompanyService {
       try {
         fs.mkdirSync(configDir, { recursive: true });
       } catch (e) {
-        // Fallback to local config if workspace is read-only
+        console.debug('[CompanyService] Failed to create configDir:', e.message);
       }
     }
     return path.join(configDir, 'companies.json');

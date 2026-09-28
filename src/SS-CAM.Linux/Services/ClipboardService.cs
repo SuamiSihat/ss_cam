@@ -51,7 +51,10 @@ namespace SS_CAM.Linux.Services
                 using var p = Process.Start(psi);
                 p?.WaitForExit(500);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[ClipboardService] SetTextViaShell: " + ex.Message);
+            }
         }
     }
 }

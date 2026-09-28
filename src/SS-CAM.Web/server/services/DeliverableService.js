@@ -283,6 +283,13 @@ class DeliverableService {
 
       const chunksize = (end - start) + 1;
       const file = fs.createReadStream(filePath, { start, end });
+      file.on('error', (err) => {
+        if (!res.headersSent) {
+          try { res.status(500).end(); } catch (e) {
+            console.debug('[DeliverableService] Stream error response failed:', e.message);
+          }
+        }
+      });
       const head = {
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
         'Accept-Ranges': 'bytes',
@@ -299,7 +306,15 @@ class DeliverableService {
         'Accept-Ranges': 'bytes'
       };
       res.writeHead(200, head);
-      fs.createReadStream(filePath).pipe(res);
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.on('error', (err) => {
+        if (!res.headersSent) {
+          try { res.status(500).end(); } catch (e) {
+            console.debug('[DeliverableService] FileStream error response failed:', e.message);
+          }
+        }
+      });
+      fileStream.pipe(res);
     }
   }
 

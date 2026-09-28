@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
 const config = require('../config');
-const { SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserPermissions, verifyUserPassword, updateUserPassword, generateToken, authenticateToken, requirePermission } = require('../middleware/auth');
+const { SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserPermissions, hasCanonicalRole, verifyUserPassword, updateUserPassword, generateToken, authenticateToken, requirePermission, requireRole } = require('../middleware/auth');
 const WorkspaceService = require('../services/WorkspaceService');
 const FrontmatterService = require('../services/FrontmatterService');
 const DeliverableService = require('../services/DeliverableService');
@@ -21,6 +22,17 @@ const SnapshotService = require('../services/SnapshotService');
 const WebhookService = require('../services/WebhookService');
 const OrderService = require('../services/OrderService');
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  skip: (req) => process.env.NODE_ENV === 'test',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again after 15 minutes.' }
+});
+
 const orderUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit for high-res creative assets
@@ -68,7 +80,7 @@ router.get('/team/live-tasks', (req, res) => {
   }
 });
 
-router.post('/auth/login', (req, res) => {
+router.post('/auth/login', loginLimiter, (req, res) => {
   const { username, password } = req.body;
   
   if (!username) {
@@ -95,7 +107,12 @@ router.post('/auth/login', (req, res) => {
   }
 
   if (!user) {
-    return res.status(401).json({ error: 'User not found in staff directory' });
+    try {
+      bcrypt.compareSync(password || '', '$2a$10$7EqJtq98hPqEX7fNZaFWoOhi5w7oO09qI51j4cQ64rFp82Jj3dKCW');
+    } catch (e) {
+      console.debug('[Auth:Login] Dummy compare error:', e.message);
+    }
+    return res.status(401).json({ error: 'Invalid credentials. Please verify your username and password.' });
   }
 
   if (user.active === false) {
@@ -103,7 +120,7 @@ router.post('/auth/login', (req, res) => {
   }
 
   if (!verifyUserPassword(user.username, password)) {
-    return res.status(401).json({ error: 'Invalid password. Please try again.' });
+    return res.status(401).json({ error: 'Invalid credentials. Please verify your username and password.' });
   }
 
   const token = generateToken(user);
@@ -209,19 +226,28 @@ router.put('/auth/profile', authenticateToken, (req, res) => {
       (u.name && u.name.toLowerCase() === searchName)
     );
 
+    const isCallerAdmin = hasCanonicalRole(req.user, 'admin');
+
+    // Anti-escalation: Non-admin users cannot alter their assigned roles or permissions
+    const safeRole = isCallerAdmin 
+      ? (req.body.role || req.body.officialTitle || (target ? target.role : 'Designer'))
+      : (target ? target.role : (req.user.role || 'Designer'));
+
     const updates = {
       name: req.body.name || (target ? target.name : req.user.name),
       email: req.body.email !== undefined ? req.body.email : (target ? target.email : req.user.email),
       department: req.body.department || (target ? target.department : req.user.department),
-      role: req.body.role || req.body.officialTitle || (target ? target.role : 'Designer'),
-      officialTitle: req.body.officialTitle || req.body.role || (target ? target.officialTitle : 'Head of Creative'),
+      role: safeRole,
+      officialTitle: req.body.officialTitle || (target ? target.officialTitle : 'Head of Creative'),
       avatar: req.body.avatar !== undefined ? req.body.avatar : (target ? target.avatar : ''),
       avatarColor: req.body.avatarColor || (target ? target.avatarColor : '#0078D4'),
       defaultBrand: req.body.defaultBrand || (target ? target.defaultBrand : 'SS')
     };
 
-    if (Array.isArray(req.body.roles) && req.body.roles.length > 0) {
+    if (isCallerAdmin && Array.isArray(req.body.roles) && req.body.roles.length > 0) {
       updates.roles = req.body.roles;
+    } else if (target && target.roles) {
+      updates.roles = target.roles;
     }
 
     let updatedMember;
@@ -231,7 +257,7 @@ router.put('/auth/profile', authenticateToken, (req, res) => {
       updatedMember = TeamService.addStaffMember({
         staffId: req.user.staffId || 'SS' + Math.floor(1000 + Math.random() * 9000),
         username: req.user.username,
-        role: req.body.role || req.user.role || 'Designer',
+        role: safeRole,
         ...updates
       });
     }
@@ -303,6 +329,109 @@ router.get('/projects', authenticateToken, (req, res) => {
   }
 });
 
+router.post('/projects', authenticateToken, requirePermission('project:create'), (req, res) => {
+  try {
+    const { title, brand = 'SS', designer, priority = 'normal', department = 'Creative Production', deadline } = req.body;
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      return res.status(400).json({ error: 'Project title is required.' });
+    }
+
+    const cleanTitle = title.trim();
+    const cleanBrand = String(brand || 'SS').trim().toUpperCase();
+    const assignedDesigner = (designer || (req.user && (req.user.name || req.user.username)) || 'Unassigned').trim();
+    const cleanPriority = String(priority || 'normal').toLowerCase();
+    const cleanDept = String(department || 'Creative Production').trim();
+
+    // Canonical project naming: YYYYMM_<JOBID>_<BRAND>_<TITLE>
+    const now = new Date();
+    const dateCode = now.toISOString().slice(0, 7).replace('-', '');
+    const jobSeq = `${Math.floor(1000 + Math.random() * 9000)}D`;
+    const safeTitlePart = cleanTitle.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_');
+    const folderName = `${dateCode}_${jobSeq}_${cleanBrand}_${safeTitlePart}`;
+    const projectDir = path.join(WorkspaceService.workspaceRoot, folderName);
+
+    const deadlineStr = deadline ? String(deadline).trim() : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const createdStr = now.toISOString().slice(0, 10);
+
+    // Create project subfolders
+    const subfolders = ['01_BRIEF_ASSETS', '02_SOURCE_FILES', '03_COPYWRITING', '04_WORK_IN_PROGRESS', '05_DELIVERABLES'];
+    for (const sub of subfolders) {
+      const p = path.join(projectDir, sub);
+      if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+    }
+
+    // Write README.md with YAML frontmatter
+    const frontmatter = {
+      title: cleanTitle,
+      brand: cleanBrand,
+      designer: assignedDesigner,
+      status: 'in_progress',
+      priority: cleanPriority,
+      created: createdStr,
+      createdDate: createdStr,
+      startDate: createdStr,
+      start_date: createdStr,
+      deadline: deadlineStr,
+      duration: '7 days',
+      department: cleanDept,
+      revision: 1
+    };
+
+    const initialBody = `# ${cleanTitle}\n\nProject brief and deliverables created via SS-CAM.\n`;
+    FrontmatterService.writeProjectReadme(projectDir, frontmatter, initialBody);
+
+    // Write initial COPY.md
+    const copyPath = path.join(projectDir, '03_COPYWRITING', 'COPY.md');
+    if (!fs.existsSync(copyPath)) {
+      const copyTemplate = CopywritingService.getDefaultTemplate(cleanTitle);
+      fs.writeFileSync(copyPath, copyTemplate, 'utf8');
+    }
+
+    // Rescan cache
+    WorkspaceService.scan(true);
+    const createdProject = WorkspaceService.getProjectById(folderName);
+
+    // Structured Audit Logging
+    AuditService.logEvent({
+      actor: (req.user && (req.user.name || req.user.username)) || 'API',
+      role: (req.user && req.user.role) || 'Designer',
+      action: 'PROJECT_CREATED',
+      entityType: 'Project',
+      entityId: jobSeq,
+      details: {
+        id: folderName,
+        title: cleanTitle,
+        brand: cleanBrand,
+        designer: assignedDesigner,
+        priority: cleanPriority,
+        deadline: deadlineStr,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+    // Notify connected SSE clients
+    SseService.broadcast('project:created', {
+      project: createdProject || frontmatter,
+      actor: req.user ? req.user.name : 'API',
+      timestamp: new Date().toISOString()
+    });
+
+    res.status(201).json(createdProject || {
+      id: folderName,
+      title: cleanTitle,
+      brand: cleanBrand,
+      status: 'in_progress',
+      priority: cleanPriority,
+      designer: assignedDesigner,
+      deadline: deadlineStr,
+      created: createdStr
+    });
+  } catch (err) {
+    console.error('[API:Projects] Create project error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/projects/:id', authenticateToken, (req, res) => {
   try {
     const project = WorkspaceService.getProjectById(req.params.id);
@@ -340,13 +469,8 @@ router.get('/projects/:id/export', (req, res) => {
   }
 });
 
-router.delete('/projects/:id', authenticateToken, (req, res) => {
+router.delete('/projects/:id', authenticateToken, requireRole('admin'), (req, res) => {
   try {
-    const userRole = (req.user ? req.user.role : '').toLowerCase();
-    const isAdmin = userRole.includes('admin') || userRole.includes('director') || userRole.includes('lead') || userRole.includes('manager') || userRole.includes('executive');
-    if (!isAdmin) {
-      return res.status(403).json({ error: 'Administrative permission required to delete project directories.' });
-    }
 
     const result = WorkspaceService.deleteProject(
       req.params.id,
@@ -1162,8 +1286,11 @@ router.get('/users', (req, res) => {
   }
 });
 
-router.post('/users', authenticateToken, (req, res) => {
+function handleCreateStaffUser(req, res) {
   try {
+    if (req.body.password && (typeof req.body.password !== 'string' || req.body.password.length < 10)) {
+      return res.status(400).json({ error: 'Password must be at least 10 characters long.' });
+    }
     const newMember = TeamService.addStaffMember(req.body);
     if (req.body.password) {
       updateUserPassword(newMember.username, req.body.password);
@@ -1181,10 +1308,32 @@ router.post('/users', authenticateToken, (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+}
 
-router.put('/users/:id', authenticateToken, (req, res) => {
+function handleUpdateStaffUser(req, res) {
   try {
+    if (req.body.password && (typeof req.body.password !== 'string' || req.body.password.length < 10)) {
+      return res.status(400).json({ error: 'Password must be at least 10 characters long.' });
+    }
+
+    const roster = TeamService.getStaffRoster();
+    const existing = roster.find(u => 
+      (u.staffId && u.staffId.toLowerCase() === (req.params.id || '').toLowerCase()) ||
+      (u.id && u.id.toLowerCase() === (req.params.id || '').toLowerCase())
+    );
+
+    // Last-admin protection: prevent deactivating or demoting the last active administrator
+    if (existing && hasCanonicalRole(existing, 'admin')) {
+      const activeAdmins = roster.filter(u => u.active !== false && hasCanonicalRole(u, 'admin'));
+      const isDeactivating = req.body.active === false;
+      const isDemoting = (req.body.roles && !req.body.roles.some(r => hasCanonicalRole({ roles: [r] }, 'admin'))) ||
+                         (req.body.role && typeof req.body.role === 'string' && !hasCanonicalRole({ role: req.body.role }, 'admin') && !req.body.roles);
+
+      if (activeAdmins.length <= 1 && (isDeactivating || isDemoting)) {
+        return res.status(400).json({ error: 'Cannot deactivate or demote the last remaining administrator account.' });
+      }
+    }
+
     const updated = TeamService.updateStaffMember(req.params.id, req.body);
     if (req.body.password) {
       updateUserPassword(updated.username, req.body.password);
@@ -1202,10 +1351,30 @@ router.put('/users/:id', authenticateToken, (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+}
 
-router.delete('/users/:id', authenticateToken, (req, res) => {
+router.post('/users', authenticateToken, requireRole('admin'), handleCreateStaffUser);
+router.post('/team/roster', authenticateToken, requireRole('admin'), handleCreateStaffUser);
+
+router.put('/users/:id', authenticateToken, requireRole('admin'), handleUpdateStaffUser);
+router.put('/team/roster/:id', authenticateToken, requireRole('admin'), handleUpdateStaffUser);
+
+router.delete('/users/:id', authenticateToken, requireRole('admin'), (req, res) => {
   try {
+    const roster = TeamService.getStaffRoster();
+    const target = roster.find(u => 
+      (u.staffId && u.staffId.toLowerCase() === (req.params.id || '').toLowerCase()) ||
+      (u.id && u.id.toLowerCase() === (req.params.id || '').toLowerCase())
+    );
+
+    // Last-admin protection: prevent deleting the last active administrator
+    if (target && hasCanonicalRole(target, 'admin')) {
+      const activeAdmins = roster.filter(u => u.active !== false && hasCanonicalRole(u, 'admin'));
+      if (activeAdmins.length <= 1) {
+        return res.status(400).json({ error: 'Cannot delete the last remaining administrator account.' });
+      }
+    }
+
     const result = TeamService.deleteStaffMember(req.params.id);
     AuditService.logEvent({
       actor: req.user.name,
@@ -1221,10 +1390,13 @@ router.delete('/users/:id', authenticateToken, (req, res) => {
   }
 });
 
-router.post('/users/:username/reset-password', authenticateToken, (req, res) => {
+router.post('/users/:username/reset-password', authenticateToken, requireRole('admin'), (req, res) => {
   try {
     const { newPassword } = req.body;
-    updateUserPassword(req.params.username, newPassword || 'SuamiSihat123!');
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 10) {
+      return res.status(400).json({ error: 'New password must be at least 10 characters long.' });
+    }
+    updateUserPassword(req.params.username, newPassword);
     AuditService.logEvent({
       actor: req.user.name,
       role: req.user.role,
@@ -1233,42 +1405,6 @@ router.post('/users/:username/reset-password', authenticateToken, (req, res) => 
       entityId: req.params.username
     });
     res.json({ success: true, message: `Password reset successfully for ${req.params.username}` });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-router.post('/team/roster', authenticateToken, (req, res) => {
-  try {
-    const newMember = TeamService.addStaffMember(req.body);
-    AuditService.logEvent({
-      actor: req.user.name,
-      role: req.user.role,
-      action: 'STAFF_MEMBER_PROVISIONED',
-      entityType: 'Staff',
-      entityId: newMember.staffId,
-      details: newMember
-    });
-    SseService.broadcast('team:updated', { member: newMember, action: 'created' });
-    res.json({ success: true, member: newMember });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-router.put('/team/roster/:id', authenticateToken, (req, res) => {
-  try {
-    const updated = TeamService.updateStaffMember(req.params.id, req.body);
-    AuditService.logEvent({
-      actor: req.user.name,
-      role: req.user.role,
-      action: 'STAFF_MEMBER_UPDATED',
-      entityType: 'Staff',
-      entityId: req.params.id,
-      details: updated
-    });
-    SseService.broadcast('team:updated', { member: updated, action: 'updated' });
-    res.json({ success: true, member: updated });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -1297,7 +1433,7 @@ router.get('/companies/:code', (req, res) => {
   }
 });
 
-router.post('/companies', authenticateToken, (req, res) => {
+router.post('/companies', authenticateToken, requireRole('admin'), (req, res) => {
   try {
     const saved = CompanyService.saveCompany(req.body);
     AuditService.logEvent({
@@ -1315,7 +1451,7 @@ router.post('/companies', authenticateToken, (req, res) => {
   }
 });
 
-router.put('/companies/:code', authenticateToken, (req, res) => {
+router.put('/companies/:code', authenticateToken, requireRole('admin'), (req, res) => {
   try {
     const data = { ...req.body, code: req.params.code };
     const saved = CompanyService.saveCompany(data);
@@ -1334,7 +1470,7 @@ router.put('/companies/:code', authenticateToken, (req, res) => {
   }
 });
 
-router.put('/companies', authenticateToken, (req, res) => {
+router.put('/companies', authenticateToken, requireRole('admin'), (req, res) => {
   try {
     const saved = CompanyService.saveCompany(req.body);
     AuditService.logEvent({
@@ -1352,7 +1488,7 @@ router.put('/companies', authenticateToken, (req, res) => {
   }
 });
 
-router.delete('/companies/:code', authenticateToken, (req, res) => {
+router.delete('/companies/:code', authenticateToken, requireRole('admin'), (req, res) => {
   try {
     const result = CompanyService.deleteCompany(req.params.code);
     AuditService.logEvent({
@@ -1458,15 +1594,8 @@ router.get('/system/workspace-candidates', authenticateToken, (req, res) => {
   res.json({ success: true, candidates: results, current: config.WORKSPACE_ROOT });
 });
 
-router.post('/system/workspace-root', authenticateToken, (req, res) => {
+router.post('/system/workspace-root', authenticateToken, requireRole('admin'), (req, res) => {
   try {
-    const roleLower = (req.user?.role || '').toLowerCase();
-    const permissions = req.user?.permissions || [];
-    const isAuthorized = roleLower.includes('admin') || roleLower.includes('ceo') || roleLower.includes('executive') || permissions.includes('admin:system_audit');
-    if (!isAuthorized) {
-      return res.status(403).json({ error: 'Permission Denied. System Administrator or Executive privileges required.' });
-    }
-
     const { workspacePath } = req.body;
     if (!workspacePath || typeof workspacePath !== 'string' || !workspacePath.trim()) {
       return res.status(400).json({ error: 'Valid workspace path is required.' });
@@ -1503,7 +1632,9 @@ function getAllNotesDirs(targetUser = null) {
           dirs.push({ path: fullPath, folderName: ent.name, owner });
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.debug('[Notes] Scan configDir error:', e.message);
+    }
   }
 
   // Ensure default Notes dir exists if no directories found
@@ -1536,7 +1667,9 @@ function getTargetWriteDir(targetUser = null) {
     const userClean = String(targetUser).toLowerCase().replace(/[^a-z0-9_]/g, '');
     const userDir = path.join(configDir, `Notes_${userClean}`);
     if (!fs.existsSync(userDir)) {
-      try { fs.mkdirSync(userDir, { recursive: true }); } catch (e) {}
+      try { fs.mkdirSync(userDir, { recursive: true }); } catch (e) {
+        console.debug('[Notes] Ensure userDir error:', e.message);
+      }
     }
     if (fs.existsSync(userDir)) return { path: userDir, owner: userClean };
   }
@@ -1605,9 +1738,13 @@ router.get('/notes', (req, res) => {
             if (!notesMap.has(note.id) || notesMap.get(note.id).modified < note.modified) {
               notesMap.set(note.id, note);
             }
-          } catch (err) {}
+          } catch (err) {
+            console.debug('[Notes] Read note file error:', err.message);
+          }
         }
-      } catch (err) {}
+      } catch (err) {
+        console.debug('[Notes] Read notes directory error:', err.message);
+      }
     }
 
     let notes = Array.from(notesMap.values());
@@ -1670,7 +1807,9 @@ router.delete('/notes/:id', (req, res) => {
         try {
           fs.unlinkSync(filePath);
           deleted = true;
-        } catch (e) {}
+        } catch (e) {
+          console.debug('[Notes] Delete note error:', e.message);
+        }
       }
     }
 
@@ -1917,13 +2056,7 @@ router.post('/orders/:id/import-to-project', authenticateToken, (req, res) => {
 });
 
 // POST /api/admin/restart — Gracefully restart server process (Docker auto-restarts with updated code)
-router.post('/admin/restart', authenticateToken, (req, res) => {
-  const role = (req.user?.role || '').toLowerCase();
-  const roles = (req.user?.roles || []).map(r => r.toLowerCase());
-  if (!role.includes('admin') && !roles.some(r => r.includes('admin'))) {
-    return res.status(403).json({ error: 'Administrator access required.' });
-  }
-
+router.post('/admin/restart', authenticateToken, requireRole('admin'), (req, res) => {
   AuditService.logEvent({
     actor: req.user?.name || 'Administrator',
     role: req.user?.role || 'Admin',
@@ -1935,10 +2068,12 @@ router.post('/admin/restart', authenticateToken, (req, res) => {
 
   res.json({ success: true, message: 'Server restarting now...' });
 
-  setTimeout(() => {
-    console.log('[Server] Graceful restart requested by', req.user?.name);
-    process.exit(0);
-  }, 300);
+  if (process.env.NODE_ENV !== 'test') {
+    setTimeout(() => {
+      console.log('[Server] Graceful restart requested by', req.user?.name);
+      process.exit(0);
+    }, 300);
+  }
 });
 
 module.exports = router;

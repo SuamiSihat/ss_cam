@@ -2,6 +2,74 @@
 
 All notable SS-CAM changes are documented here.
 
+## [4.11.1] - 2026-09-28 (Security Hardening, RBAC Enforcement & Repository Hygiene Remediation)
+
+### Security & Authentication Hardening (Phase 1)
+- **Bcrypt Password Storage & Automatic Lazy Migration**:
+  - Upgraded authentication credential storage from plaintext to salted `bcryptjs` hashes (10 salt rounds).
+  - Implemented automatic lazy upgrade: existing plaintext passwords in `user_passwords.json` validate on first login and are immediately hashed and persisted.
+  - Completely eliminated empty/whitespace password bypass and removed shared default credentials (`SuamiSihat123!`).
+- **Emergency Bootstrap Recovery & Isolated Storage**:
+  - Implemented `ADMIN_BOOTSTRAP_PASSWORD` fallback: strictly honored only when no admin password exists in the credential store; ignored once set.
+  - Relocated password store from shared workspace (`<WORKSPACE_ROOT>/_Team/_Config/user_passwords.json`) to isolated `DATA_DIR` (`./data/user_passwords.json`) with safe automated migration and archiving.
+- **Production Secret & Infrastructure Hardening**:
+  - Enforced that when `NODE_ENV=production`, the server strictly halts (`process.exit(1)`) if `JWT_SECRET` is missing or $< 32$ characters.
+  - Added rate limiting on `POST /api/auth/login` (5 attempts / 15 minutes, returning HTTP 429 on 6th attempt).
+  - Mitigated username enumeration and side-channel timing analysis via normalized error messages and dummy bcrypt comparisons.
+  - Integrated `helmet` with Content Security Policy tuned for Svelte and Mermaid diagrams, 1MB JSON body limit, and strict CORS allowlists.
+  - Formalized 12-hour session lifetime (`JWT_EXPIRES_IN=12h`).
+
+### Authorization & RBAC Enforcement (Phase 2)
+- **Route Authorization Audit & Matrix**:
+  - Audited all 85 Express routes in `src/SS-CAM.Web/server/routes/api.js` and generated `QA/ROUTE-AUTHZ-MATRIX.md`.
+- **Exact Canonical Role Matching**:
+  - Implemented `hasCanonicalRole` and `requireRole('admin')`, eliminating all loose `role.includes('admin')` substring checks that previously allowed bypasses (`admin_assistant`, `subadmin`).
+  - Protected all mutating administration routes (`/users`, `/team/roster`, `/companies`, `/system/workspace-root`, `/admin/restart`, `/projects/:id`) with strict RBAC.
+- **Handler Unification & Governance**:
+  - Merged `/users` and `/team/roster` handler logic into canonical `handleCreateStaffUser` and `handleUpdateStaffUser` while preserving endpoint backward compatibility.
+  - Implemented last-admin protection: rejects deactivation, demotion, or deletion of the sole active administrator.
+  - Added anti-escalation in `PUT /api/auth/profile` and gated self-service password changes via `POST /api/auth/change-password` requiring current password verification.
+  - Structured audit logging: every access denial (HTTP 403) automatically appends `SECURITY_ACCESS_DENIED` or `SECURITY_PERMISSION_DENIED` to `AuditService`.
+  - Gated Administration UI links in `App.svelte` for non-admin accounts.
+
+### Repository Hygiene & Asset Security (Phase 3)
+- **Android Keystore Security & Dynamic Signing**:
+  - Untracked release keystore `src/SS-CAM.Android/app/sscam-release.jks` from git index (`git rm --cached`) while preserving binary on local disk.
+  - Rewrote `build.gradle.kts` for dynamic credential resolution (`keystore.properties` -> environment variables -> debug fallback) without hardcoded plaintext passwords.
+  - Added `.gitignore` patterns for `*.jks`, `*.keystore`, and `keystore.properties`.
+  - Authored `QA/KEY-ROTATION-RUNBOOK.md` detailing Google Play Console upload key reset procedure.
+- **Git Index Untracking & Size Reduction**:
+  - Untracked 1,038 tracked build artifacts and binaries from git index: `node_modules/` (1,013 files), `client/dist/` (18 files), `publish/` (5 files, ~136 MB), `installer/*.zip` (1 archive, ~40 MB), `nuget.exe` (1 binary, 8 MB). All files preserved physically on disk.
+  - Authored `QA/HISTORY-PURGE-RUNBOOK.md` for historical blob pruning with `git-filter-repo`.
+- **Third-Party Asset Licensing Audit**:
+  - Authored `docs/THIRD-PARTY-ASSETS.md` cataloging bundled fonts, audio, and icons; flagged redistribution prohibitions for Font Awesome Pro and commercial fonts with an open-source migration roadmap.
+
+### Dependencies & Code Quality (Phase 4)
+- **Vulnerability Remediation**:
+  - Executed safe `npm audit fix` in `src/SS-CAM.Web`, resolving high vulnerability in `js-yaml` and moderate vulnerabilities in `qs`, `body-parser`, `express`, and `devalue` without breaking Vite peer dependencies.
+- **Silent Catch Block Elimination**:
+  - Audited and eliminated empty/silent `catch {}` blocks across the repository (WPF: 3, Linux: 17, Web: 44+), replacing them with structured diagnostic logging.
+- **Thread Safety & Deprecation**:
+  - Marked synchronous `FetchToday(string zone)` in `PrayerTimeService.cs` as `[Obsolete]` to safeguard against UI thread freezes.
+- **Svelte {@html} Sanitization**:
+  - Wrapped dynamic HTML outputs in `MermaidViewer.svelte` and `CopyStudioView.svelte` with `DOMPurify.sanitize` and set strict Mermaid security.
+- **Project Creation Endpoint**:
+  - Implemented authorized `POST /api/projects` with canonical 5-folder scaffolding, YAML frontmatter, audit logging, and SSE broadcast.
+- **Source Guardian Web Security Checks**:
+  - Extended `QA/verify-sscam.ps1` with automated checks for production JWT secret enforcement, canonical RBAC matching, and login rate limiting.
+
+### Verification, Release & Handover (Phase 5)
+- **Synchronized Version 4.11.1**:
+  - Synchronized `installer/version.json`, `AssemblyInfo.cs`, `SS-CAM.Linux.csproj`, `package.json`, `config.js`, and `build.gradle.kts`.
+- **Automated Verification Matrix**:
+  - Web Portal Automated Suite: 56/56 PASS (49 unit/integration + 7 admin smoketests).
+  - Source Guardian: 13/13 PASS.
+  - Master Dual-Track Gatekeeper: 3/3 Stages PASS (Source Guardian, Docs Leakage, WPF Release Compile).
+  - Android Companion App: `assembleDebug` PASS (1s), `assembleRelease` PASS (2m 15s) with dynamic signing fallback.
+  - Client Build: `npm run build:client` PASS (15.83s).
+- **Human Runbooks**:
+  - Created staging verification checklist and production NAS deployment runbooks.
+
 ## [4.11.0] - 2026-09-27 (Dual-Track Commercialization Architecture, Multi-Tenant Plugin Engine & Open-Core Governance)
 
 ### Added & Architectural — Dual-Track Core & Plugin Engine (Phase 3/3a)

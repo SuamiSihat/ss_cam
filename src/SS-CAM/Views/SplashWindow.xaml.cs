@@ -11,6 +11,14 @@ namespace SS_CAM.Views
             InitializeComponent();
             if (TxtVersionBadge != null)
                 TxtVersionBadge.Text = SS_CAM.Services.AppVersion.DisplayVersion;
+
+            if (TxtCorpBadge != null)
+            {
+                string tenant = (SS_CAM.Services.TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(SS_CAM.Services.TenantConfigService.Current.TenantId))
+                    ? SS_CAM.Services.TenantConfigService.Current.TenantId.ToUpperInvariant()
+                    : "SS-CAM";
+                TxtCorpBadge.Text = tenant;
+            }
         }
 
         public void UpdateStatus(string status)

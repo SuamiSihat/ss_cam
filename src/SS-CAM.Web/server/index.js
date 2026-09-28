@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const config = require('./config');
 const apiRoutes = require('./routes/api');
@@ -7,6 +8,22 @@ const apiRoutes = require('./routes/api');
 const compression = require('compression');
 
 const app = express();
+
+// Security Headers via Helmet (CSP tuned for Vite bundle, Svelte, and Mermaid SVG/Worker rendering)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      fontSrc: ["'self'", "data:"],
+      connectSrc: ["'self'", ...config.ALLOWED_ORIGINS],
+      workerSrc: ["'self'", "blob:"]
+    }
+  },
+  crossOriginEmbedderPolicy: false
+}));
 
 // High-performance gzip/deflate response compression
 app.use(compression({
@@ -19,9 +36,21 @@ app.use(compression({
   }
 }));
 
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser requests with no origin (e.g. mobile app, SS-CAM desktop, curl)
+    if (!origin) return callback(null, true);
+    if (config.ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS policy blocked access from origin: ${origin}`));
+  },
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // API Routes (mounted at /api)
 app.use('/api', apiRoutes);

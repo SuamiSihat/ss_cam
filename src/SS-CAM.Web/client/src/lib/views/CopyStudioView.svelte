@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import DOMPurify from 'dompurify';
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
@@ -128,7 +129,7 @@
 
   function formatWhatsAppText(text: string) {
     if (!text) return '<i>Taipkan teks mesej di sebelah kiri...</i>';
-    return text
+    const formatted = text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -136,6 +137,10 @@
       .replace(/_([^_]+)_/g, '<em>$1</em>')
       .replace(/~([^~]+)~/g, '<del>$1</del>')
       .replace(/\n/g, '<br/>');
+    return DOMPurify.sanitize(formatted, {
+      ALLOWED_TAGS: ['strong', 'em', 'del', 'br', 'i', 'b'],
+      ALLOWED_ATTR: []
+    });
   }
 </script>
 

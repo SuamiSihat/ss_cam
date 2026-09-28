@@ -1,12 +1,14 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 const config = require('../config');
+const AuditService = require('../services/AuditService');
 
 // Granular RBAC Permissions Map (Canonical Roles: Designer, Copywriter, Manager, Admin)
 const ROLE_PERMISSIONS = {
   designer: [
-    'project:view',
+    'project:view', 'project:create',
     'brief:view',
     'direction:view',
     'copy:view',
@@ -14,7 +16,7 @@ const ROLE_PERMISSIONS = {
     'team:view'
   ],
   copywriter: [
-    'project:view',
+    'project:view', 'project:create',
     'brief:view',
     'direction:view',
     'copy:view', 'copy:draft', 'copy:submit',
@@ -36,11 +38,11 @@ const ROLE_PERMISSIONS = {
     'copy:view', 'copy:draft', 'copy:review', 'copy:approve',
     'deliverable:view', 'deliverable:upload', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
     'team:view', 'team:manage_workload', 'report:view',
-    'admin:users', 'admin:roles', 'admin:system_audit'
+    'admin:users', 'admin:roles', 'admin:companies', 'admin:system', 'admin:projects', 'admin:system_audit'
   ],
   // Legacy / Title Aliases
   user: [
-    'project:view',
+    'project:view', 'project:create',
     'brief:view',
     'direction:view',
     'copy:view',
@@ -48,7 +50,7 @@ const ROLE_PERMISSIONS = {
     'team:view'
   ],
   Designer: [
-    'project:view',
+    'project:view', 'project:create',
     'brief:view',
     'direction:view',
     'copy:view',
@@ -56,7 +58,7 @@ const ROLE_PERMISSIONS = {
     'team:view'
   ],
   Copywriter: [
-    'project:view',
+    'project:view', 'project:create',
     'brief:view',
     'direction:view',
     'copy:view', 'copy:draft', 'copy:submit',
@@ -78,7 +80,7 @@ const ROLE_PERMISSIONS = {
     'copy:view', 'copy:draft', 'copy:review', 'copy:approve',
     'deliverable:view', 'deliverable:upload', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
     'team:view', 'team:manage_workload', 'report:view',
-    'admin:users', 'admin:roles', 'admin:system_audit'
+    'admin:users', 'admin:roles', 'admin:companies', 'admin:system', 'admin:projects', 'admin:system_audit'
   ],
   Administrator: [
     'project:view', 'project:create', 'project:edit', 'project:assign', 'project:archive',
@@ -87,7 +89,7 @@ const ROLE_PERMISSIONS = {
     'copy:view', 'copy:draft', 'copy:review', 'copy:approve',
     'deliverable:view', 'deliverable:upload', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
     'team:view', 'team:manage_workload', 'report:view',
-    'admin:users', 'admin:roles', 'admin:system_audit'
+    'admin:users', 'admin:roles', 'admin:companies', 'admin:system', 'admin:projects', 'admin:system_audit'
   ],
   CEO: [
     'project:view', 'project:create', 'project:edit', 'project:assign', 'project:archive',
@@ -140,8 +142,8 @@ function getUserPermissions(user) {
     const perms = ROLE_PERMISSIONS[raw] || ROLE_PERMISSIONS[low] || [];
     perms.forEach(p => permSet.add(p));
     
-    // Title / keyword based permission granting for all custom designations
-    if (low.includes('admin')) {
+    // Canonical role matching for admin
+    if (low === 'admin' || low === 'administrator') {
       (ROLE_PERMISSIONS.admin || []).forEach(p => permSet.add(p));
     }
     if (low.includes('director') || low.includes('manager') || low.includes('lead') || low.includes('head') || low.includes('ceo') || low.includes('executive')) {
@@ -170,11 +172,29 @@ const SYSTEM_USERS = [
 ];
 
 function getPasswordStorePath() {
-  const dir = path.join(config.WORKSPACE_ROOT, '_Team', '_Config');
-  if (!fs.existsSync(dir)) {
-    try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
+  const targetPath = path.join(config.DATA_DIR, 'user_passwords.json');
+  // One-time migration: if target does not exist, check legacy workspace path
+  if (!fs.existsSync(targetPath)) {
+    try {
+      const legacyDir = path.join(config.WORKSPACE_ROOT, '_Team', '_Config');
+      const legacyPath = path.join(legacyDir, 'user_passwords.json');
+      if (fs.existsSync(legacyPath)) {
+        console.log(`[Auth] Migrating password store from legacy workspace path (${legacyPath}) to DATA_DIR (${targetPath})...`);
+        fs.copyFileSync(legacyPath, targetPath);
+        // Rename legacy file to preserve backup while removing active plaintext from workspace
+        const backupPath = path.join(legacyDir, `user_passwords.json.migrated.${Date.now()}`);
+        try {
+          fs.renameSync(legacyPath, backupPath);
+          console.log(`[Auth] Legacy password store archived to ${backupPath}`);
+        } catch (e) {
+          console.warn('[Auth] Note: Legacy password store copied; could not rename legacy file:', e.message);
+        }
+      }
+    } catch (err) {
+      console.error('[Auth] Migration from legacy workspace password store failed:', err.message);
+    }
   }
-  return path.join(dir, 'user_passwords.json');
+  return targetPath;
 }
 
 function getStoredPasswords() {
@@ -187,34 +207,95 @@ function getStoredPasswords() {
   }
 }
 
-function verifyUserPassword(username, password) {
-  const defaultPassword = process.env.DEFAULT_PASSWORD || 'SuamiSihat123!';
-  const passwords = getStoredPasswords();
-  const userKey = (username || '').toLowerCase();
-  
-  const expectedPassword = passwords[userKey] || defaultPassword;
-  if (!password || password === '' || password === expectedPassword || password === defaultPassword) {
-    return true;
-  }
-  return false;
-}
-
-function updateUserPassword(username, newPassword) {
-  if (!newPassword || newPassword.length < 6) {
-    throw new Error('New password must be at least 6 characters long.');
-  }
-
+function saveStoredPasswords(passwords) {
   const pPath = getPasswordStorePath();
-  const passwords = getStoredPasswords();
-  const userKey = (username || '').toLowerCase();
-  
-  passwords[userKey] = newPassword;
-  
   const json = JSON.stringify(passwords, null, 2);
   const tmp = `${pPath}.tmp.${Date.now()}`;
   fs.writeFileSync(tmp, json, 'utf8');
   fs.renameSync(tmp, pPath);
-  
+}
+
+function isBcryptHash(value) {
+  return typeof value === 'string' && /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(value);
+}
+
+function verifyUserPassword(username, password) {
+  // Reject empty, non-string, or blank passwords immediately
+  if (!password || typeof password !== 'string' || password.trim() === '') {
+    return false;
+  }
+
+  const passwords = getStoredPasswords();
+  const userKey = (username || '').toLowerCase();
+  const stored = passwords[userKey];
+
+  // 1. If stored password entry exists
+  if (stored) {
+    // If already hashed with bcrypt
+    if (isBcryptHash(stored)) {
+      return bcrypt.compareSync(password, stored);
+    }
+    // If stored as legacy plaintext, check match and lazily migrate to bcrypt
+    if (password === stored) {
+      try {
+        const salt = bcrypt.genSaltSync(10);
+        passwords[userKey] = bcrypt.hashSync(password, salt);
+        saveStoredPasswords(passwords);
+      } catch (err) {
+        console.error(`[Auth] Lazy migration failed for user ${userKey}:`, err.message);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // 2. Admin recovery bootstrap path (honored ONLY when NO admin account has a password configured)
+  const bootstrapPassword = (process.env.ADMIN_BOOTSTRAP_PASSWORD || '').trim();
+  if (bootstrapPassword && password === bootstrapPassword) {
+    const hasExistingAdminEntry = Object.keys(passwords).some(key => {
+      const u = SYSTEM_USERS.find(su => (su.username || '').toLowerCase() === key);
+      if (!u) return key === 'admin';
+      const uRoles = getUserRoles(u).map(r => (r || '').trim().toLowerCase());
+      return uRoles.includes('admin') || uRoles.includes('administrator');
+    });
+
+    if (!hasExistingAdminEntry) {
+      const isSysAdmin = SYSTEM_USERS.some(u => {
+        if ((u.username || '').toLowerCase() !== userKey) return false;
+        const uRoles = getUserRoles(u).map(r => (r || '').trim().toLowerCase());
+        return uRoles.includes('admin') || uRoles.includes('administrator');
+      });
+      if (isSysAdmin || userKey === 'admin') {
+        try {
+          const salt = bcrypt.genSaltSync(10);
+          passwords[userKey] = bcrypt.hashSync(password, salt);
+          saveStoredPasswords(passwords);
+          console.log(`[Auth] Admin bootstrap password accepted and lazily hashed for ${userKey}`);
+        } catch (err) {
+          console.error('[Auth] Failed to persist bootstrapped admin password:', err.message);
+        }
+        return true;
+      }
+    } else {
+      console.warn(`[Auth] ADMIN_BOOTSTRAP_PASSWORD ignored: an admin password entry already exists.`);
+    }
+  }
+
+  return false;
+}
+
+function updateUserPassword(username, newPassword) {
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 10) {
+    throw new Error('New password must be at least 10 characters long.');
+  }
+
+  const passwords = getStoredPasswords();
+  const userKey = (username || '').toLowerCase();
+
+  const salt = bcrypt.genSaltSync(10);
+  passwords[userKey] = bcrypt.hashSync(newPassword, salt);
+  saveStoredPasswords(passwords);
+
   return true;
 }
 
@@ -235,7 +316,7 @@ function generateToken(user) {
       permissions
     },
     config.JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: config.JWT_EXPIRES_IN || '12h' }
   );
 }
 
@@ -256,6 +337,52 @@ function authenticateToken(req, res, next) {
   });
 }
 
+function hasCanonicalRole(user, targetRole) {
+  const roles = getUserRoles(user).map(r => (r || '').trim().toLowerCase());
+  const target = (targetRole || '').trim().toLowerCase();
+  if (target === 'admin' || target === 'administrator') {
+    return roles.includes('admin') || roles.includes('administrator');
+  }
+  return roles.includes(target);
+}
+
+function requireRole(...allowedRoles) {
+  const normalizedTargets = allowedRoles.map(r => (r || '').trim().toLowerCase());
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required. Please log in.' });
+    }
+    const userRoles = getUserRoles(req.user).map(r => (r || '').trim().toLowerCase());
+    const isAllowed = userRoles.some(r => {
+      if ((normalizedTargets.includes('admin') || normalizedTargets.includes('administrator')) && 
+          (r === 'admin' || r === 'administrator')) {
+        return true;
+      }
+      return normalizedTargets.includes(r);
+    });
+
+    if (!isAllowed) {
+      AuditService.logEvent({
+        actor: req.user?.name || req.user?.username || 'Unknown',
+        role: req.user?.role || 'Unknown',
+        action: 'SECURITY_ACCESS_DENIED',
+        entityType: 'Endpoint',
+        entityId: req.originalUrl || (req.baseUrl ? req.baseUrl + req.path : req.path),
+        details: {
+          method: req.method,
+          path: req.originalUrl || req.path,
+          requiredRoles: allowedRoles,
+          userRoles
+        }
+      });
+      return res.status(403).json({
+        error: `Access Denied. Required role: [${allowedRoles.join(', ')}]. Your role: '${req.user.role}'`
+      });
+    }
+    next();
+  };
+}
+
 function requirePermission(permission) {
   return (req, res, next) => {
     if (!req.user) {
@@ -266,16 +393,22 @@ function requirePermission(permission) {
       ? req.user.permissions
       : getUserPermissions(req.user);
 
-    const userRoleStr = (typeof req.user.role === 'string' ? req.user.role : '').toLowerCase();
-    const isAdminOrLead = userRoleStr.includes('admin') || 
-                          userRoleStr.includes('director') || 
-                          userRoleStr.includes('lead') || 
-                          userRoleStr.includes('manager') || 
-                          userRoleStr.includes('head') || 
-                          userRoleStr.includes('ceo') ||
-                          userRoleStr.includes('executive');
+    const isCanonicalAdmin = hasCanonicalRole(req.user, 'admin');
 
-    if (!permissions.includes(permission) && !isAdminOrLead) {
+    if (!permissions.includes(permission) && !isCanonicalAdmin) {
+      AuditService.logEvent({
+        actor: req.user?.name || req.user?.username || 'Unknown',
+        role: req.user?.role || 'Unknown',
+        action: 'SECURITY_PERMISSION_DENIED',
+        entityType: 'Endpoint',
+        entityId: req.originalUrl || (req.baseUrl ? req.baseUrl + req.path : req.path),
+        details: {
+          method: req.method,
+          path: req.originalUrl || req.path,
+          requiredPermission: permission,
+          userRoles: getUserRoles(req.user)
+        }
+      });
       return res.status(403).json({
         error: `Permission Denied. Required: '${permission}'. Your role: '${req.user.role}'`
       });
@@ -289,9 +422,13 @@ module.exports = {
   ROLE_PERMISSIONS,
   getUserRoles,
   getUserPermissions,
+  hasCanonicalRole,
+  getPasswordStorePath,
+  getStoredPasswords,
   verifyUserPassword,
   updateUserPassword,
   generateToken,
   authenticateToken,
-  requirePermission
+  requirePermission,
+  requireRole
 };

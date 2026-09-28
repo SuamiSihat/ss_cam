@@ -1,21 +1,23 @@
-﻿[
+[
   {
     "staffId": "SS0004",
     "username": "harussani",
     "name": "Harussani",
     "email": "harussani.suamisihat@gmail.com",
-    "role": "Admin, Designer",
+    "role": "Head of Creative",
     "department": "Creative Production",
     "defaultBrand": "SSH",
     "avatarColor": "#0078D4",
     "active": true,
     "password": "",
     "roles": [
-      "Admin",
-      "Designer"
+      "Designer",
+      "Admin"
     ],
     "avatarUrl": "/api/users/SS0004/avatar",
-    "avatar": "/api/users/SS0004/avatar"
+    "avatar": "/api/users/SS0004/avatar",
+    "officialTitle": "Head of Creative",
+    "DisplayText": "SS0004 - Harussani (Head of Creative)"
   },
   {
     "staffId": "SS0035",

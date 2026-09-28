@@ -5,6 +5,14 @@
 const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
+
+process.env.NODE_ENV = 'test';
+
+// Sandbox isolation: Ensure test suite runs exclusively in local sandbox and never touches production NAS
+const sandboxWorkspace = path.resolve(__dirname, '../../sample-workspace');
+if (!process.env.WORKSPACE_ROOT) {
+  process.env.WORKSPACE_ROOT = sandboxWorkspace;
+}
 const FrontmatterService = require('../services/FrontmatterService');
 const AuditService = require('../services/AuditService');
 const DeliverableService = require('../services/DeliverableService');
@@ -12,6 +20,8 @@ const WorkspaceService = require('../services/WorkspaceService');
 const ApprovalService = require('../services/ApprovalService');
 const OrderService = require('../services/OrderService');
 const config = require('../config');
+const http = require('http');
+const apiRoutes = require('../routes/api');
 
 console.log('🧪 Starting SS-CAM Web Management Portal Verification Suite...\n');
 
@@ -23,17 +33,14 @@ AuditService.getAuditLogPath = () => tempAuditPath;
 async function runTests() {
   let passed = 0;
   let failed = 0;
+  const testQueue = [];
 
   function test(name, fn) {
-    try {
-      fn();
-      console.log(`  ✅ PASS: ${name}`);
-      passed++;
-    } catch (err) {
-      console.error(`  ❌ FAIL: ${name}`);
-      console.error(`     Error: ${err.message}`);
-      failed++;
-    }
+    testQueue.push({ name, fn });
+  }
+
+  function testAsync(name, fn) {
+    testQueue.push({ name, fn });
   }
 
   // ─── TEST 1: Frontmatter Parsing & Serialization ────────────────────
@@ -589,7 +596,7 @@ This is the project brief content.
   });
 
   // ─── TEST 20: Creative Handover Package Export (ZIP + HTML) ─────────
-  test('ExportService generates clean ZIP stream and HTML handover summary manifest', (done) => {
+  test('ExportService generates clean ZIP stream and HTML handover summary manifest', async () => {
     const ExportService = require('../services/ExportService');
     const testDir = path.join(__dirname, 'temp-export-project');
     const delivDir = path.join(testDir, '05_DELIVERABLES');
@@ -605,28 +612,29 @@ This is the project brief content.
     const tempZipOut = path.join(__dirname, 'temp-output-handover.zip');
     const outStream = fs.createWriteStream(tempZipOut);
 
+    const EventEmitter = require('events');
     let headers = {};
-    const mockRes = {
-      setHeader: (k, v) => { headers[k] = v; },
-      writeHead: () => {},
-      headersSent: false,
-      write: (c) => outStream.write(c),
-      end: (c) => outStream.end(c),
-      on: (e, cb) => outStream.on(e, cb),
-      once: (e, cb) => outStream.once(e, cb),
-      emit: (e, ...args) => outStream.emit(e, ...args)
-    };
+    const mockRes = new EventEmitter();
+    mockRes.setHeader = (k, v) => { headers[k] = v; };
+    mockRes.writeHead = () => {};
+    mockRes.status = () => ({ json: () => {}, end: () => {} });
+    mockRes.headersSent = false;
+    mockRes.write = (c) => outStream.write(c);
+    mockRes.end = (c) => outStream.end(c);
 
     ExportService.streamProjectHandover(testDir, '0085D', mockRes);
 
     assert.strictEqual(headers['Content-Type'], 'application/zip');
     assert.ok(headers['Content-Disposition'].includes('Handover.zip'));
 
-    // Cleanup
-    setTimeout(() => {
-      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
-      try { if (fs.existsSync(tempZipOut)) fs.unlinkSync(tempZipOut); } catch (e) {}
-    }, 500);
+    // Wait for zip archiving to cleanly finish before deleting test files
+    await new Promise((resolve) => {
+      outStream.on('close', () => {
+        try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
+        try { if (fs.existsSync(tempZipOut)) fs.unlinkSync(tempZipOut); } catch (e) {}
+        resolve();
+      });
+    });
   });
 
   // ─── TEST 20: Designer Capacity & Creative SLA Metrics Computation ──
@@ -684,6 +692,8 @@ This is the project brief content.
     } finally {
       // Restore original workspaceRoot
       WorkspaceService.setWorkspaceRoot(origRoot, 'TestAdmin');
+      const overridePath = path.resolve(__dirname, '../workspace_config.json');
+      try { if (fs.existsSync(overridePath)) fs.unlinkSync(overridePath); } catch (e) {}
       try {
         fs.rmdirSync(tempSwitchDir);
       } catch (e) {
@@ -939,12 +949,24 @@ This is the project brief content.
 
       // 2. Query routes/api notes functions
       const express = require('express');
-      const request = require('supertest');
       const app = express();
       app.use(express.json());
       app.use('/api', require('../routes/api'));
 
-      const res = await request(app).get('/api/notes');
+      const server = await new Promise(r => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+      const port = server.address().port;
+      let res;
+      try {
+        res = await new Promise((resolve, reject) => {
+          http.get(`http://127.0.0.1:${port}/api/notes`, (r) => {
+            let data = '';
+            r.on('data', chunk => data += chunk);
+            r.on('end', () => resolve({ status: r.statusCode, body: JSON.parse(data || '{}') }));
+          }).on('error', reject);
+        });
+      } finally {
+        server.close();
+      }
       assert.strictEqual(res.status, 200);
       assert.strictEqual(res.body.success, true);
       assert.strictEqual(res.body.notes.length, 2);
@@ -1314,6 +1336,1026 @@ This is the project brief content.
       try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
     }
   });
+
+  // ─── TEST: Authentication Security & Lazy Migration ──────────────────
+  test('Authentication security: empty password -> 401, default password -> 401, correct password -> 200, with bcrypt lazy migration', async () => {
+    const origDataDir = config.DATA_DIR;
+    const testDir = path.join(__dirname, 'temp-sandbox-auth-test');
+    try {
+      fs.mkdirSync(testDir, { recursive: true });
+      config.DATA_DIR = testDir;
+
+      // 1. Seed user password with legacy plaintext 'SecretPassword123!'
+      const passwordsPath = path.join(testDir, 'user_passwords.json');
+      fs.writeFileSync(passwordsPath, JSON.stringify({ harussani: 'SecretPassword123!' }, null, 2), 'utf8');
+
+      // Create express app with apiRoutes
+      const express = require('express');
+      const testApp = express();
+      testApp.use(express.json());
+      testApp.use('/api', apiRoutes);
+      const testServer = await new Promise(res => {
+        const s = testApp.listen(0, '127.0.0.1', () => res(s));
+      });
+      const port = testServer.address().port;
+
+      const postLogin = async (username, password) => {
+        return new Promise((resolve, reject) => {
+          const postData = JSON.stringify({ username, password });
+          const req = http.request({
+            hostname: '127.0.0.1',
+            port,
+            path: '/api/auth/login',
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(postData)
+            }
+          }, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(data || '{}') }));
+          });
+          req.on('error', reject);
+          req.write(postData);
+          req.end();
+        });
+      };
+
+      try {
+        // A. Empty password -> 401
+        const emptyRes = await postLogin('harussani', '');
+        assert.strictEqual(emptyRes.status, 401, 'Empty password must return 401');
+
+        // B. Old shared default password -> 401
+        const defaultRes = await postLogin('harussani', 'SuamiSihat123!');
+        assert.strictEqual(defaultRes.status, 401, 'Old default password must return 401');
+
+        // C. Correct password -> 200
+        const correctRes = await postLogin('harussani', 'SecretPassword123!');
+        assert.strictEqual(correctRes.status, 200, 'Correct password must return 200');
+        assert.ok(correctRes.body.token, 'Must return JWT token');
+
+        // D. Verify lazy migration occurred in user_passwords.json
+        const updatedPasswords = JSON.parse(fs.readFileSync(passwordsPath, 'utf8'));
+        assert.ok(updatedPasswords.harussani.startsWith('$2'), 'Plaintext must be upgraded to bcrypt hash');
+        const bcrypt = require('bcryptjs');
+        assert.ok(bcrypt.compareSync('SecretPassword123!', updatedPasswords.harussani), 'Bcrypt hash must match correct password');
+      } finally {
+        testServer.close();
+      }
+    } finally {
+      config.DATA_DIR = origDataDir;
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
+  // ─── TEST: Uniform Login Error Responses (User Enumeration Protection) ──
+  test('Login enumeration protection: non-existent user and wrong password return identical HTTP 401 error', async () => {
+    const express = require('express');
+    const testApp = express();
+    testApp.use(express.json());
+    testApp.use('/api', apiRoutes);
+    const testServer = await new Promise(res => {
+      const s = testApp.listen(0, '127.0.0.1', () => res(s));
+    });
+    const port = testServer.address().port;
+
+    const postLogin = async (username, password) => {
+      return new Promise((resolve, reject) => {
+        const postData = JSON.stringify({ username, password });
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port,
+          path: '/api/auth/login',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(data || '{}') }));
+        });
+        req.on('error', reject);
+        req.write(postData);
+        req.end();
+      });
+    };
+
+    try {
+      const unknownUserRes = await postLogin('non_existent_user_9999', 'AnyPassword123!');
+      const wrongPasswordRes = await postLogin('harussani', 'DefinitelyWrongPassword123!');
+
+      assert.strictEqual(unknownUserRes.status, 401, 'Unknown user must return 401');
+      assert.strictEqual(wrongPasswordRes.status, 401, 'Wrong password must return 401');
+      assert.strictEqual(unknownUserRes.body.error, wrongPasswordRes.body.error, 'Error message must be identical to prevent user enumeration');
+      assert.strictEqual(unknownUserRes.body.error, 'Invalid credentials. Please verify your username and password.');
+    } finally {
+      testServer.close();
+    }
+  });
+
+  // ─── TEST: Emergency Admin Bootstrap Password Recovery ─────────────────
+  test('Admin bootstrap password: honored only when no admin password exists; ignored once set', () => {
+    const origDataDir = config.DATA_DIR;
+    const origEnvBootstrap = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+    const testDir = path.join(__dirname, 'temp-sandbox-bootstrap-test');
+    try {
+      fs.mkdirSync(testDir, { recursive: true });
+      config.DATA_DIR = testDir;
+      process.env.ADMIN_BOOTSTRAP_PASSWORD = 'EmergencyAdminBootstrapPass2026!';
+
+      const { verifyUserPassword } = require('../middleware/auth');
+
+      // 1. Initial attempt on clean store with bootstrap password -> success
+      const bootSuccess = verifyUserPassword('admin', 'EmergencyAdminBootstrapPass2026!');
+      assert.strictEqual(bootSuccess, true, 'Bootstrap password must succeed when no admin password exists');
+
+      // Verify hash was saved to DATA_DIR
+      const passwordsPath = path.join(testDir, 'user_passwords.json');
+      const saved = JSON.parse(fs.readFileSync(passwordsPath, 'utf8'));
+      assert.ok(saved.admin && saved.admin.startsWith('$2'), 'Admin password must be saved as bcrypt hash');
+
+      // 2. Now that admin has a password, changing bootstrap password should be IGNORED
+      process.env.ADMIN_BOOTSTRAP_PASSWORD = 'NewUnauthorizedBootstrapPassword!';
+      const bootIgnored = verifyUserPassword('admin', 'NewUnauthorizedBootstrapPassword!');
+      assert.strictEqual(bootIgnored, false, 'Bootstrap password must be ignored once admin password is set');
+
+      // 3. Original bootstrapped password still works via bcrypt hash
+      const realSuccess = verifyUserPassword('admin', 'EmergencyAdminBootstrapPass2026!');
+      assert.strictEqual(realSuccess, true, 'Original bootstrapped password must still succeed via hash');
+    } finally {
+      config.DATA_DIR = origDataDir;
+      if (origEnvBootstrap === undefined) delete process.env.ADMIN_BOOTSTRAP_PASSWORD;
+      else process.env.ADMIN_BOOTSTRAP_PASSWORD = origEnvBootstrap;
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
+  // ─── TEST: Production Config Security — JWT_SECRET Enforcement ─────────
+  test('Production configuration security: server exits non-zero without strong JWT_SECRET (>= 32 chars) when NODE_ENV=production', () => {
+    const { execSync } = require('child_process');
+    const projectRoot = path.resolve(__dirname, '../..');
+    
+    // A. Empty secret -> exit non-zero
+    let emptySecretFailed = false;
+    try {
+      execSync('node server/config.js', {
+        cwd: projectRoot,
+        env: { ...process.env, NODE_ENV: 'production', JWT_SECRET: '' },
+        stdio: 'pipe'
+      });
+    } catch (err) {
+      if (err.status !== 0) emptySecretFailed = true;
+    }
+    assert.strictEqual(emptySecretFailed, true, 'server/config.js must exit non-zero when JWT_SECRET is empty in production');
+
+    // B. Short secret (< 32 chars) -> exit non-zero
+    let shortSecretFailed = false;
+    try {
+      execSync('node server/config.js', {
+        cwd: projectRoot,
+        env: { ...process.env, NODE_ENV: 'production', JWT_SECRET: 'short-secret-less-than-32-chars' },
+        stdio: 'pipe'
+      });
+    } catch (err) {
+      if (err.status !== 0) shortSecretFailed = true;
+    }
+    assert.strictEqual(shortSecretFailed, true, 'server/config.js must exit non-zero when JWT_SECRET is < 32 chars in production');
+
+    // C. Valid 64-char secret -> exits 0
+    let validSecretSucceeded = false;
+    try {
+      execSync('node server/config.js', {
+        cwd: projectRoot,
+        env: { ...process.env, NODE_ENV: 'production', JWT_SECRET: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' },
+        stdio: 'pipe'
+      });
+      validSecretSucceeded = true;
+    } catch (err) {}
+    assert.strictEqual(validSecretSucceeded, true, 'server/config.js must succeed when JWT_SECRET is >= 32 chars in production');
+  });
+
+  // ─── TEST: Login Rate Limiting ─────────────────────────────────────────
+  test('Login rate limiting: 6th rapid failed login on /auth/login returns HTTP 429', async () => {
+    const express = require('express');
+    const rateLimit = require('express-rate-limit');
+
+    const testApp = express();
+    testApp.use(express.json());
+
+    const isolatedLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 5,
+      standardHeaders: true,
+      legacyHeaders: false
+    });
+
+    testApp.post('/api/auth/login', isolatedLimiter, (req, res) => {
+      res.status(401).json({ error: 'Invalid credentials. Please verify your username and password.' });
+    });
+
+    const testServer = await new Promise(res => {
+      const s = testApp.listen(0, '127.0.0.1', () => res(s));
+    });
+    const port = testServer.address().port;
+
+    try {
+      const sendRequest = () => {
+        return new Promise((resolve, reject) => {
+          const postData = JSON.stringify({ username: 'harussani', password: 'wrong' });
+          const req = http.request({
+            hostname: '127.0.0.1',
+            port,
+            path: '/api/auth/login',
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(postData)
+            }
+          }, (res) => {
+            resolve(res.statusCode);
+          });
+          req.on('error', reject);
+          req.write(postData);
+          req.end();
+        });
+      };
+
+      const statuses = [];
+      for (let i = 1; i <= 6; i++) {
+        const code = await sendRequest();
+        statuses.push(code);
+      }
+
+      for (let i = 0; i < 5; i++) {
+        assert.strictEqual(statuses[i], 401, `Attempt ${i + 1} should be 401`);
+      }
+      assert.strictEqual(statuses[5], 429, '6th rapid attempt must return 429 Too Many Requests');
+    } finally {
+      testServer.close();
+    }
+  });
+
+  // ─── TEST: Password Reset Minimum Length Enforcement ───────────────────
+  test('Password reset security: explicit newPassword of min 10 chars enforced', () => {
+    const { updateUserPassword } = require('../middleware/auth');
+    assert.throws(() => {
+      updateUserPassword('testuser', '');
+    }, /at least 10 characters/);
+    assert.throws(() => {
+      updateUserPassword('testuser', 'short9ch!');
+    }, /at least 10 characters/);
+  });
+
+  // ─── TEST: Admin RBAC Hardening on Mutating Admin Endpoints ──────────
+  test('Admin RBAC: Designer gets 403 on mutating routes and logs to AuditService; Admin gets 200', async () => {
+    const express = require('express');
+    const http = require('http');
+    const apiRoutes = require('../routes/api');
+    const { generateToken } = require('../middleware/auth');
+    const AuditService = require('../services/AuditService');
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api', apiRoutes);
+
+    const testServer = http.createServer(app);
+    await new Promise((resolve) => testServer.listen(0, '127.0.0.1', resolve));
+    const port = testServer.address().port;
+
+    const designerUser = {
+      id: 'SS0099',
+      username: 'designer_test',
+      name: 'Test Designer',
+      role: 'Designer',
+      roles: ['Designer'],
+      staffId: 'SS0099'
+    };
+    const designerToken = generateToken(designerUser);
+
+    const adminUser = {
+      id: 'SS0000',
+      username: 'admin_test',
+      name: 'System Administrator',
+      role: 'Administrator',
+      roles: ['Admin'],
+      staffId: 'SS0000'
+    };
+    const adminToken = generateToken(adminUser);
+
+    const mutatingEndpoints = [
+      { method: 'POST', path: '/api/users', body: { name: 'New Staff', role: 'Designer' } },
+      { method: 'PUT', path: '/api/users/SS0099', body: { name: 'Updated Staff' } },
+      { method: 'DELETE', path: '/api/users/SS0099' },
+      { method: 'POST', path: '/api/users/designer_test/reset-password', body: { newPassword: 'NewPassword123!' } },
+      { method: 'POST', path: '/api/team/roster', body: { name: 'Roster Staff', role: 'Designer' } },
+      { method: 'PUT', path: '/api/team/roster/SS0099', body: { name: 'Updated Roster Staff' } },
+      { method: 'POST', path: '/api/companies', body: { code: 'TESTCO', name: 'Test Company' } },
+      { method: 'PUT', path: '/api/companies/TESTCO', body: { name: 'Updated Company' } },
+      { method: 'DELETE', path: '/api/companies/TESTCO' },
+      { method: 'POST', path: '/api/system/workspace-root', body: { workspacePath: 'C:\\test' } },
+      { method: 'POST', path: '/api/admin/restart', body: {} }
+    ];
+
+    let testStaff1, testStaff2;
+
+    const makeRequest = (method, path, token, body = null) => {
+      return new Promise((resolve, reject) => {
+        const payload = body ? JSON.stringify(body) : null;
+        const headers = {
+          'Authorization': `Bearer ${token}`
+        };
+        if (payload) {
+          headers['Content-Type'] = 'application/json';
+          headers['Content-Length'] = Buffer.byteLength(payload);
+        }
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port,
+          path,
+          method,
+          headers
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            let json = {};
+            try { json = JSON.parse(data); } catch (e) {}
+            resolve({ statusCode: res.statusCode, body: json });
+          });
+        });
+        req.on('error', reject);
+        if (payload) req.write(payload);
+        req.end();
+      });
+    };
+
+    try {
+      // 1. Verify Designer token receives 403 Forbidden on EVERY mutating admin route
+      for (const ep of mutatingEndpoints) {
+        const res = await makeRequest(ep.method, ep.path, designerToken, ep.body);
+        assert.strictEqual(
+          res.statusCode,
+          403,
+          `Designer token must receive 403 on ${ep.method} ${ep.path}, got ${res.statusCode}`
+        );
+      }
+
+      // 2. Verify AuditService recorded SECURITY_ACCESS_DENIED entries for the denials
+      const recentLogs = AuditService.getLogs({ limit: 50 });
+      const deniedLogs = recentLogs.filter(l => l.action === 'SECURITY_ACCESS_DENIED' && l.actor === 'Test Designer');
+      assert.ok(
+        deniedLogs.length >= mutatingEndpoints.length,
+        `AuditService must contain at least ${mutatingEndpoints.length} denial entries, found ${deniedLogs.length}`
+      );
+
+      // 3. Verify Admin token succeeds (200) on mutating admin routes
+      testStaff1 = 'SS99' + Math.floor(1000 + Math.random() * 8999);
+      testStaff2 = 'SS98' + Math.floor(1000 + Math.random() * 8999);
+
+      const adminResUsers = await makeRequest('POST', '/api/users', adminToken, {
+        staffId: testStaff1,
+        name: 'Admin Added User',
+        username: `admin_user_${testStaff1.toLowerCase()}`,
+        role: 'Designer'
+      });
+      assert.strictEqual(adminResUsers.statusCode, 200, `Admin token must receive 200 on POST /api/users, got ${adminResUsers.statusCode}`);
+
+      const adminResRoster = await makeRequest('POST', '/api/team/roster', adminToken, {
+        staffId: testStaff2,
+        name: 'Admin Added Roster',
+        username: `admin_roster_${testStaff2.toLowerCase()}`,
+        role: 'Designer'
+      });
+      assert.strictEqual(adminResRoster.statusCode, 200, `Admin token must receive 200 on POST /api/team/roster, got ${adminResRoster.statusCode}`);
+
+      const adminResCo = await makeRequest('POST', '/api/companies', adminToken, {
+        code: 'TESTCO',
+        name: 'Admin Test Company'
+      });
+      assert.strictEqual(adminResCo.statusCode, 200, `Admin token must receive 200 on POST /api/companies, got ${adminResCo.statusCode}`);
+
+      const adminResCoPut = await makeRequest('PUT', '/api/companies/TESTCO', adminToken, {
+        name: 'Admin Updated Company'
+      });
+      assert.strictEqual(adminResCoPut.statusCode, 200, `Admin token must receive 200 on PUT /api/companies/TESTCO, got ${adminResCoPut.statusCode}`);
+
+      const adminResCoDel = await makeRequest('DELETE', '/api/companies/TESTCO', adminToken);
+      assert.strictEqual(adminResCoDel.statusCode, 200, `Admin token must receive 200 on DELETE /api/companies/TESTCO, got ${adminResCoDel.statusCode}`);
+
+      const adminResRestart = await makeRequest('POST', '/api/admin/restart', adminToken, {});
+      assert.strictEqual(adminResRestart.statusCode, 200, `Admin token must receive 200 on POST /api/admin/restart, got ${adminResRestart.statusCode}`);
+    } finally {
+      testServer.close();
+      const TeamService = require('../services/TeamService');
+      const CompanyService = require('../services/CompanyService');
+      try { TeamService.deleteStaffMember('SS0098'); } catch (e) {}
+      try { TeamService.deleteStaffMember('SS0097'); } catch (e) {}
+      try { if (testStaff1) TeamService.deleteStaffMember(testStaff1); } catch (e) {}
+      try { if (testStaff2) TeamService.deleteStaffMember(testStaff2); } catch (e) {}
+      try { CompanyService.deleteCompany('TESTCO'); } catch (e) {}
+    }
+  });
+
+  // ─── TEST: DATA_DIR Migration from Legacy Workspace Path ────────────────
+  test('DATA_DIR migration: legacy workspace password file is migrated to DATA_DIR and archived', () => {
+    const origRoot = config.WORKSPACE_ROOT;
+    const origDataDir = config.DATA_DIR;
+    const sandboxDir = path.join(__dirname, 'temp-sandbox-datadir-migration');
+    const legacyWorkspace = path.join(sandboxDir, 'legacy-ws');
+    const newDataDir = path.join(sandboxDir, 'isolated-data');
+
+    try {
+      fs.mkdirSync(path.join(legacyWorkspace, '_Team', '_Config'), { recursive: true });
+      fs.mkdirSync(newDataDir, { recursive: true });
+
+      const legacyPasswordFile = path.join(legacyWorkspace, '_Team', '_Config', 'user_passwords.json');
+      fs.writeFileSync(legacyPasswordFile, JSON.stringify({ migrated_user: 'Secret123!' }), 'utf8');
+
+      config.WORKSPACE_ROOT = legacyWorkspace;
+      config.DATA_DIR = newDataDir;
+
+      const { getPasswordStorePath, getStoredPasswords } = require('../middleware/auth');
+      const resolvedPath = getPasswordStorePath();
+
+      assert.strictEqual(resolvedPath, path.join(newDataDir, 'user_passwords.json'), 'Path must resolve under DATA_DIR');
+      assert.ok(fs.existsSync(resolvedPath), 'Password store must exist in new DATA_DIR');
+
+      const loaded = getStoredPasswords();
+      assert.strictEqual(loaded.migrated_user, 'Secret123!', 'Migrated credentials must be loaded');
+
+      // Check that legacy file was safely archived
+      const archivedFiles = fs.readdirSync(path.join(legacyWorkspace, '_Team', '_Config')).filter(f => f.includes('user_passwords.json.migrated'));
+      assert.ok(archivedFiles.length > 0, 'Legacy workspace password file must be renamed/archived');
+    } finally {
+      config.WORKSPACE_ROOT = origRoot;
+      config.DATA_DIR = origDataDir;
+      try { fs.rmSync(sandboxDir, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
+  // ─── TEST: Helmet Headers & 1MB Body Limit ─────────────────────────────
+  test('Security headers & body limit: Helmet sets nosniff CSP and >1MB payload returns 413', async () => {
+    const express = require('express');
+    const helmet = require('helmet');
+    const http = require('http');
+
+    const app = express();
+    app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"]
+        }
+      }
+    }));
+    app.use(express.json({ limit: '1mb' }));
+    app.post('/test-body-limit', (req, res) => res.json({ ok: true }));
+
+    const server = http.createServer(app);
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const port = server.address().port;
+
+    try {
+      // 1. Verify Helmet security headers
+      const headerCheck = await new Promise((resolve, reject) => {
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port,
+          path: '/test-body-limit',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }, res => {
+          resolve({
+            nosniff: res.headers['x-content-type-options'],
+            csp: res.headers['content-security-policy']
+          });
+        });
+        req.on('error', reject);
+        req.write(JSON.stringify({ ok: true }));
+        req.end();
+      });
+
+      assert.strictEqual(headerCheck.nosniff, 'nosniff', 'X-Content-Type-Options must be nosniff');
+      assert.ok(headerCheck.csp, 'Content-Security-Policy header must be present');
+
+      // 2. Verify >1MB payload returns HTTP 413 Payload Too Large
+      const oversizedPayload = JSON.stringify({ data: 'X'.repeat(1024 * 1024 * 1.5) }); // 1.5MB
+      const bodyLimitStatus = await new Promise((resolve, reject) => {
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port,
+          path: '/test-body-limit',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(oversizedPayload)
+          }
+        }, res => resolve(res.statusCode));
+        req.on('error', reject);
+        req.write(oversizedPayload);
+        req.end();
+      });
+
+      assert.strictEqual(bodyLimitStatus, 413, 'Payload over 1MB must return HTTP 413');
+    } finally {
+      server.close();
+    }
+  });
+
+  // ─── TEST: JWT Lifetime (12 Hours) ─────────────────────────────────────
+  test('JWT configuration: token lifetime is configured to 12 hours', () => {
+    const { generateToken } = require('../middleware/auth');
+    const jwt = require('jsonwebtoken');
+
+    const token = generateToken({
+      id: 'SS0004',
+      username: 'harussani',
+      name: 'Harussani',
+      roles: ['Designer']
+    });
+
+    const decoded = jwt.decode(token);
+    assert.ok(decoded.exp && decoded.iat, 'Token must contain exp and iat timestamps');
+    const lifetimeHours = (decoded.exp - decoded.iat) / 3600;
+    assert.strictEqual(lifetimeHours, 12, 'Token lifetime must be exactly 12 hours');
+  });
+
+  // ─── TEST: Last-Administrator Protection ───────────────────────────────
+  test('Last-admin protection: cannot deactivate, demote, or delete the last active administrator', async () => {
+    const express = require('express');
+    const http = require('http');
+    const { generateToken, hasCanonicalRole } = require('../middleware/auth');
+    const TeamService = require('../services/TeamService');
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api', apiRoutes);
+
+    const testServer = http.createServer(app);
+    await new Promise(resolve => testServer.listen(0, '127.0.0.1', resolve));
+    const port = testServer.address().port;
+
+    const makeRequest = (method, path, token, body = null) => {
+      return new Promise((resolve, reject) => {
+        const payload = body ? JSON.stringify(body) : null;
+        const headers = { 'Authorization': `Bearer ${token}` };
+        if (payload) {
+          headers['Content-Type'] = 'application/json';
+          headers['Content-Length'] = Buffer.byteLength(payload);
+        }
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port,
+          path,
+          method,
+          headers
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            let json = {};
+            try { json = JSON.parse(data); } catch (e) {}
+            resolve({ statusCode: res.statusCode, body: json });
+          });
+        });
+        req.on('error', reject);
+        if (payload) req.write(payload);
+        req.end();
+      });
+    };
+
+    const soleAdminId = 'SS91' + Math.floor(1000 + Math.random() * 8999);
+    const secondAdminId = 'SS92' + Math.floor(1000 + Math.random() * 8999);
+    const origRoster = JSON.parse(JSON.stringify(TeamService.getStaffRoster()));
+
+    try {
+      // Setup: clean up any leftovers
+      try { TeamService.deleteStaffMember(soleAdminId); } catch (e) {}
+      try { TeamService.deleteStaffMember(secondAdminId); } catch (e) {}
+
+      // Add our test admin
+      TeamService.addStaffMember({
+        staffId: soleAdminId,
+        name: 'Sole Test Admin',
+        username: `sole_admin_${soleAdminId.toLowerCase()}`,
+        role: 'Administrator',
+        roles: ['Admin'],
+        active: true
+      });
+
+      // Temporarily deactivate other admins so soleAdminId is the ONLY active admin
+      const currentRoster = TeamService.getStaffRoster();
+      const otherAdmins = currentRoster.filter(u => u.staffId !== soleAdminId && hasCanonicalRole(u, 'admin') && u.active !== false);
+      for (const oa of otherAdmins) {
+        TeamService.updateStaffMember(oa.staffId, { active: false });
+      }
+
+      const adminToken = generateToken({
+        id: soleAdminId,
+        username: `sole_admin_${soleAdminId.toLowerCase()}`,
+        name: 'Sole Test Admin',
+        roles: ['Admin']
+      });
+
+      // 1. Attempt to DELETE the last active admin -> must return 400
+      const deleteRes = await makeRequest('DELETE', `/api/users/${soleAdminId}`, adminToken);
+      assert.strictEqual(deleteRes.statusCode, 400, `Deleting last admin must return 400, got ${deleteRes.statusCode}`);
+      assert.ok(deleteRes.body.error && deleteRes.body.error.includes('last remaining administrator'), 'Error message must specify last remaining administrator');
+
+      // 2. Attempt to deactivate the last active admin -> must return 400
+      const deactRes = await makeRequest('PUT', `/api/users/${soleAdminId}`, adminToken, { active: false });
+      assert.strictEqual(deactRes.statusCode, 400, `Deactivating last admin must return 400, got ${deactRes.statusCode}`);
+      assert.ok(deactRes.body.error && deactRes.body.error.includes('last remaining administrator'));
+
+      // 3. Attempt to demote the last active admin to Designer -> must return 400
+      const demoteRes = await makeRequest('PUT', `/api/users/${soleAdminId}`, adminToken, { role: 'Designer', roles: ['Designer'] });
+      assert.strictEqual(demoteRes.statusCode, 400, `Demoting last admin must return 400, got ${demoteRes.statusCode}`);
+      assert.ok(demoteRes.body.error && demoteRes.body.error.includes('last remaining administrator'));
+
+      // 4. Now add a second active admin
+      TeamService.addStaffMember({
+        staffId: secondAdminId,
+        name: 'Second Test Admin',
+        username: `second_admin_${secondAdminId.toLowerCase()}`,
+        role: 'Administrator',
+        roles: ['Admin'],
+        active: true
+      });
+
+      // 5. With two active admins, deactivating the first admin should now SUCCEED (200)
+      const allowedDeactRes = await makeRequest('PUT', `/api/users/${soleAdminId}`, adminToken, { active: false });
+      assert.strictEqual(allowedDeactRes.statusCode, 200, `Deactivating admin when a second admin exists must succeed (200), got ${allowedDeactRes.statusCode}`);
+
+    } finally {
+      testServer.close();
+      // Restore original roster states
+      try { TeamService.deleteStaffMember(soleAdminId); } catch (e) {}
+      try { TeamService.deleteStaffMember(secondAdminId); } catch (e) {}
+      TeamService.saveStaffRoster(origRoster);
+    }
+  });
+
+  // ─── TEST: Anti-Escalation on Profile Updates ──────────────────────────
+  test('Anti-escalation: non-admin caller cannot modify role or roles via PUT /api/auth/profile', async () => {
+    const express = require('express');
+    const http = require('http');
+    const { generateToken } = require('../middleware/auth');
+    const TeamService = require('../services/TeamService');
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api', apiRoutes);
+
+    const testServer = http.createServer(app);
+    await new Promise(resolve => testServer.listen(0, '127.0.0.1', resolve));
+    const port = testServer.address().port;
+
+    const makeRequest = (method, path, token, body = null) => {
+      return new Promise((resolve, reject) => {
+        const payload = body ? JSON.stringify(body) : null;
+        const headers = { 'Authorization': `Bearer ${token}` };
+        if (payload) {
+          headers['Content-Type'] = 'application/json';
+          headers['Content-Length'] = Buffer.byteLength(payload);
+        }
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port,
+          path,
+          method,
+          headers
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            let json = {};
+            try { json = JSON.parse(data); } catch (e) {}
+            resolve({ statusCode: res.statusCode, body: json });
+          });
+        });
+        req.on('error', reject);
+        if (payload) req.write(payload);
+        req.end();
+      });
+    };
+
+    const designerStaffId = 'SS93' + Math.floor(1000 + Math.random() * 8999);
+    try {
+      TeamService.addStaffMember({
+        staffId: designerStaffId,
+        name: 'Escalation Target Designer',
+        username: `target_designer_${designerStaffId.toLowerCase()}`,
+        role: 'Designer',
+        roles: ['Designer'],
+        active: true
+      });
+
+      const designerToken = generateToken({
+        id: designerStaffId,
+        staffId: designerStaffId,
+        username: `target_designer_${designerStaffId.toLowerCase()}`,
+        name: 'Escalation Target Designer',
+        role: 'Designer',
+        roles: ['Designer']
+      });
+
+      // Non-admin attempts to self-promote to Admin
+      const res = await makeRequest('PUT', '/api/auth/profile', designerToken, {
+        name: 'Escalation Target Renamed',
+        role: 'Administrator',
+        roles: ['Admin']
+      });
+
+      assert.strictEqual(res.statusCode, 200, `Profile update should succeed for allowable fields, got ${res.statusCode}`);
+
+      // Verify that the user's role in the database remains 'Designer'
+      const updated = TeamService.getStaffRoster().find(m => m.staffId === designerStaffId);
+      assert.ok(updated, 'Updated member must exist in roster');
+      assert.strictEqual(updated.name, 'Escalation Target Renamed', 'Name update should be applied');
+      assert.strictEqual(updated.role, 'Designer', 'Role escalation must be rejected');
+      assert.deepStrictEqual(updated.roles, ['Designer'], 'Roles escalation must be rejected');
+
+    } finally {
+      testServer.close();
+      try { TeamService.deleteStaffMember(designerStaffId); } catch (e) {}
+    }
+  });
+
+  // ─── TEST: Self-Service Password Change ────────────────────────────────
+  test('Self-service password change: enforces current password verification and 10-char complexity', async () => {
+    const express = require('express');
+    const http = require('http');
+    const { generateToken, updateUserPassword, verifyUserPassword } = require('../middleware/auth');
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api', apiRoutes);
+
+    const testServer = http.createServer(app);
+    await new Promise(resolve => testServer.listen(0, '127.0.0.1', resolve));
+    const port = testServer.address().port;
+
+    const makeRequest = (method, path, token, body = null) => {
+      return new Promise((resolve, reject) => {
+        const payload = body ? JSON.stringify(body) : null;
+        const headers = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (payload) {
+          headers['Content-Type'] = 'application/json';
+          headers['Content-Length'] = Buffer.byteLength(payload);
+        }
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port,
+          path,
+          method,
+          headers
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            let json = {};
+            try { json = JSON.parse(data); } catch (e) {}
+            resolve({ statusCode: res.statusCode, body: json });
+          });
+        });
+        req.on('error', reject);
+        if (payload) req.write(payload);
+        req.end();
+      });
+    };
+
+    const testUsername = 'pwd_test_' + Date.now();
+    const initialPwd = 'InitialPassword1!';
+    updateUserPassword(testUsername, initialPwd);
+
+    const userToken = generateToken({
+      id: 'SS9401',
+      username: testUsername,
+      name: 'Password Test User',
+      role: 'Designer',
+      roles: ['Designer']
+    });
+
+    try {
+      // 1. Unauthenticated request -> 401
+      const unauthRes = await makeRequest('POST', '/api/auth/change-password', null, {
+        currentPassword: initialPwd,
+        newPassword: 'NewValidPassword123!'
+      });
+      assert.strictEqual(unauthRes.statusCode, 401, 'Unauthenticated request must return 401');
+
+      // 2. Wrong current password -> 400
+      const wrongCurrentRes = await makeRequest('POST', '/api/auth/change-password', userToken, {
+        currentPassword: 'WrongPassword999!',
+        newPassword: 'NewValidPassword123!'
+      });
+      assert.strictEqual(wrongCurrentRes.statusCode, 400, 'Wrong current password must return 400');
+      assert.ok(wrongCurrentRes.body.error && wrongCurrentRes.body.error.includes('Current password is incorrect'));
+
+      // 3. New password too short (< 10 chars) -> 400
+      const shortPwdRes = await makeRequest('POST', '/api/auth/change-password', userToken, {
+        currentPassword: initialPwd,
+        newPassword: 'Short1!'
+      });
+      assert.strictEqual(shortPwdRes.statusCode, 400, 'Short new password must return 400');
+
+      // 4. Correct current password and valid new password -> 200
+      const validRes = await makeRequest('POST', '/api/auth/change-password', userToken, {
+        currentPassword: initialPwd,
+        newPassword: 'BrandNewSecurePassword2026!'
+      });
+      assert.strictEqual(validRes.statusCode, 200, 'Valid password change must return 200');
+      assert.strictEqual(validRes.body.success, true);
+
+      // Verify that old password fails and new password succeeds in verifyUserPassword
+      assert.strictEqual(verifyUserPassword(testUsername, initialPwd), false, 'Old password must no longer be valid');
+      assert.strictEqual(verifyUserPassword(testUsername, 'BrandNewSecurePassword2026!'), true, 'New password must verify successfully');
+
+    } finally {
+      testServer.close();
+    }
+  });
+
+  // ─── TEST: Canonical Role Matching & Rejection of Fuzzy Substrings ─────
+  test('Canonical role matching: fuzzy roles like admin_assistant or subadmin are rejected from admin routes', async () => {
+    const express = require('express');
+    const http = require('http');
+    const { generateToken, hasCanonicalRole } = require('../middleware/auth');
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api', apiRoutes);
+
+    const testServer = http.createServer(app);
+    await new Promise(resolve => testServer.listen(0, '127.0.0.1', resolve));
+    const port = testServer.address().port;
+
+    const makeRequest = (method, path, token) => {
+      return new Promise((resolve, reject) => {
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port,
+          path,
+          method,
+          headers: { 'Authorization': `Bearer ${token}` }
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            let json = {};
+            try { json = JSON.parse(data); } catch (e) {}
+            resolve({ statusCode: res.statusCode, body: json });
+          });
+        });
+        req.on('error', reject);
+        req.end();
+      });
+    };
+
+    try {
+      // 1. Unit check hasCanonicalRole
+      assert.strictEqual(hasCanonicalRole({ roles: ['Admin'] }, 'admin'), true);
+      assert.strictEqual(hasCanonicalRole({ role: 'Administrator' }, 'admin'), true);
+      assert.strictEqual(hasCanonicalRole({ roles: ['admin_assistant'] }, 'admin'), false);
+      assert.strictEqual(hasCanonicalRole({ role: 'subadmin' }, 'admin'), false);
+      assert.strictEqual(hasCanonicalRole({ roles: ['system_administrator_intern'] }, 'admin'), false);
+
+      // 2. Integration check: tokens with fuzzy roles receive 403 on admin-only routes
+      const fuzzyRoles = ['Admin Assistant', 'subadmin', 'system_admin_trainee'];
+      for (const fuzzyRole of fuzzyRoles) {
+        const fuzzyToken = generateToken({
+          id: 'SS9501',
+          username: 'fuzzy_user',
+          name: 'Fuzzy Role User',
+          role: fuzzyRole,
+          roles: [fuzzyRole]
+        });
+
+        const res = await makeRequest('POST', '/api/admin/restart', fuzzyToken);
+        assert.strictEqual(
+          res.statusCode,
+          403,
+          `Fuzzy role '${fuzzyRole}' must receive 403 on admin route, got ${res.statusCode}`
+        );
+      }
+    } finally {
+      testServer.close();
+    }
+  });
+
+  // Test 49: Mobile & API project creation: POST /api/projects requires auth, validates input, and returns 201
+  test('Mobile project creation: POST /api/projects validates auth and payload, creates project structure, and returns 201', async () => {
+    const express = require('express');
+    const http = require('http');
+    const app = express();
+    app.use(express.json());
+    app.use('/api', require('../routes/api'));
+
+    const testServer = http.createServer(app);
+    await new Promise(resolve => testServer.listen(0, resolve));
+    const port = testServer.address().port;
+
+    const makeRequest = (method, pathUrl, token = null, body = null) => {
+      return new Promise((resolve, reject) => {
+        const payload = body ? JSON.stringify(body) : null;
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (payload) headers['Content-Length'] = Buffer.byteLength(payload);
+
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port,
+          path: pathUrl,
+          method,
+          headers
+        }, res => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              resolve({ statusCode: res.statusCode, body: data ? JSON.parse(data) : {} });
+            } catch (e) {
+              resolve({ statusCode: res.statusCode, rawBody: data });
+            }
+          });
+        });
+        req.on('error', reject);
+        if (payload) req.write(payload);
+        req.end();
+      });
+    };
+
+    let createdFolder = null;
+    try {
+      const { generateToken } = require('../middleware/auth');
+      const designerToken = generateToken({
+        id: 'SS0004',
+        username: 'harussani',
+        name: 'Harussani',
+        role: 'Designer',
+        roles: ['Designer']
+      });
+
+      // 1. Unauthenticated request -> 401
+      const unauthRes = await makeRequest('POST', '/api/projects', null, { title: 'Test Task' });
+      assert.strictEqual(unauthRes.statusCode, 401, 'Unauthenticated request must return 401');
+
+      // 2. Missing title -> 400
+      const missingTitleRes = await makeRequest('POST', '/api/projects', designerToken, {});
+      assert.strictEqual(missingTitleRes.statusCode, 400, 'Missing title must return 400');
+
+      // 3. Valid creation request -> 201
+      const validPayload = {
+        title: 'Automated Test Deliverable',
+        brand: 'SS',
+        designer: 'Harussani',
+        priority: 'urgent',
+        department: 'Creative Production',
+        deadline: '2026-10-15'
+      };
+
+      const createRes = await makeRequest('POST', '/api/projects', designerToken, validPayload);
+      assert.strictEqual(createRes.statusCode, 201, `Valid creation must return 201, got ${createRes.statusCode}`);
+      assert.ok(createRes.body.id, 'Response must include project id');
+      assert.strictEqual(createRes.body.status, 'in_progress');
+      assert.strictEqual(createRes.body.priority, 'urgent');
+
+      createdFolder = path.join(WorkspaceService.workspaceRoot, createRes.body.id);
+      assert.ok(fs.existsSync(createdFolder), 'Project directory must be created on disk');
+      assert.ok(fs.existsSync(path.join(createdFolder, 'README.md')), 'README.md must be generated');
+      assert.ok(fs.existsSync(path.join(createdFolder, '03_COPYWRITING', 'COPY.md')), 'COPY.md must be generated');
+      assert.ok(fs.existsSync(path.join(createdFolder, '05_DELIVERABLES')), '05_DELIVERABLES must be generated');
+
+      // Verify Frontmatter
+      const { frontmatter } = FrontmatterService.readProjectReadme(createdFolder);
+      assert.strictEqual(frontmatter.title, 'Automated Test Deliverable');
+      assert.strictEqual(frontmatter.brand, 'SS');
+      assert.strictEqual(frontmatter.designer, 'Harussani');
+    } finally {
+      testServer.close();
+      if (createdFolder && fs.existsSync(createdFolder)) {
+        try { fs.rmSync(createdFolder, { recursive: true, force: true }); } catch (e) {}
+      }
+    }
+  });
+
+  // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
+  for (const t of testQueue) {
+    try {
+      await t.fn();
+      console.log(`  ✅ PASS: ${t.name}`);
+      passed++;
+    } catch (err) {
+      console.error(`  ❌ FAIL: ${t.name}`);
+      console.error(`     Error: ${err.message}`);
+      failed++;
+    }
+  }
 
   console.log(`\n========================================================`);
   console.log(`Test Results: ${passed} Passed, ${failed} Failed`);

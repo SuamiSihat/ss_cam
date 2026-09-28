@@ -104,17 +104,21 @@ function deleteFolderRecursive(itemPath) {
         if (fs.lstatSync(curPath).isDirectory()) {
           deleteFolderRecursive(curPath);
         } else {
-          try { fs.chmodSync(curPath, 0o666); } catch (e) {}
+          try { fs.chmodSync(curPath, 0o666); } catch (e) {
+            console.debug('[ResetPortalData] chmod error:', e.message);
+          }
           fs.unlinkSync(curPath);
         }
       } catch (err) {
-        // Retry with force
+        console.debug('[ResetPortalData] Delete file error:', err.message);
       }
     }
     try {
       fs.rmdirSync(itemPath);
     } catch (e) {
-      try { fs.rmSync(itemPath, { recursive: true, force: true }); } catch (e2) {}
+      try { fs.rmSync(itemPath, { recursive: true, force: true }); } catch (e2) {
+        console.debug('[ResetPortalData] rmSync error:', e2.message);
+      }
     }
   }
 }

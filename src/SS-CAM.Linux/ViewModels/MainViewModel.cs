@@ -809,7 +809,10 @@ priority: medium
                     });
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainViewModel.Linux] OpenWorkspaceFolder error: {ex.Message}");
+            }
         }
 
         // ══════════════════════════════════════════════════════════════════════

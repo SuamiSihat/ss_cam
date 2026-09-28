@@ -289,7 +289,7 @@
 
   let showPasswordModal = $state<boolean>(false);
   let resetTargetUser = $state<StaffAccount | null>(null);
-  let resetNewPassword = $state<string>('SuamiSihat123!');
+  let resetNewPassword = $state<string>('');
   let isResettingPassword = $state<boolean>(false);
 
   // Workspace Path Mount Management
@@ -476,7 +476,7 @@
       defaultBrand: 'SSH',
       avatarColor: '#0078D4',
       active: true,
-      password: 'SuamiSihat123!'
+      password: ''
     };
     showUserModal = true;
   }
@@ -514,6 +514,11 @@
   async function handleSaveUser() {
     if (!editingUser.staffId || !editingUser.name) {
       appState.addToast('Staff ID and Full Name are required.', 'warning');
+      return;
+    }
+
+    if (!isEditingUser && (!editingUser.password || editingUser.password.length < 10)) {
+      appState.addToast('Initial password must be at least 10 characters long.', 'warning');
       return;
     }
 
@@ -565,12 +570,20 @@
 
   function openPasswordReset(user: StaffAccount) {
     resetTargetUser = user;
-    resetNewPassword = 'SuamiSihat123!';
+    resetNewPassword = '';
     showPasswordModal = true;
   }
 
   async function handleResetPassword() {
-    if (!resetTargetUser || !resetNewPassword) return;
+    if (!resetTargetUser || !resetNewPassword) {
+      appState.addToast('Please enter a new password.', 'warning');
+      return;
+    }
+
+    if (resetNewPassword.length < 10) {
+      appState.addToast('New password must be at least 10 characters long.', 'warning');
+      return;
+    }
 
     isResettingPassword = true;
     try {
@@ -1985,12 +1998,13 @@
 
       {#if !isEditingUser}
         <div class="form-group">
-          <label class="field-label">Initial Password</label>
+          <label class="field-label">Initial Password (min 10 chars)</label>
           <input
             type="text"
             class="field-input"
             bind:value={editingUser.password}
-            placeholder="Default: SuamiSihat123!"
+            placeholder="Enter temporary password (min 10 chars)"
+            required
           />
         </div>
       {/if}
@@ -2021,12 +2035,12 @@
     </p>
 
     <div class="form-group">
-      <label class="field-label">New Password</label>
+      <label class="field-label">New Password (min 10 chars)</label>
       <input
         type="text"
         class="field-input"
         bind:value={resetNewPassword}
-        placeholder="Enter new password"
+        placeholder="Enter new password (min 10 chars)"
       />
     </div>
   </div>

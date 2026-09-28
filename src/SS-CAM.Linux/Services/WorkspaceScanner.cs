@@ -165,10 +165,13 @@ namespace SS_CAM.Linux.Services
                 foreach (var f in files)
                 {
                     try { size += new FileInfo(f).Length; }
-                    catch { }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[WorkspaceScanner.Linux] GetDirectorySize file info error: {ex.Message}"); }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[WorkspaceScanner.Linux] GetDirectorySize error: {ex.Message}");
+            }
             return size;
         }
 

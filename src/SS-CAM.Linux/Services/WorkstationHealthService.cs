@@ -47,7 +47,7 @@ namespace SS_CAM.Linux.Services
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[WorkstationHealthService] Read cpuinfo error: {ex.Message}"); }
 
                 // 2. Read /proc/meminfo
                 try
@@ -69,7 +69,7 @@ namespace SS_CAM.Linux.Services
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[WorkstationHealthService] Read meminfo error: {ex.Message}"); }
 
                 // 3. Disk info
                 try
@@ -82,7 +82,7 @@ namespace SS_CAM.Linux.Services
                         result.DiskRootUsagePercent = (int)((result.DiskRootUsedGb / result.DiskRootTotalGb) * 100.0);
                     }
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[WorkstationHealthService] Read diskinfo error: {ex.Message}"); }
 
                 // 4. Creative Toolchain checks
                 result.SoftwareChecks = new List<SoftwareCheckItem>
@@ -108,7 +108,7 @@ namespace SS_CAM.Linux.Services
                 var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length >= 2 && long.TryParse(parts[1], out var kb)) return kb;
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[WorkstationHealthService] ParseKb error: {ex.Message}"); }
             return 0;
         }
 

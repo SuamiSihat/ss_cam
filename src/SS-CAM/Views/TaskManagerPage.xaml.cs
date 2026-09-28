@@ -115,7 +115,7 @@ namespace SS_CAM.Views
                 {
                     if (s != null && !string.IsNullOrWhiteSpace(s.Name))
                     {
-                        if (WorkloadSlaService.IsDesignerOrAdminRole(s.Role, s.Department))
+                        if (WorkloadSlaService.IsDesignerOrAdminRole(s.Role, s.Department, s.Roles))
                             designerSet.Add(s.Name);
                     }
                 }

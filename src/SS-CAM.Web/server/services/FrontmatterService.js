@@ -178,7 +178,9 @@ flowchart LR
           const diffDays = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
           frontmatter.duration = diffDays <= 0 ? (diffDays === 0 ? 'Same day' : '0 days') : (diffDays === 1 ? '1 day' : `${diffDays} days`);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[FrontmatterService] Parse date difference error:', e.message);
+      }
     }
 
     return { frontmatter, body };
@@ -260,7 +262,9 @@ flowchart LR
           const diffDays = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
           mergedFrontmatter.duration = diffDays <= 0 ? (diffDays === 0 ? 'Same day' : '0 days') : (diffDays === 1 ? '1 day' : `${diffDays} days`);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[FrontmatterService] WriteReadme date difference error:', e.message);
+      }
     }
 
     const finalBody = newBody !== null && newBody !== undefined ? newBody : existingBody;

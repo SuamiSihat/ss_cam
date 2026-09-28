@@ -14,6 +14,7 @@ param([switch]$Fix, [switch]$Verbose)
 $ErrorActionPreference = "Continue"
 $root    = Split-Path $PSScriptRoot -Parent
 $srcRoot = Join-Path $root "src\SS-CAM"
+$webRoot = Join-Path $root "src\SS-CAM.Web"
 $PASS = 0; $WARN = 0; $FAIL = 0
 $issues = [System.Collections.Generic.List[string]]::new()
 
@@ -186,6 +187,45 @@ if ($uiBlock.Count -eq 0) {
     Write-Check "No UI thread blocking (.Result / .Wait)" "PASS" ""
 } else {
     Write-Check "No UI thread blocking (.Result / .Wait)" "WARN" "Use async/await: $($uiBlock -join ', ')"
+}
+
+# ── CHECK 11: Web Production JWT_SECRET Enforcement ────────────────────────────
+Write-Host "`n[ WEB SECURITY ]" -ForegroundColor Cyan
+$webConfig = Join-Path $webRoot "server\config.js"
+if (Test-Path $webConfig) {
+    $cfgText = Get-Content $webConfig -Raw -Encoding UTF8
+    if ($cfgText -match 'NODE_ENV' -and $cfgText -match 'production' -and $cfgText -match 'process\.exit\(1\)') {
+        Write-Check "Web JWT_SECRET enforcement in production" "PASS" ""
+    } else {
+        Write-Check "Web JWT_SECRET enforcement in production" "FAIL" "config.js must halt in production if JWT_SECRET is missing/short"
+    }
+} else {
+    Write-Check "Web JWT_SECRET enforcement in production" "WARN" "server\config.js not found"
+}
+
+# ── CHECK 12: Web RBAC Canonical Role Matching ────────────────────────────────
+$webRoutes = Join-Path $webRoot "server\routes\api.js"
+if (Test-Path $webRoutes) {
+    $routesText = Get-Content $webRoutes -Raw -Encoding UTF8
+    if ($routesText -match 'role\.includes\(\s*[\x27"]admin[\x27"]\s*\)') {
+        Write-Check "Web API uses canonical RBAC (no fuzzy admin substring)" "FAIL" "Found role.includes('admin') in api.js; use requireRole('admin') or hasCanonicalRole"
+    } else {
+        Write-Check "Web API uses canonical RBAC (no fuzzy admin substring)" "PASS" ""
+    }
+} else {
+    Write-Check "Web API uses canonical RBAC (no fuzzy admin substring)" "WARN" "server\routes\api.js not found"
+}
+
+# ── CHECK 13: Web Rate Limiting on Login ──────────────────────────────────────
+if (Test-Path $webRoutes) {
+    $routesText = Get-Content $webRoutes -Raw -Encoding UTF8
+    if ($routesText -match 'loginLimiter' -and $routesText -match 'router\.post\(\s*[\x27"]/auth/login[\x27"]') {
+        Write-Check "Web login route protected by rate limiter" "PASS" ""
+    } else {
+        Write-Check "Web login route protected by rate limiter" "FAIL" "POST /api/auth/login must use rate limiter"
+    }
+} else {
+    Write-Check "Web login route protected by rate limiter" "WARN" "server\routes\api.js not found"
 }
 
 # ── SUMMARY ───────────────────────────────────────────────────────────────────

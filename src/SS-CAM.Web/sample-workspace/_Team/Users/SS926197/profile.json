@@ -1,0 +1,16 @@
+{
+  "staffId": "SS926197",
+  "username": "second_admin_ss926197",
+  "name": "Second Test Admin",
+  "email": "second_admin_ss926197@suamisihat.com",
+  "role": "Admin",
+  "roles": [
+    "Admin"
+  ],
+  "department": "Creative Production",
+  "defaultBrand": "SS",
+  "avatar": "",
+  "avatarUrl": "",
+  "avatarColor": "#0078D4",
+  "active": true
+}

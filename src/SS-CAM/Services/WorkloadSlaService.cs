@@ -10,12 +10,36 @@ namespace SS_CAM.Services
     {
         private static readonly Regex ProjectDirPattern = new Regex(@"^\d{6}_(\d[A-Z0-9]*)(?:_([A-Z0-9]+))?", RegexOptions.IgnoreCase);
 
-        public static bool IsDesignerOrAdminRole(string role, string department)
+        public static bool IsDesignerOrAdminRole(string role, string department, List<string> roles = null)
         {
+            // 1. Authoritative Web Portal Roles (managed by Admin in Web Portal)
+            if (roles != null && roles.Count > 0)
+            {
+                foreach (var item in roles)
+                {
+                    if (string.Equals(item, "Designer", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(item, "Creative", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+                return false; // Follow Web Portal RBAC: when admin explicitly assigns roles, user must have 'Designer'
+            }
+
             string r = (role ?? string.Empty).ToLowerInvariant();
             string d = (department ?? string.Empty).ToLowerInvariant();
 
-            // Exclude managers, CEOs, executive directors, and marketing/sales heads
+            // Creative leadership and design roles (Head of Creative, Creative Director, Art Director, Lead Designer, Multimedia Designer)
+            if (r.Contains("creative") || r.Contains("designer") || r.Contains("design") || r.Contains("art") || r.Contains("multimedia"))
+            {
+                if (d.Contains("executive") || d.Contains("marketing & sales") || r.Contains("ceo") || r.Contains("chief executive"))
+                {
+                    return false;
+                }
+                return true;
+            }
+
+            // Exclude non-creative managers, CEOs, executive directors, and marketing/sales heads
             if (r.Contains("manager") || r.Contains("ceo") || r.Contains("chief") ||
                 r.Contains("head of") || r.Contains("executive") || r.Contains("director of") ||
                 d.Contains("executive") || d.Contains("management") || d.Contains("marketing & sales") ||
@@ -49,7 +73,9 @@ namespace SS_CAM.Services
                         if (s != null && !string.IsNullOrWhiteSpace(s.Name) &&
                             !Regex.IsMatch(s.Name, @"^\d{4}$") &&
                             !s.Name.StartsWith("#") && !s.Name.StartsWith("_") &&
-                            IsDesignerOrAdminRole(s.Role, s.Department))
+                            !s.Name.StartsWith("Test", StringComparison.OrdinalIgnoreCase) &&
+                            s.StaffId != "SS9999" &&
+                            IsDesignerOrAdminRole(s.Role, s.Department, s.Roles))
                         {
                             map[s.Name] = new DesignerWorkloadItem
                             {
@@ -101,7 +127,7 @@ namespace SS_CAM.Services
                             {
                                 var matchedStaff = staffList.Find(s => string.Equals(s.Name, designerName, StringComparison.OrdinalIgnoreCase) ||
                                                                       string.Equals(s.StaffId, designerName, StringComparison.OrdinalIgnoreCase));
-                                if (matchedStaff != null && !IsDesignerOrAdminRole(matchedStaff.Role, matchedStaff.Department))
+                                if (matchedStaff != null && !IsDesignerOrAdminRole(matchedStaff.Role, matchedStaff.Department, matchedStaff.Roles))
                                 {
                                     continue; // Exclude manager role from metric
                                 }
@@ -186,7 +212,7 @@ namespace SS_CAM.Services
                 {
                     var matchedStaff = staffList.Find(s => string.Equals(s.Name, item.DesignerName, StringComparison.OrdinalIgnoreCase) ||
                                                           string.Equals(s.StaffId, item.DesignerName, StringComparison.OrdinalIgnoreCase));
-                    if (matchedStaff != null && !IsDesignerOrAdminRole(matchedStaff.Role, matchedStaff.Department))
+                    if (matchedStaff != null && !IsDesignerOrAdminRole(matchedStaff.Role, matchedStaff.Department, matchedStaff.Roles))
                     {
                         continue;
                     }

@@ -63,10 +63,10 @@ namespace SS_CAM
                             MainWindow main = new MainWindow();
                             this.MainWindow = main;
                             main.Closed += (s, args) => { LogTrace("MainWindow Closed -> Shutting down application"); Shutdown(); };
-                            LogTrace("Dispatcher.Invoke: Showing MainWindow");
-                            main.Show();
                             LogTrace("Dispatcher.Invoke: Fading out splash");
                             splash.FadeOutAndClose();
+                            LogTrace("Dispatcher.Invoke: Showing MainWindow");
+                            main.Show();
                         }
                         catch (Exception ex)
                         {

@@ -241,7 +241,9 @@ class WorkspaceService {
     if (this.watcher) {
       try {
         this.watcher.close();
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[WorkspaceService] Watcher close error:', e.message);
+      }
       this.watcher = null;
     }
 
@@ -276,7 +278,9 @@ class WorkspaceService {
               activeCount: liveTasks.filter(t => (t.State || '').toLowerCase() === 'running').length,
               timestamp: new Date().toISOString()
             });
-          } catch (e) {}
+          } catch (e) {
+            console.debug('[WorkspaceService] Live tasks broadcast error:', e.message);
+          }
           return;
         }
 
@@ -337,7 +341,9 @@ class WorkspaceService {
             activeCount: liveTasks.filter(t => (t.State || '').toLowerCase() === 'running').length,
             timestamp: this.lastScanTime.toISOString()
           });
-        } catch (e) {}
+        } catch (e) {
+          console.debug('[WorkspaceService] Live tasks scan broadcast error:', e.message);
+        }
       }
     } catch (err) {
       console.error('[WorkspaceService] Scan error:', err.message);
@@ -429,7 +435,9 @@ class WorkspaceService {
             }
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[WorkspaceService] Deliverable subdirs scan error:', e.message);
+      }
     }
 
     // Check overdue and due soon (within 48 hours / 2 days)
@@ -518,7 +526,9 @@ class WorkspaceService {
           const diffDays = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
           duration = diffDays <= 0 ? (diffDays === 0 ? 'Same day' : '0 days') : (diffDays === 1 ? '1 day' : `${diffDays} days`);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[WorkspaceService] Parse project duration error:', e.message);
+      }
     }
 
     return {
@@ -592,7 +602,9 @@ class WorkspaceService {
       if (parts.length > 0 && !parts[0].startsWith('SS-') && !/^\d{6}/.test(parts[0]) && !/^\d{4}[A-Za-z]?$/.test(parts[0])) {
         return parts[0];
       }
-    } catch (e) {}
+    } catch (e) {
+      console.debug('[WorkspaceService] Infer brand error:', e.message);
+    }
     return 'Unassigned';
   }
 
@@ -653,7 +665,9 @@ class WorkspaceService {
     let raw = String(id).trim();
     try {
       raw = decodeURIComponent(raw);
-    } catch (e) {}
+    } catch (e) {
+      console.debug('[WorkspaceService] decodeURIComponent error:', e.message);
+    }
 
     const target = raw.toLowerCase();
     const targetNormalized = target.replace(/[\s_-]+/g, '_');
@@ -891,7 +905,9 @@ class WorkspaceService {
           if (typeof TeamService.isCreativeOrAdminRole === 'function') {
             return TeamService.isCreativeOrAdminRole(memberObj);
           }
-        } catch (e) {}
+        } catch (e) {
+          console.debug('[WorkspaceService] TeamService role check error:', e.message);
+        }
 
         const rolesArr = Array.isArray(memberObj.roles) ? memberObj.roles.map(r => String(r).toLowerCase()) : [];
         if (rolesArr.includes('designer') || rolesArr.includes('admin') || rolesArr.includes('copywriter') || rolesArr.includes('creative')) {
@@ -1225,14 +1241,20 @@ class WorkspaceService {
         if (entry.isDirectory()) {
           deleteRecursive(itemPath);
         } else {
-          try { fs.chmodSync(itemPath, 0o666); } catch (e) {}
-          try { fs.unlinkSync(itemPath); } catch (e) {}
+          try { fs.chmodSync(itemPath, 0o666); } catch (e) {
+            console.debug('[WorkspaceService] deleteRecursive chmod error:', e.message);
+          }
+          try { fs.unlinkSync(itemPath); } catch (e) {
+            console.debug('[WorkspaceService] deleteRecursive unlink error:', e.message);
+          }
         }
       }
       try {
         fs.rmdirSync(dir);
       } catch (e) {
-        try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e2) {}
+        try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e2) {
+          console.debug('[WorkspaceService] deleteRecursive rmSync error:', e2.message);
+        }
       }
     };
 
@@ -1243,7 +1265,9 @@ class WorkspaceService {
     }
 
     if (fs.existsSync(fullPath)) {
-      try { deleteRecursive(fullPath); } catch (e) {}
+      try { deleteRecursive(fullPath); } catch (e) {
+        console.debug('[WorkspaceService] deleteProjectFolder fallback error:', e.message);
+      }
     }
 
     // Audit log
@@ -1315,7 +1339,9 @@ class WorkspaceService {
         workspaceRoot: this.workspaceRoot,
         timestamp: new Date().toISOString()
       });
-    } catch (e) {}
+    } catch (e) {
+      console.debug('[WorkspaceService] Workspace update broadcast error:', e.message);
+    }
 
     // Audit log
     try {
@@ -1326,7 +1352,9 @@ class WorkspaceService {
         entityId: 'StorageMount',
         details: { previous: oldPath, current: targetPath, timestamp: new Date().toISOString() }
       });
-    } catch (e) {}
+    } catch (e) {
+      console.debug('[WorkspaceService] Workspace mount audit log error:', e.message);
+    }
 
     return {
       success: true,
@@ -1384,7 +1412,9 @@ class WorkspaceService {
         folder: safeSubfolder,
         timestamp: new Date().toISOString()
       });
-    } catch (e) {}
+    } catch (e) {
+      console.debug('[WorkspaceService] Ingest broadcast error:', e.message);
+    }
 
     return {
       success: true,

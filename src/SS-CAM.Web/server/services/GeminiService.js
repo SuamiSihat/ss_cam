@@ -12,7 +12,9 @@ class GeminiService {
     const root = WorkspaceService.workspaceRoot || config.WORKSPACE_ROOT;
     const teamDir = path.join(root, '_Team');
     if (!fs.existsSync(teamDir)) {
-      try { fs.mkdirSync(teamDir, { recursive: true }); } catch (e) {}
+      try { fs.mkdirSync(teamDir, { recursive: true }); } catch (e) {
+        console.debug('[GeminiService] Failed to create teamDir:', e.message);
+      }
     }
     return path.join(teamDir, 'ai-config.json');
   }
@@ -90,7 +92,9 @@ class GeminiService {
       try {
         const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         if (data.preferredModel) preferredModel = data.preferredModel;
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[GeminiService] Failed to parse configPath preferredModel:', e.message);
+      }
     }
 
     return {
@@ -142,7 +146,9 @@ class GeminiService {
       try {
         const errJson = JSON.parse(errText);
         if (errJson.error && errJson.error.message) msg = errJson.error.message;
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[GeminiService] Failed to parse error response JSON:', e.message);
+      }
       throw new Error(msg);
     }
 

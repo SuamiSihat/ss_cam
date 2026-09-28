@@ -85,10 +85,14 @@ function getOrdersFilePath() {
   try {
     const dir = getOrdersVaultDir();
     if (fs.existsSync(dir)) return nasOrdersFile;
-  } catch (e) {}
+  } catch (e) {
+    console.debug('[OrderService] Orders vault dir check error:', e.message);
+  }
 
   if (!fs.existsSync(localDir)) {
-    try { fs.mkdirSync(localDir, { recursive: true }); } catch (e) {}
+    try { fs.mkdirSync(localDir, { recursive: true }); } catch (e) {
+      console.debug('[OrderService] Create local orders dir error:', e.message);
+    }
   }
   return localFile;
 }
@@ -339,7 +343,9 @@ function deleteOrderAttachment(orderId, filename) {
   const safeFilename = path.basename(filename);
   const filePath = path.join(getOrdersVaultDir(), safeId, safeFilename);
   if (fs.existsSync(filePath)) {
-    try { fs.unlinkSync(filePath); } catch (e) {}
+    try { fs.unlinkSync(filePath); } catch (e) {
+      console.debug('[OrderService] Delete order attachment error:', e.message);
+    }
   }
   const attachments = listOrderAttachments(safeId);
   updateOrder(safeId, { attachments });
@@ -357,7 +363,13 @@ function copyAttachmentsToProject(orderId, projectId, actor = 'Designer') {
   }
 
   const WorkspaceService = require('./WorkspaceService');
-  const project = WorkspaceService.getProjectById(projectId);
+  let project = WorkspaceService.getProjectById(projectId);
+  if (!project) {
+    try { WorkspaceService.scan(true); } catch (e) {
+      console.debug('[OrderService] Rescan workspace error:', e.message);
+    }
+    project = WorkspaceService.getProjectById(projectId);
+  }
   if (!project) {
     throw new Error(`Project "${projectId}" not found in workspace.`);
   }

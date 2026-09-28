@@ -1,0 +1,18 @@
+{
+  "staffId": "SS9999",
+  "username": "teststaffdesigner&copywriter",
+  "name": "Test Staff Lead Designer",
+  "email": "teststaffdesigner&copywriter@suamisihat.com",
+  "role": "Designer, Manager",
+  "roles": [
+    "Designer",
+    "Manager"
+  ],
+  "department": "Creative Production",
+  "defaultBrand": "SS",
+  "avatar": "",
+  "avatarUrl": "",
+  "avatarColor": "#0078D4",
+  "active": true,
+  "DisplayText": "SS9999 - Test Staff Lead Designer (Designer, Manager)"
+}

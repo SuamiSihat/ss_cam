@@ -110,6 +110,9 @@ namespace SS_CAM.Views
             // Initialise Live Studio Tasks stream & ticker
             InitLiveTasks();
 
+            // Initialise periodic 60-second background auto-scan for live NAS updates
+            InitAutoScanTimer();
+
             WorkspaceWatcherService.Instance.WorkspaceChanged += OnWorkspaceChanged;
         }
 
@@ -119,7 +122,7 @@ namespace SS_CAM.Views
             {
                 try
                 {
-                    await RefreshDashboard();
+                    await RefreshDashboard(force: true);
                 }
                 catch (Exception ex)
                 {
@@ -157,6 +160,7 @@ namespace SS_CAM.Views
                 _tipTimer.Stop();
                 _tipTimer = null;
             }
+            StopAutoScanTimer();
             StopTeamBoard();
             StopLiveTasks();
         }
@@ -583,6 +587,61 @@ namespace SS_CAM.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("[DashboardPage] OnLiveTaskOpenProjectClicked: " + ex.Message);
+            }
+        }
+
+        private DispatcherTimer _autoScanTimer;
+
+        private void InitAutoScanTimer()
+        {
+            if (_autoScanTimer == null)
+            {
+                _autoScanTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+                _autoScanTimer.Tick += async delegate
+                {
+                    try
+                    {
+                        await RefreshDashboard(force: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[DashboardPage] Auto-scan refresh warning: " + ex.Message);
+                    }
+                };
+                _autoScanTimer.Start();
+            }
+        }
+
+        private void StopAutoScanTimer()
+        {
+            if (_autoScanTimer != null)
+            {
+                _autoScanTimer.Stop();
+                _autoScanTimer = null;
+            }
+        }
+
+        private void OnRecentProjectCardClicked(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                FrameworkElement card = sender as FrameworkElement;
+                DesignerFolderItem item = card != null ? card.DataContext as DesignerFolderItem : null;
+                if (item != null && !string.IsNullOrWhiteSpace(item.FullPath))
+                {
+                    if (Directory.Exists(item.FullPath))
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", item.FullPath);
+                    }
+                    else
+                    {
+                        NotificationService.Show("Folder Missing", "Project folder cannot be found on the workspace.", NotificationType.Warning, 3000);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[DashboardPage] OnRecentProjectCardClicked: " + ex.Message);
             }
         }
     }

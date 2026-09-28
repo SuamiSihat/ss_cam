@@ -23,7 +23,10 @@ namespace SS_CAM.Linux.Services
                     if (list != null && list.Count > 0) return list;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[QuickNoteService] LoadNotes error: {ex.Message}");
+            }
 
             return new List<QuickNoteItem>
             {
@@ -51,7 +54,10 @@ namespace SS_CAM.Linux.Services
                 string json = JsonConvert.SerializeObject(notes ?? new List<QuickNoteItem>(), Formatting.Indented);
                 File.WriteAllText(NotesFilePath, json);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[QuickNoteService] SaveNotes error: {ex.Message}");
+            }
         }
     }
 }

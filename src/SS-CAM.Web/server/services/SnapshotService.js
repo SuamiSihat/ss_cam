@@ -8,7 +8,9 @@ class SnapshotService {
   getSnapshotsDir(projectFullPath) {
     const dir = path.join(projectFullPath, '.snapshots');
     if (!fs.existsSync(dir)) {
-      try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
+      try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {
+        console.debug('[SnapshotService] Failed to create snapshots dir:', e.message);
+      }
     }
     return dir;
   }
@@ -30,14 +32,18 @@ class SnapshotService {
         const { frontmatter } = FrontmatterService.readProjectReadme(projectFullPath);
         if (frontmatter.revision) currentRevision = frontmatter.revision;
         if (frontmatter.status) currentStatus = frontmatter.status;
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[SnapshotService] Read frontmatter during snapshot error:', e.message);
+      }
     }
 
     const copyPath = path.join(projectFullPath, '03_COPYWRITING', 'COPY.md');
     if (fs.existsSync(copyPath)) {
       try {
         fs.copyFileSync(copyPath, path.join(snapDir, 'COPY.md'));
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[SnapshotService] Copy COPY.md during snapshot error:', e.message);
+      }
     }
 
     const meta = {
@@ -69,11 +75,15 @@ class SnapshotService {
             try {
               const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
               list.push(meta);
-            } catch (e) {}
+            } catch (e) {
+              console.debug('[SnapshotService] Read meta.json error:', e.message);
+            }
           }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.debug('[SnapshotService] Read snapshots directory error:', e.message);
+    }
 
     return list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }
@@ -110,7 +120,9 @@ class SnapshotService {
     let targetMeta = { revision: 1 };
     const metaPath = path.join(targetSnapDir, 'meta.json');
     if (fs.existsSync(metaPath)) {
-      try { targetMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch (e) {}
+      try { targetMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch (e) {
+        console.debug('[SnapshotService] Read restored meta.json error:', e.message);
+      }
     }
 
     // Audit log

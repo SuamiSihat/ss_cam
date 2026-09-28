@@ -10,7 +10,9 @@ namespace SS_CAM.Utilities
         {
             get
             {
-                string folderName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppFolderName)) ? TenantConfigService.Current.AppFolderName : "Corporate";
+                string folderName = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppFolderName))
+                    ? TenantConfigService.Current.AppFolderName
+                    : (Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SuamiSihat")) ? "SuamiSihat" : "Corporate");
                 string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), folderName);
                 if (!Directory.Exists(path))
                 {

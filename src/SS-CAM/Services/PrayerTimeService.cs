@@ -79,6 +79,7 @@ namespace SS_CAM.Services
 
         // ── Public API ────────────────────────────────────────────────────────
 
+        [Obsolete("Use FetchTodayAsync instead to prevent thread pool exhaustion and UI thread deadlocks", false)]
         public static PrayerTimeEntry FetchToday(string zone)
         {
             return Task.Run(() => FetchTodayAsync(zone)).GetAwaiter().GetResult();

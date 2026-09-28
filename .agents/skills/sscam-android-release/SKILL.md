@@ -96,3 +96,33 @@ Testers can join the **SS-CAM Android Companion** Closed Testing track via:
 > **Note:** Testers must have a Google account and be invited to the testing
 > programme. The web opt-in link allows testers to join without a device
 > present. Once joined, updates are delivered automatically via Google Play.
+
+---
+
+## 6. Upload Key Management & Play Console Reset
+
+If Google Play Console rejects an uploaded `.aab` due to an upload key mismatch or if the upload key needs resetting:
+
+1. **Export the Public Certificate (PEM)**:
+   ```powershell
+   & "C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot\bin\keytool.exe" `
+     -export -rfc -alias sscam_key `
+     -file dist\upload_certificate.pem `
+     -keystore src\SS-CAM.Android\app\sscam-release.jks `
+     -storepass sscam2026release
+   ```
+2. **Current Keystore Fingerprints**:
+   - **File**: `src/SS-CAM.Android/app/sscam-release.jks`
+   - **Alias**: `sscam_key`
+   - **SHA1**: `96:FE:4D:47:16:88:8D:53:40:CE:FE:1F:98:D6:DE:64:22:0A:C1:48`
+   - **SHA256**: `2B:25:CD:BC:2D:E3:A0:59:E6:DD:7C:40:63:04:63:2F:72:5C:BB:BE:8F:97:B6:6E:B3:DE:CA:F1:56:88:FA:20`
+3. **Submit Reset in Google Play Console**:
+   - Navigate to [Google Play Console](https://play.google.com/console).
+   - Select **SS-CAM** (`com.suamisihat.creative`).
+   - In the left sidebar, navigate to **Release** > **Setup** > **App integrity** (or **App signing**).
+   - Select the **App signing** tab.
+   - Under **Upload key certificate**, click **Request upload key reset**.
+   - Select reason (e.g., *I lost my upload key* or *Key rotation*).
+   - Upload the exported file: `dist/upload_certificate.pem`.
+   - Click **Save**. Google registers the reset and notifies when the key becomes active (typically within 24–48 hours).
+

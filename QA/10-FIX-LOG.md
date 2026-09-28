@@ -1,5 +1,285 @@
 # SS-CAM FIX LOG
 
+## Fix: Phase 5 — Verification & Release Preparation (Branch: fix/p5-release) — 2026-09-28
+- **Ecosystem Test Suite & Build Verification (Task 5.1)**:
+  - Executed full automated verification across all platforms:
+    - **Combined Web Suite (`npm test`)**: **56 Passed, 0 Failed (100% PASS)** (49 unit/integration + 7 admin smoketests).
+    - **Source Guardian (`QA/verify-sscam.ps1 -Fix`)**: **13 passed, 0 warned, 0 failed (100% PASS)**.
+    - **Master Dual-Track Gatekeeper (`QA/verify-dual-track.ps1 -Fix -Build`)**: **3/3 Stages PASS** (Source Guardian, Public Documentation Leakage Check, and WPF MSBuild Release Compile producing `src/SS-CAM/bin/Release/SS-CAM.exe` — 6,126,592 bytes).
+    - **Android Companion App**: `./gradlew.bat assembleDebug` **PASS** (`BUILD SUCCESSFUL in 1s`, 35 tasks up-to-date); `./gradlew.bat assembleRelease` **PASS** (`BUILD SUCCESSFUL in 2m 15s`, 46 tasks executed; release APK compiled cleanly with dynamic fallback to debug/unsigned mode when keystore is omitted).
+    - **Linux Desktop (Avalonia)**: Formally documented as **BLOCKED** on this host build machine due to missing .NET 10 SDK / `dotnet` executable on PATH (documented risk).
+    - **Web Client Vite Bundle**: `npm run build:client` **PASS** (2,267 modules transformed in 15.83s producing clean `dist/` bundle).
+- **Human Staging Verification Runbook (Task 5.2)**:
+  - Authored `QA/STAGING-VERIFICATION-RUNBOOK.md` detailing the isolated staging environment setup on port 3001 with 5 mandatory release gate verification checks (empty password 401, default password 401, old secret token 401, Designer RBAC 403 with `SECURITY_ACCESS_DENIED` audit logging, and 6th-attempt login rate limiting 429).
+- **Human Production Deployment & Monitoring Runbook (Task 5.3)**:
+  - Authored `QA/PRODUCTION-DEPLOYMENT-RUNBOOK.md` detailing Synology NAS Docker deployment prerequisites, config backups, `.env` parameterization, container pull/rebuild, incognito smoke tests, and 48-hour `audit-log.jsonl` stream monitoring.
+- **Canonical Release Version Synchronization to 4.11.1 (Task 5.4)**:
+  - Synchronized release version **`4.11.1`** across all ecosystem metadata:
+    - `installer/version.json`: `"version": "4.11.1"`
+    - `src/SS-CAM/Properties/AssemblyInfo.cs`: `AssemblyVersion("4.11.1.0")`, `AssemblyFileVersion("4.11.1.0")`
+    - `src/SS-CAM.Linux/SS-CAM.Linux.csproj`: `<Version>4.11.1</Version>`
+    - `src/SS-CAM.Web/package.json`: `"version": "4.11.1"`
+    - `src/SS-CAM.Web/server/config.js`: `VERSION: '4.11.1'`
+    - `src/SS-CAM.Android/app/build.gradle.kts`: `versionName = "4.11.1"`, `versionCode = 4111`
+- **Comprehensive Changelog & Release Notes (Task 5.5)**:
+  - Updated `CHANGELOG.md` with an exhaustive entry for `[4.11.1] - 2026-09-28` detailing security hardening, RBAC enforcement, repository hygiene, code quality improvements, and verification results across all five remediation phases.
+  - Documented exact `git tag -a v4.11.1 -m "..."` release tagging command for human execution.
+- **Test Teardown Libuv Handle Cleanup (Task 5.6)**:
+  - Resolved Windows libuv handle teardown assertion in `src/SS-CAM.Web/server/test/admin-smoketest.js` by adding an asynchronous event-loop tick (`setTimeout(100ms)`) before process exit, ensuring `admin-smoketest.js` exits with status code 0 cleanly.
+
+## Fix: Phase 4 — Dependencies and Code Quality (Branch: fix/p4-quality) — 2026-09-28
+- **Safe Dependency Vulnerability Remediation (Task 4.1, N1)**:
+  - Executed safe, non-breaking `npm audit fix` in `src/SS-CAM.Web`.
+  - Resolved high-severity vulnerability in `js-yaml` (Prototype Pollution via Merge Keys) and moderate-severity vulnerabilities in `qs`, `body-parser`, `express`, and `devalue`.
+  - Intentionally rejected `npm audit fix --force` to prevent breaking changes to `@sveltejs/vite-plugin-svelte@3.1.2` (which requires `vite@^5` and is incompatible with `vite@^8`).
+- **Silent Catch Block Elimination Across All Platforms (Task 4.2, Q1)**:
+  - Audited and eliminated empty/silent `catch {}` blocks across the repository, replacing them with structured diagnostic logging:
+    - **WPF (3 instances)**: `MainWindow.xaml.cs` (lines 1149, 1212) and `Services/RadioStreamService.cs` (line 1447) updated with `System.Diagnostics.Debug.WriteLine`.
+    - **Linux Avalonia (17 instances across 10 files)**: `ClipboardService.cs`, `CopywritingDesktopService.cs`, `CreativeOrderService.cs`, `MalaysiaHolidayService.cs`, `QuickNoteService.cs`, `RadioStreamService.cs`, `WellbeingDataService.cs`, `WorkspaceScanner.cs`, `WorkstationHealthService.cs`, `MainViewModel.cs` updated with `Debug.WriteLine`.
+    - **Web Services & Scripts (44+ instances across 15 files)**: `config.js`, `routes/api.js`, `CompanyService.js`, `CopywritingService.js`, `DeliverableService.js`, `ExportService.js`, `FrontmatterService.js`, `GeminiService.js`, `OrderService.js`, `ShareService.js`, `SnapshotService.js`, `TeamService.js`, `WebhookService.js`, `WorkspaceService.js`, `reset-portal-data.js` updated with structured `console.debug`.
+  - Scanner verification confirmed: **WPF catches: 0, Linux catches: 0, Web non-test catches: 0**.
+- **Synchronous Method Deprecation in PrayerTimeService (Task 4.3, T1)**:
+  - Marked synchronous `FetchToday(string zone)` in `src/SS-CAM/Services/PrayerTimeService.cs` with `[Obsolete("FetchToday synchronously blocks the caller. Use FetchTodayAsync instead.", false)]`.
+  - Prevents UI thread freezes and thread pool starvation while maintaining binary backward compatibility.
+- **Cross-Platform Version Alignment (Task 4.4, V1)**:
+  - Aligned all sub-projects to release version **`4.11.0`**:
+    - `src/SS-CAM.Linux/SS-CAM.Linux.csproj` (`<Version>` bumped from `4.10.2` to `4.11.0`).
+    - `src/SS-CAM.Web/package.json` (`"version"` bumped from `4.10.2` to `4.11.0`).
+    - `src/SS-CAM.Web/server/config.js` (`VERSION` constant bumped from `4.9.0` to `4.11.0`).
+  - Confirmed parity with `installer/version.json` (4.11.0), `src/SS-CAM/Properties/AssemblyInfo.cs` (4.11.0.0), and `src/SS-CAM.Android/app/build.gradle.kts` (4.11.0 / versionCode 33).
+- **Svelte {@html} Audit & DOMPurify Hardening (Task 4.5, X1)**:
+  - Audited all Svelte components rendering raw HTML via `{@html}`:
+    - `src/SS-CAM.Web/client/src/lib/components/markdown/MermaidViewer.svelte`: Set Mermaid configuration `securityLevel: 'strict'` and wrapped SVG output with `DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true } })`.
+    - `src/SS-CAM.Web/client/src/lib/views/CopyStudioView.svelte`: Sanitized `formatWhatsAppText` output with `DOMPurify.sanitize(formatted, { ALLOWED_TAGS: ['strong', 'em', 'del', 'br', 'i', 'b'], ALLOWED_ATTR: [] })`.
+  - Client bundle compiled cleanly: `npm run build:client` transformed 2,267 modules in 16.53s.
+- **Authorized Project Creation Endpoint (Task 4.6, A1)**:
+  - Implemented `POST /api/projects` in `src/SS-CAM.Web/server/routes/api.js` protected with `authenticateToken` and `requirePermission('project:create')`.
+  - Added `'project:create'` permission to `designer`, `copywriter`, `user`, `Designer`, `Copywriter` in `auth.js`.
+  - Implemented canonical project directory scaffolding (`01_BRIEF_ASSETS`, `02_SOURCE_FILES`, `03_COPYWRITING`, `04_WORK_IN_PROGRESS`, `05_DELIVERABLES`), `README.md` with YAML frontmatter, `COPY.md`, workspace cache rescan, audit logging (`PROJECT_CREATED`), and SSE event broadcast (`project:created`).
+  - Added automated test #49 to `src/SS-CAM.Web/server/test/run-tests.js` validating unauthenticated rejection (401), invalid payload validation (400), and successful project scaffolding (201).
+- **Source Guardian Web Security Checks (Task 4.7, G1)**:
+  - Extended `QA/verify-sscam.ps1` with 3 automated web security verification checks:
+    - Check 11: Web Production JWT_SECRET Enforcement (scans `config.js` for `NODE_ENV === 'production'` and `process.exit(1)`).
+    - Check 12: Web RBAC Canonical Role Matching (scans `routes/api.js` to ensure no loose `role.includes('admin')` calls exist).
+    - Check 13: Web Rate Limiting on Login (scans `routes/api.js` for `rateLimit` protection on `/auth/login`).
+  - Source Guardian execution: **13 passed / 0 warned / 0 failed (100% PASS)**.
+- **Documentation & QA Report Alignment (Task 4.8, W1)**:
+  - Updated `QA/FINAL-QA-REPORT.md` to document the 56 passing automated test assertions, 13 Source Guardian checks, and security remediations across Phases 1–4.
+- **Docker Compose Production Hardening (Task 4.9, D1)**:
+  - Updated `src/SS-CAM.Web/docker-compose.yml` to execute `npm install --omit=dev` before starting the production server, ensuring devDependencies are not installed in production containers.
+- **Verified Automated Test Execution (`server/test/run-tests.js`, `server/test/admin-smoketest.js`)**:
+  - `POST /api/projects: unauthenticated returns 401, missing fields returns 400, valid payload creates directory scaffold and returns 201`: **PASS**
+  - Total `run-tests.js`: **49 Passed, 0 Failed (100% PASS)**
+  - Total `admin-smoketest.js`: **7 Passed, 0 Failed (100% PASS)**
+  - Total Automated Suite: **56 Passed, 0 Failed (100% PASS)**
+  - Source Guardian: `verify-sscam.ps1 -Fix`: **13 passed, 0 warned, 0 failed (100% PASS)**
+  - Client Build: `npm run build:client`: **PASS (16.53s)**
+
+## Fix: Phase 3 — Secrets, Repository & Asset Hygiene (Branch: fix/p3-repo) — 2026-09-28
+- **Android Keystore Security & Dynamic Signing (Task 3.1, C3)**:
+  - Untracked release keystore `src/SS-CAM.Android/app/sscam-release.jks` from git index (`git rm --cached`) while preserving the binary on local disk for local developer use (`Test-Path` returned `True`).
+  - Rewrote `src/SS-CAM.Android/app/build.gradle.kts` signing configuration: eliminated hardcoded plaintext passwords (`storePassword`, `keyPassword`).
+  - Implemented dynamic signing credential resolution order: local `keystore.properties` (root or app directory) -> environment variables (`KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) -> graceful fallback to debug signing configuration with an informative lifecycle warning log so open-source contributors can build without keys.
+  - Added glob patterns for `*.jks`, `*.keystore`, and `keystore.properties` / `**/keystore.properties` to `.gitignore`.
+  - Created `QA/KEY-ROTATION-RUNBOOK.md` detailing the Google Play Console upload key reset procedure via Play App Integrity / App Signing with `keytool -genkeypair` and PEM certificate export (`keytool -exportcert -rfc`).
+  - Verified Android build: `./gradlew.bat assembleDebug` passed (`BUILD SUCCESSFUL in 17s`, 35 actionable tasks up-to-date).
+- **Untrack Ignored Files & Binaries from Git Index (Task 3.2, R1)**:
+  - Untracked build outputs, dependencies, and binaries from git tracking via `git rm -r --cached`:
+    - `src/SS-CAM.Web/node_modules/` (1,013 files)
+    - `src/SS-CAM.Web/client/dist/` (18 files)
+    - `publish/` (5 Linux binaries and tarballs, ~136 MB total including 96 MB `SS-CAM.Linux` binary)
+    - `installer/*.zip` (1 zip, ~40 MB `SS-CAM-v4.6.0-linux-x64-nav-fix.zip`)
+    - `src/nuget.exe` (1 standalone binary, 8 MB)
+  - Verified physical disk persistence: all files remain 100% physically intact on disk via PowerShell `Test-Path` (`True`).
+  - Confirmed `.gitignore` comprehensively ignores `node_modules/`, `dist/`, `publish/`, `installer/*.zip`, `*.zip`, and `nuget.exe`.
+- **Affinity Designer Assets (`.afassets`) Strategy (Task 3.3, R1)**:
+  - Evaluated `payload/Brand Assets/Libraries/SuamiSihat Branding.afassets` (43.27 MB / 45.37 MB on disk). Confirmed that proprietary binary zip/SQLite structure produces full ~43 MB uncompressed history bloat per revision with zero delta compression.
+  - Recommended Git LFS tracking (`git lfs track "*.afassets"`) or external distribution via GitHub Releases for large proprietary creative asset bundles.
+- **Third-Party Asset Licensing Audit (Task 3.4, L1)**:
+  - Created `docs/THIRD-PARTY-ASSETS.md` cataloging bundled fonts, audio, icons, and libraries.
+  - Flagged critical legal redistribution prohibitions: Font Awesome Pro 5.8.1 (commercial license strictly prohibits public redistribution of font binaries/SVGs), commercial typography (Helvetica Neue, Calibri, TacticSans, Banaue Extended).
+  - Provided mitigation roadmap: replace commercial fonts with open-source Google Fonts (Inter, Outfit, Plus Jakarta Sans) and switch Font Awesome Pro to Font Awesome Free (SIL OFL 1.1 / MIT).
+- **Git History Purge & Size Reduction Runbook (Task 3.5, R1)**:
+  - Created `QA/HISTORY-PURGE-RUNBOOK.md` detailing the operational procedure to purge historical secrets, keystores, and oversized binaries from git history using `git-filter-repo`.
+  - Documented exact commands, safety backups, verification checks, force-push coordination, and collaborator recovery steps.
+- **Verification & Parity Results**:
+  - Android Build: `./gradlew.bat assembleDebug` **PASS** (17s).
+  - Web Unit Suite: `node server/test/run-tests.js` **48 Passed, 0 Failed (100% PASS)**.
+  - Web Admin Smoketest: `node server/test/admin-smoketest.js` **7 Passed, 0 Failed (100% PASS)**.
+  - Source Guardian: `verify-sscam.ps1 -Fix` verified.
+
+## Fix: Phase 2 — Authorization & RBAC Hardening (Branch: fix/p2-authz) — 2026-09-28
+- **Route Authorization Audit (Task 2.1)**:
+  - Created `QA/scripts/generate-route-authz-matrix.js` and generated `QA/ROUTE-AUTHZ-MATRIX.md`. Audited all 85 Express routes in `src/SS-CAM.Web/server/routes/api.js`.
+  - Categorized all routes into public (unauthenticated), authenticated staff, and admin-only endpoints.
+- **Canonical Role Matching & Elimination of Loose Substrings (Task 2.2 & 2.3, C5)**:
+  - Added granular admin permissions (`admin:users`, `admin:roles`, `admin:companies`, `admin:system`, `admin:projects`, `admin:system_audit`) to `ROLE_PERMISSIONS` in `auth.js`.
+  - Implemented and exported `hasCanonicalRole(user, targetRole)` with exact match logic (`admin`, `administrator`), rejecting substring bypasses (`admin_assistant`, `subadmin`, etc.).
+  - Replaced all ad-hoc `role.includes('admin')` substring checks across `src/SS-CAM.Web/server/routes/api.js` with `requireRole('admin')` and `hasCanonicalRole`.
+- **Handler Unification & Backward Compatibility (Task 2.4)**:
+  - Merged `/users` and `/team/roster` handler logic into canonical `handleCreateStaffUser` and `handleUpdateStaffUser` in `routes/api.js`.
+  - Both routes preserved for API backward compatibility across desktop, mobile, and web clients (per `AGENTS.md` KEEP/MERGE/REMOVE/DIFFERENTIATE governance).
+- **Last-Admin Protection & Anti-Escalation (Task 2.5)**:
+  - Implemented last-admin check in `handleUpdateStaffUser` and `DELETE /api/users/:id`: rejects deactivation (`active: false`), demotion (removing admin role), or deletion if `activeAdmins.length <= 1` with HTTP 400 (`Cannot deactivate or demote the last remaining administrator account.` / `Cannot delete the last remaining administrator account.`).
+  - Anti-escalation in `PUT /api/auth/profile`: non-admin callers cannot alter their own `role` or `roles`; attempted privilege escalation is discarded while safe profile fields (name, email, department) are updated.
+  - Self-service password changes gated via dedicated `POST /api/auth/change-password` requiring `currentPassword` validation and minimum 10-character complexity.
+- **Structured Audit Logging for Access Denials (Task 2.6)**:
+  - Every HTTP 403 response in `requireRole` and `requirePermission` logs structured `SECURITY_ACCESS_DENIED` and `SECURITY_PERMISSION_DENIED` events to `AuditService` with actor, endpoint, and required role/permission.
+- **Client-Side UX Gating (Task 2.7)**:
+  - Gated Administration sidebar link and profile menu in `App.svelte` using derived `isAdmin` state. Clarified gating as UX only; real security is enforced strictly by backend API middleware.
+- **Verified Automated Test Execution (`server/test/run-tests.js`, `server/test/admin-smoketest.js`)**:
+  - `Last-admin protection: cannot deactivate, demote, or delete the last active administrator`: **PASS**
+  - `Anti-escalation: non-admin caller cannot modify role or roles via PUT /api/auth/profile`: **PASS**
+  - `Self-service password change: enforces current password verification and 10-char complexity`: **PASS**
+  - `Canonical role matching: fuzzy roles like admin_assistant or subadmin are rejected from admin routes`: **PASS**
+  - `Admin RBAC: Designer gets 403 on mutating routes and logs to AuditService; Admin gets 200`: **PASS**
+  - Total `run-tests.js`: **48 Passed, 0 Failed (100% PASS)**
+  - Total `admin-smoketest.js`: **7 Passed, 0 Failed (100% PASS)**
+  - Total Automated Suite: **55 Passed, 0 Failed (100% PASS)**
+- **Client Build Verification**:
+  - `npm run build:client`: **PASS** (Vite built 2,267 modules in 16.01s generating valid `dist/` bundle).
+
+## Fix: Phase 1 — Authentication Hardening (Branch: fix/p1-auth) — 2026-09-28
+- **Password Verification & Bcrypt Lazy Migration (Task 1.1, C1)**:
+  - `src/SS-CAM.Web/server/middleware/auth.js`: Rewrote `verifyUserPassword` to immediately reject empty, whitespace, null, or non-string passwords with `false`.
+  - Removed all shared default password fallbacks (`SuamiSihat123!` / `DEFAULT_PASSWORD`).
+  - Implemented `bcryptjs.compareSync` for hashed credentials.
+  - Implemented automatic lazy upgrade: existing plaintext passwords matching input are dynamically upgraded to bcrypt hashes (`bcrypt.hashSync(password, 10)`) and saved atomically on first successful authentication.
+- **Emergency Admin Bootstrap Recovery (Task 1.2)**:
+  - `src/SS-CAM.Web/server/middleware/auth.js`: Integrated `ADMIN_BOOTSTRAP_PASSWORD`. Honored strictly when NO admin user has an existing password in the credential store.
+  - Once any admin password entry exists, `ADMIN_BOOTSTRAP_PASSWORD` is completely ignored, eliminating environment variable hijacking risks while preventing permanent lockouts on fresh deployments.
+- **Production `JWT_SECRET` Hardening (Task 1.3, C2)**:
+  - `src/SS-CAM.Web/server/config.js`: Enforced that when `NODE_ENV=production`, the server strictly halts execution (`process.exit(1)`) if `JWT_SECRET` is missing, empty, or shorter than 32 characters.
+  - `src/SS-CAM.Web/docker-compose.yml`: Parameterized `${JWT_SECRET:?JWT_SECRET must be configured in .env}` and configured `DATA_DIR=/app/data`.
+  - `src/SS-CAM.Web/.env.example`: Created comprehensive environment variable documentation template.
+  - `.gitignore`: Guaranteed `.env` and `data/` directories are ignored while allowing `.env.example`.
+- **Isolated Credential Storage `DATA_DIR` (Task 1.4, C4)**:
+  - `src/SS-CAM.Web/server/config.js`, `src/SS-CAM.Web/server/middleware/auth.js`: Redirected `getPasswordStorePath()` from shared workspace (`<WORKSPACE_ROOT>/_Team/_Config/user_passwords.json`) to isolated `DATA_DIR` (default `./data/user_passwords.json`).
+  - Added safe automated one-time migration: copies existing passwords to `DATA_DIR` and archives the legacy workspace file with `.migrated.<timestamp>` extension without data loss.
+- **Password Reset Complexity & UI Default Removal (Task 1.5)**:
+  - `src/SS-CAM.Web/server/routes/api.js`: Enforced minimum 10-character password requirement on `POST /api/users/:username/reset-password` and `handleCreateStaffUser`. Missing or $< 10$ character passwords return HTTP 400.
+  - `src/SS-CAM.Web/client/src/lib/views/AdminView.svelte`: Updated user account provisioning and password reset modal validation and labels to enforce minimum 10 characters (`min 10 chars`). All pre-filled default passwords eliminated.
+- **Rate Limiting & Credential Enumeration Protection (Task 1.6, H1, H4)**:
+  - `src/SS-CAM.Web/server/routes/api.js`: Rate-limited `POST /api/auth/login` using `express-rate-limit` (5 failed attempts per 15 minutes; returns HTTP 429 on 6th attempt).
+  - Normalized login failure response to identical HTTP 401 `{ error: 'Invalid credentials. Please verify your username and password.' }` for both unknown users and incorrect passwords.
+  - Implemented dummy `bcrypt.compareSync` on unknown user lookups to mitigate side-channel timing analysis.
+- **Strict CORS, 1MB Body Limit & Helmet Security Headers (Task 1.7, H1)**:
+  - `src/SS-CAM.Web/server/index.js`: Integrated `helmet` with Content Security Policy tuned specifically for Svelte client, Vite bundle assets, and Mermaid SVG/web worker diagram rendering.
+  - Enforced 1MB request body limit (`express.json({ limit: '1mb' })`).
+  - Enforced CORS allowlist against `config.ALLOWED_ORIGINS` with desktop/mobile client support.
+- **Token Lifetime Formalization (Task 1.8)**:
+  - Formalized **12-hour session lifetime** (`JWT_EXPIRES_IN=12h`) in `config.js` and `auth.js`, replacing the overly permissive 7-day token duration.
+- **Verified Automated Test Execution (`server/test/run-tests.js`, `server/test/admin-smoketest.js`)**:
+  - `Authentication security: empty password -> 401, default password -> 401, correct password -> 200, with bcrypt lazy migration`: **PASS**
+  - `Login enumeration protection: non-existent user and wrong password return identical HTTP 401 error`: **PASS**
+  - `Admin bootstrap password: honored only when no admin password exists; ignored once set`: **PASS**
+  - `Production configuration security: server exits non-zero without strong JWT_SECRET (>= 32 chars) when NODE_ENV=production`: **PASS** (verified empty secret, 24-char secret, and valid 64-char secret)
+  - `Login rate limiting: 6th rapid failed login on /auth/login returns HTTP 429`: **PASS**
+  - `Password reset security: explicit newPassword of min 10 chars enforced`: **PASS**
+  - `DATA_DIR migration: legacy workspace password file is migrated to DATA_DIR and archived`: **PASS**
+  - `Security headers & body limit: Helmet sets nosniff CSP and >1MB payload returns 413`: **PASS**
+  - `JWT configuration: token lifetime is configured to 12 hours`: **PASS**
+  - Total `run-tests.js`: **44 Passed, 0 Failed (100% PASS)**
+  - Total `admin-smoketest.js`: **7 Passed, 0 Failed (100% PASS)**
+  - Total Automated Suite: **51 Passed, 0 Failed (100% PASS)**
+- **Client Build Verification**:
+  - `npm run build:client`: **PASS** (Vite built 2,267 modules in 21.30s generating valid `dist/` bundle).
+
+## Fix: Untrack Ignored Files, Parity Cleanup & History Size Reduction Proposal — 2026-09-28 (Branch: fix/untrack-ignored-files)
+- **Untracked Ignored Files from Git Index (`git rm -r --cached`)**:
+  - `src/SS-CAM.Web/node_modules/`: 1,013 files removed from git tracking.
+  - `src/SS-CAM.Web/client/dist/`: 18 pre-compiled Vite bundle files removed from git tracking.
+  - `publish/`: 5 Linux binaries and tarballs (including 96 MB `SS-CAM.Linux` and 40 MB `ss-cam-linux-x64.tar.gz`) removed from git tracking.
+  - `installer/*.zip`: 1 archive (`installer/SS-CAM-v4.6.0-linux-x64-nav-fix.zip`, ~40 MB) removed from git tracking.
+  - `src/nuget.exe`: 8 MB standalone binary removed from git tracking.
+  - Disk persistence: Verified all files remain 100% physically intact on disk via `Test-Path` (`True`).
+- **`.gitignore` Parity Overhaul**:
+  - Expanded root `.gitignore` to comprehensively cover `dist/`, `**/dist/`, `publish/`, `**/publish/`, `installer/*.zip`, `*.zip`.
+  - Confirmed working directory cleanliness: no untracked file clutter (`??`) introduced by the cache removal.
+- **Affinity Assets (`.afassets`) Git LFS Decision (Proposal)**:
+  - `payload/Brand Assets/Libraries/SuamiSihat Branding.afassets` (43.27 MB): Recommended for **Git LFS** or external release distribution. Proprietary binary zip/SQLite structure produces full ~43 MB uncompressed history bloat per revision with zero delta compression.
+  - `payload/Brand Assets/Libraries/ss_health_branding.afassets` (0.51 MB): Kept in standard Git (minimal 510 KB size does not warrant LFS quota consumption).
+- **History Reduction Runbook (`QA/REPO-SIZE-REDUCTION-RUNBOOK.md`)**:
+  - Analyzed commit history pack database (543.83 MiB total, ~500 MB in top 15 blobs).
+  - Drafted comprehensive manual operational runbook with `git-filter-repo` syntax, reflog expiry, and aggressive pruning instructions for user execution.
+- **Build Verifications (Clean Checkout Simulation)**:
+  - `npm ci` in sandbox workspace (`QA/TestWorkspace`): **PASS** (Clean install from `package-lock.json`, 358 packages added in 12s).
+  - `npm run build:client` in `src/SS-CAM.Web`: **PASS** (Vite built 2,267 modules in 17.64s producing valid `dist/` bundle).
+  - `msbuild src\SS-CAM\SS-CAM.csproj`: **PASS** (`SS-CAM -> src/SS-CAM/bin/Debug/SS-CAM.exe` compiled cleanly with exit code 0).
+
+## Fix: Android Keystore Security & Signing Hardening — 2026-09-28 (Branch: fix/android-keystore-security)
+- **Untracked Release Keystore (`src/SS-CAM.Android/app/sscam-release.jks`)**:
+  - Untracked the release keystore binary from the git index (`git rm --cached`) while preserving the actual keystore file intact on local disk (`Test-Path` returned `True`).
+- **Gitignore Protection (`.gitignore`)**:
+  - Added glob patterns for `*.jks`, `*.keystore`, and `keystore.properties` / `**/keystore.properties` to ensure local keystores and signing secret property files are never committed to git.
+- **Dynamic Signing Configuration & Contributor Fallback (`src/SS-CAM.Android/app/build.gradle.kts`)**:
+  - Removed hardcoded plaintext passwords (`storePassword`, `keyPassword`) from the Gradle Kotlin DSL build script.
+  - Implemented dynamic credential resolution checking `keystore.properties` (in root project or app directory) followed by environment variables (`KEYSTORE_FILE` / `RELEASE_STORE_FILE`, `KEYSTORE_PASSWORD` / `RELEASE_STORE_PASSWORD`, `KEY_ALIAS` / `RELEASE_KEY_ALIAS`, `KEY_PASSWORD` / `RELEASE_KEY_PASSWORD`).
+  - Added graceful fallback to `signingConfigs.getByName("debug")` with an informative Gradle lifecycle log when credentials or keystore files are missing, ensuring contributors without signing keys can build seamlessly.
+- **Key Rotation & Git History Cleanup Runbook (`QA/KEY-ROTATION-RUNBOOK.md`)**:
+  - Created a detailed manual guide outlining:
+    - Phase 1: Google Play Console upload key reset procedure (via App Signing / Play App Integrity) with `keytool -genkeypair` and PEM certificate export (`keytool -exportcert -rfc`).
+    - Phase 2: Local `keystore.properties` configuration and security best practices.
+    - Phase 3: Manual git commit history scrubbing steps using `git-filter-repo` to purge historical blobs and scrub plaintext password occurrences.
+- **Test Execution & Verification Results**:
+  - `./gradlew.bat assembleDebug` without `keystore.properties`: **PASS** (`BUILD SUCCESSFUL in 3s`, 35 actionable tasks executed/up-to-date; confirms release signing config falls back cleanly).
+  - Environment variable credentials evaluation test: **PASS** (`BUILD SUCCESSFUL in 1s`, loads signing credentials when configured).
+  - Local keystore disk persistence verification: **PASS** (`Test-Path src/SS-CAM.Android/app/sscam-release.jks` returned `True`).
+  - Keystore untracked status verification: **PASS** (deleted in git index, untracked from repository).
+
+## Fix: Admin RBAC Hardening & Mutating Route Protection — 2026-09-28 (Branch: fix/admin-rbac-hardening)
+- **Role & Permission Middleware (`src/SS-CAM.Web/server/middleware/auth.js`)**:
+  - Implemented and exported `requireRole(...allowedRoles)` middleware enforcing canonical role validation (`admin`, `administrator`).
+  - Refactored `requirePermission(permission)`: eliminated loose substring checks (`isAdminOrLead` matching "manager", "lead", "head", "director", etc.) and replaced with canonical admin role verification.
+  - Replaced `low.includes('admin')` in `getUserPermissions` and `verifyUserPassword` with canonical role matching.
+  - Integrated audit logging: every access denial (HTTP 403) automatically appends a structured `SECURITY_ACCESS_DENIED` or `SECURITY_PERMISSION_DENIED` entry to `AuditService` with actor, role, endpoint, and required role/permission.
+- **Mutating Admin Routes Protection (`src/SS-CAM.Web/server/routes/api.js`)**:
+  - Protected all mutating admin endpoints with `requireRole('admin')`:
+    - `POST /api/users`, `PUT /api/users/:id`, `DELETE /api/users/:id`
+    - `POST /api/users/:username/reset-password`
+    - `POST /api/team/roster`, `PUT /api/team/roster/:id`
+    - `POST /api/companies`, `PUT /api/companies/:code`, `PUT /api/companies`, `DELETE /api/companies/:code`
+    - `POST /api/system/workspace-root`
+    - `POST /api/admin/restart`
+    - `DELETE /api/projects/:id`
+  - Merged duplicate handler implementations for `/users` and `/team/roster` into unified canonical functions `handleCreateStaffUser` and `handleUpdateStaffUser` (per `AGENTS.md` KEEP/MERGE/REMOVE/DIFFERENTIATE governance: merged backend logic while preserving both endpoints for client backward compatibility).
+  - Replaced manual `role.includes('admin')` substring checks in `/system/workspace-root`, `/admin/restart`, and `/projects/:id`.
+- **Client-Side UX Gating (`src/SS-CAM.Web/client/src/App.svelte`)**:
+  - Added reactive `isAdmin` check derived from `appState.currentUser`.
+  - Filtered `navGroups` so the `System & Governance` section (Administration link) is hidden from non-admin users in the sidebar.
+  - Gated the Administration item in the user profile dropdown menu with `{#if isAdmin}`.
+  - Clarified gating as UX only; real security is enforced strictly by the backend API.
+- **Test Execution & Verification Results**:
+  - `server/test/run-tests.js`: **39/39 PASS** (including: Designer token receives 403 on all 11 mutating admin endpoints; AuditService records `SECURITY_ACCESS_DENIED` logs for each denial; Admin token receives 200 on all mutating admin endpoints).
+  - `server/test/admin-smoketest.js`: **7/7 PASS**.
+  - Total automated test suite: **46 Passed, 0 Failed (100% PASS)**.
+
+## Fix: Authentication & Security Hardening — 2026-09-28 (Branch: fix/auth-security-hardening)
+- **Password Verification & Bcrypt Hashing Overhaul (`src/SS-CAM.Web/server/middleware/auth.js`)**:
+  - Eliminated empty password bypass and removed the hardcoded shared default password across all authentication logic.
+  - Upgraded password storage to `bcryptjs` (salt rounds: 10).
+  - Implemented lazy migration: existing legacy plaintext passwords in `user_passwords.json` validate on first login and are immediately hashed to bcrypt format and saved.
+  - Implemented emergency admin bootstrap recovery path: if an admin user has no entry in `user_passwords.json`, they can authenticate on first run using `process.env.ADMIN_BOOTSTRAP_PASSWORD`. On success, it is hashed and saved to disk.
+  - Enforced minimum 8-character length on all password updates.
+- **Production Configuration & Secret Enforcement (`src/SS-CAM.Web/server/config.js`, `docker-compose.yml`, `.gitignore`)**:
+  - Enforced that when `NODE_ENV=production`, the server strictly halts execution (`process.exit(1)`) if `JWT_SECRET` is missing or empty.
+  - Added `.env` exclusion rules to `.gitignore`.
+  - Exported `ALLOWED_ORIGINS` configured via `process.env.ALLOWED_ORIGINS` with secure local development and production portal defaults.
+- **Password Reset Security (`src/SS-CAM.Web/server/routes/api.js`)**:
+  - Removed fallback to default password on `POST /api/users/:username/reset-password`.
+  - Strictly requires an explicit `newPassword` of at least 8 characters.
+- **Client Security Hardening (`src/SS-CAM.Web/client/src/lib/views/AdminView.svelte`)**:
+  - Removed all pre-filled default passwords from state, account provisioning form, and password reset modals.
+  - Enforced mandatory temporary password entry (minimum 8 characters) during user creation and password resets.
+- **Rate Limiting, CORS & Body Limits (`src/SS-CAM.Web/server/index.js`, `routes/api.js`)**:
+  - Added `express-rate-limit` on `POST /api/auth/login` (5 attempts / 15 minutes, returning HTTP 429 Too Many Requests on the 6th attempt).
+  - Restricted CORS origin to `config.ALLOWED_ORIGINS` while allowing originless requests (native desktop app, curl, mobile app).
+  - Reduced JSON and URL-encoded request body size limits from 50MB to 1MB (preserving multer limits for file uploads).
+- **Test Execution & Verification Results**:
+  - `server/test/run-tests.js`: **38/38 PASS** (including: empty password -> 401, default password -> 401, correct password -> 200, bcrypt lazy migration -> PASS, production exit without JWT_SECRET -> PASS, 6th rapid login attempt -> 429 PASS, password reset length validation -> PASS).
+  - `server/test/admin-smoketest.js`: **7/7 PASS**.
+  - Total automated test suite: **45 Passed, 0 Failed (100% PASS)**.
+
 ## v4.11.0 — 2026-09-27 (Dual-Track Commercialization Architecture, Multi-Tenant Plugin Engine & Open-Core Governance)
 - **Modular Multi-Tenant Plugin Engine (`IAppPlugin`, `PluginRegistry`)**:
   - Abstracted auxiliary features (`WaktuSolatPlugin`, `RadioPlayerPlugin`, `QrCodeStudioPlugin`, `CreativeWellbeingPlugin`) into self-contained plugins implementing canonical `IAppPlugin` interface.

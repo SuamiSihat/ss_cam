@@ -1444,9 +1444,9 @@ namespace SS_CAM.Services
                                 CoverDownloaded(station);
                         }));
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Silent fail — UI falls back to the glyph icon
+                    System.Diagnostics.Debug.WriteLine("[RadioStreamService] DownloadCoverArtAsync: " + ex.Message);
                 }
             });
         }

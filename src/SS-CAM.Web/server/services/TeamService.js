@@ -6,7 +6,9 @@ class TeamService {
   static getUsersDir() {
     const usersDir = path.join(config.WORKSPACE_ROOT, '_Team', 'Users');
     if (!fs.existsSync(usersDir)) {
-      try { fs.mkdirSync(usersDir, { recursive: true }); } catch (e) {}
+      try { fs.mkdirSync(usersDir, { recursive: true }); } catch (e) {
+        console.debug('[TeamService] Failed to create usersDir:', e.message);
+      }
     }
     return usersDir;
   }
@@ -16,7 +18,9 @@ class TeamService {
     const cleanId = String(staffId).trim().toUpperCase();
     const userDir = path.join(this.getUsersDir(), cleanId);
     if (!fs.existsSync(userDir)) {
-      try { fs.mkdirSync(userDir, { recursive: true }); } catch (e) {}
+      try { fs.mkdirSync(userDir, { recursive: true }); } catch (e) {
+        console.debug('[TeamService] Failed to create userDir:', e.message);
+      }
     }
     return userDir;
   }
@@ -65,13 +69,17 @@ class TeamService {
         const pPath = path.join(userDir, 'profile.json');
         fs.writeFileSync(pPath, JSON.stringify(profileData, null, 2), 'utf8');
       }
-    } catch (e) {}
+    } catch (e) {
+      console.debug('[TeamService] saveUserProfile error:', e.message);
+    }
   }
 
   static getRosterPath() {
     const configDir = path.join(config.WORKSPACE_ROOT, '_Team', '_Config');
     if (!fs.existsSync(configDir)) {
-      try { fs.mkdirSync(configDir, { recursive: true }); } catch (e) {}
+      try { fs.mkdirSync(configDir, { recursive: true }); } catch (e) {
+        console.debug('[TeamService] Failed to create configDir:', e.message);
+      }
     }
     return path.join(configDir, 'staff_directory.json');
   }
@@ -79,7 +87,9 @@ class TeamService {
   static getLiveTasksPath() {
     const teamDir = path.join(config.WORKSPACE_ROOT, '_Team');
     if (!fs.existsSync(teamDir)) {
-      try { fs.mkdirSync(teamDir, { recursive: true }); } catch (e) {}
+      try { fs.mkdirSync(teamDir, { recursive: true }); } catch (e) {
+        console.debug('[TeamService] Failed to create teamDir:', e.message);
+      }
     }
     return path.join(teamDir, 'live_tasks.json');
   }
@@ -201,7 +211,9 @@ class TeamService {
       } catch (renameErr) {
         // SMB UNC share lock fallback
         fs.writeFileSync(rosterPath, json, 'utf8');
-        try { fs.unlinkSync(tempFile); } catch (e) {}
+        try { fs.unlinkSync(tempFile); } catch (e) {
+          console.debug('[TeamService] Failed to unlink tempFile:', e.message);
+        }
       }
     } catch (err) {
       fs.writeFileSync(rosterPath, json, 'utf8');

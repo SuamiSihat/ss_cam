@@ -36,7 +36,10 @@ namespace SS_CAM.Linux.Services
                     Description = string.IsNullOrWhiteSpace(description) ? ("Official Malaysia Public Holiday: " + name) : description
                 };
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MalaysiaHolidayService] AddHoliday error: {ex.Message}");
+            }
         }
 
         private static void InitializeHolidays()

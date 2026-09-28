@@ -27,7 +27,9 @@ class CopywritingService {
     if (!fs.existsSync(teamDir)) {
       try {
         fs.mkdirSync(teamDir, { recursive: true });
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[CopywritingService] Failed to create teamDir:', e.message);
+      }
     }
     return path.join(teamDir, `${projectId}.md`);
   }

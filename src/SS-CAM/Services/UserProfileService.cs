@@ -10,11 +10,46 @@ namespace SS_CAM.Services
 {
     public class UserProfileService
     {
-        private static readonly string ConfigFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Corporate",
-            "user_profile.json"
-        );
+        private static string ConfigFilePath
+        {
+            get { return GetConfigFilePath(); }
+        }
+
+        private static string GetConfigFilePath()
+        {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string configuredDir = AppPaths.AppDataFolder;
+            string configuredFile = Path.Combine(configuredDir, "user_profile.json");
+            if (File.Exists(configuredFile))
+            {
+                return configuredFile;
+            }
+
+            // Fallback & auto-migration: check legacy SuamiSihat directory
+            string legacyFile = Path.Combine(appData, "SuamiSihat", "user_profile.json");
+            if (File.Exists(legacyFile))
+            {
+                try
+                {
+                    if (!Directory.Exists(configuredDir))
+                    {
+                        Directory.CreateDirectory(configuredDir);
+                    }
+                    if (!File.Exists(configuredFile))
+                    {
+                        File.Copy(legacyFile, configuredFile, true);
+                    }
+                    return configuredFile;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("[UserProfileService] Migration warning: " + ex.Message);
+                    return legacyFile;
+                }
+            }
+
+            return configuredFile;
+        }
 
         public static UserProfile LoadProfile()
         {
@@ -81,7 +116,7 @@ namespace SS_CAM.Services
                         string nasAvatar = GetUserAvatarPath(ws, profile.StaffId);
                         if (!string.IsNullOrWhiteSpace(nasAvatar) && File.Exists(nasAvatar))
                         {
-                            string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Corporate");
+                            string localApp = AppPaths.AppDataFolder;
                             if (!Directory.Exists(localApp)) Directory.CreateDirectory(localApp);
                             string localCached = Path.Combine(localApp, string.Format("avatar_{0}.jpg", profile.StaffId.Trim()));
 
@@ -411,12 +446,14 @@ namespace SS_CAM.Services
         {
             var defaults = new List<StaffDirectoryItem>
             {
-                new StaffDirectoryItem { StaffId = "SS0004", Name = "Harussani", Role = "Head of Creative", Department = "Creative Production", DefaultBrand = "SS" },
-                new StaffDirectoryItem { StaffId = "SS0035", Name = "Haikal", Role = "Multimedia Designer", Department = "Multimedia & Motion", DefaultBrand = "SS" },
-                new StaffDirectoryItem { StaffId = "SS0037", Name = "Aliff", Role = "Multimedia Designer", Department = "Multimedia & Motion", DefaultBrand = "SSE" },
-                new StaffDirectoryItem { StaffId = "SS0073", Name = "Raihan", Role = "Head of Marketing & Sale", Department = "Marketing & Sales", DefaultBrand = "SS" },
-                new StaffDirectoryItem { StaffId = "SS0001", Name = "Hasan", Role = "Chief Executive Officer", Department = "Executive Management", DefaultBrand = "SS" },
-                new StaffDirectoryItem { StaffId = "SS0071", Name = "Gaddafi", Role = "Co-Chief Executive Officer", Department = "Executive Management", DefaultBrand = "SS" }
+                new StaffDirectoryItem { StaffId = "SS0004", Name = "Harussani", Role = "Head of Creative", Department = "Creative Production", DefaultBrand = "SS", Active = true, Roles = new List<string> { "Designer", "Admin" } },
+                new StaffDirectoryItem { StaffId = "SS0035", Name = "Haikal", Role = "Multimedia Designer", Department = "Multimedia & Motion", DefaultBrand = "SS", Active = true, Roles = new List<string> { "Designer" } },
+                new StaffDirectoryItem { StaffId = "SS0037", Name = "Aliff", Role = "Multimedia Designer", Department = "Multimedia & Motion", DefaultBrand = "SSE", Active = true, Roles = new List<string> { "Designer" } },
+                new StaffDirectoryItem { StaffId = "SS0073", Name = "Raihan", Role = "Head of Marketing & Sale", Department = "Marketing & Sales", DefaultBrand = "SS", Active = true, Roles = new List<string> { "Manager" } },
+                new StaffDirectoryItem { StaffId = "SS0001", Name = "Hasan", Role = "Chief Executive Officer", Department = "Executive Management", DefaultBrand = "SS", Active = true, Roles = new List<string> { "Manager" } },
+                new StaffDirectoryItem { StaffId = "SS0071", Name = "Gaddafi", Role = "Co-Chief Executive Officer", Department = "Executive Management", DefaultBrand = "SS", Active = true, Roles = new List<string> { "Manager" } },
+                new StaffDirectoryItem { StaffId = "SS0086", Name = "Zul", Role = "Manager", Department = "Creative Production", DefaultBrand = "SS", Active = true, Roles = new List<string> { "Manager" } },
+                new StaffDirectoryItem { StaffId = "SS0009", Name = "Rakesh", Role = "Manager", Department = "Executive Management", DefaultBrand = "SSC", Active = true, Roles = new List<string> { "Manager" } }
             };
 
             if (string.IsNullOrWhiteSpace(workspaceRoot) || !Directory.Exists(workspaceRoot))
@@ -504,7 +541,7 @@ namespace SS_CAM.Services
                     {
                         string base64 = avatarData.Substring(commaIndex + 1);
                         byte[] bytes = Convert.FromBase64String(base64);
-                        string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Corporate");
+                        string localApp = AppPaths.AppDataFolder;
                         if (!Directory.Exists(localApp)) Directory.CreateDirectory(localApp);
                         string fileName = string.Format("avatar_{0}.jpg", string.IsNullOrWhiteSpace(staffId) ? "user" : staffId.Trim());
                         string targetPath = Path.Combine(localApp, fileName);
@@ -599,7 +636,7 @@ namespace SS_CAM.Services
         {
             try
             {
-                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Corporate");
+                string path = AppPaths.AppDataFolder;
                 if (Directory.Exists(path))
                 {
                     foreach (string file in Directory.GetFiles(path))

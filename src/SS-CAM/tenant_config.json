@@ -1,0 +1,34 @@
+{
+  "TenantId": "suamisihat",
+  "AppFolderName": "SuamiSihat",
+  "AppName": "SuamiSihat Creative Assets Management",
+  "CompanyUrl": "https://suamisihat.clinic",
+  "PortalUrl": "https://creative.suamisihat.myds.me",
+  "AssetPortalUrl": "https://assets.suamisihat.myds.me",
+  "StorageLabel": "SSNAS",
+  "ThemeDefaultName": "SS Default (Nord Light)",
+  "Subsidiaries": [
+    { "Code": "SS", "Name": "SuamiSihat", "DisplayName": "SS - SuamiSihat", "ColorHex": "#0047AB" },
+    { "Code": "HQ", "Name": "SuamiSihat Holding", "DisplayName": "HQ - SuamiSihat Holding", "ColorHex": "#1E3A8A" },
+    { "Code": "SSE", "Name": "SuamiSihat Ecommerce", "DisplayName": "SSE - SuamiSihat Ecommerce", "ColorHex": "#0D9488" },
+    { "Code": "SSC", "Name": "SuamiSihat Clinic", "DisplayName": "SSC - Klinik SuamiSihat", "ColorHex": "#0284C7" },
+    { "Code": "KOP", "Name": "Koperasi SuamiSihat", "DisplayName": "KOP - Koperasi SuamiSihat", "ColorHex": "#D97706" },
+    { "Code": "HQM", "Name": "HQ Media", "DisplayName": "HQM - SuamiSihat Media", "ColorHex": "#7C3AED" },
+    { "Code": "PRO", "Name": "SuamiSihat Pro", "DisplayName": "PRO - SuamiSihat Pro", "ColorHex": "#DC2626" }
+  ],
+  "Plugins": {
+    "waktu-solat": { "Enabled": true, "DefaultZone": "SGR02" },
+    "creative-wellbeing": { "Enabled": true },
+    "qr-code-studio": {
+      "Enabled": true,
+      "DefaultContent": "https://suamisihat.clinic",
+      "FilenamePrefix": "SuamiSihat_QRCode"
+    },
+    "radio-player": {
+      "Enabled": true,
+      "PinnedStations": [
+        { "Id": "preset_suamisihat", "Name": "SuamiSihat Radio Official", "StreamUrl": "https://radio.suamisihat.myds.me/live" }
+      ]
+    }
+  }
+}

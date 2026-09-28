@@ -166,7 +166,10 @@ public static class CreativeOrderService
                                     orders.Add(order);
                                 }
                             }
-                            catch { }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine($"[CreativeOrderService.Linux] Deserialize order line error: {ex.Message}");
+                            }
                         }
                     }
                 }

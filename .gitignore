@@ -4,7 +4,12 @@
 **/[Bb]in/
 **/[Oo]bj/
 **/build/
-/dist/
+dist/
+**/dist/
+publish/
+**/publish/
+installer/*.zip
+*.zip
 *.pdb
 *.user
 src/SS-CAM/packages/
@@ -45,11 +50,19 @@ node_modules/
 **/.package-lock.json
 .vite/
 
-# ── Web Portal environment-specific server config ─────────────────
-# These files contain machine-local paths (Windows UNC vs Linux container mount)
-# and must NOT be committed or deployed — managed per-environment on the NAS directly.
+# ── Web Portal environment-specific server config & secrets ─────────
+# These files contain machine-local paths & secrets (NEVER commit to git)
+.env
+.env.*
+*.env
+src/SS-CAM.Web/.env
+src/SS-CAM.Web/.env.*
+!.env.example
+!**/.env.example
 src/SS-CAM.Web/server/workspace_config.json
 src/SS-CAM.Web/server/ai-config.json
+src/SS-CAM.Web/data/
+**/data/user_passwords.json
 
 # ── Android build caches & capture ─────────────────────────────
 .gradle/
@@ -57,4 +70,10 @@ src/SS-CAM.Web/server/ai-config.json
 local.properties
 **/local.properties
 screenshot.png
+
+# ── Android Keystore & Signing Secrets ───────────────────────────
+*.jks
+*.keystore
+keystore.properties
+**/keystore.properties
 

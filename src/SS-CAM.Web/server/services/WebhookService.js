@@ -12,7 +12,9 @@ class WebhookService {
     const root = WorkspaceService.workspaceRoot || config.WORKSPACE_ROOT;
     const teamDir = path.join(root, '_Team');
     if (!fs.existsSync(teamDir)) {
-      try { fs.mkdirSync(teamDir, { recursive: true }); } catch (e) {}
+      try { fs.mkdirSync(teamDir, { recursive: true }); } catch (e) {
+        console.debug('[WebhookService] Failed to create teamDir:', e.message);
+      }
     }
     return path.join(teamDir, 'webhooks.json');
   }

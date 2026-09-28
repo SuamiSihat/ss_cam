@@ -204,6 +204,31 @@ namespace SS_CAM.Services
             result.FormattedTotalSize = FormatBytes(result.TotalBytes);
             result.ProjectTypes = FormatCounts(types);
             result.SubBrands = FormatCounts(brands);
+            if (designers.Count == 0)
+            {
+                try
+                {
+                    var staffList = UserProfileService.GetStaffDirectory(root);
+                    if (staffList != null)
+                    {
+                        foreach (var s in staffList)
+                        {
+                            if (s != null && !string.IsNullOrWhiteSpace(s.Name) &&
+                                !s.Name.StartsWith("Test", StringComparison.OrdinalIgnoreCase) &&
+                                s.StaffId != "SS9999" &&
+                                WorkloadSlaService.IsDesignerOrAdminRole(s.Role, s.Department, s.Roles))
+                            {
+                                designers.Add(s.Name);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("[WorkspaceScanner] Staff directory seed warning: " + ex.Message);
+                }
+            }
+
             result.DesignerCount = designers.Count;
             result.TypeChart = BuildChart(types, false);
             result.BrandChart = BuildChart(brands, false);
@@ -214,6 +239,10 @@ namespace SS_CAM.Services
             {
                 result.DesignerWorkloads = WorkloadSlaService.ComputeDesignerWorkloads(root);
                 result.SlaMetrics = WorkloadSlaService.ComputeSlaMetrics(root);
+                if (result.DesignerWorkloads != null && result.DesignerWorkloads.Count > 0)
+                {
+                    result.DesignerCount = Math.Max(result.DesignerCount, result.DesignerWorkloads.Count);
+                }
             }
             catch (Exception ex)
             {
@@ -253,7 +282,9 @@ namespace SS_CAM.Services
                     foreach (var staff in staffList)
                     {
                         if (staff != null && !string.IsNullOrWhiteSpace(staff.Name) &&
-                            WorkloadSlaService.IsDesignerOrAdminRole(staff.Role, staff.Department))
+                            !staff.Name.StartsWith("Test", StringComparison.OrdinalIgnoreCase) &&
+                            staff.StaffId != "SS9999" &&
+                            WorkloadSlaService.IsDesignerOrAdminRole(staff.Role, staff.Department, staff.Roles))
                         {
                             if (!map.ContainsKey(staff.Name))
                             {
@@ -292,7 +323,7 @@ namespace SS_CAM.Services
                         {
                             var matched = staffList.Find(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase) ||
                                                               string.Equals(s.StaffId, name, StringComparison.OrdinalIgnoreCase));
-                            if (matched != null && !WorkloadSlaService.IsDesignerOrAdminRole(matched.Role, matched.Department))
+                            if (matched != null && !WorkloadSlaService.IsDesignerOrAdminRole(matched.Role, matched.Department, matched.Roles))
                             {
                                 continue; // Exclude manager role
                             }

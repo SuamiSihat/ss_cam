@@ -44,7 +44,10 @@ namespace SS_CAM.Linux.Services
                     _mpvProcess.Dispose();
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RadioStreamService.Linux] StopRadio error: {ex.Message}");
+            }
             finally
             {
                 _mpvProcess = null;

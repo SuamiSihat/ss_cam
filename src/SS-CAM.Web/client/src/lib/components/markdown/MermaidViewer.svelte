@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import DOMPurify from 'dompurify';
   import { appState } from '$lib/stores/appState.svelte';
 
   interface Props {
@@ -33,7 +34,7 @@
       mermaid.initialize({
         startOnLoad: false,
         theme: isDark ? 'dark' : 'default',
-        securityLevel: 'loose',
+        securityLevel: 'strict',
         fontFamily: 'Segoe UI, sans-serif',
         themeVariables: {
           primaryColor: isDark ? '#0F1A3A' : '#EBF4FE',
@@ -49,7 +50,7 @@
       const cleanCode = chartCode.trim();
       const uniqueId = `mermaid-chart-${Math.random().toString(36).substring(2, 9)}`;
       const { svg } = await mermaid.render(uniqueId, cleanCode);
-      svgContent = svg;
+      svgContent = DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true } });
       renderError = null;
     } catch (err: any) {
       console.warn('[Mermaid Render Warning]', err.message);

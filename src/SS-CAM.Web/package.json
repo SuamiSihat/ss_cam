@@ -1,6 +1,6 @@
 {
   "name": "ss-cam-web-portal",
-  "version": "4.10.2",
+  "version": "4.11.1",
   "description": "SuamiSihat Creative Team Management Web Portal",
   "main": "server/index.js",
   "scripts": {
@@ -20,6 +20,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
     "js-yaml": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1"
@@ -39,6 +41,7 @@
     "dompurify": "^3.4.13",
     "marked": "^18.0.9",
     "mermaid": "^11.16.1",
+    "supertest": "^7.3.0",
     "svelte": "^5.56.9",
     "svelte-check": "^4.7.6",
     "svelte-spa-router": "^5.1.1",

@@ -65,8 +65,15 @@ namespace SS_CAM
                 try
                 {
                     RefreshProfileUI();
-                    CheckFirstRunProfileSetup();
-                    App.LogTrace("MainWindow: ProfileSetup done");
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try
+                        {
+                            CheckFirstRunProfileSetup();
+                            App.LogTrace("MainWindow: ProfileSetup done");
+                        }
+                        catch (Exception ex) { App.LogTrace("MainWindow: Profile setup error: " + ex.Message); }
+                    }), DispatcherPriority.ApplicationIdle);
                 }
                 catch (Exception ex) { App.LogTrace("MainWindow: Profile setup error: " + ex.Message); }
 
@@ -1139,7 +1146,10 @@ namespace SS_CAM
                     UseShellExecute = true
                 });
             }
-            catch { /* fall through to status check */ }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[MainWindow] Navigate portal: " + ex.Message);
+            }
             TriggerNasHealthCheck();
         }
 
@@ -1202,7 +1212,10 @@ namespace SS_CAM
                     }
                 }
             }
-            catch { /* silent – no connection or NAS offline, skip update check */ }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[MainWindow] CheckForUpdatesAsync: " + ex.Message);
+            }
         }
 
         private void ShowUpdateBanner(string message)

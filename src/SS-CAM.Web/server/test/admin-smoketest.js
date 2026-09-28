@@ -10,6 +10,12 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
+const sandboxWorkspace = path.resolve(__dirname, '../../sample-workspace');
+if (!process.env.WORKSPACE_ROOT) {
+  process.env.WORKSPACE_ROOT = sandboxWorkspace;
+}
+process.env.NODE_ENV = 'test';
+
 const apiRoutes = require('../routes/api');
 const { generateToken } = require('../middleware/auth');
 const TeamService = require('../services/TeamService');
@@ -201,7 +207,13 @@ async function runAdminSmoketest() {
     });
 
   } finally {
-    server.close();
+    if (WorkspaceService.watcher) {
+      try { await WorkspaceService.watcher.close(); } catch (e) {
+        console.debug('[Smoketest] Watcher close error:', e.message);
+      }
+    }
+    await new Promise(resolve => server.close(resolve));
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   console.log('\n================================================================');

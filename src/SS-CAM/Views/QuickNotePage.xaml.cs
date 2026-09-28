@@ -25,7 +25,8 @@ namespace SS_CAM.Views
         private int _currentViewMode = 0; // 0 = Split, 1 = Edit, 2 = Preview
         private int _currentSortIndex = 0; // 0 = Recently Edited, 1 = Date Created, 2 = Title A-Z, 3 = Priority
         private bool _isZenMode = false;
-        private double _previousSidebarWidth = 300;
+        private bool _isSidebarVisible = true;
+        private double _previousSidebarWidth = 320;
 
         public QuickNotePage()
         {
@@ -237,25 +238,103 @@ namespace SS_CAM.Views
             RefreshNoteListAndKeepSelection(_currentNote.FilePath);
         }
 
+        private void OnToggleSidebarClicked(object sender, RoutedEventArgs e)
+        {
+            ToggleSidebar();
+        }
+
         private void OnToggleZenClicked(object sender, RoutedEventArgs e)
         {
-            _isZenMode = !_isZenMode;
-            if (_isZenMode)
+            ToggleSidebar();
+        }
+
+        private void ToggleSidebar()
+        {
+            SetSidebarVisibility(!_isSidebarVisible);
+        }
+
+        private void SetSidebarVisibility(bool isVisible)
+        {
+            _isSidebarVisible = isVisible;
+            _isZenMode = !isVisible;
+
+            if (!isVisible)
             {
-                if (ColSidebar.Width.Value > 0) _previousSidebarWidth = ColSidebar.Width.Value;
-                ColSidebar.Width = new GridLength(0);
-                ColMainSplitter.Width = new GridLength(0);
-                MainPaneSplitter.Visibility = Visibility.Collapsed;
-                BtnToggleZen.Appearance = Wpf.Ui.Controls.ControlAppearance.Primary;
-                BtnToggleZen.ToolTip = "Exit Focus Mode (Show Sidebar)";
+                if (ColSidebar != null)
+                {
+                    if (ColSidebar.ActualWidth > 80)
+                        _previousSidebarWidth = ColSidebar.ActualWidth;
+                    else if (ColSidebar.Width.IsAbsolute && ColSidebar.Width.Value > 80)
+                        _previousSidebarWidth = ColSidebar.Width.Value;
+
+                    ColSidebar.MinWidth = 0;
+                    ColSidebar.Width = new GridLength(0);
+                }
+
+                if (ColMainSplitter != null) ColMainSplitter.Width = new GridLength(0);
+                if (MainPaneSplitter != null) MainPaneSplitter.Visibility = Visibility.Collapsed;
+                if (SidebarContainer != null) SidebarContainer.Visibility = Visibility.Collapsed;
+
+                if (BtnToggleNotesSidebar != null)
+                {
+                    BtnToggleNotesSidebar.Appearance = Wpf.Ui.Controls.ControlAppearance.Primary;
+                    BtnToggleNotesSidebar.ToolTip = "Show Notes List (Restore sidebar)";
+                }
+                if (IconToggleNotesSidebar != null)
+                {
+                    IconToggleNotesSidebar.Symbol = Wpf.Ui.Controls.SymbolRegular.PanelRightExpand20;
+                }
+                if (TxtToggleNotesSidebar != null)
+                {
+                    TxtToggleNotesSidebar.Text = "Show Notes";
+                }
+
+                if (BtnToggleZen != null)
+                {
+                    BtnToggleZen.Appearance = Wpf.Ui.Controls.ControlAppearance.Primary;
+                    BtnToggleZen.ToolTip = "Restore Sidebar (Exit Maximized Editor)";
+                }
+                if (IconToggleZen != null)
+                {
+                    IconToggleZen.Symbol = Wpf.Ui.Controls.SymbolRegular.FullScreenMinimize24;
+                }
             }
             else
             {
-                ColSidebar.Width = new GridLength(_previousSidebarWidth > 0 ? _previousSidebarWidth : 300);
-                ColMainSplitter.Width = new GridLength(14);
-                MainPaneSplitter.Visibility = Visibility.Visible;
-                BtnToggleZen.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
-                BtnToggleZen.ToolTip = "Toggle Distraction-Free Focus Mode";
+                double targetWidth = _previousSidebarWidth >= 200 ? _previousSidebarWidth : 320;
+                if (ColSidebar != null)
+                {
+                    ColSidebar.MinWidth = 240;
+                    ColSidebar.Width = new GridLength(targetWidth);
+                }
+
+                if (ColMainSplitter != null) ColMainSplitter.Width = new GridLength(14);
+                if (MainPaneSplitter != null) MainPaneSplitter.Visibility = Visibility.Visible;
+                if (SidebarContainer != null) SidebarContainer.Visibility = Visibility.Visible;
+
+                if (BtnToggleNotesSidebar != null)
+                {
+                    BtnToggleNotesSidebar.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
+                    BtnToggleNotesSidebar.ToolTip = "Hide Notes List (Maximize editor)";
+                }
+                if (IconToggleNotesSidebar != null)
+                {
+                    IconToggleNotesSidebar.Symbol = Wpf.Ui.Controls.SymbolRegular.PanelRight24;
+                }
+                if (TxtToggleNotesSidebar != null)
+                {
+                    TxtToggleNotesSidebar.Text = "Hide Notes";
+                }
+
+                if (BtnToggleZen != null)
+                {
+                    BtnToggleZen.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
+                    BtnToggleZen.ToolTip = "Maximize Note Editor (Hide Sidebar)";
+                }
+                if (IconToggleZen != null)
+                {
+                    IconToggleZen.Symbol = Wpf.Ui.Controls.SymbolRegular.FullScreenMaximize24;
+                }
             }
         }
 
@@ -961,6 +1040,11 @@ namespace SS_CAM.Views
                 {
                     e.Handled = true;
                     DoAutoSave();
+                }
+                else if (e.Key == Key.B || e.Key == Key.OemPipe || e.Key == Key.OemBackslash)
+                {
+                    e.Handled = true;
+                    ToggleSidebar();
                 }
             }
         }

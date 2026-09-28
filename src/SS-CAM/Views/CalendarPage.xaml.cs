@@ -140,7 +140,7 @@ namespace SS_CAM.Views
                             {
                                 var matched = staffList.Find(s => string.Equals(s.Name, p.Designer, StringComparison.OrdinalIgnoreCase) ||
                                                                   string.Equals(s.StaffId, p.Designer, StringComparison.OrdinalIgnoreCase));
-                                if (matched != null && !WorkloadSlaService.IsDesignerOrAdminRole(matched.Role, matched.Department))
+                                if (matched != null && !WorkloadSlaService.IsDesignerOrAdminRole(matched.Role, matched.Department, matched.Roles))
                                 {
                                     continue; // Exclude manager role
                                 }

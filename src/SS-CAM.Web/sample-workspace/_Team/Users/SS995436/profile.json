@@ -1,0 +1,16 @@
+{
+  "staffId": "SS995436",
+  "username": "admin_user_ss995436",
+  "name": "Admin Added User",
+  "email": "admin_user_ss995436@suamisihat.com",
+  "role": "Designer",
+  "roles": [
+    "Designer"
+  ],
+  "department": "Creative Production",
+  "defaultBrand": "SS",
+  "avatar": "",
+  "avatarUrl": "",
+  "avatarColor": "#0078D4",
+  "active": true
+}

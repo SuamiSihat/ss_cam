@@ -65,7 +65,9 @@ class ExportService {
             }
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[ExportService] Scan deliverables dirs error:', e.message);
+      }
     }
 
     // 2. Mockups (optional)

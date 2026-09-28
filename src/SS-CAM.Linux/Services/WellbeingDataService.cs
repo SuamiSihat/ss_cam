@@ -42,7 +42,10 @@ namespace SS_CAM.Linux.Services
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[WellbeingDataService] LoadState error: {ex.Message}");
+            }
 
             return new WellbeingState();
         }
@@ -56,7 +59,10 @@ namespace SS_CAM.Linux.Services
                 string json = JsonConvert.SerializeObject(state, Formatting.Indented);
                 File.WriteAllText(DataFile, json);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[WellbeingDataService] SaveState error: {ex.Message}");
+            }
         }
     }
 }

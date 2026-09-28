@@ -92,6 +92,21 @@ Do not introduce visually different versions of an existing component without a 
 4. **IsEditable Consistency**:
    - For `IsEditable="True"` ComboBoxes, ensure programmatic value assignment populates clean, matched descriptive items or properly formatted strings rather than bare numbers or fragmented values that clash with display options.
 
+## Scrollbar & Overflow Standard — MANDATORY
+
+**Scrollbars must never overlap, obscure, collide with, or render across content, text, icons, buttons, or interactive controls.**
+
+1. **Anti-Overlap Geometry & Dedicated Breathing Room**:
+   - Modern Windows 11 / WPF-UI scrollbars use overlay rendering by default. Containers must provide adequate inner padding (e.g. `Padding="0,0,0,10"` or `Padding="0,0,12,0"`) so that scrollbar thumbs and tracks float in dedicated blank margin space, never across the baseline or glyphs of text or buttons.
+   - For vertical scrolling in page content, cards, and drawers, always provide trailing padding (canonical minimum: `Padding="12"` to `16`) so vertical scrollbars do not cover text, action buttons, or control borders.
+2. **Chips, Filters & Toolbars — Prefer WrapPanel over Horizontal ScrollViewer**:
+   - Never place discrete action chips, tag buttons, or pill bars inside a tight `ScrollViewer` with `HorizontalScrollBarVisibility="Auto"` without dedicated bottom padding.
+   - For multi-chip rows (e.g. filter chips, categories, tags), prefer `<WrapPanel Orientation="Horizontal">` so items flow naturally into rows without generating an overlapping horizontal scrollbar track across button labels.
+   - If a horizontal scroll viewer is strictly required for wide content, set `HorizontalScrollBarVisibility="Hidden"` with mouse-wheel or navigation controls, or ensure explicit height and bottom padding (`Padding="0,0,0,12"`) isolates the scrollbar track below all interactive elements.
+3. **List & DataGrid Horizontal Scroll Protection**:
+   - Always set `ScrollViewer.HorizontalScrollBarVisibility="Disabled"` on `<ListBox>`, `<ListView>`, and item collections unless individual items explicitly require horizontal scrolling.
+   - Ensure item templates use `HorizontalAlignment="Stretch"` and text controls use `TextTrimming="CharacterEllipsis"` with appropriate tooltips rather than letting unbounded text trigger an unwanted horizontal scrollbar across item cards.
+
 ---
 
 # COMPONENT RULE
