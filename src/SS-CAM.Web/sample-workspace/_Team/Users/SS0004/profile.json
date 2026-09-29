@@ -7,7 +7,7 @@
   "department": "Creative Production",
   "defaultBrand": "SSH",
   "avatarColor": "#0078D4",
-  "active": true,
+  "active": false,
   "password": "",
   "roles": [
     "Designer",
