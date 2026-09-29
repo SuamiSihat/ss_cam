@@ -1,5 +1,27 @@
 # SS-CAM FIX LOG
 
+## Release: v4.12.0 — Advanced Batch Operations & Studio Archive Vault — 2026-09-29
+- **Track 1: Batch Archive Vault & Cold Storage Optimizer**:
+  - Created `ArchiveCatalogEntry.cs` and `ArchiveVaultService.cs` supporting multi-select project archival into cold-storage ZIPs on NAS (`_Archive/[YYYY]/[YYYYMM]/`).
+  - Added JSONL catalog append logging (`_archive_catalog.jsonl`) recording batch GUID, operator, project list, compressed bytes, and status.
+  - Built interactive `ArchiveVaultPage.xaml(.cs)` adhering to Fluent 2 with 4 summary KPI tiles, batch progress bar, and catalog history viewer.
+  - Implemented Web Portal `POST /api/projects/archive` endpoint with canonical RBAC (`admin`, `designer`) and SSE broadcast.
+- **Track 2: Multi-Format Asset Transcoder Bridge**:
+  - Implemented `TranscodeJob.cs` model and `TranscoderService.cs` FFmpeg engine wrapper with multi-tier discovery (UserProfile -> payload -> PATH -> WinGet).
+  - Built preset argument builders for WebP, AVIF, WebM, Social GIF, and H.264 MP4 with real-time `stderr` progress reporting.
+  - Created `TranscoderBridgePage.xaml(.cs)` with drag-and-drop batch queue, preset dropdown, and status badges.
+  - Integrated right-click context menu on `SearchCopyPage.xaml(.cs)` asset cards for instant WebP/AVIF conversions.
+  - Implemented Web Portal `POST /api/assets/transcode` endpoint with strict workspace root traversal guards.
+- **Track 3: Studio Radio & Rhythm Visualizer Upgrades**:
+  - Added 3 live radio stations to `RadioStreamService.cs`: Chillhop Radio, SomaFM: Secret Agent, and SomaFM: Drone Zone.
+  - Implemented 3 rhythm particle visualizer presets in `VisualizerService.cs`: `GalaxyDrift`, `FrequencyBars`, and `PulseRing`.
+  - Added preset selector `ComboBox` (`MinHeight="36"`) to `RadioPage.xaml` hero transport strip with bidirectional UI sync.
+- **Automated Verification & Dual-Track Governance**:
+  - Source Guardian: 10 passed, 3 warned, 0 failed (UTF-8 BOM intact across all `.cs` and `.xaml` files).
+  - Web Verification Suite: 58 passed, 0 failed (51 unit tests + 7 admin smoketests).
+  - Dual-Track Governance Gatekeeper: 3/3 checks passed.
+  - Release MSBuild: compiled cleanly to `bin/Release/SS-CAM.exe`.
+
 ## Fix: Phase 5 — Verification & Release Preparation (Branch: fix/p5-release) — 2026-09-28
 - **Ecosystem Test Suite & Build Verification (Task 5.1)**:
   - Executed full automated verification across all platforms:

@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Input;
+using System.Windows.Threading;
 using System.Threading.Tasks;
 
 using SS_CAM.Models;
@@ -1146,6 +1147,100 @@ namespace SS_CAM.Views
             {
                 System.Diagnostics.Debug.WriteLine("[SearchCopyPage] OnAiBriefAuditClicked error: " + ex.Message);
                 NotificationService.ShowError("AI Audit Error", ex.Message);
+            }
+        }
+
+        // ─── Image Gallery Context Actions ───────────────────────────────────────
+
+        private ProjectImageItem GetContextImageItem(object sender)
+        {
+            var menuItem = sender as FrameworkElement;
+            var item = menuItem != null ? menuItem.DataContext as ProjectImageItem : null;
+            if (item == null && ImageGalleryList != null)
+            {
+                item = ImageGalleryList.SelectedItem as ProjectImageItem;
+            }
+            return item;
+        }
+
+        private void OnGalleryContextConvertToWebP(object sender, RoutedEventArgs e)
+        {
+            var item = GetContextImageItem(sender);
+            if (item == null || string.IsNullOrEmpty(item.FullPath) || !File.Exists(item.FullPath)) return;
+
+            ExecuteGalleryTranscode(item.FullPath, TranscodePreset.WebP_Image, "WebP");
+        }
+
+        private void OnGalleryContextConvertToAvif(object sender, RoutedEventArgs e)
+        {
+            var item = GetContextImageItem(sender);
+            if (item == null || string.IsNullOrEmpty(item.FullPath) || !File.Exists(item.FullPath)) return;
+
+            ExecuteGalleryTranscode(item.FullPath, TranscodePreset.Avif_Image, "AVIF");
+        }
+
+        private void ExecuteGalleryTranscode(string sourcePath, TranscodePreset preset, string formatName)
+        {
+            NotificationService.ShowInfo("Transcoding " + formatName, "Converting " + Path.GetFileName(sourcePath) + " in background...");
+
+            Task.Factory.StartNew(delegate
+            {
+                try
+                {
+                    var job = new TranscodeJob
+                    {
+                        SourceFilePath = sourcePath,
+                        Preset = preset,
+                        OutputFilePath = TranscoderService.GetDefaultOutputPath(sourcePath, preset, null)
+                    };
+
+                    var result = TranscoderService.ExecuteJob(job, null);
+                    Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                    {
+                        if (result.Success)
+                        {
+                            NotificationService.ShowSuccess(formatName + " Created", string.Format("Saved {0} ({1:0.#} KB)", Path.GetFileName(result.OutputPath), result.OutputSizeBytes / 1024.0));
+                            LoadProjectImages();
+                        }
+                        else
+                        {
+                            NotificationService.ShowError("Conversion Failed", result.ErrorMessage);
+                        }
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SearchCopyPage] ExecuteGalleryTranscode: " + ex.Message);
+                    Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                    {
+                        NotificationService.ShowError("Conversion Error", ex.Message);
+                    }));
+                }
+            });
+        }
+
+        private void OnGalleryContextCompareDiff(object sender, RoutedEventArgs e)
+        {
+            var item = GetContextImageItem(sender);
+            if (item != null && !string.IsNullOrEmpty(item.FullPath) && File.Exists(item.FullPath))
+            {
+                OpenVisualDiff(item.FullPath);
+            }
+        }
+
+        private void OnGalleryContextRevealFile(object sender, RoutedEventArgs e)
+        {
+            var item = GetContextImageItem(sender);
+            if (item != null && !string.IsNullOrEmpty(item.FullPath) && File.Exists(item.FullPath))
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + item.FullPath + "\"");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SearchCopyPage] RevealFile: " + ex.Message);
+                }
             }
         }
     }

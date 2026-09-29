@@ -795,6 +795,22 @@ namespace SS_CAM.Services
                     });
                 }
 
+                // Ensure v4.12.0 stations are present
+                if (!AllStations.Any(s => s.Id == "preset_chillhop_lofi" || (s.Name.Contains("Chillhop") && s.Genre.Contains("Lo-Fi"))))
+                {
+                    AllStations.Add(GetChillhopLofiStation());
+                }
+
+                if (!AllStations.Any(s => s.Id == "preset_secretagent" || s.Name.Contains("Secret Agent")))
+                {
+                    AllStations.Add(GetSecretAgentStation());
+                }
+
+                if (!AllStations.Any(s => s.Id == "preset_dronezone" || s.Name.Contains("Drone Zone")))
+                {
+                    AllStations.Add(GetDroneZoneStation());
+                }
+
                 // Ensure Groove Salad is present
                 if (!AllStations.Any(s => s.Id == "preset_groovesalad" || s.Name.Contains("Groove Salad")))
                 {
@@ -936,6 +952,57 @@ namespace SS_CAM.Services
             };
         }
 
+        public static RadioStation GetChillhopLofiStation()
+        {
+            return new RadioStation
+            {
+                Id = "preset_chillhop_lofi",
+                Name = "Chillhop Radio",
+                Genre = "Lo-Fi Hip Hop",
+                StreamUrl = "https://stream.laut.fm/lofi",
+                CoverImageUrl = "https://i.scdn.co/image/ab67706f00000002cace35082e7f8b2b88282e38",
+                IconEmoji = "\uD83C\uDFA7",
+                IsPreset = true,
+                Language = "Instrumental",
+                Country = "International",
+                Description = "Relaxed lo-fi hip hop beats to study, design, and create to. 24/7 chill vibes."
+            };
+        }
+
+        public static RadioStation GetSecretAgentStation()
+        {
+            return new RadioStation
+            {
+                Id = "preset_secretagent",
+                Name = "SomaFM: Secret Agent",
+                Genre = "Jazz / Spy Lounge",
+                StreamUrl = "https://ice6.somafm.com/secretagent-128-mp3",
+                CoverImageUrl = "https://somafm.com/img3/secretagent-400.jpg",
+                IconEmoji = "\uD83C\uDD7A",
+                IsPreset = true,
+                Language = "Instrumental",
+                Country = "International",
+                Description = "The soundtrack for your stylish, mysterious, jet-setting lifestyle. Lounge and jazz for creative nights."
+            };
+        }
+
+        public static RadioStation GetDroneZoneStation()
+        {
+            return new RadioStation
+            {
+                Id = "preset_dronezone",
+                Name = "SomaFM: Drone Zone",
+                Genre = "Ambient / Deep Focus",
+                StreamUrl = "https://ice6.somafm.com/dronezone-256-mp3",
+                CoverImageUrl = "https://somafm.com/img3/dronezone-400.jpg",
+                IconEmoji = "\uD83C\uDF0C",
+                IsPreset = true,
+                Language = "Instrumental",
+                Country = "International",
+                Description = "Served best on headphones. An infinite drift through ambient space and deep atmospheric textures."
+            };
+        }
+
         public static List<RadioStation> GetDefaultPresetStations()
         {
             return new List<RadioStation>
@@ -1008,9 +1075,13 @@ namespace SS_CAM.Services
                     IconEmoji = "🎷",
                     IsPreset = true,
                     Description = "Smooth instrumental jazz for deep concentration."
-                }
+                },
+                GetChillhopLofiStation(),
+                GetSecretAgentStation(),
+                GetDroneZoneStation()
             };
         }
+
 
         public void PlayStation(RadioStation station)
         {

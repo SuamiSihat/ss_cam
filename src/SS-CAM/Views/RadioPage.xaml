@@ -244,10 +244,33 @@
 
                         <!-- Stop Button -->
                         <ui:Button x:Name="HeroStopBtn" Click="OnHeroStopClicked" Appearance="Secondary"
-                                   Width="36" Height="36" Padding="0" Margin="0,0,4,0" Cursor="Hand" ToolTip="Stop Stream">
+                                   Width="36" Height="36" Padding="0" Margin="0,0,12,0" Cursor="Hand" ToolTip="Stop Stream">
                             <ui:TextBlock Text="&#xE71A;" FontFamily="Segoe Fluent Icons" FontSize="14"/>
                         </ui:Button>
+
+                        <!-- Visualizer Preset Selector -->
+                        <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+                            <TextBlock Text="VISUALIZER" FontSize="9" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="2,0,0,3"/>
+                            <ComboBox x:Name="VisualizerComboBox"
+                                      SelectionChanged="OnVisualizerComboSelectionChanged"
+                                      MinWidth="148" MinHeight="36"
+                                      VerticalContentAlignment="Center"
+                                      Padding="10,0"
+                                      FontSize="12" Cursor="Hand"
+                                      ToolTip="Select visualizer preset">
+                                <ComboBoxItem Content="Hero Mesh" Tag="HeroMesh" IsSelected="True"/>
+                                <ComboBoxItem Content="Spectrum Bars" Tag="SpectrumBars"/>
+                                <ComboBoxItem Content="Waveform" Tag="Waveform"/>
+                                <ComboBoxItem Content="Water Drop" Tag="WaterDrop"/>
+                                <ComboBoxItem Content="Galaxy Drift" Tag="GalaxyDrift"/>
+                                <ComboBoxItem Content="Frequency Bars" Tag="FrequencyBars"/>
+                                <ComboBoxItem Content="Pulse Ring" Tag="PulseRing"/>
+                            </ComboBox>
+                        </StackPanel>
                     </StackPanel>
+
                 </Grid>
             </Grid>
         </Border>

@@ -2344,6 +2344,62 @@ This is the project brief content.
     }
   });
 
+  // ─── TEST: Batch Archive Vault Service & Catalog ───────────────────
+  test('ExportService.archiveBatch packages multiple projects and appends to _archive_catalog.jsonl', async () => {
+    const ExportService = require('../services/ExportService');
+    const testArchiveDir = path.join(__dirname, 'temp-test-archive-root');
+    const proj1 = path.join(testArchiveDir, 'TEST_001_Alpha');
+    const proj2 = path.join(testArchiveDir, 'TEST_002_Beta');
+
+    fs.mkdirSync(path.join(proj1, '05_DELIVERABLES'), { recursive: true });
+    fs.writeFileSync(path.join(proj1, 'README.md'), '# Alpha Project\n');
+    fs.writeFileSync(path.join(proj1, '05_DELIVERABLES', 'asset.png'), 'fake-png-content');
+
+    fs.mkdirSync(path.join(proj2, '05_DELIVERABLES'), { recursive: true });
+    fs.writeFileSync(path.join(proj2, 'README.md'), '# Beta Project\n');
+    fs.writeFileSync(path.join(proj2, '05_DELIVERABLES', 'banner.jpg'), 'fake-jpg-content');
+
+    try {
+      const res = await ExportService.archiveBatch([proj1, proj2], testArchiveDir, { copyOnly: true }, 'test-user');
+      assert.strictEqual(res.success, true);
+      assert.strictEqual(res.projectCount, 2);
+      assert.ok(fs.existsSync(res.zipFilePath), 'ZIP archive should exist on disk');
+      assert.ok(res.zipSizeBytes > 0, 'ZIP size should be greater than zero');
+
+      const catalogPath = path.join(testArchiveDir, '_Archive', '_archive_catalog.jsonl');
+      assert.ok(fs.existsSync(catalogPath), 'Catalog JSONL file should exist');
+      const catalogContent = fs.readFileSync(catalogPath, 'utf8');
+      assert.ok(catalogContent.includes('TEST_001_Alpha'));
+      assert.ok(catalogContent.includes('TEST_002_Beta'));
+    } finally {
+      try { fs.rmSync(testArchiveDir, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
+  // ─── TEST: Multi-Format Asset Transcoder Bridge ────────────────────
+  test('ExportService.transcodeAsset converts image assets to WebP via FFmpeg', async () => {
+    const ExportService = require('../services/ExportService');
+    const testTranscodeDir = path.join(__dirname, 'temp-test-transcode');
+    fs.mkdirSync(testTranscodeDir, { recursive: true });
+
+    // Find sample asset
+    const sourcePng = path.resolve(__dirname, '../../../../payload/Brand Assets/Logos/ss_icon_light.png');
+    if (!fs.existsSync(sourcePng)) {
+      try { fs.rmSync(testTranscodeDir, { recursive: true, force: true }); } catch (e) {}
+      return;
+    }
+
+    try {
+      const res = await ExportService.transcodeAsset(sourcePng, 'webp', testTranscodeDir);
+      assert.strictEqual(res.success, true);
+      assert.ok(fs.existsSync(res.outputPath), 'Transcoded WebP file should exist on disk');
+      assert.ok(res.outputSizeBytes > 0, 'Transcoded output size should be > 0 bytes');
+      assert.ok(res.outputPath.endsWith('.webp'), 'Output extension should be .webp');
+    } finally {
+      try { fs.rmSync(testTranscodeDir, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {

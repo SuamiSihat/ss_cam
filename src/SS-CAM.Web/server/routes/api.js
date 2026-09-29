@@ -469,6 +469,74 @@ router.get('/projects/:id/export', (req, res) => {
   }
 });
 
+router.post('/projects/archive', authenticateToken, requireRole('admin', 'designer'), async (req, res) => {
+  try {
+    const { projectIds, archiveRoot, copyOnly } = req.body;
+    if (!Array.isArray(projectIds) || projectIds.length === 0) {
+      return res.status(400).json({ error: 'projectIds array is required.' });
+    }
+
+    const projectPaths = [];
+    for (const id of projectIds) {
+      const p = WorkspaceService.getProject(id);
+      if (p && p.fullPath && fs.existsSync(p.fullPath)) {
+        projectPaths.push(p.fullPath);
+      }
+    }
+
+    if (projectPaths.length === 0) {
+      return res.status(404).json({ error: 'No matching project directories found for provided projectIds.' });
+    }
+
+    const username = req.user ? (req.user.username || req.user.name) : 'system';
+    const result = await ExportService.archiveBatch(projectPaths, archiveRoot, { copyOnly }, username);
+
+    SseService.broadcast('workspace:archived', {
+      projectCount: result.projectCount,
+      zipPath: result.zipFilePath
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('[API] /projects/archive error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/assets/transcode', authenticateToken, async (req, res) => {
+  try {
+    const { sourcePath, preset, destinationDir } = req.body;
+    if (!sourcePath || !preset) {
+      return res.status(400).json({ error: 'sourcePath and preset are required.' });
+    }
+
+    // Security check: Must reside within workspace root
+    const resolvedSource = path.resolve(sourcePath);
+    const activeRoot = path.resolve(WorkspaceService.workspaceRoot || config.WORKSPACE_ROOT);
+    if (!resolvedSource.startsWith(activeRoot) && !resolvedSource.startsWith(path.resolve(config.WORKSPACE_ROOT))) {
+      return res.status(403).json({ error: 'Access denied: source path is outside workspace root.' });
+    }
+
+    if (!fs.existsSync(resolvedSource)) {
+      return res.status(404).json({ error: 'Source asset file not found.' });
+    }
+
+    let resolvedDest = null;
+    if (destinationDir) {
+      resolvedDest = path.resolve(destinationDir);
+      if (!resolvedDest.startsWith(activeRoot) && !resolvedDest.startsWith(path.resolve(config.WORKSPACE_ROOT))) {
+        return res.status(403).json({ error: 'Access denied: destination directory is outside workspace root.' });
+      }
+    }
+
+    const result = await ExportService.transcodeAsset(resolvedSource, preset, resolvedDest);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('[API] /assets/transcode error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.delete('/projects/:id', authenticateToken, requireRole('admin'), (req, res) => {
   try {
 

@@ -1,6 +1,6 @@
 {
-  "version": "4.11.1",
-  "releaseNotes": "SS-CAM v4.11.1 Release — Security Hardening, Bcrypt Lazy Migration, Strict RBAC Authorization, Dynamic Android Keystore Signing & Repository Hygiene Remediation.",
-  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.11.1/SS-CAM-v4.11.1.exe",
-  "publishedAt": "2026-09-28"
+  "version": "4.12.0",
+  "releaseNotes": "SS-CAM v4.12.0 Release — Batch Archive Vault, Multi-Format Transcoder Bridge & Visualizer Upgrades.",
+  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.12.0/SS-CAM-v4.12.0.exe",
+  "publishedAt": "2026-09-29"
 }

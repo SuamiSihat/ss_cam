@@ -9,7 +9,10 @@ namespace SS_CAM.Services
         HeroMesh,        // Hero Mesh animated glowing aura
         SpectrumBars,    // Equalizer multi-bar frequency spectrum
         Waveform,        // Oscilloscope dynamic sine waveform
-        WaterDrop        // Concentric liquid water drop ripple path
+        WaterDrop,       // Concentric liquid water drop ripple path
+        GalaxyDrift,     // Slow-rotating star-field particles orbiting center
+        FrequencyBars,   // Classic EQ bar spectrum (12 bands) with brand-tinted gradient
+        PulseRing        // Concentric expanding rings from center on beat detection
     }
 
     public class RhythmFrameEventArgs : EventArgs
@@ -110,10 +113,14 @@ namespace SS_CAM.Services
             VisualizerMode next;
             switch (CurrentMode)
             {
-                case VisualizerMode.HeroMesh: next = VisualizerMode.SpectrumBars; break;
-                case VisualizerMode.SpectrumBars: next = VisualizerMode.Waveform; break;
-                case VisualizerMode.Waveform: next = VisualizerMode.WaterDrop; break;
-                case VisualizerMode.WaterDrop: default: next = VisualizerMode.HeroMesh; break;
+                case VisualizerMode.HeroMesh:      next = VisualizerMode.SpectrumBars;  break;
+                case VisualizerMode.SpectrumBars:  next = VisualizerMode.Waveform;      break;
+                case VisualizerMode.Waveform:      next = VisualizerMode.WaterDrop;     break;
+                case VisualizerMode.WaterDrop:     next = VisualizerMode.GalaxyDrift;   break;
+                case VisualizerMode.GalaxyDrift:   next = VisualizerMode.FrequencyBars; break;
+                case VisualizerMode.FrequencyBars: next = VisualizerMode.PulseRing;     break;
+                case VisualizerMode.PulseRing:
+                default:                           next = VisualizerMode.HeroMesh;      break;
             }
             SetMode(next);
             return next;

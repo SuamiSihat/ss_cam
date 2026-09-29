@@ -55,19 +55,21 @@
 | **v4.10.1** | 2026-09-15 | **Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine**: Migrated primary live stream endpoint to `https://radio.suamisihat.myds.me/listen` (192 kbps MP3 with live ICY broadcast metadata) across Desktop, Linux, and Android; automatic local config migration for existing user presets; native M3U/M3U8/PLS stream resolution and on-the-fly proxy redirection; `#EXTINF` metadata attributes parsing with relative path resolution; 1-click station playlist export (`.m3u` / `.m3u8`), online URL import, and verified stream testing |
 | **v4.10.2** | 2026-09-26 | **Cross-Platform 4-Date Schema Synchronization, Brief Attachment Handover & Universal Markdown Studio**: Canonical 4-date temporal schema across Web, Desktop, Linux, and Android (Created, Start, Deadline, Turnaround Duration); order attachment multi-file vault with 1-click handover to project `01_Brief_and_Copy/Brief_Assets/`; universal rich Markdown authoring toolbar across Web and Desktop |
 | **v4.11.0** | 2026-09-27 | **Dual-Track Commercialization Architecture, Multi-Tenant Plugin Engine & Open-Core Governance**: Modular plugin contract (`IAppPlugin`, `PluginRegistry`) decoupling auxiliary modules; dynamic tenant branding & color injection (`TenantConfigService`); commercial distribution landing portal (`docs/commercial-landing/`) with pricing tier calculator; sanitised customer public wiki (`docs/public-wiki/`); automated 3-stage dual-track gatekeeper (`QA/verify-dual-track.ps1`) |
+| **v4.11.1** | 2026-09-28 | **Security Hardening, RBAC Enforcement & Repository Hygiene Remediation**: Upgraded credential store to salted `bcryptjs` hashes with automated lazy migration; emergency bootstrap recovery password (`ADMIN_BOOTSTRAP_PASSWORD`); isolated `DATA_DIR` credential storage; production secret enforcement ($JWT\_SECRET \ge 32$ chars); exact canonical role matching (`hasCanonicalRole`, `requireRole('admin')`); unified staff handlers; Android release keystore untracking and dynamic signing; and 1,038 tracked build artifacts purged from Git index |
+| **v4.12.0** | 2026-09-29 | **Advanced Batch Operations & Studio Archive Vault**: Batch project archival into cold-storage ZIPs on Synology NAS (`ArchiveVaultService`, `ArchiveVaultPage`, `_archive_catalog.jsonl`); Multi-Format Asset Transcoder Bridge with multi-tier FFmpeg discovery, background queue GUI (`TranscoderBridgePage`), and deliverable gallery quick-actions; 3 new live radio stations (Chillhop, SomaFM Secret Agent, SomaFM Drone Zone); and 3 new rhythm particle visualizer modes (GalaxyDrift, FrequencyBars, PulseRing) |
 
 ---
 
-## 🎯 Active Milestone — v4.12.0: Advanced Batch Operations & Studio Archive Vault (Target: Q4 2026)
+## 🎯 Active Milestone — v4.13.0: Cloud Collaboration & Automated Production Delivery (Target: Q4 2026)
 
-### 1. Batch Vault Archival & Auto-Pruning
-* Multi-select project archival with automated cold-storage ZIP compression, metadata cataloging, and NAS storage quota optimization.
+### 1. Cloud Webhook Pipeline & Production Alerts
+* Bi-directional webhooks and Discord/Slack notification triggers on deliverable approval and handover export.
 
-### 2. Multi-Format Asset Transcoder Bridge
-* Direct background conversion for video/image assets (MP4 to WebM/GIF, PNG to AVIF/WebP) directly from project deliverable cards.
+### 2. Destructive Move-to-Archive & Automated NAS Pruning
+* Safe project pruning with multi-factor admin confirmation and dry-run storage quota analytics.
 
-### 3. Studio Audio & Radio Visualizer Upgrades
-* Additional live audio stream integrations and expanded visualizer particle presets.
+### 3. Deep Preflight Vector Dieline & Print Validator
+* Advanced color space CMYK/RGB inspection, bleed/slug dieline verification, and vector asset rasterization preflights.
 
 ---
 

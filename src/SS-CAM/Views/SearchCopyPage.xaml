@@ -433,6 +433,31 @@
                                             <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                                     BorderThickness="1" CornerRadius="8"
                                                     Width="210" Margin="6" Padding="8" Cursor="Hand">
+                                                <Border.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Convert to WebP (Lossy 85%)" Click="OnGalleryContextConvertToWebP">
+                                                            <MenuItem.Icon>
+                                                                <ui:SymbolIcon Symbol="ArrowSwap24" FontSize="14"/>
+                                                            </MenuItem.Icon>
+                                                        </MenuItem>
+                                                        <MenuItem Header="Convert to AVIF (Next-Gen)" Click="OnGalleryContextConvertToAvif">
+                                                            <MenuItem.Icon>
+                                                                <ui:SymbolIcon Symbol="ArrowSwap24" FontSize="14"/>
+                                                            </MenuItem.Icon>
+                                                        </MenuItem>
+                                                        <Separator/>
+                                                        <MenuItem Header="Compare in Visual Diff" Click="OnGalleryContextCompareDiff">
+                                                            <MenuItem.Icon>
+                                                                <ui:SymbolIcon Symbol="Eye24" FontSize="14"/>
+                                                            </MenuItem.Icon>
+                                                        </MenuItem>
+                                                        <MenuItem Header="Reveal in File Explorer" Click="OnGalleryContextRevealFile">
+                                                            <MenuItem.Icon>
+                                                                <ui:SymbolIcon Symbol="FolderOpen24" FontSize="14"/>
+                                                            </MenuItem.Icon>
+                                                        </MenuItem>
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
                                                 <StackPanel>
                                                     <Border Height="140" Background="{DynamicResource TextControlBackground}"
                                                             CornerRadius="6" Margin="0,0,0,6">

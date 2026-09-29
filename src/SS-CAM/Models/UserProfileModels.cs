@@ -19,6 +19,8 @@ namespace SS_CAM.Models
         public bool PrayerRemindersEnabled { get; set; }
         /// <summary>Audio visualizer mode: "HeroMesh", "SpectrumBars", "Waveform", "PulsatingOrb".</summary>
         public string VisualizerMode { get; set; }
+        /// <summary>Optional custom path to ffmpeg.exe executable.</summary>
+        public string FFmpegPath { get; set; }
         /// <summary>Whether profile has been configured by user or auto-discovered.</summary>
         public bool IsConfigured { get; set; }
 
@@ -35,6 +37,7 @@ namespace SS_CAM.Models
             PrayerZone = "WLY01";
             PrayerRemindersEnabled = true;
             VisualizerMode = "HeroMesh";
+            FFmpegPath = "";
             IsConfigured = false;
         }
     }

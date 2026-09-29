@@ -4,7 +4,7 @@
 
 Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Brand Asset Inspector · Synology NAS Native · Multi-Platform
 
-[![Release](https://img.shields.io/badge/release-v4.11.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.11.0)
+[![Release](https://img.shields.io/badge/release-v4.12.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.12.0)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20Linux%20%7C%20Android%20%7C%20Docker-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%208.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
 [![Web Stack](https://img.shields.io/badge/web-Svelte%205%20%2B%20Node.js%2020-ff3e00?style=flat-square)](https://svelte.dev)
@@ -12,6 +12,20 @@ Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Br
 [![License](https://img.shields.io/badge/licence-Internal%20Use-orange?style=flat-square)](./installer/EULA.txt)
 
 ---
+
+## 🚀 What's New in v4.12.0 ("Advanced Batch Operations & Studio Archive Vault")
+
+* **📦 Batch Archive Vault & Cold Storage Optimizer (`ArchiveVaultService`, `ArchiveVaultPage`)**:
+  * **Multi-Select Archival**: Batch-archive multiple completed projects directly to cold-storage ZIPs on Synology NAS (`_Archive/[YYYY]/[YYYYMM]/`).
+  * **Audit Catalog**: Append-only `_archive_catalog.jsonl` tracks operators, project IDs, timestamps, and compressed sizes.
+  * **Fluent 2 GUI & Storage KPIs**: Interactive desktop page with 4 KPI summary banners, real-time batch progress bar, and catalog history viewer.
+* **🎞️ Multi-Format Asset Transcoder Bridge (`TranscoderService`, `TranscoderBridgePage`)**:
+  * **FFmpeg Multi-Tier Discovery Engine**: Automatic detection across user preferences, `payload/ffmpeg/`, system `PATH`, and WinGet package stores.
+  * **Standard Presets**: Fast conversion to WebP (lossy 85%), AVIF (still), WebM (VP9/Opus), Social GIF (10s preview 480p), and MP4 Compress (H.264 faststart).
+  * **Studio Tool GUI & Deliverable Quick-Actions**: Drag-and-drop batch queue page with real-time `stderr` progress reporting, plus right-click instant conversion in the project Assets Gallery.
+* **📻 Studio Radio & Particle Visualizer Upgrades (`RadioStreamService`, `VisualizerService`)**:
+  * **New Live Streams**: Chillhop Radio, SomaFM: Secret Agent, and SomaFM: Drone Zone.
+  * **New Visualizer Presets**: `GalaxyDrift` (star-field orbit), `FrequencyBars` (12-band EQ spectrum), and `PulseRing` (concentric ripple rings) selectable directly from the Radio transport strip.
 
 ## 🚀 What's New in v4.11.0 ("Dual-Track Commercialization Architecture, Multi-Tenant Plugin Engine & Open-Core Governance")
 

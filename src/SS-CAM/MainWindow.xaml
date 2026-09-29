@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:views="clr-namespace:SS_CAM.Views"
-        Title="Creative Assets Management v4.11.0" Height="820" Width="1280"
+        Title="Creative Assets Management v4.12.0" Height="820" Width="1280"
         MinHeight="680" MinWidth="1024"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
@@ -250,6 +250,8 @@
                 <ui:NavigationViewItem Content="Task Manager"       Icon="{ui:SymbolIcon Checkmark24}"   TargetPageType="{x:Type views:TaskManagerPage}" NavigationCacheMode="Required" ToolTip="Kanban production board &amp; handovers" />
                 <ui:NavigationViewItem Content="Project Timeline"   Icon="{ui:SymbolIcon CalendarMonth24}" TargetPageType="{x:Type views:CalendarPage}" NavigationCacheMode="Required" ToolTip="Visual project calendar, Gantt &amp; deadlines" />
                 <ui:NavigationViewItem Content="Studio Notes"       Icon="{ui:SymbolIcon Document24}"    TargetPageType="{x:Type views:QuickNotePage}" NavigationCacheMode="Required" ToolTip="Quick scratchpad, briefs &amp; Markdown notes" />
+                <ui:NavigationViewItem Content="Archive Vault"       Icon="{ui:SymbolIcon Archive24}"      TargetPageType="{x:Type views:ArchiveVaultPage}" NavigationCacheMode="Required" ToolTip="Batch-archive completed projects into cold-storage ZIPs" />
+                <ui:NavigationViewItem Content="Transcoder Bridge"   Icon="{ui:SymbolIcon ArrowSwap24}"   TargetPageType="{x:Type views:TranscoderBridgePage}" NavigationCacheMode="Required" ToolTip="Multi-format asset conversion engine for web deliverables" />
 
                 <!-- 3. Studio Tools & Utilities -->
                 <ui:NavigationViewItemSeparator x:Name="ToolsSeparator" />

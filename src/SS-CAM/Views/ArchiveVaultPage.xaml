@@ -1,0 +1,428 @@
+﻿<!-- UTF-8 BOM required - do not remove -->
+<Page x:Class="SS_CAM.Views.ArchiveVaultPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      Title="Archive Vault">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,24,24,32"
+                  PreviewMouseWheel="OnScrollViewerPreviewMouseWheel">
+        <StackPanel>
+
+            <!-- ── Page Header ───────────────────────────────────── -->
+            <Grid Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <ui:SymbolIcon Symbol="Archive24" FontSize="24"
+                                       Foreground="{DynamicResource FluentBrand80}"
+                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ui:TextBlock Text="Archive Vault" FontSize="24" FontWeight="Bold"
+                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                      VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ui:TextBlock Text="Batch-archive completed projects into cold-storage ZIPs on NAS."
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                  FontSize="13" Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <ui:Button Grid.Column="1" Appearance="Secondary"
+                           Click="OnRefreshClicked" Height="34"
+                           Padding="16,0" VerticalAlignment="Top" Cursor="Hand"
+                           ToolTip="Re-scan workspace for archivable projects">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="ArrowSync24" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <ui:TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </ui:Button>
+            </Grid>
+
+            <!-- ── Storage Summary Banner ────────────────────────── -->
+            <ui:Card Padding="16,12" Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Projects available -->
+                    <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                        <ui:TextBlock x:Name="StatProjectCount" Text="-"
+                                      FontSize="28" FontWeight="Bold"
+                                      Foreground="{DynamicResource FluentBrand80}"
+                                      HorizontalAlignment="Center"/>
+                        <ui:TextBlock Text="Projects Found" FontSize="11"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Selected for batch -->
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                        <ui:TextBlock x:Name="StatSelectedCount" Text="0"
+                                      FontSize="28" FontWeight="Bold"
+                                      Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                      HorizontalAlignment="Center"/>
+                        <ui:TextBlock Text="Selected" FontSize="11"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Estimated size -->
+                    <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                        <ui:TextBlock x:Name="StatSizeMb" Text="-"
+                                      FontSize="28" FontWeight="Bold"
+                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                      HorizontalAlignment="Center"/>
+                        <ui:TextBlock Text="Est. Total MB" FontSize="11"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Archive ops completed -->
+                    <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                        <ui:TextBlock x:Name="StatArchiveOps" Text="-"
+                                      FontSize="28" FontWeight="Bold"
+                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                      HorizontalAlignment="Center"/>
+                        <ui:TextBlock Text="Ops in Catalog" FontSize="11"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </ui:Card>
+
+            <!-- ── Archive Root Config ───────────────────────────── -->
+            <ui:Card Padding="16,14" Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                        <ui:TextBlock Text="Archive Root (NAS)" FontSize="11" FontWeight="Bold"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtArchiveRoot" FontSize="12" Padding="8,6"
+                                 ToolTip="Absolute path to the _Archive directory on your NAS workspace"/>
+                    </StackPanel>
+
+                    <ui:Button Grid.Column="1" Appearance="Secondary" Click="OnBrowseArchiveRootClicked"
+                               Padding="12,0" Height="36" VerticalAlignment="Bottom"
+                               Margin="0,0,8,0" Cursor="Hand" ToolTip="Browse for archive root folder">
+                        <ui:SymbolIcon Symbol="Folder24" FontSize="14"/>
+                    </ui:Button>
+
+                    <ui:Button Grid.Column="2" Appearance="Secondary" Click="OnApplyArchiveRootClicked"
+                               Padding="14,0" Height="36" VerticalAlignment="Bottom"
+                               Cursor="Hand" ToolTip="Apply and scan archive root">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Checkmark24" FontSize="13" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <ui:TextBlock Text="Apply" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:Button>
+                </Grid>
+            </ui:Card>
+
+            <!-- ── Project Selection List ───────────────────────── -->
+            <ui:Card Padding="0" Margin="0,0,0,16">
+                <StackPanel>
+                    <!-- List header toolbar -->
+                    <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="0,0,0,1" Padding="16,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <CheckBox x:Name="ChkSelectAll"
+                                          Click="OnSelectAllClicked"
+                                          VerticalAlignment="Center" Margin="0,0,10,0"
+                                          ToolTip="Select / deselect all projects"/>
+                                <ui:TextBlock Text="Select All" FontSize="12" FontWeight="SemiBold"
+                                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                             VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Filter box -->
+                            <TextBox Grid.Column="1" x:Name="TxtProjectFilter"
+                                     Padding="8,6" FontSize="12" Margin="12,0"
+                                     TextChanged="OnProjectFilterChanged"
+                                     ToolTip="Filter projects by name"/>
+
+                            <!-- Status filters -->
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,8,0">
+                                <ComboBox x:Name="CmbStatusFilter"
+                                          SelectionChanged="OnStatusFilterChanged"
+                                          MinWidth="130" MinHeight="36"
+                                          VerticalContentAlignment="Center" Padding="10,0"
+                                          FontSize="12" ToolTip="Filter by project status">
+                                    <ComboBoxItem Content="All Statuses" IsSelected="True"/>
+                                    <ComboBoxItem Content="Delivered"/>
+                                    <ComboBoxItem Content="Completed"/>
+                                    <ComboBoxItem Content="Archived"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <ui:TextBlock Grid.Column="3" x:Name="ProjectListCountLabel"
+                                         Text="0 projects" FontSize="11"
+                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                         VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Empty state -->
+                    <Border x:Name="EmptyStatePanel" Padding="24,40" Visibility="Visible">
+                        <StackPanel HorizontalAlignment="Center">
+                            <ui:SymbolIcon Symbol="Archive24" FontSize="40"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                            <ui:TextBlock x:Name="EmptyStateText"
+                                         Text="Set an Archive Root above, then click Refresh to scan for archivable projects."
+                                         FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                         HorizontalAlignment="Center" TextAlignment="Center"
+                                         TextWrapping="Wrap" MaxWidth="460"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Project items list -->
+                    <ScrollViewer x:Name="ProjectListScroller"
+                                  MaxHeight="420" VerticalScrollBarVisibility="Auto"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                  Padding="0,0,0,8" Visibility="Collapsed">
+                        <ItemsControl x:Name="ProjectItemsControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="0,0,0,1" Padding="16,10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}"
+                                                      Click="OnProjectCheckClicked" Tag="{Binding}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <ui:TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                             FontSize="13"
+                                                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                             TextTrimming="CharacterEllipsis"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                    <ui:TextBlock Text="{Binding SizeLabel}" FontSize="11"
+                                                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                                 Margin="0,0,10,0"/>
+                                                    <Border Background="{DynamicResource FluentBrandLight}"
+                                                            CornerRadius="3" Padding="6,1">
+                                                        <ui:TextBlock Text="{Binding Status}" FontSize="9"
+                                                                     FontWeight="Bold"
+                                                                     Foreground="{DynamicResource FluentBrand80}"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <ui:TextBlock Grid.Column="2" Text="{Binding LastModifiedLabel}"
+                                                         FontSize="11"
+                                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                         VerticalAlignment="Center" Margin="12,0"/>
+
+                                            <ui:Button Grid.Column="3" Click="OnOpenProjectFolderClicked"
+                                                       Tag="{Binding}"
+                                                       Background="Transparent" BorderThickness="0"
+                                                       Padding="6" Cursor="Hand"
+                                                       ToolTip="Open in Explorer">
+                                                <ui:SymbolIcon Symbol="FolderOpen24" FontSize="14"
+                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </ui:Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- ── Batch Archive Action Bar ──────────────────────── -->
+            <ui:Card Padding="16,14" Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Options & Info -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <CheckBox x:Name="ChkCopyOnly" IsChecked="True" IsEnabled="False"
+                                  VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ui:TextBlock Text="Copy-only (non-destructive) - source folders preserved"
+                                      FontSize="12"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      VerticalAlignment="Center"/>
+                        <Border Background="{DynamicResource SystemFillColorSuccessBrush}"
+                                CornerRadius="4" Padding="6,2" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <ui:TextBlock Text="v4.12.0 Default" FontSize="9" FontWeight="Bold"
+                                         Foreground="White"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Archive CTA -->
+                    <ui:Button Grid.Column="1" x:Name="BtnArchive"
+                               Appearance="Primary" Click="OnArchiveBatchClicked"
+                               Height="38" Padding="20,0" Cursor="Hand"
+                               IsEnabled="False"
+                               ToolTip="Archive selected projects to NAS vault">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Archive24" FontSize="14"
+                                           Margin="0,0,7,0" VerticalAlignment="Center"/>
+                            <ui:TextBlock x:Name="BtnArchiveLabel" Text="Archive Selected (0)"
+                                         VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+                    </ui:Button>
+                </Grid>
+            </ui:Card>
+
+            <!-- ── Progress Bar (visible during operation) ───────── -->
+            <ui:Card x:Name="ProgressCard" Padding="16,14" Margin="0,0,0,16" Visibility="Collapsed">
+                <StackPanel>
+                    <Grid Margin="0,0,0,8">
+                        <ui:TextBlock x:Name="ProgressLabel" Text="Archiving..."
+                                      FontSize="13" FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <ui:TextBlock x:Name="ProgressCountLabel" Text="0 / 0"
+                                      FontSize="12"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      HorizontalAlignment="Right"/>
+                    </Grid>
+                    <ProgressBar x:Name="ArchiveProgressBar" Height="6"
+                                 Minimum="0" Maximum="100" Value="0"
+                                 Foreground="{DynamicResource FluentBrand80}"/>
+                    <ui:TextBlock x:Name="ProgressCurrentProject" Text=""
+                                  FontSize="11"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                  Margin="0,6,0,0" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- ── Result Banner ─────────────────────────────────── -->
+            <Border x:Name="ResultBanner" CornerRadius="8" Padding="16,12"
+                    Margin="0,0,0,16" Visibility="Collapsed"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon x:Name="ResultIcon" Symbol="Checkmark24"
+                                   FontSize="20" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <StackPanel Grid.Column="1">
+                        <ui:TextBlock x:Name="ResultTitle" Text="Archive Complete"
+                                      FontSize="14" FontWeight="Bold"
+                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <ui:TextBlock x:Name="ResultDetails" Text=""
+                                      FontSize="12"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                      Margin="0,3,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ── Catalog History ───────────────────────────────── -->
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <ui:TextBlock Text="Archive Catalog" FontSize="18" FontWeight="Bold"
+                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                             VerticalAlignment="Center"/>
+                <ui:Button Grid.Column="1" Appearance="Secondary" Click="OnOpenCatalogFileClicked"
+                           Padding="12,0" Height="32" Cursor="Hand"
+                           ToolTip="Open _archive_catalog.jsonl in default editor">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Document24" FontSize="13" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <ui:TextBlock Text="Open JSONL" VerticalAlignment="Center" FontSize="12"/>
+                    </StackPanel>
+                </ui:Button>
+            </Grid>
+
+            <ui:Card Padding="0" Margin="0,0,0,24">
+                <Grid>
+                <!-- Catalog empty state -->
+                <Border x:Name="CatalogEmptyPanel" Padding="24,32" Visibility="Visible">
+                    <ui:TextBlock Text="No archive operations recorded yet. Run your first batch archive to begin building the catalog."
+                                  FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                  HorizontalAlignment="Center" TextAlignment="Center"
+                                  TextWrapping="Wrap" MaxWidth="440"/>
+                </Border>
+
+                <!-- Catalog entries -->
+                <ScrollViewer x:Name="CatalogScroller" MaxHeight="340"
+                              VerticalScrollBarVisibility="Auto"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,0,0,8" Visibility="Collapsed">
+                    <ItemsControl x:Name="CatalogItemsControl">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="0,0,0,1" Padding="16,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Success/Fail indicator -->
+                                        <Border Grid.Column="0" Width="6" CornerRadius="3"
+                                                Background="{Binding StatusColor}"
+                                                Margin="0,0,12,0" VerticalAlignment="Stretch"/>
+
+                                        <StackPanel Grid.Column="1">
+                                            <ui:TextBlock Text="{Binding Summary}" FontSize="13"
+                                                         FontWeight="SemiBold"
+                                                         Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                                <ui:TextBlock Text="{Binding TimestampLabel}" FontSize="11"
+                                                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                             Margin="0,0,12,0"/>
+                                                <ui:TextBlock Text="{Binding OperatorLabel}" FontSize="11"
+                                                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                             Margin="0,0,12,0"/>
+                                                <ui:TextBlock Text="{Binding SizeLabel}" FontSize="11"
+                                                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <ui:TextBlock Grid.Column="2" Text="{Binding CountLabel}"
+                                                     FontSize="18" FontWeight="Bold"
+                                                     Foreground="{DynamicResource FluentBrand80}"
+                                                     VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                </Grid>
+            </ui:Card>
+
+        </StackPanel>
+    </ScrollViewer>
+
+</Page>

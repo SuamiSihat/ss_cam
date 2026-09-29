@@ -362,6 +362,40 @@ namespace SS_CAM.Views
                 HeroWaterDropPath.Visibility = (mode == VisualizerMode.WaterDrop) ? Visibility.Visible : Visibility.Collapsed;
                 if (HeroWaterDropPath2 != null) HeroWaterDropPath2.Visibility = HeroWaterDropPath.Visibility;
             }
+
+            // Sync ComboBox selection without re-triggering SelectionChanged
+            if (VisualizerComboBox != null)
+            {
+                string modeTag = mode.ToString();
+                foreach (ComboBoxItem item in VisualizerComboBox.Items)
+                {
+                    if (item.Tag != null && item.Tag.ToString() == modeTag)
+                    {
+                        VisualizerComboBox.SelectionChanged -= OnVisualizerComboSelectionChanged;
+                        VisualizerComboBox.SelectedItem = item;
+                        VisualizerComboBox.SelectionChanged += OnVisualizerComboSelectionChanged;
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void OnVisualizerComboSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            try
+            {
+                var selected = VisualizerComboBox.SelectedItem as ComboBoxItem;
+                if (selected == null || selected.Tag == null) return;
+
+                VisualizerMode mode;
+                if (Enum.TryParse(selected.Tag.ToString(), out mode))
+                {
+                    var viz = VisualizerService.Instance;
+                    if (viz != null && viz.CurrentMode != mode)
+                        viz.SetMode(mode);
+                }
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[RadioPage] OnVisualizerComboSelectionChanged: " + ex.Message); }
         }
 
         private void OnRhythmTick(object sender, RhythmFrameEventArgs e)
@@ -645,6 +679,125 @@ namespace SS_CAM.Views
                             }
                             geom2.Freeze();
                             HeroWavePath2.Data = geom2;
+                        }
+                    }
+                    else if (mode == VisualizerMode.GalaxyDrift && HeroMeshBackdropCanvas != null)
+                    {
+                        // Galaxy Drift — slow-rotating star-field, beat kicks expand radius
+                        if (AuraScale1 != null)
+                        {
+                            double orbit1 = 1.0 + 0.18 * Math.Sin(e.Phase * 0.7) + e.Bass * 0.22;
+                            AuraScale1.ScaleX = orbit1;
+                            AuraScale1.ScaleY = orbit1;
+                        }
+                        if (AuraScale2 != null)
+                        {
+                            double orbit2 = 1.0 + 0.22 * Math.Cos(e.Phase * 0.5 + 1.2) + e.Mid * 0.18;
+                            AuraScale2.ScaleX = orbit2;
+                            AuraScale2.ScaleY = orbit2;
+                        }
+                        if (BassShockwaveRing != null && ShockwaveScale != null && isPlaying)
+                        {
+                            if (e.IsKickHit)
+                            {
+                                BassShockwaveRing.Opacity = 0.70;
+                                ShockwaveScale.ScaleX = 0.8;
+                                ShockwaveScale.ScaleY = 0.8;
+                            }
+                            else if (BassShockwaveRing.Opacity > 0.01)
+                            {
+                                BassShockwaveRing.Opacity *= 0.92;
+                                ShockwaveScale.ScaleX += 0.09;
+                                ShockwaveScale.ScaleY += 0.09;
+                            }
+                        }
+                        // Gentle star twinkle
+                        if (Spark1 != null) Spark1.Opacity = 0.5 + 0.5 * Math.Abs(Math.Sin(e.Phase * 0.8));
+                        if (Spark2 != null) Spark2.Opacity = 0.4 + 0.6 * Math.Abs(Math.Cos(e.Phase * 0.6));
+                        if (Spark3 != null) Spark3.Opacity = 0.3 + 0.7 * Math.Abs(Math.Sin(e.Phase * 1.1));
+                        if (Spark4 != null) Spark4.Opacity = 0.5 + 0.5 * Math.Abs(Math.Cos(e.Phase * 0.9));
+                        if (Spark5 != null) Spark5.Opacity = 0.4 + 0.6 * Math.Abs(Math.Sin(e.Phase * 0.7));
+                        if (Spark6 != null) Spark6.Opacity = 0.6 + 0.4 * Math.Abs(Math.Cos(e.Phase * 1.3));
+                    }
+                    else if (mode == VisualizerMode.FrequencyBars && HeroWavePath != null)
+                    {
+                        // Frequency Bars — 12-band classic EQ rendered as a StreamGeometry bar chart
+                        const int BARS = 12;
+                        double barW = 22.0;
+                        double barGap = 6.0;
+                        double totalW = BARS * (barW + barGap);
+                        double maxH = 55.0;
+                        double baseY = 75.0;
+
+                        StreamGeometry geomBars = new StreamGeometry();
+                        using (StreamGeometryContext ctx = geomBars.Open())
+                        {
+                            for (int b = 0; b < BARS; b++)
+                            {
+                                // Map 12 bars to 16-channel spectrum
+                                int specIdx = (int)Math.Min(15, Math.Round((double)b / (BARS - 1) * 15));
+                                double specVal = (e.Spectrum != null && e.Spectrum.Length > specIdx) ? e.Spectrum[specIdx] : 0.2;
+                                double barH = Math.Max(4.0, specVal * maxH);
+                                double x = b * (barW + barGap);
+                                ctx.BeginFigure(new Point(x, baseY), true, true);
+                                ctx.LineTo(new Point(x + barW, baseY), true, false);
+                                ctx.LineTo(new Point(x + barW, baseY - barH), true, false);
+                                ctx.LineTo(new Point(x, baseY - barH), true, false);
+                            }
+                        }
+                        geomBars.Freeze();
+                        HeroWavePath.Visibility = Visibility.Visible;
+                        HeroWavePath.Data = geomBars;
+                        // Use brand gradient fill via stroke glow
+                        if (HeroMeshStop2 != null)
+                        {
+                            byte r2 = (byte)(4 + e.Bass * 40);
+                            byte g2 = (byte)(51 + e.Mid * 100);
+                            byte b2 = (byte)(136 + e.Treble * 100);
+                            HeroMeshStop2.Color = Color.FromRgb(r2, g2, b2);
+                        }
+                    }
+                    else if (mode == VisualizerMode.PulseRing && HeroWaterDropPath != null)
+                    {
+                        // Pulse Ring — concentric rings expanding from center on beat
+                        double centerX = 200.0;
+                        double centerY = 65.0;
+                        double r1 = 18.0 + e.Energy * 35.0 + (e.IsBassHit ? 18.0 : 0.0);
+                        double r2 = r1 * 1.7 + Math.Sin(e.Phase * 1.2) * 8.0;
+                        int pts = 32;
+                        double angleStep = Math.PI * 2.0 / pts;
+
+                        StreamGeometry ring1 = new StreamGeometry();
+                        using (StreamGeometryContext ctx = ring1.Open())
+                        {
+                            ctx.BeginFigure(new Point(centerX + r1, centerY), false, true);
+                            for (int i = 1; i <= pts; i++)
+                            {
+                                double angle = i * angleStep;
+                                ctx.LineTo(new Point(centerX + r1 * Math.Cos(angle), centerY + r1 * Math.Sin(angle) * 0.65), true, false);
+                            }
+                        }
+                        ring1.Freeze();
+                        HeroWaterDropPath.Visibility = Visibility.Visible;
+                        HeroWaterDropPath.Data = ring1;
+                        HeroWaterDropPath.Opacity = 0.5 + e.Bass * 0.45;
+
+                        if (HeroWaterDropPath2 != null)
+                        {
+                            StreamGeometry ring2 = new StreamGeometry();
+                            using (StreamGeometryContext ctx = ring2.Open())
+                            {
+                                ctx.BeginFigure(new Point(centerX + r2, centerY), false, true);
+                                for (int i = 1; i <= pts; i++)
+                                {
+                                    double angle = i * angleStep;
+                                    ctx.LineTo(new Point(centerX + r2 * Math.Cos(angle), centerY + r2 * Math.Sin(angle) * 0.60), true, false);
+                                }
+                            }
+                            ring2.Freeze();
+                            HeroWaterDropPath2.Visibility = Visibility.Visible;
+                            HeroWaterDropPath2.Data = ring2;
+                            HeroWaterDropPath2.Opacity = 0.35 + e.Mid * 0.45;
                         }
                     }
                 }

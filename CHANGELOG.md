@@ -2,6 +2,40 @@
 
 All notable SS-CAM changes are documented here.
 
+## [4.12.0] - 2026-09-29 (Batch Archive Vault, Transcoder Bridge & Visualizer Upgrades)
+
+### Batch Archive Vault & Storage Optimization (Track 1)
+- **Cold Storage Batch Archival Engine**:
+  - Implemented `ArchiveVaultService.cs` supporting multi-select project archival into cold-storage ZIPs on NAS (`_Archive/[YYYY]/[YYYYMM]/`).
+  - Added JSONL catalog append logging (`_archive_catalog.jsonl`) recording batch GUID, operator, project list, compressed bytes, and status.
+  - Enforced non-destructive archival (`CopyOnly = true`) preserving source directories on NAS.
+- **Dedicated Desktop Archive Vault View**:
+  - Created `ArchiveVaultPage.xaml(.cs)` adhering to Fluent 2 design system with 4 summary KPI tiles (Projects Found, Selected, Est. MB, Ops in Catalog).
+  - Multi-select project list with instant storage calculation, batch progress bar, and catalog history viewer.
+  - Added navigation item under Operations & Delivery Hub in `MainWindow.xaml`.
+- **Web API Batch Archive Endpoint**:
+  - Implemented `POST /api/projects/archive` in `src/SS-CAM.Web/server/routes/api.js` with RBAC (`admin`, `designer`).
+  - Added `ExportService.archiveBatch` with full JSONL catalog logging and real-time SSE broadcasts (`workspace:archived`).
+
+### Multi-Format Asset Transcoder Bridge (Track 2)
+- **FFmpeg Engine Integration & Auto-Discovery**:
+  - Created `TranscoderService.cs` with dynamic multi-tier discovery: UserProfile custom setting -> `payload/ffmpeg/` -> system `PATH` -> WinGet package directories (`%LOCALAPPDATA%\Microsoft\WinGet\Packages`).
+  - Built-in presets for web deliverables: WebP (lossy 85%), AVIF (next-gen still), WebM (VP9/Opus), Social GIF (10s preview 480p), and MP4 Compress (H.264 faststart).
+  - Real-time `stderr` progress parsing (`time=` and `Duration:`) with zero UI thread blocking via background execution (`Task.Factory.StartNew`).
+- **Dedicated Transcoder Bridge GUI**:
+  - Created `TranscoderBridgePage.xaml(.cs)` with drag-and-drop file/folder ingestion zone, preset selector dropdown (`MinHeight="36"`), custom output directory configuration, and real-time queue data grid with status pills, progress bars, and "Reveal in Explorer" actions.
+- **Deliverable Gallery Quick-Actions**:
+  - Added right-click context menu to asset cards in `SearchCopyPage.xaml(.cs)` (`ImageGalleryList`): instant "Convert to WebP", "Convert to AVIF", "Compare in Visual Diff", and "Reveal in File Explorer".
+- **Web API Media Transcoding**:
+  - Implemented `POST /api/assets/transcode` in `src/SS-CAM.Web` with strict path traversal checks ensuring source/destination remain within active workspace root.
+
+### Studio Radio & Visualizer Particle Upgrades (Track 3)
+- **3 New Live Radio Stations**:
+  - Added Chillhop Radio (Lo-Fi Hip Hop MP3), SomaFM: Secret Agent (Spy/Sleaze/Surf MP3), and SomaFM: Drone Zone (Atmospheric ambient MP3) to `RadioStreamService.cs`.
+- **3 New Rhythm Particle Visualizer Modes**:
+  - Added `GalaxyDrift` (orbiting celestial particles with beat expansion), `FrequencyBars` (12-band gradient spectrum EQ), and `PulseRing` (concentric ripple rings) to `VisualizerService.cs`.
+  - Added visualizer mode selector `ComboBox` (`MinHeight="36"`) to `RadioPage.xaml` hero transport strip with bidirectional UI synchronization and real-time rendering in `OnRhythmTick`.
+
 ## [4.11.1] - 2026-09-28 (Security Hardening, RBAC Enforcement & Repository Hygiene Remediation)
 
 ### Security & Authentication Hardening (Phase 1)

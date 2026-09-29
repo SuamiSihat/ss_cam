@@ -158,6 +158,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Views\ArchiveVaultPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\TranscoderBridgePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Views\QuickNotePage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -198,6 +206,8 @@
     <Compile Include="Models\DashboardModels.cs" />
     <Compile Include="Models\UserProfileModels.cs" />
     <Compile Include="Models\RadioStation.cs" />
+    <Compile Include="Models\ArchiveCatalogEntry.cs" />
+    <Compile Include="Models\TranscodeJob.cs" />
     <Compile Include="Models\TenantConfig.cs" />
     <Compile Include="Models\IAppPlugin.cs" />
     <Compile Include="Services\TenantConfigService.cs" />
@@ -239,6 +249,8 @@
     <Compile Include="Services\WorkspaceWatcherService.cs" />
     <Compile Include="Services\ThumbnailCacheService.cs" />
     <Compile Include="Services\ExportPackagingService.cs" />
+    <Compile Include="Services\ArchiveVaultService.cs" />
+    <Compile Include="Services\TranscoderService.cs" />
     <Compile Include="Services\AssetNamingService.cs" />
     <Compile Include="Services\PreflightValidatorService.cs" />
     <Compile Include="Services\WorkloadSlaService.cs" />
@@ -316,6 +328,14 @@
     </Compile>
     <Compile Include="Views\RadioPage.xaml.cs">
       <DependentUpon>RadioPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Views\ArchiveVaultPage.xaml.cs">
+      <DependentUpon>ArchiveVaultPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Views\TranscoderBridgePage.xaml.cs">
+      <DependentUpon>TranscoderBridgePage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Views\QuickNotePage.xaml.cs">

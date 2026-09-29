@@ -177,6 +177,180 @@ class ExportService {
 </body>
 </html>`;
   }
+
+  /**
+   * Batch archives multiple projects to cold storage ZIP files and records in catalog JSONL.
+   * @param {string[]} projectFullPaths 
+   * @param {string} archiveRoot Destination archive root (e.g. NAS /_Archive)
+   * @param {object} options { copyOnly: true }
+   * @param {string} operator 
+   * @returns {Promise<object>} { success, projectCount, zipPath, totalBytes, catalogEntry }
+   */
+  static async archiveBatch(projectFullPaths, archiveRoot, options = {}, operator = 'system') {
+    if (!Array.isArray(projectFullPaths) || projectFullPaths.length === 0) {
+      throw new Error('No projects provided for archival.');
+    }
+
+    const config = require('../config');
+    const now = new Date();
+    const yyyy = now.getFullYear().toString();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyymm = `${yyyy}${mm}`;
+    const baseArchive = archiveRoot || config.WORKSPACE_ROOT;
+    const targetDir = path.join(baseArchive, '_Archive', yyyy, yyyymm);
+
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    const timestampStr = now.toISOString().replace(/[:.]/g, '-');
+    const zipName = `BatchArchive_${yyyymm}_${timestampStr}.zip`;
+    const zipPath = path.join(targetDir, zipName);
+
+    const archivedProjects = [];
+
+    await new Promise((resolve, reject) => {
+      const output = fs.createWriteStream(zipPath);
+      const archive = typeof archiver === 'function'
+        ? archiver('zip', { zlib: { level: 9 } })
+        : (archiver.ZipArchive ? new archiver.ZipArchive({ zlib: { level: 9 } }) : new archiver.Archiver('zip', { zlib: { level: 9 } }));
+
+      output.on('close', resolve);
+      archive.on('error', reject);
+      archive.pipe(output);
+
+      for (const p of projectFullPaths) {
+        if (fs.existsSync(p)) {
+          const folderName = path.basename(p);
+          archivedProjects.push(folderName);
+          archive.directory(p, folderName);
+        }
+      }
+
+      archive.finalize();
+    });
+
+    const stat = fs.statSync(zipPath);
+    const catalogFile = path.join(baseArchive, '_Archive', '_archive_catalog.jsonl');
+    const catalogDir = path.dirname(catalogFile);
+    if (!fs.existsSync(catalogDir)) {
+      fs.mkdirSync(catalogDir, { recursive: true });
+    }
+
+    const entry = {
+      id: Math.random().toString(36).substring(2, 10),
+      timestamp: now.toISOString(),
+      operator,
+      archivedProjects,
+      projectCount: archivedProjects.length,
+      zipFilePath: zipPath,
+      zipSizeBytes: stat.size,
+      copyOnly: options.copyOnly !== false,
+      success: true,
+      errorMessage: null
+    };
+
+    fs.appendFileSync(catalogFile, JSON.stringify(entry) + '\n', 'utf8');
+
+    AuditService.logEvent({
+      actor: operator,
+      role: 'System',
+      action: 'PROJECT_BATCH_ARCHIVE',
+      entityType: 'Archive',
+      entityId: entry.id,
+      details: {
+        projectCount: archivedProjects.length,
+        zipPath,
+        zipSizeBytes: stat.size
+      }
+    });
+
+    return entry;
+  }
+
+  /**
+   * Transcodes a video or image deliverable via FFmpeg.
+   * @param {string} sourcePath 
+   * @param {string} preset 'webp' | 'avif' | 'webm' | 'gif' | 'mp4'
+   * @param {string} destinationDir 
+   * @returns {Promise<object>}
+   */
+  static async transcodeAsset(sourcePath, preset, destinationDir = null) {
+    if (!fs.existsSync(sourcePath)) {
+      throw new Error(`Source file not found: ${sourcePath}`);
+    }
+
+    const ext = path.extname(sourcePath);
+    const stem = path.basename(sourcePath, ext);
+    const outDir = destinationDir && fs.existsSync(destinationDir) ? destinationDir : path.dirname(sourcePath);
+
+    let suffix = '_web';
+    let targetExt = '.webp';
+    let ffmpegArgs = [];
+
+    const normPreset = (preset || 'webp').toLowerCase();
+    switch (normPreset) {
+      case 'webp':
+      case 'webp_image':
+        suffix = '_web';
+        targetExt = '.webp';
+        ffmpegArgs = ['-y', '-hide_banner', '-i', sourcePath, '-c:v', 'libwebp', '-quality', '85'];
+        break;
+      case 'avif':
+      case 'avif_image':
+        suffix = '_web';
+        targetExt = '.avif';
+        ffmpegArgs = ['-y', '-hide_banner', '-i', sourcePath, '-c:v', 'libaom-av1', '-crf', '28', '-b:v', '0'];
+        break;
+      case 'webm':
+      case 'webm_video':
+        suffix = '_web';
+        targetExt = '.webm';
+        ffmpegArgs = ['-y', '-hide_banner', '-i', sourcePath, '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '30', '-c:a', 'libopus'];
+        break;
+      case 'gif':
+      case 'social_gif_10s':
+        suffix = '_social';
+        targetExt = '.gif';
+        ffmpegArgs = ['-y', '-hide_banner', '-i', sourcePath, '-t', '10', '-vf', 'fps=15,scale=480:-1:flags=lanczos'];
+        break;
+      case 'mp4':
+      case 'mp4_compress':
+        suffix = '_compressed';
+        targetExt = '.mp4';
+        ffmpegArgs = ['-y', '-hide_banner', '-i', sourcePath, '-c:v', 'libx264', '-crf', '23', '-preset', 'medium', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart'];
+        break;
+      default:
+        throw new Error(`Unsupported transcode preset: ${preset}`);
+    }
+
+    const outputPath = path.join(outDir, `${stem}${suffix}${targetExt}`);
+    ffmpegArgs.push(outputPath);
+
+    const { spawn } = require('child_process');
+    await new Promise((resolve, reject) => {
+      const child = spawn('ffmpeg', ffmpegArgs);
+      let stderr = '';
+      child.stderr.on('data', d => { stderr += d.toString(); });
+      child.on('close', code => {
+        if (code === 0 && fs.existsSync(outputPath)) {
+          resolve();
+        } else {
+          reject(new Error(`FFmpeg failed with exit code ${code}: ${stderr.slice(-300)}`));
+        }
+      });
+      child.on('error', err => reject(err));
+    });
+
+    const stat = fs.statSync(outputPath);
+    return {
+      success: true,
+      sourcePath,
+      outputPath,
+      outputSizeBytes: stat.size,
+      preset: normPreset
+    };
+  }
 }
 
 module.exports = ExportService;
