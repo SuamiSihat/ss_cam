@@ -30,7 +30,7 @@ Creative-Team/                             ← WorkspaceRoot (E:\SynologyDrive\C
 └── [YYYY]/                                 ← Centralized Year Root (e.g. 2026)
     ├── [YYYYMM_Month]/                     ← Chronological Month Container (e.g. 202608_August)
     │   │
-    │   ├── [YYYYMM]_[JobID]_[Brand]_[Title]/ ← Canonical Project Directory (e.g. 202608_0085D_SS_Rejal_Packaging)
+    │   ├── [YYYYMM]_[ProjectID]_[Brand]_[Title]/ ← Canonical Project Directory (e.g. 202608_0085D_SS_Rejal_Packaging)
     │   │   ├── README.md                   ← Creative brief & YAML frontmatter metadata
     │   │   ├── _comments.jsonl             ← In-project contextual discussion thread
     │   │   ├── 01_BRIEF_ASSETS/            ← Raw client references, moodboards, logos, fonts

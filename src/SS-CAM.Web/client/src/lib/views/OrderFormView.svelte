@@ -1371,7 +1371,7 @@
                       </div>
                       <div class="detail-col">
                         <span class="detail-label">Turnaround Duration</span>
-                        <span class="detail-val" style="font-weight: 700; color: var(--brand-accent);">⏱️ {order.duration || calculateDuration(order.startDate, order.deadline || order.targetDate) || '—'}</span>
+                        <span class="detail-val" style="font-weight: 700; color: var(--text-brand, #043388);">⏱️ {order.duration || calculateDuration(order.startDate, order.deadline || order.targetDate) || '—'}</span>
                       </div>
                       {#if order.assignedTo}
                         <div class="detail-col">

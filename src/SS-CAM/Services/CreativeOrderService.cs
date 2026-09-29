@@ -526,12 +526,12 @@ namespace SS_CAM.Services
                         string fname = Path.GetFileName(file);
                         var fi = new FileInfo(file);
                         string sizeStr = fi.Length > 1048576 ? string.Format("{0:0.#} MB", fi.Length / 1048576.0) : string.Format("{0:0.#} KB", fi.Length / 1024.0);
-                        attachmentListBuilder.AppendLine(string.Format("- [{0}](Brief_Assets/{0}) ({1})", fname, sizeStr));
+                        attachmentListBuilder.AppendLine(string.Format("- [{0}](01_BRIEF_ASSETS/{0}) ({1})", fname, sizeStr));
                     }
                 }
 
                 // 6. Generate COPY.md with Order's Exact Copy Script
-                string copyFilePath = Path.Combine(briefDir, "COPY.md");
+                string copyFilePath = Path.Combine(copyDir, "COPY.md");
                 string copyContent = string.Format(
 @"# Copywriting & Script Studio — {0}
 
@@ -610,7 +610,7 @@ tags: [{1}, {8}]
 {16}
 
 ### Copywriting & Script Reference
-The complete brief and approved script are maintained in [`01_Brief_and_Copy/COPY.md`](01_Brief_and_Copy/COPY.md).
+The complete brief and approved script are maintained in [`03_COPYWRITING/COPY.md`](03_COPYWRITING/COPY.md).
 
 {17}
 ### Requester Notes
@@ -633,7 +633,7 @@ The complete brief and approved script are maintained in [`01_Brief_and_Copy/COP
                     order.Requester,
                     order.RequesterRole,
                     order.SafeTitle,
-                    attachmentsCopied > 0 ? string.Format("### Attached Brief Assets\nImported {0} file(s) into [`01_Brief_and_Copy/Brief_Assets`](01_Brief_and_Copy/Brief_Assets).\n", attachmentsCopied) : "",
+                    attachmentsCopied > 0 ? string.Format("### Attached Brief Assets\nImported {0} file(s) into [`01_BRIEF_ASSETS`](01_BRIEF_ASSETS).\n", attachmentsCopied) : "",
                     string.IsNullOrWhiteSpace(order.AttachmentNote) ? "None." : order.AttachmentNote
                 );
 

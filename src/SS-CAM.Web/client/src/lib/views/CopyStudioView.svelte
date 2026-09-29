@@ -232,7 +232,7 @@
         <div class="copy-card-header">
           <div>
             <div class="job-meta-row">
-              <span class="job-id">{p.jobId}</span>
+              <span class="project-id">{p.projectId || p.jobId || p.id}</span>
               <span class="brand-chip brand-{(p.brand || 'SS').toLowerCase()}">{p.brand || 'SS'}</span>
             </div>
             <h3 class="proj-title">{p.title}</h3>
@@ -282,7 +282,7 @@
         <div class="modal-header">
           <div class="modal-header-left">
             <span class="badge-brand">{selectedProject.brand || 'SS'}</span>
-            <span class="job-id-lg">{selectedProject.jobId}</span>
+            <span class="project-id-lg">{selectedProject.projectId || selectedProject.jobId || selectedProject.id}</span>
             <h2 class="modal-title">{selectedProject.title}</h2>
           </div>
           <div class="modal-header-right">
@@ -649,7 +649,7 @@
   }
 
   .job-meta-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-  .job-id { font-size: 11px; font-weight: 800; font-family: monospace; color: var(--brand-accent); }
+  .project-id { font-size: 11px; font-weight: 800; font-family: monospace; color: var(--text-brand, #043388); }
   .brand-chip {
     font-size: 10px;
     font-weight: 800;
@@ -738,7 +738,7 @@
     background: #043388;
     color: #FFFFFF;
   }
-  .job-id-lg { font-size: 14px; font-weight: 800; font-family: monospace; color: var(--brand-accent); }
+  .project-id-lg { font-size: 14px; font-weight: 800; font-family: monospace; color: var(--text-brand, #043388); }
   .modal-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 
   .close-modal-btn {
@@ -768,7 +768,7 @@
   }
 
   .pane-headline { display: flex; flex-direction: column; gap: 2px; }
-  .pane-title { font-size: 12px; font-weight: 800; letter-spacing: 0.5px; color: var(--brand-accent); }
+  .pane-title { font-size: 12px; font-weight: 800; letter-spacing: 0.5px; color: var(--text-brand, #043388); }
   .pane-sub { font-size: 11px; color: var(--text-secondary); }
 
   .snippet-drawer {

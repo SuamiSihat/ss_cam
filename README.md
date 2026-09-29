@@ -4,7 +4,7 @@
 
 Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Brand Asset Inspector · Synology NAS Native · Multi-Platform
 
-[![Release](https://img.shields.io/badge/release-v4.12.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.12.0)
+[![Release](https://img.shields.io/badge/release-v4.12.1-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.12.1)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20Linux%20%7C%20Android%20%7C%20Docker-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%208.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
 [![Web Stack](https://img.shields.io/badge/web-Svelte%205%20%2B%20Node.js%2020-ff3e00?style=flat-square)](https://svelte.dev)
@@ -12,6 +12,25 @@ Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Br
 [![License](https://img.shields.io/badge/licence-Internal%20Use-orange?style=flat-square)](./installer/EULA.txt)
 
 ---
+
+## 🚀 What's New in v4.12.1 ("Security Hardening, WCAG 2.1 AA Accessibility & Canonical Vault Hierarchy")
+
+* **🛡️ Web Management API Security & Data Protection (`api.js`, `DeliverableService.js`)**:
+  * **JWT Route Authorization**: Enforced mandatory `authenticateToken` across `GET /api/projects/:id/export`, `POST /api/notes`, `DELETE /api/notes/:id`, and `GET /api/users`.
+  * **Directory Traversal Sanitization**: Sanitized note identifiers with `path.basename` and regex alphanumeric filtering (`/[^a-zA-Z0-9_-]/g`), eliminating path traversal and arbitrary file deletion vectors.
+  * **Path Prefix Containment Fix**: Hardened `DeliverableService.resolveSafePath` against directory-prefix traversal by verifying path boundaries against trailing directory separators (`root + path.sep`), neutralizing sibling folder escape attacks (CWE-22).
+  * **Automated Security Verification**: Extended the Web Portal verification suite (`run-tests.js`) with automated assertions for 401 unauthenticated request rejection and path traversal sanitization (59 passing tests).
+* **🎨 WCAG 2.1 AA Accessibility & Brand Hierarchy (`fluent2-tokens.css`, `CopyStudioView.svelte`, `App.svelte`)**:
+  * **Color Contrast Rectification**: Replaced low-contrast Azure text (`#21A1F7`, failing at 2.80:1 contrast) on white card surfaces with `--text-brand` (`#043388`), establishing **11.45:1 (AAA Pass)** contrast across Copywriting Studio and Order Intake views.
+  * **Keyboard Skip-to-Content Landmark (WCAG 2.4.1)**: Added an accessible `<a href="#main-content" class="skip-link">Skip to main content</a>` and designated `<main id="main-content" class="page-body" tabindex="-1">` as the primary semantic landmark.
+  * **Semantic Button & Global Escape**: Converted the user profile chip from a `div role="button"` to a semantic `<button type="button" class="user-chip">` and wired global `Escape` key dismissal for drawers, flyout menus, and the command palette.
+  * **WPF Desktop Status Accessibility**: Enabled keyboard tab stops and Enter/Space keyboard activation for PaneFooter status panels (NAS, Focus Timer, Studio Radio, Theme Switcher), and added `ToolTip` and `AutomationProperties.Name` to the update banner dismiss button.
+* **📂 Canonical 5-Folder Hierarchy & Multi-Platform Synchronization (`CreativeOrderService.cs`, `PreflightValidatorService.cs`)**:
+  * **Vault Hierarchy Standardization**: Standardized `CreativeOrderService.cs` order handover on the 5 canonical uppercase folders: `01_BRIEF_ASSETS`, `02_SOURCE_FILES`, `03_COPYWRITING`, `04_WORK_IN_PROGRESS`, `05_DELIVERABLES`.
+  * **Brief Assets & Copy Integration**: Attached brief assets and order files are now saved directly into `01_BRIEF_ASSETS` and scripts into `03_COPYWRITING/COPY.md`.
+  * **Preflight Validator Modernization**: Updated `PreflightValidatorService.cs` to validate and auto-repair using the 5 canonical folders with backward-compatible aliases for legacy structures.
+  * **Documentation & Terminology Cleanliness**: Purged `[JobID]` in `FOLDER-STRUCTURE.md` in favor of `[ProjectID]`, and updated `.job-id` CSS to `.project-id`.
+  * **Ecosystem Version Synchronization**: Synchronized versions to `4.12.1` across WPF Desktop, Web Portal, Android Companion, and Linux Client.
 
 ## 🚀 What's New in v4.12.0 ("Advanced Batch Operations & Studio Archive Vault")
 

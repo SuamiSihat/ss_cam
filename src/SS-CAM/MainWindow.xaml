@@ -1,9 +1,9 @@
-<ui:FluentWindow x:Class="SS_CAM.MainWindow"
+﻿<ui:FluentWindow x:Class="SS_CAM.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:views="clr-namespace:SS_CAM.Views"
-        Title="Creative Assets Management v4.12.0" Height="820" Width="1280"
+        Title="Creative Assets Management v4.12.1" Height="820" Width="1280"
         MinHeight="680" MinWidth="1024"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
@@ -210,7 +210,7 @@
                         Click="OnDownloadUpdateClicked" Height="26" Padding="12,0" Margin="12,0,8,0"
                         Background="#EAB308" Foreground="White" FontWeight="SemiBold" FontSize="11"
                         BorderThickness="0" Cursor="Hand" FontFamily="Segoe UI Variable Text"/>
-                <Button Grid.Column="2" Content="&#x2716;" Click="OnDismissUpdateBanner" Width="26" Height="26"
+                <ui:Button Grid.Column="2" Content="&#x2716;" Click="OnDismissUpdateBanner" Width="26" Height="26" ToolTip="Dismiss update notification" AutomationProperties.Name="Dismiss update notification"
                         Background="Transparent" Foreground="#92400E" BorderThickness="0" FontSize="12"
                         FontWeight="Bold" Cursor="Hand"/>
             </Grid>
@@ -265,7 +265,7 @@
                 <StackPanel Margin="0,6,0,12">
                     <Border x:Name="SidebarDivider" Height="1" Background="{DynamicResource SidebarDividerBrush}" Margin="12,0,12,6"/>
                     <!-- NAS status -->
-                    <StackPanel x:Name="FooterNasPanel" Orientation="Horizontal" Margin="16,4"
+                    <StackPanel x:Name="FooterNasPanel" Orientation="Horizontal" Margin="16,4" Focusable="True" KeyboardNavigation.IsTabStop="True" KeyDown="OnFooterPanelKeyDown"
                                 MouseLeftButtonDown="OnCheckNasStatusClicked" Cursor="Hand"
                                 ToolTip="Click to re-check Synology NAS connection">
                         <Ellipse x:Name="NasStatusDot" Width="8" Height="8" Fill="#94A3B8"
@@ -274,7 +274,7 @@
                                    FontSize="11" VerticalAlignment="Center"/>
                     </StackPanel>
                     <!-- Focus timer -->
-                    <StackPanel x:Name="FooterTimerPanel" Orientation="Horizontal" Margin="16,4"
+                    <StackPanel x:Name="FooterTimerPanel" Orientation="Horizontal" Margin="16,4" Focusable="True" KeyboardNavigation.IsTabStop="True" KeyDown="OnFooterPanelKeyDown"
                                 MouseLeftButtonDown="OnFooterTimerClicked" Cursor="Hand"
                                 ToolTip="Open Wellbeing &amp; Focus Timer">
                         <ui:TextBlock x:Name="StatusTimerIcon" Text="&#xE916;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource SidebarTextSecondaryBrush}"
@@ -283,7 +283,7 @@
                                    FontSize="11" VerticalAlignment="Center"/>
                     </StackPanel>
                     <!-- Ambient Audio (Radio) Footer Widget (Option B) -->
-                    <StackPanel x:Name="FooterRadioPanel" Orientation="Horizontal" Margin="16,4" Cursor="Hand"
+                    <StackPanel x:Name="FooterRadioPanel" Orientation="Horizontal" Margin="16,4" Cursor="Hand" Focusable="True" KeyboardNavigation.IsTabStop="True" KeyDown="OnFooterPanelKeyDown"
                                 MouseLeftButtonDown="OnFooterRadioClicked"
                                 ToolTip="Studio Audio (Click to open controls)">
                         <ui:TextBlock x:Name="StatusRadioIcon" Text="&#xE767;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource SidebarTextSecondaryBrush}"

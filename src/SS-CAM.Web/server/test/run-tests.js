@@ -2400,6 +2400,72 @@ This is the project brief content.
     }
   });
 
+  test('Security Hardening: /export, /notes, and /users require JWT authentication; note path traversal is sanitized', async () => {
+    const express = require('express');
+    const http = require('http');
+    const { generateToken } = require('../middleware/auth');
+    const app = express();
+    app.use(express.json());
+    app.use('/api', require('../routes/api'));
+
+    const server = await new Promise(r => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+    const port = server.address().port;
+
+    try {
+      // 1. Unauthenticated export must return 401
+      const unauthExport = await new Promise(resolve => {
+        http.get(`http://127.0.0.1:${port}/api/projects/sample/export`, r => resolve(r.statusCode));
+      });
+      assert.strictEqual(unauthExport, 401, 'Unauthenticated project export must return 401');
+
+      // 2. Unauthenticated POST notes must return 401
+      const unauthNotePost = await new Promise(resolve => {
+        const req = http.request(`http://127.0.0.1:${port}/api/notes`, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, r => resolve(r.statusCode));
+        req.write(JSON.stringify({ title: 'Hacked Note' }));
+        req.end();
+      });
+      assert.strictEqual(unauthNotePost, 401, 'Unauthenticated POST /api/notes must return 401');
+
+      // 3. Unauthenticated DELETE notes must return 401
+      const unauthNoteDelete = await new Promise(resolve => {
+        const req = http.request(`http://127.0.0.1:${port}/api/notes/sample_note`, { method: 'DELETE' }, r => resolve(r.statusCode));
+        req.end();
+      });
+      assert.strictEqual(unauthNoteDelete, 401, 'Unauthenticated DELETE /api/notes must return 401');
+
+      // 4. Authenticated POST notes succeeds and sanitizes path traversal
+      const validToken = generateToken({ staffId: 'SS0001', username: 'sec_tester', name: 'Security Tester', role: 'Designer' });
+      const authNotePost = await new Promise(resolve => {
+        const req = http.request(`http://127.0.0.1:${port}/api/notes`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${validToken}`
+          }
+        }, r => {
+          let data = '';
+          r.on('data', c => data += c);
+          r.on('end', () => resolve({ status: r.statusCode, body: JSON.parse(data || '{}') }));
+        });
+        req.write(JSON.stringify({ id: '../../traversal_test', title: 'Sanitized Note', body: 'Safe text' }));
+        req.end();
+      });
+      assert.strictEqual(authNotePost.status, 200, 'Authenticated POST notes should succeed');
+      assert.ok(!authNotePost.body.note.id.includes('..'), 'Note ID must be sanitized against path traversal');
+
+      // 5. Clean up created note
+      await new Promise(resolve => {
+        const req = http.request(`http://127.0.0.1:${port}/api/notes/${authNotePost.body.note.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${validToken}` }
+        }, r => resolve(r.statusCode));
+        req.end();
+      });
+    } finally {
+      server.close();
+    }
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {

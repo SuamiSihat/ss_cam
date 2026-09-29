@@ -1135,6 +1135,17 @@ namespace SS_CAM
             });
         }
 
+        private void OnFooterPanelKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter || e.Key == Key.Space)
+            {
+                if (sender == FooterNasPanel) OnCheckNasStatusClicked(sender, null);
+                else if (sender == FooterTimerPanel) OnFooterTimerClicked(sender, null);
+                else if (sender == FooterRadioPanel) OnFooterRadioClicked(sender, null);
+                else if (sender == FooterThemePanel) OnStatusThemeToggle(sender, null);
+                e.Handled = true;
+            }
+        }
         private void OnCheckNasStatusClicked(object sender, MouseButtonEventArgs e)
         {
             // If NAS is online, open the NAS web interface; always re-check status

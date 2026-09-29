@@ -2,6 +2,41 @@
 
 All notable SS-CAM changes are documented here.
 
+## [4.12.1] - 2026-09-29 (Security Hardening, WCAG 2.1 AA Accessibility & Canonical Vault Hierarchy)
+
+### Security & API Protection
+- **JWT Route Authorization Enforcement**:
+  - Gated `GET /api/projects/:id/export` with mandatory `authenticateToken` middleware, preventing unauthorized project data exfiltration.
+  - Gated `POST /api/notes` and `DELETE /api/notes/:id` with mandatory `authenticateToken` middleware.
+  - Gated `GET /api/users` with mandatory `authenticateToken` middleware.
+- **Directory Traversal Sanitization**:
+  - Sanitized note identifiers in `POST /notes` and `DELETE /notes/:id` using `path.basename` and regex alphanumeric filtering (`/[^a-zA-Z0-9_-]/g`), eliminating path traversal and arbitrary file deletion vectors.
+- **Directory Prefix Traversal Containment**:
+  - Hardened `DeliverableService.resolveSafePath` against directory-prefix traversal by verifying path boundaries against trailing directory separators (`root + path.sep`), neutralizing sibling folder escape attacks (CWE-22).
+- **Automated Security Test Suite**:
+  - Added comprehensive automated test in `server/test/run-tests.js` asserting unauthenticated 401 rejections and path traversal sanitization (59 passing tests).
+
+### WCAG 2.1 AA Accessibility & Brand Hierarchy (60:30:10)
+- **Color Contrast Rectification**:
+  - Replaced low-contrast Azure text (`#21A1F7`, failing at 2.80:1 contrast) on white card surfaces with `--text-brand` (`#043388`), establishing **11.45:1 (AAA Pass)** contrast across `CopyStudioView.svelte` and `OrderFormView.svelte`.
+- **Keyboard Skip-to-Content Landmark (WCAG 2.4.1)**:
+  - Added accessible `<a href="#main-content" class="skip-link">Skip to main content</a>` and `<main id="main-content" class="page-body" tabindex="-1">` in `App.svelte`.
+- **Semantic Button & Global Escape**:
+  - Converted user profile chip from `div role="button"` to semantic `<button type="button" class="user-chip">` and enabled global `Escape` key dismissal for studio menus, drawers, and command palette.
+- **WPF Desktop Status Accessibility**:
+  - Enabled keyboard tab stops and Enter/Space activation (`Focusable="True"`, `KeyboardNavigation.IsTabStop="True"`, `OnFooterPanelKeyDown`) for PaneFooter status panels (NAS, Focus Timer, Studio Radio, Theme Switcher), and added `ToolTip` and `AutomationProperties.Name` to the update banner dismiss button.
+
+### Canonical 5-Folder Vault Alignment & Ecosystem Sync
+- **Canonical 5-Folder Standardization**:
+  - Standardized `CreativeOrderService.cs` order handover on the 5 canonical uppercase folders: `01_BRIEF_ASSETS`, `02_SOURCE_FILES`, `03_COPYWRITING`, `04_WORK_IN_PROGRESS`, `05_DELIVERABLES`.
+  - Attached brief assets and order files are now saved directly into `01_BRIEF_ASSETS` and scripts into `03_COPYWRITING/COPY.md`.
+- **Preflight Validator Modernization**:
+  - Updated `PreflightValidatorService.cs` to validate and auto-repair using the 5 canonical folders with backward-compatible aliases for legacy structures.
+- **Documentation & Terminology Cleanliness**:
+  - Purged `[JobID]` in `FOLDER-STRUCTURE.md` in favor of `[ProjectID]`, and updated `.job-id` CSS to `.project-id`.
+- **Ecosystem Version Synchronization**:
+  - Synchronized versions to `4.12.1` across WPF Desktop (`AssemblyInfo.cs`), Web Portal (`package.json`, `config.js`, `App.svelte`), Android Companion (`build.gradle.kts`), and Linux Client (`SS-CAM.Linux.csproj`).
+
 ## [4.12.0] - 2026-09-29 (Batch Archive Vault, Transcoder Bridge & Visualizer Upgrades)
 
 ### Batch Archive Vault & Storage Optimization (Track 1)

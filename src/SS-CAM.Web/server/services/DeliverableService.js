@@ -330,7 +330,11 @@ class DeliverableService {
       const normalizedPath = path.normalize(path.join(root, relativePath));
 
       // Security check: Must start with active root or WORKSPACE_ROOT
-      if (!normalizedPath.startsWith(root) && !normalizedPath.startsWith(config.WORKSPACE_ROOT)) {
+      const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep;
+      const wsRootWithSep = config.WORKSPACE_ROOT.endsWith(path.sep) ? config.WORKSPACE_ROOT : config.WORKSPACE_ROOT + path.sep;
+      const isWithinRoot = normalizedPath.startsWith(rootWithSep) || normalizedPath === root;
+      const isWithinWsRoot = normalizedPath.startsWith(wsRootWithSep) || normalizedPath === config.WORKSPACE_ROOT;
+      if (!isWithinRoot && !isWithinWsRoot) {
         console.warn(`[DeliverableService] Path traversal attempt blocked: ${normalizedPath}`);
         return null;
       }

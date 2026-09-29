@@ -454,7 +454,7 @@ router.get('/projects/:id', authenticateToken, (req, res) => {
   }
 });
 
-router.get('/projects/:id/export', (req, res) => {
+router.get('/projects/:id/export', authenticateToken, (req, res) => {
   try {
     const project = WorkspaceService.getProjectById(req.params.id);
     if (!project) {
@@ -624,7 +624,9 @@ router.delete('/projects/:id/comments/:commentId', authenticateToken, (req, res)
 
 router.post('/projects/:id/ingest', authenticateToken, (req, res) => {
   try {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    const id = path.basename(String(rawId)).replace(/[^a-zA-Z0-9_-]/g, '_');
+    if (!id || id === '.' || id === '..') return res.status(400).json({ error: 'Invalid note ID.' });
     const { filename, targetSubfolder, fileData } = req.body;
     if (!filename || !fileData) {
       return res.status(400).json({ error: 'filename and fileData (base64) are required.' });
@@ -1345,7 +1347,7 @@ router.get('/users/:id/avatar', (req, res) => {
   }
 });
 
-router.get('/users', (req, res) => {
+router.get('/users', authenticateToken, (req, res) => {
   try {
     const roster = TeamService.getStaffRoster();
     res.json({ success: true, users: roster, roster });
@@ -1836,12 +1838,13 @@ router.get('/notes', (req, res) => {
   }
 });
 
-router.post('/notes', (req, res) => {
+router.post('/notes', authenticateToken, (req, res) => {
   try {
     const { id, title, body, isPinned = false, priority = 'normal', user } = req.body;
     const targetUser = user || (req.user && req.user.username);
     const target = getTargetWriteDir(targetUser);
-    const noteId = id || new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15);
+    const rawId = id || new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15);
+    const noteId = path.basename(String(rawId)).replace(/[^a-zA-Z0-9_-]/g, '_');
     const filename = `${noteId}.md`;
     const filePath = path.join(target.path, filename);
 
@@ -1863,7 +1866,7 @@ router.post('/notes', (req, res) => {
   }
 });
 
-router.delete('/notes/:id', (req, res) => {
+router.delete('/notes/:id', authenticateToken, (req, res) => {
   try {
     const { id } = req.params;
     const dirs = getAllNotesDirs();

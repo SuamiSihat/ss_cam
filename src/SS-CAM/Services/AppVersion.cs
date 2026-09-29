@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 
 namespace SS_CAM.Services
@@ -15,7 +15,7 @@ namespace SS_CAM.Services
                 }
                 catch
                 {
-                    return new Version(4, 12, 0, 0);
+                    return new Version(4, 12, 1, 0);
                 }
             }
         }
