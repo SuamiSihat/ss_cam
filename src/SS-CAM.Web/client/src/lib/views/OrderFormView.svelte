@@ -1875,6 +1875,197 @@
     border-color: var(--color-danger-border);
   }
 
+  /* ── Wizard Step Navigator ── */
+  .wizard-steps {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 14px 24px 0;
+    padding: 6px;
+    background: var(--surface-card-subtle, #F8FAFC);
+    border: 1px solid var(--surface-card-border, #E2E8F0);
+    border-radius: var(--radius-lg, 10px);
+  }
+  .wiz-step {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md, 7px);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary, #475569);
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: default;
+    transition: all 0.15s ease;
+    user-select: none;
+    outline: none;
+  }
+  .wiz-step.is-active {
+    background: var(--surface-card, #FFFFFF);
+    border-color: var(--surface-card-border, #CBD5E1);
+    color: var(--brand-primary, #043388);
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+  .wiz-step.is-done {
+    color: #059669;
+    cursor: pointer;
+  }
+  .wiz-step.is-done:hover {
+    background: rgba(16, 185, 129, 0.1);
+  }
+  .wiz-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 13px;
+    line-height: 1;
+    background: rgba(100, 116, 139, 0.08);
+    flex-shrink: 0;
+  }
+  .wiz-step.is-active .wiz-icon {
+    background: rgba(4, 51, 136, 0.1);
+  }
+  .wiz-step.is-done .wiz-icon {
+    background: rgba(16, 185, 129, 0.15);
+    color: #059669;
+    font-weight: 800;
+  }
+  .wiz-label {
+    white-space: nowrap;
+    letter-spacing: -0.2px;
+  }
+  .wiz-connector {
+    width: 14px;
+    height: 2px;
+    background: var(--surface-card-border, #E2E8F0);
+    flex-shrink: 0;
+    border-radius: 2px;
+    transition: background 0.2s ease;
+  }
+  .wiz-connector.done {
+    background: #10B981;
+  }
+
+  /* ── Wizard Footer & Navigation ── */
+  .wiz-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-top: 18px;
+    border-top: 1px solid var(--surface-card-border, #E2E8F0);
+    margin-top: 6px;
+  }
+  .wiz-right-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn-wiz-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: var(--radius-md, 6px);
+    border: 1px solid var(--surface-card-border, #CBD5E1);
+    background: var(--surface-card, #FFFFFF);
+    color: var(--text-secondary, #475569);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-wiz-back:hover {
+    color: var(--text-primary, #1C1C1C);
+    border-color: var(--text-tertiary, #64748B);
+    background: var(--surface-card-subtle, #F8FAFC);
+  }
+  .btn-wiz-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 22px;
+    border-radius: var(--radius-md, 6px);
+    border: 1px solid var(--brand-primary, #043388);
+    background: var(--brand-primary, #043388);
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+  .btn-wiz-next:hover:not(:disabled) {
+    background: var(--brand-secondary, #0644B2);
+    border-color: var(--brand-secondary, #0644B2);
+    box-shadow: 0 4px 8px rgba(4, 51, 136, 0.25);
+    transform: translateY(-0.5px);
+  }
+  .btn-wiz-next:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* ── Step 4 Review Summary ── */
+  .step4-review {
+    background: var(--surface-card-subtle, #F8FAFC);
+    border: 1px solid var(--surface-card-border, #E2E8F0);
+    border-radius: var(--radius-md, 8px);
+    padding: 14px 18px;
+    margin-top: 6px;
+  }
+  .review-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px 16px;
+  }
+  .rv-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .rv-k {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-tertiary, #64748B);
+  }
+  .rv-v {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary, #1C1C1C);
+    word-break: break-word;
+  }
+
+  @media (max-width: 640px) {
+    .wizard-steps {
+      overflow-x: auto;
+      justify-content: flex-start;
+    }
+    .wiz-step {
+      flex: 0 0 auto;
+      padding: 6px 10px;
+    }
+    .wiz-connector {
+      display: none;
+    }
+  }
+
+
   /* ── Progress Bar ── */
   .progress-bar {
     display: flex;
