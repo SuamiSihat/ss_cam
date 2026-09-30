@@ -101,3 +101,52 @@ p { font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
+
+/* ─── TYPOGRAPHY REFINEMENTS ─────────────────────────────────────────────────
+   Inter / Segoe UI Variable feature settings for optimal rendering.
+   Letter-spacing applied globally to all-caps badge and label elements —
+   critical for legibility at 10–12px sizes (WCAG SC 1.4.8 readability).
+   ─────────────────────────────────────────────────────────────────────────── */
+html, body {
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+/* All-caps UI text — enforce minimum letter-spacing for legibility */
+.badge,
+.badge-brand,
+.badge-status-backlog,
+.badge-status-in-progress,
+.badge-status-review,
+.badge-status-revision,
+.badge-status-approved,
+.badge-status-done,
+.badge-status-on-hold,
+.badge-priority-low,
+.badge-priority-medium,
+.badge-priority-high,
+.badge-priority-urgent,
+.nav-section-label,
+.header-tag .badge,
+.friction-tag strong,
+.roster-title,
+.livestream-status-badge,
+.task-client-badge,
+.portal-pill,
+[class*="-pill"][class*="status"],
+[class*="-tag"][class*="badge"],
+.badge-rev-alert,
+.kpi-label {
+  letter-spacing: 0.05em;
+}
+
+/* Section labels in sidebar — larger tracking needed at this weight */
+.nav-section-label {
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Utility class for one-off tracking needs */
+.tracking-wide   { letter-spacing: 0.05em; }
+.tracking-wider  { letter-spacing: 0.08em; }
+.tracking-widest { letter-spacing: 0.12em; }

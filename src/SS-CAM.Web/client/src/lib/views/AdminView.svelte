@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { onMount } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
@@ -125,6 +125,18 @@
   let auditActionFilter = $state<string>('all');
   let selectedLogDetail = $state<any | null>(null);
   let showLogDetailModal = $state<boolean>(false);
+
+  // ─── USER ROW OVERFLOW MENU ─────────────────────────────────────────
+  let activeOverflowUser = $state<string | null>(null);
+
+  function toggleOverflow(userId: string, e: MouseEvent) {
+    e.stopPropagation();
+    activeOverflowUser = activeOverflowUser === userId ? null : userId;
+  }
+
+  function closeOverflow() {
+    activeOverflowUser = null;
+  }
 
   // ─── DERIVED FILTERED LISTS ─────────────────────────────────────────
   const filteredCompanies = $derived.by(() => {
@@ -746,7 +758,7 @@
   }
 </script>
 
-<div class="admin-view-container" class:minimalist-mode={adminLayoutMode === 'minimalist'}>
+<div class="admin-view-container" class:minimalist-mode={adminLayoutMode === 'minimalist'} onclick={() => { if (activeOverflowUser) activeOverflowUser = null; }}>
   <!-- ─── TOP COMMAND DECK HEADER ─── -->
   <div class="executive-command-header">
     <div class="header-left-deck">
@@ -1342,21 +1354,48 @@
                   </td>
                   <td style="text-align: right;">
                     <div class="table-actions">
-                      <button class="icon-action-btn" title="Edit Staff Member" onclick={() => openEditUserModal(u)}>
+                      <!-- Primary: Edit always visible -->
+                      <button class="icon-action-btn" title="Edit Staff Member" onclick={() => openEditUserModal(u)}
+                        aria-label={'Edit ' + u.name}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                       </button>
-                      <button class="icon-action-btn unlock-btn" title="Unlock Account (Clear Lockout)" onclick={() => handleClearLockout(u)} aria-label={Clear login lockout for  + u.name}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-                      </button>
-                      <button class="icon-action-btn default-pwd-btn" title="Reset to Default Password (SuamiSihat123!)" onclick={() => handleResetToDefault(u)} aria-label={Reset  + u.name +  to default password}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>
-                      </button>
-                      <button class="icon-action-btn reset-pwd-btn" title="Reset Password" onclick={() => openPasswordReset(u)}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
-                      </button>
-                      <button class="icon-action-btn delete-btn" title="Remove User" onclick={() => handleDeleteUser(u)}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                      </button>
+
+                      <!-- Secondary: ⋯ overflow menu -->
+                      <div class="user-overflow-wrap">
+                        <button class="icon-action-btn overflow-trigger" title="More actions"
+                          aria-label={'More actions for ' + u.name}
+                          aria-expanded={activeOverflowUser === u.staffId}
+                          onclick={(e) => toggleOverflow(u.staffId, e)}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                        </button>
+
+                        {#if activeOverflowUser === u.staffId}
+                          <!-- svelte-ignore a11y_no_static_element_interactions -->
+                          <div class="user-overflow-menu" role="menu" onclick={(e) => e.stopPropagation()}>
+                            <button class="overflow-menu-item" role="menuitem"
+                              onclick={() => { handleClearLockout(u); closeOverflow(); }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                              Unlock Account
+                            </button>
+                            <button class="overflow-menu-item" role="menuitem"
+                              onclick={() => { handleResetToDefault(u); closeOverflow(); }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>
+                              Reset to Default
+                            </button>
+                            <button class="overflow-menu-item" role="menuitem"
+                              onclick={() => { openPasswordReset(u); closeOverflow(); }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+                              Reset Password
+                            </button>
+                            <div class="overflow-menu-separator" role="separator"></div>
+                            <button class="overflow-menu-item danger" role="menuitem"
+                              onclick={() => { handleDeleteUser(u); closeOverflow(); }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                              Remove User
+                            </button>
+                          </div>
+                        {/if}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -3254,6 +3293,50 @@
     background: rgba(239, 68, 68, 0.15);
     color: #EF4444;
   }
+  .icon-action-btn.overflow-trigger[aria-expanded="true"] {
+    background: var(--brand-tint);
+    color: var(--brand-primary);
+  }
+
+  /* User Overflow Dropdown Menu */
+  .user-overflow-wrap { position: relative; }
+  .user-overflow-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 50;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 172px;
+    padding: 4px 0;
+    animation: overflowFadeIn 0.12s ease;
+  }
+  @keyframes overflowFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .overflow-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+  }
+  .overflow-menu-item:hover { background: var(--surface-card-subtle); }
+  .overflow-menu-item.danger { color: var(--color-danger); }
+  .overflow-menu-item.danger:hover { background: var(--color-danger-bg); }
+  .overflow-menu-separator { height: 1px; background: var(--surface-card-border); margin: 4px 0; }
+
   .icon-action-btn.default-pwd-btn:hover {
     background: rgba(245, 158, 11, 0.15);
     color: #D97706; /* Amber - reset to known state */

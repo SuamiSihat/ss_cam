@@ -111,9 +111,32 @@
   --borderRadiusMedium: 8px;
 
   /* Typography Scale */
-  --font-family: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  --font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
   --font-mono: 'Cascadia Code', 'Consolas', 'Segoe UI Mono', monospace;
+
+  /* Extended semantic colour tokens */
+  --color-purple: #9333EA;
+  --color-purple-bg: #F5F3FF;
+  --color-purple-border: #DDD6FE;
 }
+
+/* ─── SEMANTIC UTILITY CLASSES ─────────────────────────────────────────────
+   Use these instead of inline style="color:#..." to preserve theme integrity.
+   Switching themes (Falconia / Metamorphosis) will re-map the underlying tokens
+   automatically; inline hex values bypass that entirely.
+   ─────────────────────────────────────────────────────────────────────────── */
+.text-warning      { color: var(--color-warning) !important; }
+.text-success      { color: var(--color-success) !important; }
+.text-danger       { color: var(--color-danger) !important; }
+.text-purple       { color: var(--color-purple) !important; }
+.text-brand        { color: var(--brand-primary) !important; }
+.text-brand-accent { color: var(--brand-accent) !important; }
+.text-muted        { color: var(--text-secondary) !important; }
+
+.bg-warning-subtle { background: var(--color-warning-bg); border-color: var(--color-warning-border); }
+.bg-success-subtle { background: var(--color-success-bg); border-color: var(--color-success-border); }
+.bg-danger-subtle  { background: var(--color-danger-bg);  border-color: var(--color-danger-border); }
+.bg-purple-subtle  { background: var(--color-purple-bg);  border-color: var(--color-purple-border); }
 
 [data-theme="metamorphosis"] {
   /* ─── 10% BRAND ACCENT LAYER ─── */

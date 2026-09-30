@@ -190,17 +190,17 @@
   const orderIcon = `<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>`;
 
   const navGroups = [
-    { section: 'Management & Visibility', items: [
+    { section: 'Production', items: [
       { route: 'dashboard',    label: 'Dashboard',              icon: dashIcon },
       { route: 'projects',     label: 'Project Catalog',        icon: folderIcon, matchRoutes: ['projects','project-detail'] },
       { route: 'deliverables', label: 'Deliverables & Reviews', icon: reviewIcon, badge: true },
     ]},
-    { section: 'Coordination & Studio', items: [
+    { section: 'Operations', items: [
       { route: 'order-form',   label: 'Order Requests',         icon: orderIcon },
       { route: 'team',         label: 'Team & Workload',        icon: teamIcon },
       { route: 'copy-studio',  label: 'Copywriting Studio',     icon: pencilIcon },
     ]},
-    { section: 'System & Governance', items: [
+    { section: 'Admin', items: [
       { route: 'admin',        label: 'Administration',         icon: adminIcon },
     ]},
   ];
@@ -224,7 +224,7 @@
 
   const visibleNavGroups = $derived.by(() => {
     return navGroups.filter(g => {
-      if (g.section === 'System & Governance' && !isAdmin) return false;
+      if (g.section === 'Admin' && !isAdmin) return false;
       return true;
     });
   });

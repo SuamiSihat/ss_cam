@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { onMount } from 'svelte';
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
@@ -8,6 +8,7 @@
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import DashboardRadar from '$lib/components/features/DashboardRadar.svelte';
   import type { Project, ActivityNotification } from '$lib/types';
+  import FluentSkeleton from '$lib/components/ui/FluentSkeleton.svelte';
 
   type DashboardLens = 'studio' | 'my-workspace';
   let activeLens = $state<DashboardLens>('studio');
@@ -260,7 +261,18 @@
   <!-- ═══════════ STUDIO EXECUTIVE DECK LENS ═══════════ -->
   {#if activeLens === 'studio'}
     <!-- Top 4-KPI Commercial Summary Strip -->
-    <div class="kpi-grid commercial-pillars">
+    {#if projectStore.isLoading && !projectStore.dashboardData}
+    <div class="kpi-grid commercial-pillars skeleton-kpi-grid">
+      {#each [1,2,3,4] as _}
+        <FluentCard>
+          <FluentSkeleton height="11px" width="55%" />
+          <FluentSkeleton height="38px" width="35%" style="margin:10px 0 8px;" radius="var(--radius-sm)" />
+          <FluentSkeleton height="11px" width="45%" />
+        </FluentCard>
+      {/each}
+    </div>
+  {:else}
+  <div class="kpi-grid commercial-pillars">
       <FluentCard hoverLift borderAccent="#0284C7" onclick={() => appState.navigate('projects', { status: 'in-progress' })}>
         <div class="kpi-label">Active in Production</div>
         <div class="kpi-value">{kpis.active}</div>
@@ -269,22 +281,26 @@
 
       <FluentCard hoverLift borderAccent="#D97706" onclick={() => appState.navigate('deliverables')}>
         <div class="kpi-label">Pending Sign-Off</div>
-        <div class="kpi-value" style="color: #D97706;">{kpis.pendingReview}</div>
-        <div class="kpi-trend" style="color: #D97706;">Awaiting Approval</div>
+        <div class="kpi-value text-warning">{kpis.pendingReview}</div>
+        <div class="kpi-trend text-warning">Awaiting Approval</div>
       </FluentCard>
 
       <FluentCard hoverLift borderAccent="#10B981" onclick={() => appState.navigate('projects', { status: 'approved' })}>
         <div class="kpi-label">Approved &amp; Launch Ready</div>
-        <div class="kpi-value" style="color: #10B981;">{kpis.completed}</div>
-        <div class="kpi-trend" style="color: #10B981;">Ready for Release</div>
+        <div class="kpi-value text-success">{kpis.completed}</div>
+        <div class="kpi-trend text-success">Ready for Release</div>
       </FluentCard>
 
       <FluentCard hoverLift borderAccent={kpis.overdue > 0 ? '#DC2626' : (kpis.dueSoon || 0) > 0 ? '#D97706' : '#64748B'} onclick={() => appState.navigate('projects', { isOverdue: true })}>
         <div class="kpi-label">Overdue &amp; At-Risk</div>
-        <div class="kpi-value" style="color: {kpis.overdue > 0 ? '#DC2626' : (kpis.dueSoon || 0) > 0 ? '#D97706' : 'var(--text-primary)'}">
+        <div class="kpi-value"
+          class:text-danger={kpis.overdue > 0}
+          class:text-warning={kpis.overdue === 0 && (kpis.dueSoon || 0) > 0}>
           {kpis.overdue}
         </div>
-        <div class="kpi-trend" style="color: {kpis.overdue > 0 ? '#DC2626' : '#D97706'};">
+        <div class="kpi-trend"
+          class:text-danger={kpis.overdue > 0}
+          class:text-warning={kpis.overdue === 0}>
           {#if kpis.overdue > 0}
             Immediate Action Required
           {:else if (kpis.dueSoon || 0) > 0}
@@ -295,6 +311,9 @@
         </div>
       </FluentCard>
     </div>
+  {/if}
+
+    {/if}
 
     <!-- High-Revision Friction Loop Alert (Only shown if friction exists) -->
     {#if highRevisionProjects.length > 0}
@@ -368,8 +387,8 @@
             </svg>
           </div>
           <div class="livestream-empty-text">
-            <strong>All Studio Workstations Currently Idle</strong>
-            <span>When designers launch projects in desktop SS-CAM, active work sessions stream live here in real-time.</span>
+            <strong>No active sessions</strong>
+            <span>Sessions appear when designers open a project in the SS-CAM desktop app.</span>
           </div>
         </div>
       {:else}
@@ -611,7 +630,7 @@
                 </div>
                 <div>
                   <div class="sla-meta-label">FIRST-TIME RIGHT RATE</div>
-                  <div class="sla-value" style="color: #10B981;">
+                  <div class="sla-value text-success">
                     {slaData.firstTimeRightPercent !== null && slaData.firstTimeRightPercent !== undefined ? `${slaData.firstTimeRightPercent}%` : '—'}
                   </div>
                   <div class="sla-desc">Projects signed off with 0 revisions</div>
@@ -663,7 +682,7 @@
                 </div>
                 <div>
                   <div class="sla-meta-label">REVIEW QUEUE AGING</div>
-                  <div class="sla-value" style="color: #9333EA;">
+                  <div class="sla-value text-purple">
                     {slaData.avgReviewAgeDays || 0} Days
                   </div>
                   <div class="sla-desc">Average latency in review before sign-off</div>

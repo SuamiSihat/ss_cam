@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { onMount } from 'svelte';
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
@@ -193,11 +193,19 @@
   {:else if projectStore.filteredProjects.length === 0}
     <div class="empty-box">
       <div class="empty-emoji">
-        <FluentIcons name="folder" size={40} color="rgba(255,255,255,0.3)" />
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(4,51,136,0.25)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
+        </svg>
       </div>
       <h3>No projects found</h3>
-      <p>No creative production records match the current filter selection.</p>
+      <p>Try adjusting your filters, or submit a new creative brief to start a production record.</p>
+      <button class="empty-cta-btn" onclick={() => appState.navigate('order-form')}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        New Request
+      </button>
     </div>
+
   {:else if viewMode === 'kanban'}
     <ProjectKanbanView
       projects={projectStore.filteredProjects}
@@ -571,6 +579,26 @@
     margin: 0;
     font-size: 13px;
     color: var(--text-secondary, #6B7280);
+  }
+  .empty-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    padding: 9px 18px;
+    background: var(--brand-primary);
+    color: #FFFFFF;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+    letter-spacing: 0.02em;
+  }
+  .empty-cta-btn:hover {
+    background: var(--brand-secondary);
+    transform: translateY(-1px);
   }
 
   .job-id-wrap {
