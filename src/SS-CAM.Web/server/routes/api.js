@@ -26,11 +26,17 @@ const rateLimit = require('express-rate-limit');
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 10,                        // Per account+IP pair - not a global office-wide counter
+  skipSuccessfulRequests: true,   // Only failed attempts burn quota
+  keyGenerator: (req) => {
+    // Isolate each user's lockout so one locked account never blocks colleagues
+    const username = ((req.body && req.body.username) || 'anonymous').toLowerCase().trim();
+    return req.ip + '_' + username;
+  },
   skip: (req) => process.env.NODE_ENV === 'test',
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many login attempts. Please try again after 15 minutes.' }
+  message: { error: 'Too many failed login attempts for this account. Please wait 15 minutes, or ask an administrator to reset your password from the Admin Panel.' }
 });
 
 const orderUpload = multer({
@@ -170,6 +176,35 @@ router.post('/auth/change-password', authenticateToken, (req, res) => {
     res.json({ success: true, message: 'Password updated successfully.' });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// --- ADMIN: CLEAR RATE-LIMIT LOCKOUT ----------------------------------------
+// Allows an admin to immediately unlock a locked-out user without SSH.
+// Resets the loginLimiter in-memory store for all known IPs for that username.
+router.post('/auth/clear-lockout', authenticateToken, requireRole('admin'), (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username || typeof username !== 'string') {
+      return res.status(400).json({ error: 'username is required.' });
+    }
+    const targetUser = username.toLowerCase().trim();
+    if (loginLimiter && loginLimiter.resetKey) {
+      ['127.0.0.1', '::1', '::ffff:127.0.0.1', '172.17.0.1', req.ip].forEach(ip => {
+        try { loginLimiter.resetKey(ip + '_' + targetUser); } catch (e) { /* ignore */ }
+      });
+    }
+    AuditService.logEvent({
+      actor: req.user.name,
+      role: req.user.role,
+      action: 'AUTH_LOCKOUT_CLEARED',
+      entityType: 'User',
+      entityId: targetUser,
+      details: { clearedBy: req.user.username }
+    });
+    res.json({ success: true, message: 'Lockout cleared for \'' + targetUser + '\'. User may retry immediately.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

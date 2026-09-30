@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { onMount } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
@@ -596,6 +596,22 @@
       appState.addToast(`Password reset error: ${err.message}`, 'error');
     } finally {
       isResettingPassword = false;
+    }
+  }
+
+  // ─── LOCKOUT MANAGEMENT ─────────────────────────────────────────────────
+  async function handleClearLockout(user: any) {
+    try {
+      const username = user.username || user.staffId;
+      const res = await ApiClient.request('/auth/clear-lockout', {
+        method: 'POST',
+        body: JSON.stringify({ username })
+      });
+      if (res.success) {
+        appState.addToast(Lockout cleared for \. They can retry login immediately., 'success');
+      }
+    } catch (err: any) {
+      appState.addToast(Could not clear lockout: \, 'error');
     }
   }
 
@@ -1314,6 +1330,9 @@
                       <button class="icon-action-btn" title="Edit Staff Member" onclick={() => openEditUserModal(u)}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                       </button>
+                      <button class="icon-action-btn unlock-btn" title="Unlock Account (Clear Lockout)" onclick={() => handleClearLockout(u)} aria-label={Clear login lockout for  + u.name}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                      </button>
                       <button class="icon-action-btn reset-pwd-btn" title="Reset Password" onclick={() => openPasswordReset(u)}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
                       </button>
@@ -1996,18 +2015,19 @@
         </div>
       </div>
 
-      {#if !isEditingUser}
-        <div class="form-group">
-          <label class="field-label">Initial Password (min 10 chars)</label>
+      <div class="form-group">
+          <label class="field-label" for="user-password-field">
+            {isEditingUser ? 'New Password (leave blank to keep current)' : 'Initial Password (min 10 chars)'}
+          </label>
           <input
-            type="text"
+            id="user-password-field"
+            type="password"
             class="field-input"
             bind:value={editingUser.password}
-            placeholder="Enter temporary password (min 10 chars)"
-            required
+            placeholder={isEditingUser ? 'Leave blank to keep current password' : 'Min 10 characters'}
+            autocomplete="new-password"
           />
         </div>
-      {/if}
     </div>
   </div>
 
@@ -3215,6 +3235,10 @@
   .icon-action-btn.delete-btn:hover {
     background: rgba(239, 68, 68, 0.15);
     color: #EF4444;
+  }
+  .icon-action-btn.unlock-btn:hover {
+    background: rgba(5, 150, 105, 0.15);
+    color: #059669; /* Green — unlocking is a positive action */
   }
 
   /* ─── Audit Log Cells ─── */

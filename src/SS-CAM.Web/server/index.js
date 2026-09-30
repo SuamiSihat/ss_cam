@@ -9,6 +9,12 @@ const compression = require('compression');
 
 const app = express();
 
+// Trust the first hop from Synology Nginx Reverse Proxy.
+// Without this, Express sees req.ip as the Docker bridge gateway (172.17.0.1)
+// for ALL users, causing the rate limiter to lock out the entire office after
+// just 5 failed login attempts by anyone.
+app.set('trust proxy', 1);
+
 // Security Headers via Helmet (CSP tuned for Vite bundle, Svelte, and Mermaid SVG/Worker rendering)
 app.use(helmet({
   contentSecurityPolicy: {

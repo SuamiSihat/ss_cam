@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
@@ -401,9 +401,11 @@
     }
   }
 
-  function quickLogin(user: string) {
+  function selectUser(user: string) {
     username = user;
-    handleLogin();
+    // Focus password field so user can type their password, do not auto-submit
+    const pwField = document.getElementById('login-password-field');
+    if (pwField) (pwField as HTMLInputElement).focus();
   }
 </script>
 
@@ -417,22 +419,22 @@
   <!-- Static Glassmorphism Card -->
   <div class="login-card-static">
     <!-- Official SuamiSihat Logo Header -->
-    <div class="card-header-logo-interactive" onclick={() => quickLogin('hasan')}>
+    <div class="card-header-logo">
       <img src="brand/ss-logomark-full.png" alt="SuamiSihat Logo" class="brand-logo-img" />
     </div>
 
     <h1 class="portal-heading">SuamiSihat Creative Portal</h1>
     <p class="portal-subheading">Production Management & Creative Assets System</p>
 
-    {#if errorMessage}
-      <div class="login-error-alert">{errorMessage}</div>
-    {/if}
+    <div role="alert" aria-live="assertive" aria-atomic="true" id="login-error-region" class={errorMessage ? 'login-error-alert' : 'login-error-hidden'} aria-hidden={errorMessage ? 'false' : 'true'}>
+      {#if errorMessage}{errorMessage}{/if}
+    </div>
 
     <form onsubmit={handleLogin} class="login-form-body">
       <!-- User Profile Selector (Sorted by Staff ID Descending) -->
       <div class="form-group">
         <label for="login-account-select" class="field-label">Select Account Profile (Staff ID ↓)</label>
-        <select id="login-account-select" class="field-select" bind:value={username}>
+        <select id="login-account-select" class="field-select" bind:value={username} autocomplete="username">
           {#each sortedUsers as u}
             <option value={u.username}>
               {u.staffId} — {u.name} ({u.role})
@@ -450,7 +452,10 @@
             type={showPassword ? 'text' : 'password'}
             class="field-input"
             bind:value={password}
-            placeholder="Enter password (optional on local NAS)"
+            placeholder="Enter password"
+            autocomplete="current-password"
+            aria-invalid={errorMessage ? 'true' : 'false'}
+            aria-describedby="login-error-region"
           />
           <button
             type="button"
@@ -475,7 +480,8 @@
         </label>
       </div>
 
-      <button type="submit" class="submit-btn" disabled={isLoading}>
+      <button type="submit" class="submit-btn" disabled={isLoading}
+        aria-label={isLoading ? 'Authenticating, please wait' : 'Sign In to Portal'}>
         {#if isLoading}
           <span>Authenticating...</span>
         {:else}
@@ -489,7 +495,8 @@
         <span class="roster-title">Recent Active Logins (Top 3):</span>
         <div class="roster-chips">
           {#each recentProfiles as u}
-            <button type="button" class="roster-chip" onclick={() => quickLogin(u.username)}>
+            <button type="button" class="roster-chip" onclick={() => selectUser(u.username)}
+              aria-label={Select  + u.name +  ( + u.staffId + )}>
               <b class="chip-id">{u.staffId}</b> {u.name}
             </button>
           {/each}
@@ -569,7 +576,8 @@
     text-align: center;
   }
 
-  .card-header-logo-interactive {
+  /* .card-header-logo-interactive removed - logo click trap eliminated (WCAG 2.1.1) */
+  .card-header-logo {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -609,13 +617,17 @@
   .login-error-alert {
     padding: 10px 14px;
     border-radius: 8px;
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #DC2626;
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    color: #B91C1C; /* WCAG 1.4.3: ratio 6.1:1 on #FEF2F2 */
     font-size: 12.5px;
     font-weight: 600;
     margin-bottom: 18px;
     text-align: left;
+  }
+
+  .login-error-hidden {
+    display: none;
   }
 
   .login-form-body {
@@ -651,8 +663,10 @@
 
   .field-select:focus,
   .field-input:focus {
-    border-color: #21A1F7;
-    box-shadow: 0 0 0 2px rgba(33, 161, 247, 0.2);
+    border-color: #0078D4;
+    outline: 2px solid #0078D4; /* WCAG 2.4.7: solid focus ring, not invisible box-shadow */
+    outline-offset: 2px;
+    box-shadow: none;
   }
 
   .password-input-wrapper {
@@ -665,17 +679,20 @@
 
   .eye-btn {
     position: absolute;
-    right: 10px;
+    right: 4px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
+    border-radius: 4px;
     cursor: pointer;
     color: #666666;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2px;
+    padding: 11px; /* WCAG 2.5.8: minimum 44x44px touch target */
+    min-width: 44px;
+    min-height: 44px;
   }
   .eye-btn:hover { color: #043388; }
 
