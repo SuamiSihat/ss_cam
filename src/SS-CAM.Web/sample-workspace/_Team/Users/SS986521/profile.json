@@ -1,0 +1,16 @@
+{
+  "staffId": "SS986521",
+  "username": "admin_roster_ss986521",
+  "name": "Admin Added Roster",
+  "email": "admin_roster_ss986521@suamisihat.com",
+  "role": "Designer",
+  "roles": [
+    "Designer"
+  ],
+  "department": "Creative Production",
+  "defaultBrand": "SS",
+  "avatar": "",
+  "avatarUrl": "",
+  "avatarColor": "#0078D4",
+  "active": true
+}
