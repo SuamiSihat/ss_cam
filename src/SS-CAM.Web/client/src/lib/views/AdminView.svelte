@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { onMount } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
@@ -599,6 +599,21 @@
     }
   }
 
+  // ─── DEFAULT PASSWORD RESET ─────────────────────────────────────────────────
+  async function handleResetToDefault(user: any) {
+    const name = user.name || user.username;
+    const username = user.username || user.staffId;
+    if (!confirm('Reset ' + name + "'s password to the default (SuamiSihat123!)?\nThey can log in with SuamiSihat123! immediately.")) return;
+    try {
+      const res = await ApiClient.request('/users/' + encodeURIComponent(username) + '/reset-to-default', { method: 'POST' });
+      if (res.success) {
+        appState.addToast('Password reset to default for ' + name + '. Default: SuamiSihat123!', 'success');
+      }
+    } catch (err: any) {
+      appState.addToast('Reset to default failed: ' + err.message, 'error');
+    }
+  }
+
   // ─── LOCKOUT MANAGEMENT ─────────────────────────────────────────────────
   async function handleClearLockout(user: any) {
     try {
@@ -608,10 +623,10 @@
         body: JSON.stringify({ username })
       });
       if (res.success) {
-        appState.addToast(Lockout cleared for \. They can retry login immediately., 'success');
+        appState.addToast('Lockout cleared for ' + (user.name || username) + '. They can retry login immediately.', 'success');
       }
     } catch (err: any) {
-      appState.addToast(Could not clear lockout: \, 'error');
+      appState.addToast('Could not clear lockout: ' + err.message, 'error');
     }
   }
 
@@ -1332,6 +1347,9 @@
                       </button>
                       <button class="icon-action-btn unlock-btn" title="Unlock Account (Clear Lockout)" onclick={() => handleClearLockout(u)} aria-label={Clear login lockout for  + u.name}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                      </button>
+                      <button class="icon-action-btn default-pwd-btn" title="Reset to Default Password (SuamiSihat123!)" onclick={() => handleResetToDefault(u)} aria-label={Reset  + u.name +  to default password}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>
                       </button>
                       <button class="icon-action-btn reset-pwd-btn" title="Reset Password" onclick={() => openPasswordReset(u)}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
@@ -3235,6 +3253,10 @@
   .icon-action-btn.delete-btn:hover {
     background: rgba(239, 68, 68, 0.15);
     color: #EF4444;
+  }
+  .icon-action-btn.default-pwd-btn:hover {
+    background: rgba(245, 158, 11, 0.15);
+    color: #D97706; /* Amber - reset to known state */
   }
   .icon-action-btn.unlock-btn:hover {
     background: rgba(5, 150, 105, 0.15);

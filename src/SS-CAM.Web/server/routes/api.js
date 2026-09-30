@@ -1391,25 +1391,27 @@ router.get('/users', authenticateToken, (req, res) => {
   }
 });
 
+const DEFAULT_PASSWORD = 'SuamiSihat123!';
+
 function handleCreateStaffUser(req, res) {
   try {
-    if (req.body.password && (typeof req.body.password !== 'string' || req.body.password.length < 10)) {
+    const password = req.body.password || DEFAULT_PASSWORD;
+    if (typeof password !== 'string' || password.length < 10) {
       return res.status(400).json({ error: 'Password must be at least 10 characters long.' });
     }
     const newMember = TeamService.addStaffMember(req.body);
-    if (req.body.password) {
-      updateUserPassword(newMember.username, req.body.password);
-    }
+    // Always set a password — use provided or fall back to SuamiSihat123! default
+    updateUserPassword(newMember.username, password);
     AuditService.logEvent({
       actor: req.user.name,
       role: req.user.role,
       action: 'USER_CREATED',
       entityType: 'User',
       entityId: newMember.staffId,
-      details: { staffId: newMember.staffId, name: newMember.name, role: newMember.role }
+      details: { staffId: newMember.staffId, name: newMember.name, role: newMember.role, usedDefaultPassword: !req.body.password }
     });
     SseService.broadcast('team:updated', { member: newMember, action: 'created' });
-    res.json({ success: true, user: newMember, member: newMember });
+    res.json({ success: true, user: newMember, member: newMember, usedDefaultPassword: !req.body.password });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -1507,11 +1509,62 @@ router.post('/users/:username/reset-password', authenticateToken, requireRole('a
       role: req.user.role,
       action: 'USER_PASSWORD_RESET',
       entityType: 'User',
-      entityId: req.params.username
+      entityId: req.params.username,
+      details: { resetBy: req.user.username }
     });
-    res.json({ success: true, message: `Password reset successfully for ${req.params.username}` });
+    res.json({ success: true, message: 'Password reset successfully for ' + req.params.username });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// ─── ADMIN: RESET TO DEFAULT PASSWORD ────────────────────────────────────────
+// One-click reset to SuamiSihat123! without typing — shows in audit log.
+router.post('/users/:username/reset-to-default', authenticateToken, requireRole('admin'), (req, res) => {
+  try {
+    updateUserPassword(req.params.username, DEFAULT_PASSWORD);
+    AuditService.logEvent({
+      actor: req.user.name,
+      role: req.user.role,
+      action: 'USER_PASSWORD_RESET_TO_DEFAULT',
+      entityType: 'User',
+      entityId: req.params.username,
+      details: { resetBy: req.user.username }
+    });
+    res.json({ success: true, message: 'Password reset to default (SuamiSihat123!) for ' + req.params.username + '. Ask them to change it after login.' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ─── PUBLIC: FORGOT PASSWORD REQUEST ─────────────────────────────────────────
+// No email — records a visible help request in the audit log for the admin.
+// Rate-limited to prevent abuse.
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3,
+  keyGenerator: (req) => (req.body && req.body.username) ? req.body.username.toLowerCase() : req.ip,
+  message: { error: 'Too many password reset requests. Please contact your administrator directly.' }
+});
+router.post('/auth/forgot-password', forgotLimiter, (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username || typeof username !== 'string') {
+      return res.status(400).json({ error: 'Username is required.' });
+    }
+    // Record the request — admin can see it in the Audit Log tab
+    AuditService.logEvent({
+      actor: username.toLowerCase().trim(),
+      role: 'Unknown',
+      action: 'AUTH_PASSWORD_RESET_REQUESTED',
+      entityType: 'User',
+      entityId: username.toLowerCase().trim(),
+      details: { requestIp: req.ip, note: 'Admin: use Admin Panel → Staff → Reset to Default to resolve.' }
+    });
+    // Always return the same message (no user enumeration)
+    res.json({ success: true, message: 'Your request has been logged. Please ask your administrator to reset your password from the Admin Panel.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Unable to process request.' });
   }
 });
 

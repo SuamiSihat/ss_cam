@@ -81,6 +81,11 @@
   let isLoading = $state<boolean>(false);
   let errorMessage = $state<string | null>(null);
 
+  let showForgotModal = $state<boolean>(false);
+  let forgotUsername = $state<string>('');
+  let forgotStatus = $state<string | null>(null);
+  let forgotLoading = $state<boolean>(false);
+
   let canvasEl: HTMLCanvasElement | null = $state(null);
   let animFrameId: number | null = null;
   let resizeListener: (() => void) | null = null;
@@ -401,6 +406,23 @@
     }
   }
 
+  async function handleForgotPassword() {
+    if (!forgotUsername.trim()) return;
+    forgotLoading = true;
+    forgotStatus = null;
+    try {
+      await ApiClient.request('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ username: forgotUsername.trim() })
+      });
+      forgotStatus = 'success';
+    } catch (err: any) {
+      forgotStatus = 'error';
+    } finally {
+      forgotLoading = false;
+    }
+  }
+
   function selectUser(user: string) {
     username = user;
     // Focus password field so user can type their password, do not auto-submit
@@ -480,6 +502,12 @@
         </label>
       </div>
 
+      <div class="forgot-row">
+        <button type="button" class="forgot-link" onclick={() => { showForgotModal = true; forgotUsername = username; forgotStatus = null; }}>
+          Forgot password?
+        </button>
+      </div>
+
       <button type="submit" class="submit-btn" disabled={isLoading}
         aria-label={isLoading ? 'Authenticating, please wait' : 'Sign In to Portal'}>
         {#if isLoading}
@@ -503,6 +531,48 @@
         </div>
       </div>
     </form>
+
+    <!-- Forgot Password Modal -->
+    {#if showForgotModal}
+      <div class="forgot-modal-backdrop" role="dialog" aria-modal="true" aria-label="Reset Password Request" onclick|self={() => (showForgotModal = false)}>
+        <div class="forgot-modal-card">
+          <button class="forgot-modal-close" onclick={() => (showForgotModal = false)} aria-label="Close">&#x2715;</button>
+          <div class="forgot-modal-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#043388" stroke-width="1.8"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <h3 class="forgot-modal-title">Reset Password Request</h3>
+          {#if forgotStatus === 'success'}
+            <div class="forgot-success">
+              <strong>Request sent!</strong><br/>
+              Your administrator has been notified via the Audit Log.<br/>
+              Ask <strong>Harussani</strong> to reset your password to the default from <em>Admin Panel → Staff → Reset to Default</em>.
+            </div>
+          {:else}
+            <p class="forgot-modal-desc">Enter your username and we'll log a reset request for the administrator.</p>
+            <div class="forgot-modal-field">
+              <label class="field-label" for="forgot-username-input">Your Username</label>
+              <input
+                id="forgot-username-input"
+                type="text"
+                class="field-input"
+                bind:value={forgotUsername}
+                placeholder="e.g. harussani"
+                autocomplete="username"
+              />
+            </div>
+            {#if forgotStatus === 'error'}
+              <div class="login-error-alert" role="alert">Request failed. Please contact your administrator directly.</div>
+            {/if}
+            <button class="submit-btn" disabled={forgotLoading} onclick={handleForgotPassword} type="button">
+              {forgotLoading ? 'Sending...' : 'Send Reset Request'}
+            </button>
+            <p class="forgot-hint">
+              Default password after reset: <code>SuamiSihat123!</code>
+            </p>
+          {/if}
+        </div>
+      </div>
+    {/if}
 
     <!-- Official 2026 Brand Footer -->
     <div class="portal-footer-meta">
@@ -795,6 +865,114 @@
     color: #043388;
     font-weight: 800;
     font-size: 11px;
+  }
+
+  /* Forgot Password Link */
+  .forgot-row {
+    display: flex;
+    justify-content: flex-end;
+    margin: -6px 0 2px 0;
+  }
+
+  .forgot-link {
+    background: none;
+    border: none;
+    color: #043388;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .forgot-link:hover { color: #21A1F7; }
+
+  /* Forgot Password Modal */
+  .forgot-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+
+  .forgot-modal-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 32px 28px 24px;
+    width: 340px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    position: relative;
+    text-align: center;
+  }
+
+  .forgot-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #94A3B8;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .forgot-modal-close:hover { color: #1E293B; background: #F1F5F9; }\n
+  .forgot-modal-icon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .forgot-modal-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: #022057;
+    margin: 0 0 8px;
+  }
+
+  .forgot-modal-desc {
+    font-size: 13px;
+    color: #475569;
+    margin: 0 0 16px;
+    line-height: 1.5;
+  }
+
+  .forgot-modal-field {
+    text-align: left;
+    margin-bottom: 14px;
+  }
+
+  .forgot-hint {
+    font-size: 11.5px;
+    color: #64748B;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+  .forgot-hint code {
+    background: #F1F5F9;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #043388;
+    font-weight: 700;
+  }
+
+  .forgot-success {
+    background: #F0FDF4;
+    border: 1px solid #86EFAC;
+    color: #166534;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: left;
+    margin: 8px 0;
   }
 
   .portal-footer-meta {
