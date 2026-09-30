@@ -120,6 +120,7 @@
         window.dispatchEvent(new CustomEvent('company:updated', { detail: data }));
       } else if (event === 'project:decision') {
         appState.lastSyncedAt = new Date();
+        appState.notificationCount += 1;
         appState.addToast(`${data.reviewer} marked ${data.projectId} as ${(data.decision || '').replace('_', ' ')}`, 'info', 'Decision Updated');
         projectStore.loadProjects(true);
         if (appState.currentRoute === 'dashboard') {
@@ -131,11 +132,25 @@
       } else if (event === 'comment:added') {
         appState.lastSyncedAt = new Date();
         if (data.comment?.author !== appState.currentUser?.name) {
+          appState.notificationCount += 1;
           appState.addToast(`${data.comment?.author}: ${data.comment?.content?.substring(0, 40) || ''}...`, 'info', 'New Project Comment');
         }
         if (appState.currentRoute === 'project-detail' && appState.routeParams.id === data.projectId) {
           projectStore.loadProjectDetail(data.projectId, true);
         }
+      } else if (event === 'workspace:archived') {
+        appState.lastSyncedAt = new Date();
+        appState.notificationCount += 1;
+        projectStore.loadProjects(true);
+        window.dispatchEvent(new CustomEvent('workspace:updated', { detail: data }));
+      } else if (event === 'project:created') {
+        appState.lastSyncedAt = new Date();
+        appState.notificationCount += 1;
+        projectStore.loadProjects(true);
+        if (appState.currentRoute === 'dashboard') {
+          projectStore.loadDashboard(undefined, true);
+        }
+        window.dispatchEvent(new CustomEvent('workspace:updated', { detail: data }));
       } else if (event === 'comment:resolved') {
         appState.lastSyncedAt = new Date();
         if (appState.currentRoute === 'project-detail' && appState.routeParams.id === data.projectId) {

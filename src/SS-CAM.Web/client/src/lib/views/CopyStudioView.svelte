@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { onMount } from 'svelte';
   import DOMPurify from 'dompurify';
   import { projectStore } from '$lib/stores/projectStore.svelte';
@@ -17,6 +17,38 @@
   let draftCta = $state<string>('');
   let isSavingCopy = $state<boolean>(false);
   let showAiModal = $state<boolean>(false);
+  let autoSaveStatus = $state<'saved' | 'saving' | 'unsaved' | 'idle'>('idle');
+  let autoSaveTimer: any = null;
+  let isDirty = $state<boolean>(false);
+
+  function getDraftKey(projectId: string) {
+    return 'sscam:copydraft:' + projectId;
+  }
+
+  function saveDraftToLocal() {
+    if (!selectedProject) return;
+    const key = getDraftKey(selectedProject.id || selectedProject.jobId);
+    localStorage.setItem(key, JSON.stringify({ headline: draftHeadline, body: draftBodyCopy, cta: draftCta, ts: Date.now() }));
+    autoSaveStatus = 'saved';
+  }
+
+  function restoreDraftFromLocal(projectId: string): boolean {
+    try {
+      const raw = localStorage.getItem(getDraftKey(projectId));
+      if (!raw) return false;
+      const draft = JSON.parse(raw);
+      // Only restore if draft is less than 24h old and has content
+      if (Date.now() - draft.ts > 86400000) { localStorage.removeItem(getDraftKey(projectId)); return false; }
+      draftHeadline = draft.headline || draftHeadline;
+      draftBodyCopy = draft.body || draftBodyCopy;
+      draftCta = draft.cta || draftCta;
+      return true;
+    } catch { return false; }
+  }
+
+  function clearDraft(projectId: string) {
+    localStorage.removeItem(getDraftKey(projectId));
+  }
 
   type MockupPlatform = 'whatsapp' | 'meta' | 'tiktok';
   let activeMockupTab = $state<MockupPlatform>('whatsapp');
@@ -52,6 +84,19 @@
     await projectStore.loadProjects();
   });
 
+  // Feature 6: Auto-save draft every 30s when editor is open and content has changed
+  $effect(() => {
+    if (!isEditorOpen || !selectedProject) return;
+    isDirty;
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveStatus = 'unsaved';
+    autoSaveTimer = setTimeout(() => {
+      autoSaveStatus = 'saving';
+      saveDraftToLocal();
+    }, 30000);
+    return () => { if (autoSaveTimer) clearTimeout(autoSaveTimer); };
+  });
+
   function openCopyEditor(project: any) {
     selectedProject = project;
     draftHeadline = project.copywriting?.headline || '';
@@ -59,7 +104,16 @@
     draftCta = project.copywriting?.cta || 'Dapatkan Sekarang';
     activeMockupTab = 'whatsapp';
     metaSeeMoreExpanded = false;
+    isDirty = false;
+    autoSaveStatus = 'idle';
     isEditorOpen = true;
+    // Restore draft if one exists from a previous unsaved session
+    const projectId = project.id || project.jobId;
+    const restored = restoreDraftFromLocal(projectId);
+    if (restored) {
+      appState.addToast('Unsaved draft restored from your last session', 'info', 'Draft Recovered');
+      isDirty = true;
+    }
   }
 
   function closeCopyEditor() {
@@ -82,6 +136,9 @@
         selectedProject.copywriting.status = 'ready';
       }
       
+      clearDraft(selectedProject.id || selectedProject.jobId);
+      isDirty = false;
+      autoSaveStatus = 'idle';
       appState.addToast(`Copywriting saved to COPY.md on Synology NAS`, 'success', 'Saved');
       closeCopyEditor();
     } catch (err: any) {

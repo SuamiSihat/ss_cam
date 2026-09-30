@@ -28,6 +28,58 @@
   let showDeleteModal = $state<boolean>(false);
   let isDeleting = $state<boolean>(false);
 
+  // Feature 7: Bulk select state
+  let bulkMode = $state<boolean>(false);
+  let selectedIds = $state<Set<string>>(new Set());
+  let isBulkUpdating = $state<boolean>(false);
+
+  // Feature 3: Hover quick-action popover state
+  let hoverStatusCard = $state<string | null>(null);
+
+  function toggleBulkMode() {
+    bulkMode = !bulkMode;
+    selectedIds = new Set();
+  }
+
+  function toggleSelect(id: string) {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    selectedIds = next;
+  }
+
+  function selectAll() {
+    selectedIds = new Set(projectStore.filteredProjects.map((p: any) => p.id));
+  }
+
+  async function bulkSetStatus(status: string) {
+    if (selectedIds.size === 0) return;
+    isBulkUpdating = true;
+    const ids = Array.from(selectedIds);
+    try {
+      await Promise.all(ids.map(id => ApiClient.updateProject(id, { status } as any)));
+      await projectStore.loadProjects(true);
+      appState.addToast(`${ids.length} project${ids.length > 1 ? 's' : ''} set to "${status}"`, 'success', 'Bulk Update');
+      selectedIds = new Set();
+      bulkMode = false;
+    } catch (err: any) {
+      appState.addToast(`Bulk update failed: ${err.message}`, 'error');
+    } finally {
+      isBulkUpdating = false;
+    }
+  }
+
+  async function quickSetStatus(id: string, status: string, e: Event) {
+    e.stopPropagation();
+    hoverStatusCard = null;
+    try {
+      await ApiClient.updateProject(id, { status } as any);
+      await projectStore.loadProjects(true);
+      appState.addToast(`Status → "${status}"`, 'success');
+    } catch (err: any) {
+      appState.addToast(`Update failed: ${err.message}`, 'error');
+    }
+  }
+
   const isAdminUser = $derived.by(() => {
     const role = (appState.currentUser?.role || '').toLowerCase();
     return role.includes('admin') || role.includes('director') || role.includes('lead') || role.includes('manager') || role.includes('executive');
@@ -80,6 +132,15 @@
 
   onMount(() => {
     projectStore.loadProjects();
+    // Feature 2: Apply filter params from KPI card navigation (Dashboard → Projects)
+    const params = appState.routeParams;
+    if (params.status) {
+      projectStore.setFilter('status', params.status);
+    } else if (params.isOverdue) {
+      projectStore.setFilter('status', 'overdue');
+    }
+    // Clear params after consuming so back-navigation resets default view
+    appState.routeParams = {};
   });
 </script>
 
@@ -178,6 +239,20 @@
           <span>Save as Default</span>
         </button>
       {/if}
+      <!-- Feature 7: Bulk Select Mode Toggle (cards view only) -->
+      {#if viewMode === 'cards'}
+        <button
+          type="button"
+          class="bulk-toggle-btn"
+          class:is-active={bulkMode}
+          onclick={toggleBulkMode}
+          title="Toggle bulk project selection"
+          aria-pressed={bulkMode}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/><path d="M17 8.41L15.59 7 10 12.59 8.41 11 7 12.41l3 3z"/></svg>
+          {bulkMode ? 'Exit Bulk' : 'Bulk Select'}
+        </button>
+      {/if}
     </div>
   </div>
 
@@ -227,7 +302,22 @@
       onDelete={handleDeleteRequest}
     />
   {:else}
-    <!-- Default Cards Grid View -->
+    <!-- Feature 7: Bulk Select Toolbar -->
+  {#if bulkMode}
+  <div class="bulk-action-bar" role="toolbar" aria-label="Bulk project actions">
+    <span class="bulk-count">{selectedIds.size} of {projectStore.filteredProjects.length} selected</span>
+    <button type="button" class="bulk-sel-all-btn" onclick={selectAll} disabled={isBulkUpdating}>Select All</button>
+    <div class="bulk-status-actions">
+      {#each [['in-progress','In Progress'],['review','In Review'],['approved','Approved'],['on-hold','On Hold']] as [s, label]}
+        <button type="button" class="bulk-status-btn bulk-s-{s}" onclick={() => bulkSetStatus(s)} disabled={selectedIds.size === 0 || isBulkUpdating}>{label}</button>
+      {/each}
+    </div>
+    {#if isBulkUpdating}<span class="bulk-spinner">Updating…</span>{/if}
+    <button type="button" class="bulk-cancel-btn" onclick={toggleBulkMode}>✕ Cancel</button>
+  </div>
+  {/if}
+
+  <!-- Default Cards Grid View -->
     <div class="projects-grid">
       {#each projectStore.filteredProjects as p (p.id)}
         <div
@@ -290,7 +380,20 @@
                 {/if}
               </div>
             {/if}
-          </FluentCard>
+          <!-- Feature 3: Hover quick status actions -->
+          <div class="card-hover-actions" role="group" aria-label="Quick status actions">
+            {#each [['in-progress','▶','In Progress'],['review','👁','Review'],['approved','✓','Approved'],['on-hold','⏸','Hold']] as [qs,icon,qlabel]}
+              <button type="button" class="qa-btn qa-{qs}" title="Set: {qlabel}" onclick={(e) => quickSetStatus(p.id, qs, e)}>{icon}</button>
+            {/each}
+            <button type="button" class="qa-btn qa-open" title="Open" onclick={(e) => { e.stopPropagation(); appState.navigate('project-detail', { id: p.id }); }}>→</button>
+          </div>
+          <!-- Feature 7: Bulk select checkbox overlay -->
+          {#if bulkMode}
+          <label class="bulk-check-wrap" onclick={(e) => e.stopPropagation()} aria-label="Select {p.title}">
+            <input type="checkbox" checked={selectedIds.has(p.id)} onchange={() => toggleSelect(p.id)} />
+          </label>
+          {/if}
+                    </FluentCard>
         </div>
       {/each}
     </div>

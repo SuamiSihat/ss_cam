@@ -12,6 +12,29 @@
 
   type DashboardLens = 'studio' | 'my-workspace';
   let activeLens = $state<DashboardLens>('studio');
+
+  // Feature 4: Last login timestamp — stored per user in localStorage
+  const lastLoginTs = $derived.by(() => {
+    const u = appState.currentUser?.username;
+    if (!u) return null;
+    const key = 'sscam:lastlogin:' + u;
+    const prev = localStorage.getItem(key);
+    // Record THIS session start (after reading previous value)
+    localStorage.setItem(key, Date.now().toString());
+    return prev ? parseInt(prev, 10) : null;
+  });
+
+  const lastLoginLabel = $derived.by(() => {
+    if (!lastLoginTs) return null;
+    const diffMs = Date.now() - lastLoginTs;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMins < 2) return 'just now';
+    if (diffMins < 60) return diffMins + ' minutes ago';
+    if (diffHours < 24) return diffHours + ' hour' + (diffHours > 1 ? 's' : '') + ' ago';
+    return diffDays + ' day' + (diffDays > 1 ? 's' : '') + ' ago';
+  });
   let showDeepAnalytics = $state<boolean>(false);
   let myNotifications = $state<ActivityNotification[]>([]);
   let isLoadingPersonal = $state<boolean>(false);
@@ -183,6 +206,15 @@
           : 'Focused view of your active tasks, urgent revision requests, and direct team feedback'}
       </p>
     </div>
+
+    <!-- Feature 4: Last Login Banner -->
+    {#if lastLoginLabel}
+    <div class="last-login-bar">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+      Last session: <strong>{lastLoginLabel}</strong>
+      {#if (projectStore.dashboardData?.overdue ?? 0) > 0}<span class="lls-alert">· {projectStore.dashboardData?.overdue} overdue project{(projectStore.dashboardData?.overdue ?? 0) > 1 ? 's' : ''} since your last visit</span>{/if}
+    </div>
+    {/if}
 
     <!-- Lens Switcher & Actions -->
     <div class="header-actions">
