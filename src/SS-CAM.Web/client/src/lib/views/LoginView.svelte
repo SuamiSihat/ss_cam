@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
@@ -524,7 +524,7 @@
         <div class="roster-chips">
           {#each recentProfiles as u}
             <button type="button" class="roster-chip" onclick={() => selectUser(u.username)}
-              aria-label={Select  + u.name +  ( + u.staffId + )}>
+              aria-label={`Select ${u.name} (${u.staffId})`}>
               <b class="chip-id">{u.staffId}</b> {u.name}
             </button>
           {/each}
@@ -534,7 +534,7 @@
 
     <!-- Forgot Password Modal -->
     {#if showForgotModal}
-      <div class="forgot-modal-backdrop" role="dialog" aria-modal="true" aria-label="Reset Password Request" onclick|self={() => (showForgotModal = false)}>
+      <div class="forgot-modal-backdrop" role="dialog" aria-modal="true" aria-label="Reset Password Request" onclick={(e) => { if (e.target === e.currentTarget) showForgotModal = false; }}>
         <div class="forgot-modal-card">
           <button class="forgot-modal-close" onclick={() => (showForgotModal = false)} aria-label="Close">&#x2715;</button>
           <div class="forgot-modal-icon">

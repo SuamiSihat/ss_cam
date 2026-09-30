@@ -313,8 +313,6 @@
     </div>
   {/if}
 
-    {/if}
-
     <!-- High-Revision Friction Loop Alert (Only shown if friction exists) -->
     {#if highRevisionProjects.length > 0}
       <div class="friction-alert-card">

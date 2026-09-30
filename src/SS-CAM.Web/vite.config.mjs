@@ -20,12 +20,17 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     target: 'es2022',
+    chunkSizeWarningLimit: 3500,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
           const normalized = id.replace(/\\/g, '/');
-          if (normalized.includes('/node_modules/mermaid/')) {
-            return 'vendor-mermaid';
+          // NOTE: mermaid is intentionally NOT listed here.
+          // It is lazily imported via MarkdownViewer.$effect → import('./MermaidViewer.svelte')
+          // Listing it in manualChunks would force Rollup to add it to modulepreload,
+          // loading 3MB on every page visit. Leave it as a pure async chunk.
+          if (normalized.includes('/node_modules/katex/')) {
+            return 'vendor-katex'; // katex is mermaid's dep, keep it in its own async chunk
           }
           if (normalized.includes('/node_modules/marked/') || normalized.includes('/node_modules/dompurify/')) {
             return 'vendor-markdown';
