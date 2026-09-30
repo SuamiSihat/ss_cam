@@ -24,6 +24,28 @@ const OrderService = require('../services/OrderService');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 
+// ─── IN-PROCESS TTL CACHE ───────────────────────────────────────────────────
+// Lightweight Map-based cache for expensive NAS filesystem scan routes.
+// Eliminates redundant reads when multiple designers refresh simultaneously.
+// Automatically invalidated by write operations via cacheInvalidate().
+const _ttlCache = new Map(); // key -> { data, expiresAt }
+
+function cacheGet(key) {
+  const entry = _ttlCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { _ttlCache.delete(key); return null; }
+  return entry.data;
+}
+
+function cacheSet(key, data, ttlMs) {
+  _ttlCache.set(key, { data, expiresAt: Date.now() + ttlMs });
+}
+
+function cacheInvalidate(...keys) {
+  if (keys.length === 0) { _ttlCache.clear(); return; }
+  keys.forEach(k => _ttlCache.delete(k));
+}
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,                        // Per account+IP pair - not a global office-wide counter
@@ -336,7 +358,15 @@ router.get('/dashboard', authenticateToken, (req, res) => {
   try {
     const timeRange = req.query.timeRange || 'all';
     const brand = req.query.brand || 'all';
+    const cacheKey = 'dashboard:' + timeRange + ':' + brand;
+    const cached = cacheGet(cacheKey);
+    if (cached) {
+      res.set('X-Cache', 'HIT');
+      return res.json(cached);
+    }
     const data = WorkspaceService.getDashboardMetrics({ timeRange, brand });
+    cacheSet(cacheKey, data, 30 * 1000); // 30s TTL — expensive NAS scan
+    res.set('X-Cache', 'MISS');
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -356,9 +386,22 @@ router.get('/projects', authenticateToken, (req, res) => {
       department: req.query.department,
       isOverdue: req.query.isOverdue
     };
-
+    // Only cache unfiltered requests — filtered queries are always fresh
+    const isUnfiltered = !filters.query && !filters.status && !filters.brand &&
+                         !filters.designer && !filters.priority && !filters.department && !filters.isOverdue;
+    const cacheKey = 'projects:all';
+    if (isUnfiltered) {
+      const cached = cacheGet(cacheKey);
+      if (cached) {
+        res.set('X-Cache', 'HIT');
+        return res.json(cached);
+      }
+    }
     const projects = WorkspaceService.getAllProjects(filters);
-    res.json({ total: projects.length, projects });
+    const result = { total: projects.length, projects };
+    if (isUnfiltered) cacheSet(cacheKey, result, 15 * 1000); // 15s TTL for project list
+    res.set('X-Cache', isUnfiltered ? 'MISS' : 'BYPASS');
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -445,6 +488,7 @@ router.post('/projects', authenticateToken, requirePermission('project:create'),
     });
 
     // Notify connected SSE clients
+    cacheInvalidate('dashboard:all:all', 'dashboard:30d:all', 'dashboard:90d:all', 'projects:all');
     SseService.broadcast('project:created', {
       project: createdProject || frontmatter,
       actor: req.user ? req.user.name : 'API',
@@ -526,6 +570,7 @@ router.post('/projects/archive', authenticateToken, requireRole('admin', 'design
     const username = req.user ? (req.user.username || req.user.name) : 'system';
     const result = await ExportService.archiveBatch(projectPaths, archiveRoot, { copyOnly }, username);
 
+    cacheInvalidate('dashboard:all:all', 'dashboard:30d:all', 'dashboard:90d:all', 'projects:all');
     SseService.broadcast('workspace:archived', {
       projectCount: result.projectCount,
       zipPath: result.zipFilePath
@@ -580,6 +625,7 @@ router.delete('/projects/:id', authenticateToken, requireRole('admin'), (req, re
       req.user ? req.user.name : 'Administrator',
       req.user ? req.user.role : 'Admin'
     );
+    cacheInvalidate('dashboard:all:all', 'dashboard:30d:all', 'dashboard:90d:all', 'projects:all');
     SseService.broadcast('workspace:updated', { projectId: req.params.id, action: 'deleted' });
     res.json(result);
   } catch (err) {
@@ -758,6 +804,7 @@ router.post('/public/review/:token/decision', (req, res) => {
     });
 
     // Notify clients via SSE
+    cacheInvalidate('dashboard:all:all', 'dashboard:30d:all', 'dashboard:90d:all', 'projects:all');
     SseService.broadcast('project:decision', {
       projectId: data.project.id,
       decision,
@@ -967,6 +1014,7 @@ router.post('/projects/:id/reassign', authenticateToken, (req, res) => {
       }
     });
 
+    cacheInvalidate('dashboard:all:all', 'dashboard:30d:all', 'dashboard:90d:all', 'projects:all');
     SseService.broadcast('project:updated', {
       projectId: project.id,
       action: 'reassigned',
@@ -1099,6 +1147,7 @@ router.put('/projects/:id', authenticateToken, requirePermission('project:edit')
     });
 
     WorkspaceService.scan(true);
+    cacheInvalidate('dashboard:all:all', 'dashboard:30d:all', 'dashboard:90d:all', 'projects:all');
     SseService.broadcast('project:updated', { 
       projectId: req.params.id, 
       manager: mergedFm.manager,
@@ -1144,6 +1193,7 @@ router.put('/projects/:id/brief', authenticateToken, requirePermission('brief:ed
     });
 
     WorkspaceService.scan();
+    cacheInvalidate('dashboard:all:all', 'dashboard:30d:all', 'dashboard:90d:all', 'projects:all');
     SseService.broadcast('project:updated', { projectId: req.params.id });
     res.json({ success: true, versionHash: result.versionHash });
   } catch (err) {
@@ -1189,6 +1239,7 @@ router.put('/projects/:id/direction', authenticateToken, requirePermission('dire
     });
 
     WorkspaceService.scan(true);
+    cacheInvalidate('dashboard:all:all', 'dashboard:30d:all', 'dashboard:90d:all', 'projects:all');
     SseService.broadcast('project:updated', { 
       projectId: req.params.id, 
       creativeDirection: updatedFm.creative_direction 
@@ -1250,6 +1301,7 @@ router.post('/projects/:id/decision', authenticateToken, requirePermission('deli
       deliverableId
     });
 
+    cacheInvalidate('dashboard:all:all', 'dashboard:30d:all', 'dashboard:90d:all', 'projects:all');
     SseService.broadcast('project:decision', {
       projectId: req.params.id,
       decision,

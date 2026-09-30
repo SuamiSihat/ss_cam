@@ -53,6 +53,23 @@
   let isLoading     = $state(false);
   let isSubmitting  = $state(false);
   let showForm      = $state(false);
+  let wizardStep    = $state<number>(1); // 4-step wizard: 1=Brief 2=Format 3=Copy 4=Timeline
+
+  // Wizard step readiness — controls "Next" button enabled state
+  const step1Ready = $derived(!!f_title.trim() && !!f_entity && !!f_priority);
+  const step2Ready = $derived(!!f_format && (f_channel === 'digital' || !!f_material));
+  const step3Ready = $derived(true); // Copy encouraged but not required
+  const step4Ready = $derived(!!f_targetDate);
+
+  function goNext() {
+    if (wizardStep < 4) wizardStep = wizardStep + 1;
+  }
+  function goBack() {
+    if (wizardStep > 1) wizardStep = wizardStep - 1;
+  }
+  function resetWizard() {
+    wizardStep = 1;
+  } // 4-step wizard controller
   let filterStatus  = $state('all');
   let activeOrderId = $state<string | null>(null);
   let editingOrderId = $state<string | null>(null);
@@ -320,7 +337,7 @@
     f_targetDate     = f_deadline;
     f_attachmentNote = '';
     f_files          = [];
-    showForm = true;
+    showForm = true; wizardStep = 1;
   }
 
   function openEditForm(order: CreativeOrder) {
@@ -798,13 +815,24 @@
             </button>
           </div>
 
-          <!-- ── Progress Indicator ── -->
-          <div class="progress-bar" aria-label="Form completion: {formFilled} of 6 fields">
-            {#each Array(6) as _, i}
-              <div class="progress-seg {i < formFilled ? 'filled' : ''}"></div>
+          <!-- ── Wizard Step Navigator ── -->
+          <nav class="wizard-steps" aria-label="Form steps">
+            {#each [['Brief','📋'],['Format & Files','🎨'],['Copy','✍'],['Timeline','📅']] as [label, icon], i}
+              <button
+                type="button"
+                class="wiz-step"
+                class:is-done={wizardStep > i + 1}
+                class:is-active={wizardStep === i + 1}
+                onclick={() => { if (wizardStep > i + 1) wizardStep = (i + 1) as any; }}
+                aria-current={wizardStep === i + 1 ? 'step' : undefined}
+                title="Step {i+1}: {label}"
+              >
+                <span class="wiz-icon">{wizardStep > i + 1 ? '✓' : icon}</span>
+                <span class="wiz-label">{label}</span>
+              </button>
+              {#if i < 3}<span class="wiz-connector" class:done={wizardStep > i + 1}></span>{/if}
             {/each}
-            <span class="progress-label">{formFilled} / 6</span>
-          </div>
+          </nav>
 
           <!-- ── Quick Commercial Presets ── -->
           {#if !editingOrderId}
@@ -825,8 +853,10 @@
             </div>
           {/if}
 
-          <!-- ── Form ── -->
+          <!-- ── Form (4-step wizard) ── -->
           <form class="form-body" onsubmit={handleSubmit} novalidate>
+            <!-- ═══ STEP 1: BRIEF ═══ -->
+            {#if wizardStep === 1}
 
             <!-- 1. Project Title -->
             <div class="field">
@@ -905,6 +935,18 @@
               </div>
             </div>
 
+
+            <!-- ═══ STEP 1 FOOTER: Next ═══ -->
+            <div class="wiz-footer">
+              <span></span>
+              <button type="button" class="btn-wiz-next" onclick={goNext} disabled={!step1Ready}>
+                Next: Format &amp; Files →
+              </button>
+            </div>
+            {/if}
+
+            <!-- ═══ STEP 2: FORMAT & FILES ═══ -->
+            {#if wizardStep === 2}
             <!-- 4. Format, Size & Material -->
             <div class="field">
               <div class="field-label" id="format-label">
@@ -990,6 +1032,18 @@
               {/if}
             </div>
 
+
+            <!-- ═══ STEP 2 FOOTER: Back / Next ═══ -->
+            <div class="wiz-footer">
+              <button type="button" class="btn-wiz-back" onclick={goBack}>← Back</button>
+              <button type="button" class="btn-wiz-next" onclick={goNext} disabled={!step2Ready}>
+                Next: Copy & Brief →
+              </button>
+            </div>
+            {/if}
+
+            <!-- ═══ STEP 3: COPY ═══ -->
+            {#if wizardStep === 3}
             <!-- 5. Brief / Copy with Markdown Quick Toolbar -->
             <div class="field">
               <div class="field-label-row">
@@ -1042,7 +1096,19 @@
               </p>
             </div>
 
-            <!-- 6. Production Timeline (Created Date, Start Date, Target Deadline, Turnaround) -->
+
+            <!-- ═══ STEP 3 FOOTER: Back / Next ═══ -->
+            <div class="wiz-footer">
+              <button type="button" class="btn-wiz-back" onclick={goBack}>← Back</button>
+              <button type="button" class="btn-wiz-next" onclick={goNext}>
+                Next: Timeline →
+              </button>
+            </div>
+            {/if}
+
+            <!-- ═══ STEP 4: TIMELINE & REVIEW ═══ -->
+            {#if wizardStep === 4}
+            <!-- 6. Production Timeline -->
             <div class="field">
               <div class="field-label">
                 Production Schedule &amp; Turnaround
@@ -1102,7 +1168,7 @@
               />
             </div>
 
-            <!-- 7. File Attachments (NAS _Orders Vault) -->
+            <!-- 7. File Attachments (shown in Step 2) -->
             <div class="field">
               <label class="field-label" for="f-file-input">
                 Upload Reference Files / Assets (NAS Temporary Vault)
@@ -1151,24 +1217,46 @@
               </div>
             {/if}
 
-            <!-- Footer Actions -->
-            <div class="modal-footer">
-              <button type="button" class="btn-ghost" onclick={() => showForm = false}>
-                Cancel
-              </button>
-              <button
-                type="submit"
-                class="btn-primary {formValid && !isSubmitting ? '' : 'disabled'}"
-                disabled={!formValid || isSubmitting}
-              >
-                {#if isSubmitting}
-                  <span class="spinner" aria-hidden="true"></span>
-                  {editingOrderId ? 'Saving…' : 'Submitting…'}
-                {:else}
-                  {editingOrderId ? 'Save Changes' : 'Submit Request'}
-                {/if}
-              </button>
+            <!-- ═══ STEP 4 FOOTER: Back + Submit (closes step 4 block) ═══ -->
+            <!-- Step 4 Review Summary -->
+            <div class="step4-review">
+              <div class="review-grid">
+                <div class="rv-row"><span class="rv-k">Project</span><span class="rv-v">{f_title || '—'}</span></div>
+                <div class="rv-row"><span class="rv-k">Entity</span><span class="rv-v">{f_entity || '—'}</span></div>
+                <div class="rv-row"><span class="rv-k">Priority</span><span class="rv-v">{PRIORITIES.find(p => p.id === f_priority)?.label || f_priority}</span></div>
+                <div class="rv-row"><span class="rv-k">Format</span><span class="rv-v">{f_format || '—'}</span></div>
+                <div class="rv-row"><span class="rv-k">Deadline</span><span class="rv-v">{f_targetDate || '—'} {f_duration ? '(' + f_duration + ')' : ''}</span></div>
+              </div>
             </div>
+
+            {#if formError}
+              <div class="form-error" role="alert">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                {formError}
+              </div>
+            {/if}
+
+            <div class="wiz-footer">
+              <button type="button" class="btn-wiz-back" onclick={goBack}>← Back</button>
+              <div class="wiz-right-actions">
+                <button type="button" class="btn-ghost" onclick={() => showForm = false}>Cancel</button>
+                <button
+                  type="submit"
+                  class="btn-primary {formValid && !isSubmitting ? '' : 'disabled'}"
+                  disabled={!formValid || isSubmitting}
+                >
+                  {#if isSubmitting}
+                    <span class="spinner" aria-hidden="true"></span>
+                    {editingOrderId ? 'Saving…' : 'Submitting…'}
+                  {:else}
+                    {editingOrderId ? 'Save Changes' : '✓ Submit Request'}
+                  {/if}
+                </button>
+              </div>
+            </div>
+            {/if}
           </form>
         {/if}
       </div>
