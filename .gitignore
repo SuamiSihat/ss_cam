@@ -6,6 +6,8 @@
 **/build/
 dist/
 **/dist/
+!src/SS-CAM.Web/client/dist/
+!src/SS-CAM.Web/client/dist/**
 publish/
 **/publish/
 installer/*.zip
