@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { onMount } from 'svelte';
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
@@ -9,15 +9,16 @@
   import ProjectGanttView from '$lib/components/features/ProjectGanttView.svelte';
   import ProjectCalendarView from '$lib/components/features/ProjectCalendarView.svelte';
   import ProjectTableView from '$lib/components/features/ProjectTableView.svelte';
+  import ProjectGraphView from '$lib/components/features/ProjectGraphView.svelte';
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
   import FluentBadge from '$lib/components/ui/FluentBadge.svelte';
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
-  type ViewMode = 'cards' | 'kanban' | 'gantt' | 'calendar' | 'table';
+  type ViewMode = 'graph' | 'kanban' | 'gantt' | 'calendar' | 'table';
 
   let defaultView = $state<ViewMode>(
-    (typeof localStorage !== 'undefined' && (localStorage.getItem('ss_cam_default_project_view') as ViewMode)) || 'cards'
+    (typeof localStorage !== 'undefined' && (localStorage.getItem('ss_cam_default_project_view') as ViewMode)) || 'graph'
   );
 
   let viewMode = $state<ViewMode>(
@@ -99,7 +100,7 @@
       localStorage.setItem('ss_cam_project_view', viewMode);
     }
     const viewLabels: Record<ViewMode, string> = {
-      cards: 'Cards Grid',
+      graph: 'Graph View',
       kanban: 'Kanban Board',
       gantt: 'Gantt Timeline',
       calendar: 'Calendar View',
@@ -159,14 +160,17 @@
         <button
           type="button"
           class="seg-view-btn"
-          class:is-active={viewMode === 'cards'}
-          onclick={() => setViewMode('cards')}
-          title="Visual Cards Grid"
+          class:is-active={viewMode === 'graph'}
+          onclick={() => setViewMode('graph')}
+          title="Obsidian-style Graph View"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M4 11h6a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1zm10 0h6a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1zM4 21h6a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1zm10 0h6a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1z"/>
+            <circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/>
+            <line x1="6" y1="6" x2="12" y2="18" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="18" y1="6" x2="12" y2="18" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="12" y1="18" x2="18" y2="18" stroke="currentColor" stroke-width="1.2"/>
           </svg>
-          <span>Cards</span>
+          <span>Graph</span>
         </button>
 
         <button
@@ -239,20 +243,7 @@
           <span>Save as Default</span>
         </button>
       {/if}
-      <!-- Feature 7: Bulk Select Mode Toggle (cards view only) -->
-      {#if viewMode === 'cards'}
-        <button
-          type="button"
-          class="bulk-toggle-btn"
-          class:is-active={bulkMode}
-          onclick={toggleBulkMode}
-          title="Toggle bulk project selection"
-          aria-pressed={bulkMode}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/><path d="M17 8.41L15.59 7 10 12.59 8.41 11 7 12.41l3 3z"/></svg>
-          {bulkMode ? 'Exit Bulk' : 'Bulk Select'}
-        </button>
-      {/if}
+      <!-- Feature 7: Bulk Select Mode Toggle (graph fallback grid view only) -->
     </div>
   </div>
 
@@ -281,6 +272,10 @@
       </button>
     </div>
 
+  {:else if viewMode === 'graph'}
+    <ProjectGraphView
+      projects={projectStore.filteredProjects}
+    />
   {:else if viewMode === 'kanban'}
     <ProjectKanbanView
       projects={projectStore.filteredProjects}

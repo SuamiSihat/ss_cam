@@ -85,13 +85,13 @@
     { id: 'catppuccin', name: 'Catppuccin (Mocha Dark)', desc: 'Soothing Mocha Dark Palette with Mauve Accents', preview: '#1E1E2E' }
   ];
 
-  type ViewMode = 'cards' | 'kanban' | 'gantt' | 'calendar' | 'table';
+  type ViewMode = 'graph' | 'kanban' | 'gantt' | 'calendar' | 'table';
   let defaultProjectView = $state<ViewMode>(
-    (typeof localStorage !== 'undefined' && (localStorage.getItem('ss_cam_default_project_view') as ViewMode)) || 'cards'
+    (typeof localStorage !== 'undefined' && (localStorage.getItem('ss_cam_default_project_view') as ViewMode)) || 'graph'
   );
 
   const viewModesList: { id: ViewMode; name: string; desc: string; icon: IconName }[] = [
-    { id: 'cards', name: 'Cards Grid', desc: 'Visual card overview with priority & deadline indicators', icon: 'grid' },
+    { id: 'graph', name: 'Graph View', desc: 'Obsidian-style force-directed project relationship graph', icon: 'grid' },
     { id: 'kanban', name: 'Kanban Board', desc: '6-column drag-and-drop production pipeline', icon: 'folder' },
     { id: 'gantt', name: 'Gantt Timeline', desc: 'Interactive schedule timeline with start & due duration bars', icon: 'timeline' },
     { id: 'calendar', name: 'Production Calendar', desc: 'Monthly deliverable due dates on calendar days', icon: 'calendar' },
