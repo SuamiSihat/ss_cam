@@ -184,6 +184,15 @@
     }
   }
 
+  function toggleAnnotateMode() {
+    if (readOnly) return;
+    isAnnotateMode = !isAnnotateMode;
+    if (!isAnnotateMode) {
+      pendingPin = null;
+      newPinContent = '';
+    }
+  }
+
   const activePinsCount = $derived(annotations.filter(a => !a.resolved).length);
   const resolvedPinsCount = $derived(annotations.filter(a => a.resolved).length);
 </script>
