@@ -272,6 +272,10 @@
     <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
       <path d="M10 2a8 8 0 1 0 0 16 3 3 0 0 0 3-3c0-.6-.2-1.2-.6-1.6-.4-.4-.6-.9-.6-1.4 0-1.1.9-2 2-2h1.2A5 5 0 0 0 20 5a3 3 0 0 0-3-3H10zm-4 4.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm4-1a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm4 2a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM5.5 10a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
     </svg>
+  {:else if name === 'clock'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm.75 4.5a.75.75 0 0 0-1.5 0v4.25c0 .2.08.39.22.53l2.5 2.5a.75.75 0 0 0 1.06-1.06L10.75 10.44V6.5z"/>
+    </svg>
   {:else}
     <!-- Default generic bullet icon -->
     <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">

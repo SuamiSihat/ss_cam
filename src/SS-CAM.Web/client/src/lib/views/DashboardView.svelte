@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { onMount } from 'svelte';
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
@@ -185,6 +185,24 @@
   });
 
   const holdingBrands = ['all', 'SSH', 'SSC', 'SSW', 'SSE', 'SST', 'SS'];
+
+  const brandColors: Record<string, string> = {
+    SSH: '#022057',
+    SS: '#043388',
+    SSC: '#0078D4',
+    SSW: '#10B981',
+    SSE: '#F59E0B',
+    SST: '#8B5CF6'
+  };
+
+  const brandNames: Record<string, string> = {
+    SSH: 'SuamiSihat Holding',
+    SS: 'SuamiSihat',
+    SSC: 'SS Clinic',
+    SSW: 'SS Wellness',
+    SSE: 'SS Enterprise',
+    SST: 'SS Tech'
+  };
 </script>
 
 <div class="dashboard-container">
@@ -345,6 +363,86 @@
     </div>
   {/if}
 
+    <!-- Executive Studio Quality & SLA Velocity Strip -->
+    <div class="executive-sla-band">
+      <div class="sla-band-card">
+        <div class="sla-band-icon bg-success-tint text-success">
+          <FluentIcons name="checkCircle" size={18} color="#10B981" />
+        </div>
+        <div class="sla-band-body">
+          <div class="sla-band-header">
+            <span class="sla-band-label">FIRST-TIME RIGHT (FTR)</span>
+            <span class="sla-health-badge" class:healthy={(slaData.firstTimeRightPercent ?? 0) >= 80}>
+              {(slaData.firstTimeRightPercent ?? 0) >= 80 ? 'Optimal Quality' : 'Needs Review'}
+            </span>
+          </div>
+          <div class="sla-band-val text-success">
+            {slaData.firstTimeRightPercent !== null && slaData.firstTimeRightPercent !== undefined ? `${slaData.firstTimeRightPercent}%` : '—'}
+          </div>
+          <div class="sla-band-sub">Delivered &amp; signed off with 0 revisions</div>
+        </div>
+      </div>
+
+      <div class="sla-band-card">
+        <div class="sla-band-icon bg-purple-tint text-purple">
+          <FluentIcons name="calendar" size={18} color="#8B5CF6" />
+        </div>
+        <div class="sla-band-body">
+          <div class="sla-band-header">
+            <span class="sla-band-label">REVIEW QUEUE AGING</span>
+            {#if (slaData.avgReviewAgeDays || 0) > 2}
+              <span class="sla-health-badge caution">Review Bottleneck</span>
+            {:else}
+              <span class="sla-health-badge healthy">Normal Latency</span>
+            {/if}
+          </div>
+          <div class="sla-band-val text-purple">
+            {slaData.avgReviewAgeDays || 0} <span class="sla-val-unit">Days</span>
+          </div>
+          <div class="sla-band-sub">Avg latency before AD sign-off</div>
+        </div>
+      </div>
+
+      <div class="sla-band-card">
+        <div class="sla-band-icon bg-primary-tint text-primary">
+          <FluentIcons name="bolt" size={18} color="#00CFFF" />
+        </div>
+        <div class="sla-band-body">
+          <div class="sla-band-header">
+            <span class="sla-band-label">AVG TURNAROUND SPEED</span>
+            {#if slaData.medianTurnaroundDays !== null && slaData.medianTurnaroundDays !== undefined}
+              <span class="sla-pills-wrap">
+                <span class="sla-mini-pill">p50: {slaData.medianTurnaroundDays}d</span>
+                <span class="sla-mini-pill">p90: {slaData.p90TurnaroundDays || slaData.avgTurnaroundDays}d</span>
+              </span>
+            {/if}
+          </div>
+          <div class="sla-band-val">
+            {slaData.avgTurnaroundDays !== null && slaData.avgTurnaroundDays !== undefined ? `${slaData.avgTurnaroundDays}` : '—'} <span class="sla-val-unit">Days</span>
+          </div>
+          <div class="sla-band-sub">Brief kickoff to final campaign release</div>
+        </div>
+      </div>
+
+      <div class="sla-band-card">
+        <div class="sla-band-icon bg-warning-tint text-warning">
+          <FluentIcons name="history" size={18} color="#D97706" />
+        </div>
+        <div class="sla-band-body">
+          <div class="sla-band-header">
+            <span class="sla-band-label">AVG REVISION ROUNDS</span>
+            <span class="sla-health-badge" class:healthy={(slaData.avgRevisionCount || 0) <= 1.5}>
+              {(slaData.avgRevisionCount || 0) <= 1.5 ? 'Controlled Scope' : 'High Rework'}
+            </span>
+          </div>
+          <div class="sla-band-val text-warning">
+            {slaData.avgRevisionCount !== null && slaData.avgRevisionCount !== undefined ? `${slaData.avgRevisionCount}` : '—'} <span class="sla-val-unit">Revs</span>
+          </div>
+          <div class="sla-band-sub">Avg iterations per completed project</div>
+        </div>
+      </div>
+    </div>
+
     <!-- High-Revision Friction Loop Alert (Only shown if friction exists) -->
     {#if highRevisionProjects.length > 0}
       <div class="friction-alert-card">
@@ -370,6 +468,7 @@
                   <span style="margin-left: 4px;">{hp.designer}</span>
                 </span>
                 <span class="badge-rev-alert">Round {hp.revision}</span>
+                <span class="friction-action-tag">Open Feedback →</span>
               </div>
             </div>
           {/each}
@@ -426,7 +525,8 @@
           {#each appState.activeLiveTasks as task}
             {@const elapsed = getLiveElapsedDisplay(task, currentSecondTicker)}
             {@const designerInitials = (task.DesignerName || task.StaffId || 'D').slice(0, 2).toUpperCase()}
-            <div class="livestream-task-chip">
+            {@const isOvertime = task.StartedAt ? ((Date.now() - new Date(task.StartedAt).getTime()) > 10800000) : false}
+            <div class="livestream-task-chip" class:chip-overtime={isOvertime}>
               <div class="livestream-chip-top">
                 <div class="livestream-designer">
                   <div class="designer-avatar" style="background: {task.AvatarColor || 'var(--brand-accent)'};">
@@ -438,9 +538,12 @@
                   </div>
                 </div>
 
-                <div class="livestream-clock" title="Session duration">
-                  <span class="clock-icon">⏱</span>
-                  <span class="clock-digits">{elapsed}</span>
+                <div class="livestream-clock" class:clock-overtime={isOvertime} title={isOvertime ? 'Continuous session > 3h (Fatigue Check)' : 'Session duration'}>
+                  <FluentIcons name="clock" size={13} color={isOvertime ? '#D97706' : 'var(--brand-accent)'} />
+                  <span class="clock-digits" class:digits-overtime={isOvertime}>{elapsed}</span>
+                  {#if isOvertime}
+                    <span class="overtime-badge" title="Continuous session > 3h">3h+</span>
+                  {/if}
                 </div>
               </div>
 
@@ -485,41 +588,79 @@
           </div>
         </div>
 
-        <div class="pipeline-funnel-container">
-          <div class="funnel-step" onclick={() => appState.navigate('projects', { status: 'backlog' })}>
-            <div class="funnel-count">{pipeline.backlog || 0}</div>
-            <div class="funnel-bar bg-backlog"></div>
-            <div class="funnel-label">Backlog</div>
+        <div class="pipeline-stepper">
+          <div class="pipeline-step step-backlog" onclick={() => appState.navigate('projects', { status: 'backlog' })}>
+            <div class="pstep-header">
+              <span class="pstep-label">Backlog</span>
+            </div>
+            <div class="pstep-val">{pipeline.backlog || 0}</div>
+            <div class="pstep-bar bg-backlog"></div>
           </div>
-          <div class="funnel-connector">→</div>
-          <div class="funnel-step" onclick={() => appState.navigate('projects', { status: 'in-progress' })}>
-            <div class="funnel-count text-primary">{pipeline.inProgress || 0}</div>
-            <div class="funnel-bar bg-inprogress"></div>
-            <div class="funnel-label">In Progress</div>
+
+          <div class="pipeline-chevron-arrow">
+            <FluentIcons name="chevronRight" size={14} color="var(--text-tertiary)" />
           </div>
-          <div class="funnel-connector">→</div>
-          <div class="funnel-step" onclick={() => appState.navigate('deliverables')}>
-            <div class="funnel-count text-review">{pipeline.review || 0}</div>
-            <div class="funnel-bar bg-review"></div>
-            <div class="funnel-label">Review</div>
+
+          <div class="pipeline-step step-inprogress" onclick={() => appState.navigate('projects', { status: 'in-progress' })}>
+            <div class="pstep-header">
+              <span class="pstep-label">In Production</span>
+            </div>
+            <div class="pstep-val text-primary">{pipeline.inProgress || 0}</div>
+            <div class="pstep-bar bg-inprogress"></div>
           </div>
-          <div class="funnel-connector">→</div>
-          <div class="funnel-step" onclick={() => appState.navigate('projects', { status: 'revision' })}>
-            <div class="funnel-count text-revision">{pipeline.revision || 0}</div>
-            <div class="funnel-bar bg-revision"></div>
-            <div class="funnel-label">Revision</div>
+
+          <div class="pipeline-chevron-arrow">
+            <FluentIcons name="chevronRight" size={14} color="var(--text-tertiary)" />
           </div>
-          <div class="funnel-connector">→</div>
-          <div class="funnel-step" onclick={() => appState.navigate('projects', { status: 'approved' })}>
-            <div class="funnel-count text-success">{pipeline.approved || 0}</div>
-            <div class="funnel-bar bg-approved"></div>
-            <div class="funnel-label">Approved</div>
+
+          <div class="pipeline-step step-review" class:has-bottleneck={(pipeline.review || 0) >= 4} onclick={() => appState.navigate('deliverables')}>
+            <div class="pstep-header">
+              <span class="pstep-label">In Review</span>
+              {#if (pipeline.review || 0) >= 4}
+                <span class="pstep-bottleneck-badge" title="High volume awaiting sign-off">Review Queue</span>
+              {/if}
+            </div>
+            <div class="pstep-val text-review">{pipeline.review || 0}</div>
+            <div class="pstep-bar bg-review"></div>
           </div>
-          <div class="funnel-connector">→</div>
-          <div class="funnel-step" onclick={() => appState.navigate('projects', { status: 'done' })}>
-            <div class="funnel-count text-done">{pipeline.done || 0}</div>
-            <div class="funnel-bar bg-done"></div>
-            <div class="funnel-label">Archived</div>
+
+          <div class="pipeline-chevron-arrow">
+            <FluentIcons name="chevronRight" size={14} color="var(--text-tertiary)" />
+          </div>
+
+          <div class="pipeline-step step-revision" class:has-friction={(pipeline.revision || 0) >= 3} onclick={() => appState.navigate('projects', { status: 'revision' })}>
+            <div class="pstep-header">
+              <span class="pstep-label">Revision</span>
+              {#if (pipeline.revision || 0) >= 3}
+                <span class="pstep-friction-badge" title="Projects in feedback iteration">Rework</span>
+              {/if}
+            </div>
+            <div class="pstep-val text-revision">{pipeline.revision || 0}</div>
+            <div class="pstep-bar bg-revision"></div>
+          </div>
+
+          <div class="pipeline-chevron-arrow">
+            <FluentIcons name="chevronRight" size={14} color="var(--text-tertiary)" />
+          </div>
+
+          <div class="pipeline-step step-approved" onclick={() => appState.navigate('projects', { status: 'approved' })}>
+            <div class="pstep-header">
+              <span class="pstep-label">Approved</span>
+            </div>
+            <div class="pstep-val text-success">{pipeline.approved || 0}</div>
+            <div class="pstep-bar bg-approved"></div>
+          </div>
+
+          <div class="pipeline-chevron-arrow">
+            <FluentIcons name="chevronRight" size={14} color="var(--text-tertiary)" />
+          </div>
+
+          <div class="pipeline-step step-done" onclick={() => appState.navigate('projects', { status: 'done' })}>
+            <div class="pstep-header">
+              <span class="pstep-label">Archived</span>
+            </div>
+            <div class="pstep-val text-done">{pipeline.done || 0}</div>
+            <div class="pstep-bar bg-done"></div>
           </div>
         </div>
       </FluentCard>
@@ -536,13 +677,18 @@
         <div class="brand-bar-stack">
           {#each Object.entries(brandDistribution) as [brand, count]}
             {@const pct = Math.round((count / totalBrandAssets) * 100)}
+            {@const bColor = brandColors[brand] || 'var(--brand-primary, #043388)'}
             <div class="brand-row" onclick={() => appState.navigate('projects', { brand })}>
               <div class="brand-row-header">
-                <span class="brand-badge-pill">{brand}</span>
-                <span class="brand-stats-label">{count} assets ({pct}%)</span>
+                <div class="brand-badge-pill" style="color: {bColor}; border-color: {bColor}40; background: {bColor}14;">
+                  <span class="brand-dot" style="background: {bColor};"></span>
+                  <span class="brand-code">{brand}</span>
+                  <span class="brand-fullname">· {brandNames[brand] || brand}</span>
+                </div>
+                <span class="brand-stats-label"><strong>{count}</strong> assets <span class="brand-pct">({pct}%)</span></span>
               </div>
               <div class="brand-bar-track">
-                <div class="brand-bar-fill" style="width: {pct}%;"></div>
+                <div class="brand-bar-fill" style="width: {pct}%; background: {bColor};"></div>
               </div>
             </div>
           {:else}
@@ -1441,6 +1587,163 @@
     background: rgba(33, 161, 247, 0.1);
   }
 
+/* ═══════════ EXECUTIVE SLA QUALITY & VELOCITY BAND ═══════════ */
+  .executive-sla-band {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 2px;
+  }
+
+  .sla-band-card {
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: var(--radius-md, 10px);
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  }
+  .sla-band-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand-accent);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .sla-band-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .bg-success-tint { background: rgba(16, 185, 129, 0.12); color: #10B981; }
+  .bg-purple-tint { background: rgba(139, 92, 246, 0.12); color: #8B5CF6; }
+  .bg-primary-tint { background: rgba(4, 51, 136, 0.12); color: var(--brand-primary, #043388); }
+  .bg-warning-tint { background: rgba(217, 119, 6, 0.12); color: #D97706; }
+  .text-purple { color: #8B5CF6; }
+
+  .sla-band-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .sla-band-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .sla-band-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: var(--text-tertiary, #94A3B8);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .sla-health-badge {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 9999px;
+    letter-spacing: 0.2px;
+    background: rgba(245, 158, 11, 0.12);
+    color: #D97706;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+  }
+  .sla-health-badge.healthy {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+    border-color: rgba(16, 185, 129, 0.25);
+  }
+  .sla-health-badge.caution {
+    background: rgba(239, 68, 68, 0.12);
+    color: #DC2626;
+    border-color: rgba(239, 68, 68, 0.25);
+  }
+
+  .sla-band-val {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin: 2px 0 1px 0;
+  }
+
+  .sla-val-unit {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-left: 2px;
+  }
+
+  .sla-band-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sla-pills-wrap {
+    display: inline-flex;
+    gap: 4px;
+  }
+  .sla-mini-pill {
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 0 4px;
+    border-radius: 3px;
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
+    color: var(--text-secondary);
+  }
+
+  /* Friction Action Tag */
+  .friction-action-tag {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #DC2626;
+    margin-left: 6px;
+    opacity: 0.9;
+    transition: opacity 0.12s;
+  }
+  .friction-item:hover .friction-action-tag {
+    opacity: 1;
+    text-decoration: underline;
+  }
+
+  /* Livestream Overtime indicator */
+  .livestream-task-chip.chip-overtime {
+    border-color: rgba(217, 119, 6, 0.4);
+    background: rgba(254, 243, 199, 0.25);
+  }
+  .livestream-clock.clock-overtime {
+    background: rgba(217, 119, 6, 0.12);
+    border-color: rgba(217, 119, 6, 0.35);
+  }
+  .clock-digits.digits-overtime {
+    color: #D97706;
+  }
+  .overtime-badge {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: #D97706;
+    color: #FFFFFF;
+    letter-spacing: 0.3px;
+  }
+
   /* Studio Pipeline & Distribution */
   .studio-distribution-grid {
     display: grid;
@@ -1448,39 +1751,93 @@
     gap: 20px;
   }
 
-  .pipeline-funnel-container {
+  /* ═══ FLUENT 2 PIPELINE STEPPER ═══ */
+  .pipeline-stepper {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 6px;
-    padding: 10px 0;
+    padding: 8px 0 4px 0;
   }
 
-  .funnel-step {
+  .pipeline-step {
     flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 6px;
     cursor: pointer;
-    padding: 6px 4px;
-    border-radius: 6px;
-    transition: background 0.12s;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
+    transition: all 0.14s ease;
+    min-width: 0;
   }
-  .funnel-step:hover {
-    background: var(--surface-card-subtle, #F8FAFC);
+  .pipeline-step:hover {
+    background: var(--surface-card);
+    border-color: var(--brand-accent);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
   }
 
-  .funnel-count {
-    font-size: 18px;
+  .pipeline-step.has-bottleneck {
+    border-color: #F59E0B;
+    background: rgba(245, 158, 11, 0.05);
+  }
+  .pipeline-step.has-friction {
+    border-color: #EF4444;
+    background: rgba(239, 68, 68, 0.05);
+  }
+
+  .pstep-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  .pstep-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pstep-bottleneck-badge {
+    font-size: 8.5px;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: #F59E0B;
+    color: #FFFFFF;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .pstep-friction-badge {
+    font-size: 8.5px;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: #EF4444;
+    color: #FFFFFF;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .pstep-val {
+    font-size: 20px;
     font-weight: 900;
     color: var(--text-primary);
+    line-height: 1.1;
   }
 
-  .funnel-bar {
+  .pstep-bar {
     width: 100%;
-    height: 6px;
-    border-radius: 3px;
+    height: 4px;
+    border-radius: 2px;
   }
   .bg-backlog { background: #94A3B8; }
   .bg-inprogress { background: #0284C7; }
@@ -1489,52 +1846,83 @@
   .bg-approved { background: #10B981; }
   .bg-done { background: #047857; }
 
-  .funnel-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-secondary);
+  .pipeline-chevron-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.55;
+    flex-shrink: 0;
   }
 
-  .funnel-connector {
-    color: var(--text-tertiary, #CBD5E1);
-    font-size: 14px;
-    font-weight: 800;
-  }
-
+  /* ═══ BRAND BAR STACK WITH BRAND TOKENS ═══ */
   .brand-bar-stack {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 9px;
   }
 
   .brand-row {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 5px;
     cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 6px;
-    transition: background 0.12s;
+    padding: 6px 8px;
+    border-radius: 7px;
+    background: var(--surface-card-subtle);
+    border: 1px solid transparent;
+    transition: all 0.14s ease;
   }
   .brand-row:hover {
-    background: var(--surface-card-subtle, #F8FAFC);
+    background: var(--surface-card);
+    border-color: var(--surface-card-border);
+    transform: translateX(2px);
+    box-shadow: var(--shadow-sm);
   }
 
   .brand-row-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
   }
 
   .brand-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-size: 11px;
     font-weight: 800;
-    color: var(--brand-primary, #043388);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid;
+    transition: all 0.14s ease;
+  }
+
+  .brand-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .brand-code {
+    font-weight: 800;
+    letter-spacing: 0.3px;
+  }
+
+  .brand-fullname {
+    font-weight: 600;
+    opacity: 0.82;
+    font-size: 10.5px;
   }
 
   .brand-stats-label {
-    font-size: 11px;
+    font-size: 11.5px;
     color: var(--text-secondary);
+  }
+  .brand-pct {
+    font-weight: 600;
+    opacity: 0.85;
   }
 
   .brand-bar-track {
@@ -1547,9 +1935,8 @@
 
   .brand-bar-fill {
     height: 100%;
-    background: var(--brand-primary, #043388);
     border-radius: 3px;
-    transition: width 0.3s ease;
+    transition: width 0.35s ease;
   }
 
   .analytics-grid {
@@ -1959,7 +2346,8 @@
   .empty-workspace-state .empty-desc { font-size: 12px; color: var(--text-secondary); margin: 0; }
 
   @media (max-width: 1024px) {
-    .commercial-pillars {
+    .commercial-pillars,
+    .executive-sla-band {
       grid-template-columns: repeat(2, 1fr);
     }
     .studio-distribution-grid,
@@ -1975,7 +2363,8 @@
   }
 
   @media (max-width: 600px) {
-    .commercial-pillars {
+    .commercial-pillars,
+    .executive-sla-band {
       grid-template-columns: 1fr;
     }
   }
