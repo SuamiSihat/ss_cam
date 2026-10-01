@@ -1052,33 +1052,40 @@
                   <span class="req-mark" aria-hidden="true">*</span>
                 </label>
                 <div class="markdown-quick-toolbar" role="toolbar" aria-label="Markdown formatting tools">
-                  <button type="button" class="md-tool-btn" title="Bold (**text**)" onclick={() => wrapCopySelection('**', '**', 'bold text')}>
-                    <strong>B</strong>
+                  <button type="button" class="md-tool-btn" title="Bold (**text**)" onclick={() => wrapCopySelection('**', '**', 'bold text')} aria-label="Bold">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
                   </button>
-                  <button type="button" class="md-tool-btn" title="Italic (*text*)" onclick={() => wrapCopySelection('*', '*', 'italic text')}>
-                    <em>I</em>
+                  <button type="button" class="md-tool-btn" title="Italic (*text*)" onclick={() => wrapCopySelection('*', '*', 'italic text')} aria-label="Italic">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
                   </button>
-                  <button type="button" class="md-tool-btn" title="Heading 2 (## Heading)" onclick={() => wrapCopySelection('## ', '', 'Heading')}>
-                    H2
+                  <button type="button" class="md-tool-btn" title="Heading 1 (# Heading)" onclick={() => wrapCopySelection('# ', '', 'Heading 1')} aria-label="Heading 1">
+                    <span class="btn-glyph">H1</span>
                   </button>
-                  <button type="button" class="md-tool-btn" title="Inline Code (`code`)" onclick={() => wrapCopySelection('`', '`', 'code')}>
-                    &lt;/&gt;
+                  <button type="button" class="md-tool-btn" title="Heading 2 (## Heading)" onclick={() => wrapCopySelection('## ', '', 'Heading 2')} aria-label="Heading 2">
+                    <span class="btn-glyph">H2</span>
                   </button>
-                  <button type="button" class="md-tool-btn" title="Task Item (- [ ] Task)" onclick={() => wrapCopySelection('- [ ] ', '', 'Task')}>
-                    ☑
+                  <button type="button" class="md-tool-btn" title="Inline Code (`code`)" onclick={() => wrapCopySelection('`', '`', 'code')} aria-label="Inline Code">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                   </button>
-                  <span class="md-tool-sep"></span>
-                  <button type="button" class="md-tool-btn" title="Insert Table" onclick={insertCopyTable}>
-                    <iconify-icon icon="fluent:table-24-regular" style="font-size:13px; vertical-align: -2px;"></iconify-icon> Table
+                  <button type="button" class="md-tool-btn" title="Task Item (- [ ])" onclick={() => wrapCopySelection('- [ ] ', '', 'Task item')} aria-label="Task Checkbox">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><polyline points="9 12 11 14 15 10"/></svg>
                   </button>
-                  <button type="button" class="md-tool-btn" title="Insert Link" onclick={insertCopyLink}>
-                    <iconify-icon icon="fluent:link-24-regular" style="font-size:13px; vertical-align: -2px;"></iconify-icon> Link
+                  <span class="md-tool-sep" aria-hidden="true"></span>
+                  <button type="button" class="md-tool-btn" title="Insert Table" onclick={insertCopyTable} aria-label="Insert Table">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+                    <span>Table</span>
                   </button>
-                  <button type="button" class="md-tool-btn" title="Insert Image" onclick={insertCopyImage}>
-                    <iconify-icon icon="fluent:image-24-regular" style="font-size:13px; vertical-align: -2px;"></iconify-icon> Image
+                  <button type="button" class="md-tool-btn" title="Insert Link" onclick={insertCopyLink} aria-label="Insert Link">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <span>Link</span>
                   </button>
-                  <button type="button" class="md-tool-btn" title="Insert Attachment" onclick={insertCopyAttachment}>
-                    <iconify-icon icon="fluent:attach-24-regular" style="font-size:13px; vertical-align: -2px;"></iconify-icon> Attach
+                  <button type="button" class="md-tool-btn" title="Insert Image" onclick={insertCopyImage} aria-label="Insert Image">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <span>Image</span>
+                  </button>
+                  <button type="button" class="md-tool-btn" title="Insert Attachment" onclick={insertCopyAttachment} aria-label="Insert Attachment">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    <span>Attach</span>
                   </button>
                 </div>
               </div>
@@ -3163,32 +3170,42 @@
     background: var(--surface-card);
     border: 1px solid var(--surface-card-border);
     border-radius: var(--radius-sm, 6px);
-    padding: 2px 4px;
+    padding: 3px 5px;
     gap: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
   .md-tool-btn {
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     cursor: pointer;
-    font-size: 11.5px;
+    font-size: 11px;
+    font-weight: 600;
     padding: 3px 6px;
     border-radius: 4px;
     color: var(--text-secondary);
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    transition: background 0.15s, color 0.15s;
+    gap: 4px;
+    transition: all 0.12s ease;
+    font-family: inherit;
   }
   .md-tool-btn:hover {
-    background: var(--surface-card-border);
+    background: var(--surface-card-hover, rgba(0,0,0,0.04));
+    border-color: var(--surface-card-border);
     color: var(--text-primary);
+  }
+  .md-tool-btn .btn-glyph {
+    font-weight: 800;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--brand-primary, #0078D4);
   }
   .md-tool-sep {
     display: inline-block;
     width: 1px;
     height: 14px;
     background: var(--surface-card-border);
-    margin: 0 2px;
+    margin: 0 3px;
   }
 
   /* ── Date Strip Grid & Badges ── */

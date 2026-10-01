@@ -20,6 +20,58 @@
   let autoSaveStatus = $state<'saved' | 'saving' | 'unsaved' | 'idle'>('idle');
   let autoSaveTimer: any = null;
   let isDirty = $state<boolean>(false);
+  let bodyTextareaEl = $state<HTMLTextAreaElement | null>(null);
+
+  function wrapBodySelection(prefix: string, suffix: string = prefix, defaultPlaceholder: string = 'text') {
+    if (!bodyTextareaEl) {
+      draftBodyCopy += `${prefix}${defaultPlaceholder}${suffix}`;
+      isDirty = true;
+      return;
+    }
+    const start = bodyTextareaEl.selectionStart;
+    const end = bodyTextareaEl.selectionEnd;
+    const selected = draftBodyCopy.substring(start, end) || defaultPlaceholder;
+    const rep = `${prefix}${selected}${suffix}`;
+    draftBodyCopy = draftBodyCopy.substring(0, start) + rep + draftBodyCopy.substring(end);
+    isDirty = true;
+    setTimeout(() => {
+      if (bodyTextareaEl) {
+        bodyTextareaEl.focus();
+        bodyTextareaEl.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+      }
+    }, 10);
+  }
+
+  function insertBodyBlock(block: string) {
+    if (!bodyTextareaEl) {
+      draftBodyCopy += `\n${block}\n`;
+      isDirty = true;
+      return;
+    }
+    const start = bodyTextareaEl.selectionStart;
+    const end = bodyTextareaEl.selectionEnd;
+    const before = draftBodyCopy.substring(0, start);
+    const after = draftBodyCopy.substring(end);
+    const needsPrefix = before.length > 0 && !before.endsWith('\n\n');
+    draftBodyCopy = before + (needsPrefix ? '\n\n' : '') + block + '\n\n' + after;
+    isDirty = true;
+    setTimeout(() => {
+      if (bodyTextareaEl) {
+        bodyTextareaEl.focus();
+        const newPos = start + (needsPrefix ? 2 : 0) + block.length + 2;
+        bodyTextareaEl.setSelectionRange(newPos, newPos);
+      }
+    }, 10);
+  }
+
+  function insertBodyLink() {
+    wrapBodySelection('[', '](https://)', 'Link text');
+  }
+
+  function insertBodyTable() {
+    const table = '| Item | Details |\n| :--- | :--- |\n| Offer | RM 149 Special |\n| Code | SSRAMADAN |';
+    insertBodyBlock(table);
+  }
 
   function getDraftKey(projectId: string) {
     return 'sscam:copydraft:' + projectId;
@@ -409,8 +461,45 @@
                   </span>
                 </div>
               </div>
+              <div class="markdown-quick-toolbar" role="toolbar" aria-label="Markdown formatting tools">
+                <button type="button" class="md-tool-btn" title="Bold (*text*)" onclick={() => wrapBodySelection('*', '*', 'bold text')} aria-label="Bold">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+                </button>
+                <button type="button" class="md-tool-btn" title="Italic (_text_)" onclick={() => wrapBodySelection('_', '_', 'italic text')} aria-label="Italic">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+                </button>
+                <button type="button" class="md-tool-btn" title="Strikethrough (~text~)" onclick={() => wrapBodySelection('~', '~', 'strike text')} aria-label="Strikethrough">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+                </button>
+                <button type="button" class="md-tool-btn" title="Inline Code (`code`)" onclick={() => wrapBodySelection('`', '`', 'code')} aria-label="Inline Code">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </button>
+                <span class="md-tool-sep" aria-hidden="true"></span>
+                <button type="button" class="md-tool-btn" title="Heading 2 (## Heading)" onclick={() => wrapBodySelection('## ', '', 'Heading 2')} aria-label="Heading 2">
+                  <span class="btn-glyph">H2</span>
+                </button>
+                <button type="button" class="md-tool-btn" title="Bullet List (- item)" onclick={() => wrapBodySelection('- ', '', 'Bullet item')} aria-label="Bullet List">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                </button>
+                <button type="button" class="md-tool-btn" title="Checklist (- [ ])" onclick={() => wrapBodySelection('- [ ] ', '', 'Task item')} aria-label="Checklist">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><polyline points="9 12 11 14 15 10"/></svg>
+                </button>
+                <button type="button" class="md-tool-btn" title="Blockquote (> quote)" onclick={() => wrapBodySelection('> ', '', 'Quote text')} aria-label="Blockquote">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 17h3l2-4V7H5v6h3l-2 4zm8 0h3l2-4V7h-6v6h3l-2 4z"/></svg>
+                </button>
+                <span class="md-tool-sep" aria-hidden="true"></span>
+                <button type="button" class="md-tool-btn" title="Insert Link" onclick={insertBodyLink} aria-label="Insert Link">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  <span>Link</span>
+                </button>
+                <button type="button" class="md-tool-btn" title="Insert Table" onclick={insertBodyTable} aria-label="Insert Table">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+                  <span>Table</span>
+                </button>
+              </div>
               <textarea
                 id="body-input"
+                bind:this={bodyTextareaEl}
                 bind:value={draftBodyCopy}
                 placeholder="Enter full advertising script or WhatsApp message (supports *bold*, _italic_, ~strike~)..."
                 class="fluent-textarea"
@@ -1196,4 +1285,50 @@
     .mockup-right-pane { display: none; }
     .platform-gauges-grid { grid-template-columns: 1fr 1fr; }
   }
+
+  /* Markdown Quick Toolbar */
+  .markdown-quick-toolbar {
+    display: inline-flex;
+    align-items: center;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: var(--radius-sm, 6px);
+    padding: 3px 5px;
+    gap: 3px;
+    margin-bottom: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .md-tool-sep {
+    width: 1px;
+    height: 14px;
+    background: var(--surface-card-border);
+    margin: 0 2px;
+  }
+  .md-tool-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.12s ease;
+    font-family: inherit;
+  }
+  .md-tool-btn:hover {
+    background: var(--surface-card-hover, rgba(0,0,0,0.04));
+    border-color: var(--surface-card-border);
+    color: var(--text-primary);
+  }
+  .md-tool-btn .btn-glyph {
+    font-weight: 800;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--brand-primary, #0078D4);
+  }
+
 </style>
