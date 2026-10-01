@@ -459,7 +459,7 @@
         <select id="login-account-select" class="field-select" bind:value={username} autocomplete="username">
           {#each sortedUsers as u}
             <option value={u.username}>
-              {u.staffId} — {u.name} ({u.role})
+              {u.staffId} — {u.name}
             </option>
           {/each}
         </select>
@@ -518,18 +518,7 @@
         {/if}
       </button>
 
-      <!-- Quick Sign-in Section (Recent Active Logins - Strictly Limit to 3) -->
-      <div class="quick-roster-section">
-        <span class="roster-title">Recent Active Logins (Top 3):</span>
-        <div class="roster-chips">
-          {#each recentProfiles as u}
-            <button type="button" class="roster-chip" onclick={() => selectUser(u.username)}
-              aria-label={`Select ${u.name} (${u.staffId})`}>
-              <b class="chip-id">{u.staffId}</b> {u.name}
-            </button>
-          {/each}
-        </div>
-      </div>
+
     </form>
 
     <!-- Forgot Password Modal -->
