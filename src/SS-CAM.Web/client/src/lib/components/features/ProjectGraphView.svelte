@@ -12,6 +12,7 @@
   let canvasEl: HTMLCanvasElement | null = $state(null);
   let containerEl: HTMLDivElement | null = $state(null);
   let animFrameId: number | null = null;
+  let resizeObserver: ResizeObserver | null = null;
   let hoveredNode: HierarchyNode | null = $state(null);
   let tooltipX = $state(0);
   let tooltipY = $state(0);
@@ -35,6 +36,7 @@
   // ─── Obsidian-Inspired Controls & Forces State ───
   let showSettingsPanel = $state(false);
   let showLegend = $state(true);
+  let canvasTheme = $state<'dark' | 'light'>('dark'); // Obsidian cosmic dark by default
 
   // Filters
   let searchQuery = $state('');
@@ -44,18 +46,25 @@
   // Display
   let showArrows = $state(true);
   let textFadeThreshold = $state(0.20);
-  let nodeSizeScale = $state(1.30);
-  let linkThickness = $state(0.70);
+  let nodeSizeScale = $state(1.25);
+  let linkThickness = $state(0.90);
 
   // Forces (Obsidian Default Calibration)
   let centerForce = $state(0.45);
   let repelForce = $state(11.50);
   let linkForce = $state(0.80);
-  let linkDistance = $state(115);
+  let linkDistance = $state(110);
 
-  // Simulation activity tracker
-  let simulationAlpha = 1.0; // 1.0 = fully dynamic, settles to ~0.01 with micro-drift
-  let lastTime = 0;
+  // ─── Chronological Timeline Playback ("Show one by one when created & status change") ───
+  let isTimelineMode = $state(false);
+  let isTimelinePlaying = $state(false);
+  let timelineIndex = $state(0); // 0 to sortedProjects.length
+  let timelineSpeed = $state(1); // 1x, 2x, 4x
+  let timelineIntervalId: any = null;
+  let sortedProjects: Project[] = [];
+  let currentPlaybackProject: Project | null = $state(null);
+  // Birth animation map: nodeId -> timestamp of creation
+  let birthTimestamps = new Map<string, number>();
 
   // ─── Data Types ───
   type NodeType = 'root' | 'brand' | 'media' | 'project';
@@ -100,6 +109,7 @@
     priority?: string;
     mediaType?: string;
     deadline?: string;
+    createdDate?: string;
     tags?: string[];
   }
 
@@ -164,16 +174,31 @@
     }
   }
 
+  // ─── Chronological Sorting ───
+  function sortProjectsChronologically(projs: Project[]): Project[] {
+    return [...projs].sort((a, b) => {
+      const da = a.createdDate || a.created || a.startDate || a.jobId || '';
+      const db = b.createdDate || b.created || b.startDate || b.jobId || '';
+      return da.localeCompare(db);
+    });
+  }
+
   // ─── Build Graph Hierarchy & Cross-Links ───
-  function buildHierarchy() {
+  function buildHierarchy(activeProjectList?: Project[]) {
     const w = canvasEl?.width ? canvasEl.width / dpr : 900;
     const h = canvasEl?.height ? canvasEl.height / dpr : 650;
     const cx = w / 2;
     const cy = h / 2;
 
+    const sourceList = activeProjectList || (
+      isTimelineMode
+        ? sortedProjects.slice(0, timelineIndex)
+        : projects
+    );
+
     // Filter projects based on search and brand
     const query = searchQuery.trim().toLowerCase();
-    const filteredProjects = projects.filter(p => {
+    const filteredProjects = sourceList.filter(p => {
       if (selectedBrand !== 'ALL' && (p.brand || 'SS') !== selectedBrand) return false;
       if (!query) return true;
       const matchTitle = (p.title || '').toLowerCase().includes(query);
@@ -194,22 +219,29 @@
       brandMap[brand][media].push(p);
     }
 
+    // Preserve existing node positions if re-building
+    const existingNodeMap = new Map<string, { x: number; y: number; vx: number; vy: number }>();
+    for (const n of allNodes) {
+      existingNodeMap.set(n.id, { x: n.x, y: n.y, vx: n.vx, vy: n.vy });
+    }
+
     // 1. Root Node = SSH (SuamiSihat Holding)
+    const existingRoot = existingNodeMap.get('root-ssh');
     rootNode = {
       id: 'root-ssh',
       type: 'root',
       label: 'SSH',
       sublabel: 'SuamiSihat Holding',
       color: '#022057',
-      x: cx,
-      y: cy,
-      vx: 0,
-      vy: 0,
+      x: existingRoot ? existingRoot.x : cx,
+      y: existingRoot ? existingRoot.y : cy,
+      vx: existingRoot ? existingRoot.vx : 0,
+      vy: existingRoot ? existingRoot.vy : 0,
       fx: 0,
       fy: 0,
       mass: 8.0,
-      baseRadius: 40,
-      radius: 40 * nodeSizeScale,
+      baseRadius: 38,
+      radius: 38 * nodeSizeScale,
       isPinned: false,
       children: [],
       parent: null,
@@ -218,13 +250,15 @@
     };
 
     const brandKeys = Object.keys(brandMap);
-    const brandOrbitRadius = Math.min(w, h) * 0.23;
+    // Well-balanced radial orbits to prevent edge cropping
+    const brandOrbitRadius = Math.min(w, h) * 0.19;
 
     for (let bi = 0; bi < brandKeys.length; bi++) {
       const brand = brandKeys[bi];
       const brandAngle = (bi / Math.max(1, brandKeys.length)) * Math.PI * 2 - Math.PI / 2;
-      const brandX = cx + Math.cos(brandAngle) * brandOrbitRadius + (Math.random() - 0.5) * 20;
-      const brandY = cy + Math.sin(brandAngle) * brandOrbitRadius + (Math.random() - 0.5) * 20;
+      const defaultBrandX = cx + Math.cos(brandAngle) * brandOrbitRadius;
+      const defaultBrandY = cy + Math.sin(brandAngle) * brandOrbitRadius;
+      const existingBrand = existingNodeMap.get(`brand-${brand}`);
 
       const brandBreakdown = emptyBreakdown();
       let brandProjectCount = 0;
@@ -236,15 +270,15 @@
         label: brand,
         sublabel: brandNames[brand] || brand,
         color: brandColors[brand] || '#043388',
-        x: brandX,
-        y: brandY,
-        vx: 0,
-        vy: 0,
+        x: existingBrand ? existingBrand.x : defaultBrandX,
+        y: existingBrand ? existingBrand.y : defaultBrandY,
+        vx: existingBrand ? existingBrand.vx : 0,
+        vy: existingBrand ? existingBrand.vy : 0,
         fx: 0,
         fy: 0,
         mass: 4.5,
-        baseRadius: 28,
-        radius: 28 * nodeSizeScale,
+        baseRadius: 26,
+        radius: 26 * nodeSizeScale,
         isPinned: false,
         children: [],
         parent: rootNode,
@@ -253,13 +287,14 @@
       };
 
       const mediaTypes = Object.keys(brandMap[brand]);
-      const mediaOrbitRadius = Math.min(w, h) * 0.14;
+      const mediaOrbitRadius = Math.min(w, h) * 0.11;
 
       for (let mi = 0; mi < mediaTypes.length; mi++) {
         const media = mediaTypes[mi];
-        const mediaAngle = brandAngle + ((mi - (mediaTypes.length - 1) / 2) / Math.max(1, mediaTypes.length)) * (Math.PI * 0.7);
-        const mediaX = brandX + Math.cos(mediaAngle) * mediaOrbitRadius + (Math.random() - 0.5) * 15;
-        const mediaY = brandY + Math.sin(mediaAngle) * mediaOrbitRadius + (Math.random() - 0.5) * 15;
+        const mediaAngle = brandAngle + ((mi - (mediaTypes.length - 1) / 2) / Math.max(1, mediaTypes.length)) * (Math.PI * 0.65);
+        const defaultMediaX = (existingBrand ? existingBrand.x : defaultBrandX) + Math.cos(mediaAngle) * mediaOrbitRadius;
+        const defaultMediaY = (existingBrand ? existingBrand.y : defaultBrandY) + Math.sin(mediaAngle) * mediaOrbitRadius;
+        const existingMedia = existingNodeMap.get(`media-${brand}-${media}`);
 
         const mediaBreakdown = emptyBreakdown();
         const mediaProjects = brandMap[brand][media];
@@ -271,15 +306,15 @@
           label: media,
           sublabel: `${mediaProjects.length} project${mediaProjects.length !== 1 ? 's' : ''}`,
           color: brandColors[brand] || '#043388',
-          x: mediaX,
-          y: mediaY,
-          vx: 0,
-          vy: 0,
+          x: existingMedia ? existingMedia.x : defaultMediaX,
+          y: existingMedia ? existingMedia.y : defaultMediaY,
+          vx: existingMedia ? existingMedia.vx : 0,
+          vy: existingMedia ? existingMedia.vy : 0,
           fx: 0,
           fy: 0,
           mass: 2.5,
-          baseRadius: 18,
-          radius: 18 * nodeSizeScale,
+          baseRadius: 17,
+          radius: 17 * nodeSizeScale,
           isPinned: false,
           children: [],
           parent: brandNode,
@@ -287,13 +322,14 @@
           statusBreakdown: mediaBreakdown
         };
 
-        const projectOrbitRadius = Math.min(w, h) * 0.08;
+        const projectOrbitRadius = Math.min(w, h) * 0.065;
 
         for (let pi = 0; pi < mediaProjects.length; pi++) {
           const p = mediaProjects[pi];
-          const projectAngle = mediaAngle + ((pi - (mediaProjects.length - 1) / 2) / Math.max(1, mediaProjects.length)) * (Math.PI * 0.6);
-          const projectX = mediaX + Math.cos(projectAngle) * projectOrbitRadius + (Math.random() - 0.5) * 10;
-          const projectY = mediaY + Math.sin(projectAngle) * projectOrbitRadius + (Math.random() - 0.5) * 10;
+          const projectAngle = mediaAngle + ((pi - (mediaProjects.length - 1) / 2) / Math.max(1, mediaProjects.length)) * (Math.PI * 0.55);
+          const defaultProjectX = (existingMedia ? existingMedia.x : defaultMediaX) + Math.cos(projectAngle) * projectOrbitRadius;
+          const defaultProjectY = (existingMedia ? existingMedia.y : defaultMediaY) + Math.sin(projectAngle) * projectOrbitRadius;
+          const existingProj = existingNodeMap.get(p.id || p.jobId);
 
           const status = p.status || 'backlog';
 
@@ -304,15 +340,15 @@
             label: p.jobId,
             sublabel: p.title,
             color: statusColors[status] || '#6B7280',
-            x: projectX,
-            y: projectY,
-            vx: 0,
-            vy: 0,
+            x: existingProj ? existingProj.x : defaultProjectX,
+            y: existingProj ? existingProj.y : defaultProjectY,
+            vx: existingProj ? existingProj.vx : 0,
+            vy: existingProj ? existingProj.vy : 0,
             fx: 0,
             fy: 0,
             mass: 1.0,
-            baseRadius: 9,
-            radius: 9 * nodeSizeScale,
+            baseRadius: 8.5,
+            radius: 8.5 * nodeSizeScale,
             isPinned: false,
             children: [],
             parent: mediaNode,
@@ -325,6 +361,7 @@
             priority: p.priority || 'medium',
             mediaType: p.presetType || '',
             deadline: p.deadline || '',
+            createdDate: p.createdDate || p.created || p.startDate || '',
             tags: p.tags || []
           };
           projectNode.statusBreakdown[status] = 1;
@@ -355,7 +392,7 @@
     }
     collect(rootNode);
 
-    // 5. Cross-Links (Obsidian-Style File Linking: Shared Tags or Same Designer)
+    // 5. Cross-Links (Obsidian-Style File Linking: Shared Tags)
     const projectNodes = allNodes.filter(n => n.type === 'project');
     const crossLinkSet = new Set<string>();
 
@@ -363,11 +400,10 @@
       const a = projectNodes[i];
       let linksForA = 0;
       for (let j = i + 1; j < projectNodes.length; j++) {
-        if (linksForA >= 2) break; // Keep graph clean & readable
+        if (linksForA >= 2) break;
         const b = projectNodes[j];
         if (a.parent === b.parent) continue; // Skip siblings in same media cluster
 
-        // Check shared tags
         const commonTags = (a.tags || []).filter(t => (b.tags || []).includes(t));
         if (commonTags.length > 0) {
           const key = `${a.id}--${b.id}`;
@@ -384,11 +420,9 @@
         }
       }
     }
-
-    simulationAlpha = 1.0;
   }
 
-  // ─── Force-Directed Physics Simulation (Obsidian-Inspired Engine) ───
+  // ─── Force-Directed Physics Simulation ───
   function stepPhysics() {
     if (!canvasEl) return;
     const w = canvasEl.width / dpr;
@@ -416,7 +450,7 @@
     }
 
     // 2. Repel Force (Coulomb Repulsion)
-    const rForce = repelForce * 650;
+    const rForce = repelForce * 600;
     const len = activeNodes.length;
     for (let i = 0; i < len; i++) {
       const ni = activeNodes[i];
@@ -428,8 +462,8 @@
         const minDist = (ni.radius + nj.radius) * 1.35;
         const dist = Math.sqrt(distSq) || 0.1;
 
-        if (dist < 450) {
-          const rep = (rForce * (ni.mass * nj.mass)) / (distSq + 300);
+        if (dist < 420) {
+          const rep = (rForce * (ni.mass * nj.mass)) / (distSq + 280);
           const fx = (dx / dist) * rep;
           const fy = (dy / dist) * rep;
           ni.fx += fx;
@@ -463,9 +497,9 @@
 
       let targetDist = linkDistance;
       if (edge.type === 'crosslink') {
-        targetDist = linkDistance * 1.4;
+        targetDist = linkDistance * 1.35;
       } else if (s.type === 'root') {
-        targetDist = linkDistance * 1.5;
+        targetDist = linkDistance * 1.45;
       } else if (s.type === 'brand') {
         targetDist = linkDistance * 1.0;
       } else {
@@ -487,17 +521,31 @@
       }
     }
 
-    // 4. Subtle Ambient Living Drift (Cosmic Breathing when Idle)
+    // 4. Soft Edge Boundary Restraints (Prevents window cropping & drawer collisions)
+    const padLeft = 80;
+    const padRight = showSettingsPanel ? 300 : 90;
+    const padTop = 60;
+    const padBottom = showLegend ? 180 : 70;
+
+    for (const node of activeNodes) {
+      if (node.isPinned) continue;
+      if (node.x < padLeft) node.fx += (padLeft - node.x) * 0.18;
+      if (node.x > w - padRight) node.fx -= (node.x - (w - padRight)) * 0.18;
+      if (node.y < padTop) node.fy += (padTop - node.y) * 0.18;
+      if (node.y > h - padBottom) node.fy -= (node.y - (h - padBottom)) * 0.18;
+    }
+
+    // 5. Subtle Ambient Living Drift (Cosmic breathing)
     const time = performance.now() * 0.001;
     for (let i = 0; i < activeNodes.length; i++) {
       const node = activeNodes[i];
       if (node.isPinned || node.type === 'root') continue;
-      const drift = 0.035 * Math.sin(time * 1.2 + i * 0.7);
+      const drift = 0.03 * Math.sin(time * 1.2 + i * 0.7);
       node.fx += Math.cos(time + i) * drift;
       node.fy += Math.sin(time + i) * drift;
     }
 
-    // 5. Velocity Integration & Damping
+    // 6. Velocity Integration & Damping
     const damping = isDragging ? 0.90 : 0.86;
     for (const node of activeNodes) {
       if (node.isPinned) {
@@ -510,9 +558,9 @@
 
       // Speed clamp
       const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
-      if (speed > 18) {
-        node.vx = (node.vx / speed) * 18;
-        node.vy = (node.vy / speed) * 18;
+      if (speed > 16) {
+        node.vx = (node.vx / speed) * 16;
+        node.vy = (node.vy / speed) * 16;
       }
 
       node.x += node.vx;
@@ -520,33 +568,81 @@
     }
   }
 
-  // ─── Trigger Animate Pulse (Obsidian-Style Kinetic Replay) ───
-  function triggerAnimatePulse() {
-    if (!canvasEl) return;
-    const w = canvasEl.width / dpr;
-    const h = canvasEl.height / dpr;
-    const cx = w / 2;
-    const cy = h / 2;
-
-    for (const node of allNodes) {
-      if (node.type === 'root') continue;
-      const angle = Math.atan2(node.y - cy, node.x - cx) + (Math.random() - 0.5) * 0.8;
-      const impulse = (Math.random() * 10 + 6) / Math.sqrt(node.mass);
-      node.vx += Math.cos(angle) * impulse;
-      node.vy += Math.sin(angle) * impulse;
+  // ─── Chronological Timeline Playback ("One by one file creation & status evolution") ───
+  function startTimelineAnimation(fromStart = false) {
+    if (sortedProjects.length === 0) {
+      sortedProjects = sortProjectsChronologically(projects);
     }
-    simulationAlpha = 1.0;
+    isTimelineMode = true;
+    isTimelinePlaying = true;
+
+    if (fromStart || timelineIndex >= sortedProjects.length) {
+      timelineIndex = 0;
+      birthTimestamps.clear();
+      buildHierarchy([]);
+    }
+
+    if (timelineIntervalId) clearInterval(timelineIntervalId);
+
+    const stepMs = Math.max(30, Math.round(240 / timelineSpeed));
+    timelineIntervalId = setInterval(() => {
+      if (timelineIndex < sortedProjects.length) {
+        const nextProj = sortedProjects[timelineIndex];
+        currentPlaybackProject = nextProj;
+        timelineIndex++;
+
+        // Record birth time for entrance pop effect
+        birthTimestamps.set(nextProj.id || nextProj.jobId, performance.now());
+
+        // Rebuild hierarchy with files created up to this point
+        buildHierarchy();
+      } else {
+        pauseTimeline();
+      }
+    }, stepMs);
+  }
+
+  function pauseTimeline() {
+    isTimelinePlaying = false;
+    if (timelineIntervalId) {
+      clearInterval(timelineIntervalId);
+      timelineIntervalId = null;
+    }
+  }
+
+  function exitTimelineAndShowAll() {
+    pauseTimeline();
+    isTimelineMode = false;
+    timelineIndex = sortedProjects.length;
+    currentPlaybackProject = null;
+    buildHierarchy();
+    setTimeout(() => fitView(), 80);
+  }
+
+  function handleTimelineScrub(targetIndex: number) {
+    pauseTimeline();
+    timelineIndex = Math.max(0, Math.min(sortedProjects.length, targetIndex));
+    if (timelineIndex > 0) {
+      currentPlaybackProject = sortedProjects[timelineIndex - 1];
+    }
+    buildHierarchy();
+  }
+
+  function triggerAnimatePulse() {
+    // Starts timeline chronological creation animation!
+    startTimelineAnimation(true);
   }
 
   function resetForces() {
     centerForce = 0.45;
     repelForce = 11.50;
     linkForce = 0.80;
-    linkDistance = 115;
-    nodeSizeScale = 1.30;
-    linkThickness = 0.70;
+    linkDistance = 110;
+    nodeSizeScale = 1.25;
+    linkThickness = 0.90;
     textFadeThreshold = 0.20;
-    triggerAnimatePulse();
+    buildHierarchy();
+    setTimeout(() => fitView(), 50);
   }
 
   // ─── Drawing ───
@@ -580,7 +676,6 @@
 
   function drawArrowhead(ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number, targetRadius: number, size: number) {
     const angle = Math.atan2(toY - fromY, toX - fromX);
-    // Place tip right outside node circle
     const tipX = toX - Math.cos(angle) * (targetRadius + 2.5);
     const tipY = toY - Math.sin(angle) * (targetRadius + 2.5);
 
@@ -601,8 +696,8 @@
     ctx.save();
     ctx.translate(x, y);
     const s = size;
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.92)';
     ctx.lineWidth = 1.2;
 
     const mt = (mediaType || '').toLowerCase();
@@ -680,13 +775,18 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
+    // Explicit solid background fill to guarantee link lines are high-contrast!
+    ctx.fillStyle = canvasTheme === 'dark' ? '#0B0F19' : '#F8FAFC';
+    ctx.fillRect(0, 0, w, h);
+
     ctx.save();
     ctx.translate(camX, camY);
     ctx.scale(zoom, zoom);
 
     const activeEdges = showCrossLinks ? allEdges : allEdges.filter(e => e.type === 'hierarchy');
+    const now = performance.now();
 
-    // ─── 1. Draw Links / Edges ───
+    // ─── 1. Draw Links / Edges (HIGH CONTRAST & NEVER INVISIBLE) ───
     for (const edge of activeEdges) {
       const isCross = edge.type === 'crosslink';
       const isDirectlyConnected = hoveredNode && (edge.source === hoveredNode || edge.target === hoveredNode);
@@ -700,44 +800,54 @@
       ctx.beginPath();
 
       if (isCross) {
-        // Cross-file link: subtle curved dashed line
-        ctx.setLineDash([4, 4]);
+        // Cross-file link: dashed cyan
+        ctx.setLineDash([5, 4]);
         const mx = (edge.source.x + edge.target.x) / 2;
         const my = (edge.source.y + edge.target.y) / 2;
         ctx.moveTo(edge.source.x, edge.source.y);
         ctx.quadraticCurveTo(mx + (edge.source.y - edge.target.y) * 0.12, my + (edge.target.x - edge.source.x) * 0.12, edge.target.x, edge.target.y);
 
         if (isHighlighted) {
-          ctx.strokeStyle = '#21A1F7';
-          ctx.lineWidth = 1.8 * linkThickness;
-          ctx.fillStyle = '#21A1F7';
+          ctx.strokeStyle = '#00D2FF';
+          ctx.lineWidth = Math.max(1.8, 2.2 * linkThickness);
+          ctx.fillStyle = '#00D2FF';
         } else if (isDimmed) {
-          ctx.strokeStyle = 'rgba(33, 161, 247, 0.03)';
-          ctx.lineWidth = 0.5 * linkThickness;
-          ctx.fillStyle = 'rgba(33, 161, 247, 0.03)';
+          ctx.strokeStyle = canvasTheme === 'dark' ? 'rgba(0, 210, 255, 0.06)' : 'rgba(8, 145, 178, 0.08)';
+          ctx.lineWidth = Math.max(0.6, 0.6 * linkThickness);
+          ctx.fillStyle = ctx.strokeStyle;
         } else {
-          ctx.strokeStyle = 'rgba(33, 161, 247, 0.22)';
-          ctx.lineWidth = 0.8 * linkThickness;
-          ctx.fillStyle = 'rgba(33, 161, 247, 0.22)';
+          ctx.strokeStyle = canvasTheme === 'dark' ? 'rgba(0, 210, 255, 0.55)' : 'rgba(8, 145, 178, 0.65)';
+          ctx.lineWidth = Math.max(1.0, 1.2 * linkThickness);
+          ctx.fillStyle = ctx.strokeStyle;
         }
       } else {
-        // Hierarchy link: clean direct line
+        // Primary Hierarchy link (Holding -> Brand -> Media -> Project)
         ctx.moveTo(edge.source.x, edge.source.y);
         ctx.lineTo(edge.target.x, edge.target.y);
 
         if (isHighlighted) {
           ctx.strokeStyle = '#38BDF8';
-          ctx.lineWidth = 2.0 * linkThickness;
+          ctx.lineWidth = Math.max(2.0, 2.6 * linkThickness);
           ctx.fillStyle = '#38BDF8';
+          // Glow effect on active link
+          ctx.shadowColor = '#38BDF8';
+          ctx.shadowBlur = 8;
         } else if (isDimmed) {
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
-          ctx.lineWidth = 0.4 * linkThickness;
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+          ctx.strokeStyle = canvasTheme === 'dark' ? 'rgba(148, 163, 184, 0.08)' : 'rgba(71, 85, 105, 0.08)';
+          ctx.lineWidth = Math.max(0.5, 0.5 * linkThickness);
+          ctx.fillStyle = ctx.strokeStyle;
         } else {
-          const alpha = edge.target.type === 'project' ? 0.09 : edge.source.type === 'root' ? 0.28 : 0.18;
-          ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-          ctx.lineWidth = (edge.target.type === 'project' ? 0.8 : 1.3) * linkThickness;
-          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          // Distinct, clearly visible Slate lines!
+          if (canvasTheme === 'dark') {
+            const alpha = edge.target.type === 'project' ? 0.35 : edge.source.type === 'root' ? 0.70 : 0.50;
+            ctx.strokeStyle = `rgba(148, 163, 184, ${alpha})`;
+            ctx.fillStyle = `rgba(148, 163, 184, ${alpha})`;
+          } else {
+            const alpha = edge.target.type === 'project' ? 0.30 : edge.source.type === 'root' ? 0.65 : 0.45;
+            ctx.strokeStyle = `rgba(71, 85, 105, ${alpha})`;
+            ctx.fillStyle = `rgba(71, 85, 105, ${alpha})`;
+          }
+          ctx.lineWidth = Math.max(1.0, (edge.target.type === 'project' ? 1.0 : 1.6) * linkThickness);
         }
       }
 
@@ -745,7 +855,7 @@
 
       // Draw arrowhead if enabled and not dimmed
       if (showArrows && !isDimmed) {
-        const arrowSize = 6 * linkThickness;
+        const arrowSize = Math.max(5, 6.5 * linkThickness);
         drawArrowhead(ctx, edge.source.x, edge.source.y, edge.target.x, edge.target.y, edge.target.radius, arrowSize);
       }
 
@@ -759,13 +869,27 @@
       const isDimmed = hoveredNode && !isHovered && !isNeighbor;
 
       const alpha = isDimmed ? 0.12 : 1;
-      const r = isHovered ? node.radius * 1.18 : node.radius;
 
-      // Glow on hovered
-      if (isHovered) {
+      // Check birth scale animation for timeline entrance
+      let scaleMult = 1.0;
+      const birthTime = birthTimestamps.get(node.id);
+      if (birthTime) {
+        const elapsed = now - birthTime;
+        if (elapsed < 350) {
+          const t = elapsed / 350;
+          // Spring bounce: 0 -> 1.4 -> 1.0
+          scaleMult = t < 0.6 ? (t / 0.6) * 1.35 : 1.35 - ((t - 0.6) / 0.4) * 0.35;
+        }
+      }
+
+      const r = (isHovered ? node.radius * 1.18 : node.radius) * scaleMult;
+
+      // Glow on hovered or newly born
+      if (isHovered || (birthTime && now - birthTime < 350)) {
+        const glowColor = isHovered ? node.color : '#38BDF8';
         const grad = ctx.createRadialGradient(node.x, node.y, r, node.x, node.y, r + 24);
-        grad.addColorStop(0, `${node.color}45`);
-        grad.addColorStop(1, `${node.color}00`);
+        grad.addColorStop(0, `${glowColor}50`);
+        grad.addColorStop(1, `${glowColor}00`);
         ctx.beginPath();
         ctx.arc(node.x, node.y, r + 24, 0, Math.PI * 2);
         ctx.fillStyle = grad;
@@ -787,7 +911,7 @@
         grad.addColorStop(1, alpha < 1 ? `${node.color}20` : node.color);
         ctx.fillStyle = grad;
       } else if (node.type === 'media') {
-        ctx.fillStyle = alpha < 1 ? `${node.color}14` : `${node.color}DD`;
+        ctx.fillStyle = alpha < 1 ? `${node.color}14` : `${node.color}EE`;
       } else {
         // Project node: filled with status color
         ctx.fillStyle = alpha < 1 ? `${node.color}14` : node.color;
@@ -797,7 +921,7 @@
       // Border outline
       ctx.beginPath();
       ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
-      ctx.strokeStyle = alpha < 1 ? 'rgba(255,255,255,0.04)' : isHovered ? '#38BDF8' : 'rgba(255,255,255,0.2)';
+      ctx.strokeStyle = alpha < 1 ? 'rgba(255,255,255,0.04)' : isHovered ? '#38BDF8' : 'rgba(255,255,255,0.25)';
       ctx.lineWidth = isHovered ? 2 : 1;
       ctx.stroke();
 
@@ -816,7 +940,7 @@
           ctx.fillStyle = '#FFFFFF';
           ctx.fillText('SSH', node.x, node.y - 3);
           ctx.font = '600 8.5px "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif';
-          ctx.fillStyle = 'rgba(255,255,255,0.65)';
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
           ctx.fillText(`${node.projectCount}`, node.x, node.y + 12);
         } else if (node.type === 'brand') {
           ctx.font = '800 12.5px "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif';
@@ -825,14 +949,14 @@
           ctx.fillStyle = '#FFFFFF';
           ctx.fillText(node.label, node.x, node.y - 2);
           ctx.font = '600 8px "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif';
-          ctx.fillStyle = 'rgba(255,255,255,0.65)';
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
           ctx.fillText(`${node.projectCount}`, node.x, node.y + 11);
         } else if (node.type === 'media') {
           drawMediaTypeIcon(ctx, node.x, node.y - 2, node.label, node.radius * 0.7);
           ctx.font = '600 7.5px "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'top';
-          ctx.fillStyle = 'rgba(255,255,255,0.55)';
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
           ctx.fillText(`${node.projectCount}`, node.x, node.y + node.radius + 3);
         }
       }
@@ -840,24 +964,27 @@
       // ─── Labels (Controlled by textFadeThreshold & Zoom) ───
       const shouldShowLabel = isHovered || isNeighbor || zoom >= textFadeThreshold;
       if (alpha >= 1 && shouldShowLabel) {
+        const textColor = canvasTheme === 'dark' ? '#F1F5F9' : '#0F172A';
+        const subTextColor = canvasTheme === 'dark' ? 'rgba(255,255,255,0.65)' : 'rgba(15,23,42,0.65)';
+
         if (node.type === 'brand') {
           ctx.font = '600 9.5px "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'top';
-          ctx.fillStyle = isHovered ? '#FFFFFF' : 'rgba(255,255,255,0.65)';
+          ctx.fillStyle = isHovered ? textColor : subTextColor;
           ctx.fillText(brandNames[node.label] || node.label, node.x, node.y + r + 8);
         } else if (node.type === 'media') {
           ctx.font = '500 8.5px "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'top';
-          ctx.fillStyle = isHovered ? '#FFFFFF' : 'rgba(255,255,255,0.45)';
+          ctx.fillStyle = isHovered ? textColor : subTextColor;
           const shortLabel = node.label.length > 16 ? node.label.substring(0, 14) + '\u2026' : node.label;
           ctx.fillText(shortLabel, node.x, node.y + r + 14);
         } else if (node.type === 'project' && (isHovered || isNeighbor || zoom > 0.8)) {
           ctx.font = '500 7.5px "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'top';
-          ctx.fillStyle = isHovered ? '#FFFFFF' : isNeighbor ? 'rgba(56, 189, 248, 0.85)' : 'rgba(255,255,255,0.4)';
+          ctx.fillStyle = isHovered ? '#FFFFFF' : isNeighbor ? '#38BDF8' : subTextColor;
           const jid = (node.jobId || '').length > 14 ? (node.jobId || '').substring(0, 12) + '\u2026' : (node.jobId || '');
           ctx.fillText(jid, node.x, node.y + r + 3);
         }
@@ -888,7 +1015,6 @@
   }
 
   function findNodeAt(wx: number, wy: number): HierarchyNode | null {
-    // Reverse order: project nodes on top
     for (let i = allNodes.length - 1; i >= 0; i--) {
       const n = allNodes[i];
       const dx = wx - n.x;
@@ -910,11 +1036,9 @@
     dragMoved = false;
 
     if (node) {
-      // Pick up node with physics spring
       draggedNode = node;
       node.isPinned = true;
       isDragging = true;
-      simulationAlpha = 1.0;
     } else {
       isPanning = true;
       panStartX = e.clientX - camX;
@@ -952,7 +1076,6 @@
   function handleMouseUp() {
     if (draggedNode) {
       if (!dragMoved && draggedNode.type === 'project' && draggedNode.project) {
-        // Quick click -> open project detail
         appState.navigate('project-detail', { id: draggedNode.id });
       }
       draggedNode.isPinned = false;
@@ -978,22 +1101,31 @@
     zoom = newZoom;
   }
 
+  // ─── Smart Fit View (Generous Padding & Safe Clearance) ───
   function fitView() {
     if (allNodes.length === 0 || !canvasEl) return;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const n of allNodes) {
-      minX = Math.min(minX, n.x - n.radius - 40);
-      minY = Math.min(minY, n.y - n.radius - 40);
-      maxX = Math.max(maxX, n.x + n.radius + 40);
-      maxY = Math.max(maxY, n.y + n.radius + 40);
+      minX = Math.min(minX, n.x - n.radius - 35);
+      minY = Math.min(minY, n.y - n.radius - 35);
+      maxX = Math.max(maxX, n.x + n.radius + 35);
+      maxY = Math.max(maxY, n.y + n.radius + 35);
     }
     const gw = maxX - minX || 1;
     const gh = maxY - minY || 1;
     const cw = canvasEl.width / dpr;
     const ch = canvasEl.height / dpr;
-    zoom = Math.min(cw / gw, ch / gh, 2.5) * 0.88;
-    camX = (cw - gw * zoom) / 2 - minX * zoom;
-    camY = (ch - gh * zoom) / 2 - minY * zoom;
+
+    // Reserve room for right drawer (if open) and bottom legend
+    const availableWidth = showSettingsPanel ? Math.max(cw - 280, 400) : cw;
+    const availableHeight = showLegend ? Math.max(ch - 120, 300) : ch;
+
+    zoom = Math.min(availableWidth / gw, availableHeight / gh, 2.0) * 0.85;
+    const targetCenterX = showSettingsPanel ? (cw - 280) / 2 : cw / 2;
+    const targetCenterY = showLegend ? (ch - 100) / 2 : ch / 2;
+
+    camX = targetCenterX - (minX + gw / 2) * zoom;
+    camY = targetCenterY - (minY + gh / 2) * zoom;
   }
 
   function resetView() {
@@ -1003,33 +1135,51 @@
     fitView();
   }
 
-  function resizeCanvas() {
+  // ─── Dynamic Responsive Canvas Size via ResizeObserver ───
+  function updateCanvasDimensions() {
     if (!canvasEl || !containerEl) return;
+    const rect = containerEl.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
     dpr = window.devicePixelRatio || 1;
-    const cw = containerEl.clientWidth;
-    const ch = containerEl.clientHeight;
-    canvasEl.width = cw * dpr;
-    canvasEl.height = ch * dpr;
-    canvasEl.style.width = cw + 'px';
-    canvasEl.style.height = ch + 'px';
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
+
+    if (canvasEl.width !== targetW || canvasEl.height !== targetH) {
+      canvasEl.width = targetW;
+      canvasEl.height = targetH;
+    }
   }
 
   onMount(() => {
-    resizeCanvas();
+    updateCanvasDimensions();
+    sortedProjects = sortProjectsChronologically(projects);
+    timelineIndex = sortedProjects.length;
     buildHierarchy();
-    setTimeout(() => fitView(), 120);
+    setTimeout(() => fitView(), 100);
     animate();
-    window.addEventListener('resize', () => { resizeCanvas(); });
+
+    if (containerEl) {
+      resizeObserver = new ResizeObserver(() => {
+        updateCanvasDimensions();
+      });
+      resizeObserver.observe(containerEl);
+    }
   });
 
   onDestroy(() => {
     if (animFrameId) cancelAnimationFrame(animFrameId);
+    if (resizeObserver) resizeObserver.disconnect();
+    if (timelineIntervalId) clearInterval(timelineIntervalId);
   });
 
   $effect(() => {
     if (projects && canvasEl) {
-      buildHierarchy();
-      setTimeout(() => fitView(), 60);
+      sortedProjects = sortProjectsChronologically(projects);
+      if (!isTimelineMode) {
+        timelineIndex = sortedProjects.length;
+        buildHierarchy();
+        setTimeout(() => fitView(), 60);
+      }
     }
   });
 
@@ -1059,7 +1209,7 @@
   });
 </script>
 
-<div class="graph-container" bind:this={containerEl}>
+<div class="graph-container" class:light-mode={canvasTheme === 'light'} bind:this={containerEl}>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <canvas
     bind:this={canvasEl}
@@ -1159,27 +1309,10 @@
             <span class="tooltip-meta-value">{hoveredNode.mediaType || 'General'}</span>
           </div>
           <div class="tooltip-meta-row">
-            <svg class="tooltip-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.9 1.15a.75.75 0 0 1 .73.88l-1.3 5.47h4.92a.75.75 0 0 1 .59 1.21l-7.5 9.5a.75.75 0 0 1-1.33-.74l1.8-6.47H3.75a.75.75 0 0 1-.6-1.2l7.15-8.5a.75.75 0 0 1 .6-.15z"/></svg>
-            <span class="tooltip-meta-label">Priority</span>
-            <span class="tooltip-meta-value">{hoveredNode.priority}</span>
+            <svg class="tooltip-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M6 2a.75.75 0 0 1 .75.75V4h6.5v-1.25a.75.75 0 0 1 1.5 0V4h1.75A2.5 2.5 0 0 1 19 6.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 1 15.5v-9A2.5 2.5 0 0 1 3.5 4H5.25V2.75A.75.75 0 0 1 6 2z"/></svg>
+            <span class="tooltip-meta-label">Created</span>
+            <span class="tooltip-meta-value">{formatDeadline(hoveredNode.createdDate || '')}</span>
           </div>
-          {#if hoveredNode.deadline}
-            <div class="tooltip-meta-row">
-              <svg class="tooltip-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M6 2a.75.75 0 0 1 .75.75V4h6.5v-1.25a.75.75 0 0 1 1.5 0V4h1.75A2.5 2.5 0 0 1 19 6.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 1 15.5v-9A2.5 2.5 0 0 1 3.5 4H5.25V2.75A.75.75 0 0 1 6 2z"/></svg>
-              <span class="tooltip-meta-label">Deadline</span>
-              <span class="tooltip-meta-value">{formatDeadline(hoveredNode.deadline)}</span>
-            </div>
-          {/if}
-          {#if hoveredNode.tags && hoveredNode.tags.length > 0}
-            <div class="tooltip-meta-row tooltip-tags-row">
-              <svg class="tooltip-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v4.59a1.5 1.5 0 0 0 .44 1.06l7.5 7.5a1.5 1.5 0 0 0 2.12 0l4.59-4.59a1.5 1.5 0 0 0 0-2.12l-7.5-7.5A1.5 1.5 0 0 0 7.09 3H2.5zM5 6.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/></svg>
-              <div class="tooltip-tags">
-                {#each hoveredNode.tags.slice(0, 3) as tag}
-                  <span class="tooltip-tag">#{tag}</span>
-                {/each}
-              </div>
-            </div>
-          {/if}
         </div>
         <div class="tooltip-footer">
           <span class="tooltip-hint">Click to open project • Drag to stretch node</span>
@@ -1191,28 +1324,123 @@
   <!-- ─── Top-Right Action Controls ─── -->
   <div class="graph-top-actions">
     <div class="graph-quick-tools">
+      <!-- Theme Switcher (Dark Cosmos / Light) -->
+      <button
+        class="graph-ctrl-btn"
+        onclick={() => canvasTheme = canvasTheme === 'dark' ? 'light' : 'dark'}
+        title="Toggle Canvas Theme (Obsidian Dark / Light)"
+      >
+        {#if canvasTheme === 'dark'}
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm4 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0zm-.46-4.95l.7-.7a1 1 0 0 1 1.42 1.41l-.7.71a1 1 0 1 1-1.42-1.42zm-7.08 7.07l-.7.71a1 1 0 0 1-1.42-1.42l.7-.7a1 1 0 0 1 1.42 1.41zm0-7.07a1 1 0 0 1 1.42 0l.7.71a1 1 0 1 1-1.42 1.42l-.7-.71a1 1 0 0 1 0-1.42zm7.08 7.07a1 1 0 0 1 0 1.42l-.71.7a1 1 0 1 1-1.41-1.41l.7-.71a1 1 0 0 1 1.42 0zM18 10a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1zM4 10a1 1 0 0 1-1 1H2a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1zm6 6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1z"/></svg>
+        {:else}
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M17.293 13.293A8 8 0 0 1 6.707 2.707a8.001 8.001 0 1 0 10.586 10.586z"/></svg>
+        {/if}
+      </button>
+
+      <!-- Settings Panel Toggle -->
       <button
         class="graph-ctrl-btn"
         class:active={showSettingsPanel}
-        onclick={() => showSettingsPanel = !showSettingsPanel}
+        onclick={() => { showSettingsPanel = !showSettingsPanel; setTimeout(() => fitView(), 150); }}
         title="Obsidian Graph Forces & Display Controls"
       >
         <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
           <path d="M3 4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4zm0 6a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2zm0 6a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2z"/>
         </svg>
       </button>
+
+      <!-- Fit View -->
       <button class="graph-ctrl-btn" onclick={fitView} title="Fit all nodes in view">
         <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M3 3h4a.5.5 0 0 1 0 1H4v3a.5.5 0 0 1-1 0V3.5a.5.5 0 0 1 .5-.5H3zm10 0h3.5a.5.5 0 0 1 .5.5V7a.5.5 0 0 1-1 0V4h-3a.5.5 0 0 1 0-1zM3.5 13a.5.5 0 0 1 .5.5V16h3a.5.5 0 0 1 0 1H3.5a.5.5 0 0 1-.5-.5V13.5a.5.5 0 0 1 .5-.5zM17 13.5v3a.5.5 0 0 1-.5.5H13a.5.5 0 0 1 0-1h3v-2.5a.5.5 0 0 1 1 0z"/></svg>
       </button>
+
+      <!-- Reset View -->
       <button class="graph-ctrl-btn" onclick={resetView} title="Reset zoom">
         <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M10 3a7 7 0 0 0-5.8 3.1l-1.5-1.5A.5.5 0 0 0 2 5v4.5a.5.5 0 0 0 .5.5H7a.5.5 0 0 0 .35-.85L5.8 7.6A5.5 5.5 0 1 1 4.5 10a.75.75 0 0 0-1.5 0A7 7 0 1 0 10 3z"/></svg>
       </button>
-      <button class="graph-ctrl-btn" onclick={triggerAnimatePulse} title="Replay kinetic animation pulse">
+
+      <!-- Animate Button -->
+      <button
+        class="graph-ctrl-btn graph-animate-quick-btn"
+        onclick={triggerAnimatePulse}
+        title="Play Chronological File Creation Animation"
+      >
         <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.42-5.89a1.5 1.5 0 0 0 0-2.54L6.3 2.84z"/></svg>
       </button>
+
       <span class="graph-zoom-label">{Math.round(zoom * 100)}%</span>
     </div>
   </div>
+
+  <!-- ─── Timeline Playback Bar ("One by one creation & status evolution") ─── -->
+  {#if isTimelineMode}
+    <div class="timeline-bar">
+      <div class="timeline-left">
+        <button
+          class="timeline-btn"
+          onclick={() => {
+            if (isTimelinePlaying) pauseTimeline();
+            else startTimelineAnimation(false);
+          }}
+          title={isTimelinePlaying ? 'Pause' : 'Play'}
+        >
+          {#if isTimelinePlaying}
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M5.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h2.5a.75.75 0 0 0 .75-.75V3.75A.75.75 0 0 0 8.25 3h-2.5zm6 0a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h2.5a.75.75 0 0 0 .75-.75V3.75a.75.75 0 0 0-.75-.75h-2.5z"/></svg>
+          {:else}
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.42-5.89a1.5 1.5 0 0 0 0-2.54L6.3 2.84z"/></svg>
+          {/if}
+        </button>
+
+        <button class="timeline-btn" onclick={() => startTimelineAnimation(true)} title="Replay from Beginning">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13"><path d="M4 2a1 1 0 0 1 1 1v2.1A7 7 0 1 1 3.07 11.5a1 1 0 1 1 1.94-.48A5 5 0 1 0 5.6 6.8H8a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/></svg>
+        </button>
+
+        <div class="timeline-progress-info">
+          <span class="timeline-count-badge">
+            File {timelineIndex} / {sortedProjects.length}
+          </span>
+          {#if currentPlaybackProject}
+            <span class="timeline-file-pill">
+              <span class="status-dot" style="background: {statusColors[currentPlaybackProject.status || 'backlog']}"></span>
+              <strong>{currentPlaybackProject.jobId}</strong>
+              <span class="timeline-file-date">({formatDeadline(currentPlaybackProject.createdDate || currentPlaybackProject.created || '')})</span>
+            </span>
+          {/if}
+        </div>
+      </div>
+
+      <div class="timeline-center">
+        <input
+          type="range"
+          min="0"
+          max={sortedProjects.length}
+          step="1"
+          value={timelineIndex}
+          oninput={(e) => handleTimelineScrub(parseInt((e.target as HTMLInputElement).value))}
+          class="timeline-slider"
+        />
+      </div>
+
+      <div class="timeline-right">
+        <!-- Speed Buttons -->
+        <div class="timeline-speed-group">
+          {#each [1, 2, 4] as spd}
+            <button
+              class="speed-btn"
+              class:active={timelineSpeed === spd}
+              onclick={() => { timelineSpeed = spd; if (isTimelinePlaying) startTimelineAnimation(false); }}
+            >
+              {spd}x
+            </button>
+          {/each}
+        </div>
+
+        <button class="timeline-done-btn" onclick={exitTimelineAndShowAll}>
+          Show All Files
+        </button>
+      </div>
+    </div>
+  {/if}
 
   <!-- ─── Obsidian-Style Floating Controls Drawer ─── -->
   {#if showSettingsPanel}
@@ -1226,7 +1454,7 @@
           <button class="obsidian-icon-btn" onclick={resetForces} title="Reset to default forces">
             <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path d="M4 2a1 1 0 0 1 1 1v2.1A7 7 0 1 1 3.07 11.5a1 1 0 1 1 1.94-.48A5 5 0 1 0 5.6 6.8H8a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/></svg>
           </button>
-          <button class="obsidian-icon-btn" onclick={() => showSettingsPanel = false} title="Close settings">
+          <button class="obsidian-icon-btn" onclick={() => { showSettingsPanel = false; setTimeout(() => fitView(), 150); }} title="Close settings">
             <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z"/></svg>
           </button>
         </div>
@@ -1312,12 +1540,12 @@
               <span>Link thickness</span>
               <span class="slider-val">{linkThickness.toFixed(2)}</span>
             </div>
-            <input type="range" min="0.2" max="2.5" step="0.1" bind:value={linkThickness} />
+            <input type="range" min="0.3" max="2.5" step="0.1" bind:value={linkThickness} />
           </div>
 
           <button class="obsidian-animate-btn" onclick={triggerAnimatePulse}>
             <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13"><path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.42-5.89a1.5 1.5 0 0 0 0-2.54L6.3 2.84z"/></svg>
-            Animate
+            Play Timeline Animation
           </button>
         </div>
 
@@ -1390,7 +1618,7 @@
           <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 4.25a.87.87 0 1 1 0 1.75.87.87 0 0 1 0-1.75zM10 9a.75.75 0 0 1 .75.75v4a.75.75 0 0 1-1.5 0v-4A.75.75 0 0 1 10 9z"/></svg>
           How to Read the Graph & File Linking
         </div>
-        <button class="legend-close-btn" onclick={() => showLegend = false}>&times;</button>
+        <button class="legend-close-btn" onclick={() => { showLegend = false; setTimeout(() => fitView(), 100); }}>&times;</button>
       </div>
 
       <!-- 1. Hierarchy -->
@@ -1437,11 +1665,11 @@
 
       <div class="legend-hint">
         <svg viewBox="0 0 20 20" fill="currentColor" width="10" height="10"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16z"/></svg>
-        Click & drag any node to test physics • Hover to trace linking • Click project to open
+        Click & drag any node to stretch • Click Animate for chronological playback
       </div>
     </div>
   {:else}
-    <button class="legend-reopen-btn" onclick={() => showLegend = true} title="Open Graph Guide">
+    <button class="legend-reopen-btn" onclick={() => { showLegend = true; setTimeout(() => fitView(), 100); }} title="Open Graph Guide">
       <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 4.25a.87.87 0 1 1 0 1.75.87.87 0 0 1 0-1.75zM10 9a.75.75 0 0 1 .75.75v4a.75.75 0 0 1-1.5 0v-4A.75.75 0 0 1 10 9z"/></svg>
       Graph Guide
     </button>
@@ -1453,11 +1681,16 @@
     position: relative;
     width: 100%;
     height: calc(100vh - 240px);
-    min-height: 520px;
-    background: var(--bg-canvas, #0A1128);
+    min-height: 540px;
+    background: #0B0F19; /* Obsidian deep cosmic canvas */
     border-radius: var(--radius-lg, 12px);
-    border: 1px solid var(--surface-card-border, rgba(255,255,255,0.08));
+    border: 1px solid rgba(255,255,255,0.1);
     overflow: hidden;
+    transition: background 0.2s ease;
+  }
+  .graph-container.light-mode {
+    background: #F8FAFC;
+    border-color: rgba(0,0,0,0.12);
   }
   .graph-canvas {
     width: 100%;
@@ -1465,14 +1698,163 @@
     display: block;
   }
 
+  /* ─── Timeline Playback Bar (Top Center / Bottom) ─── */
+  .timeline-bar {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 760px;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: rgba(18, 24, 38, 0.94);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.6), 0 0 20px rgba(56, 189, 248, 0.15);
+    border-radius: 12px;
+    padding: 8px 14px;
+    animation: timelineSlide 0.2s ease-out;
+  }
+  @keyframes timelineSlide {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  .timeline-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 250px;
+  }
+  .timeline-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: #F8FAFC;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .timeline-btn:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: #38BDF8;
+    color: #38BDF8;
+  }
+  .timeline-progress-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .timeline-count-badge {
+    font-size: 10px;
+    font-weight: 700;
+    color: #38BDF8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: var(--font-mono, monospace);
+  }
+  .timeline-file-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 170px;
+  }
+  .timeline-file-pill strong { color: #FFF; font-family: var(--font-mono, monospace); }
+  .timeline-file-date { color: rgba(255,255,255,0.45); font-size: 9px; }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .timeline-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+  }
+  .timeline-slider {
+    width: 100%;
+    height: 5px;
+    appearance: none;
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+    outline: none;
+  }
+  .timeline-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #38BDF8;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+    transition: transform 0.1s;
+  }
+  .timeline-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  .timeline-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .timeline-speed-group {
+    display: flex;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    padding: 2px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .speed-btn {
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.5);
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .speed-btn.active {
+    background: #0284C7;
+    color: #FFF;
+  }
+  .timeline-done-btn {
+    padding: 4px 9px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.08);
+    color: #F8FAFC;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .timeline-done-btn:hover { background: rgba(255,255,255,0.18); }
+
   /* ─── Tooltip ─── */
   .graph-tooltip {
     position: absolute;
     z-index: 100;
-    background: var(--surface-card, rgba(15, 26, 58, 0.95));
+    background: rgba(15, 26, 58, 0.96);
     backdrop-filter: blur(16px);
-    border: 1px solid var(--surface-card-border, rgba(255,255,255,0.14));
-    border-radius: var(--radius-lg, 12px);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 12px;
     padding: 14px 16px 12px;
     min-width: 250px;
     max-width: 310px;
@@ -1504,18 +1886,18 @@
   .tooltip-count {
     font-size: 11px;
     font-weight: 600;
-    color: var(--text-tertiary, rgba(255,255,255,0.45));
+    color: rgba(255,255,255,0.45);
   }
   .tooltip-job-id {
     font-size: 11px;
     font-weight: 600;
-    color: var(--text-tertiary, rgba(255,255,255,0.45));
+    color: rgba(255,255,255,0.45);
     font-family: var(--font-mono, monospace);
   }
   .tooltip-title {
     font-size: 13px;
     font-weight: 700;
-    color: var(--text-primary, #F1F5F9);
+    color: #F1F5F9;
     line-height: 1.35;
     margin-bottom: 10px;
     display: -webkit-box;
@@ -1526,7 +1908,7 @@
   .tooltip-section-label {
     font-size: 9.5px;
     font-weight: 700;
-    color: var(--text-tertiary, rgba(255,255,255,0.4));
+    color: rgba(255,255,255,0.4);
     text-transform: uppercase;
     letter-spacing: 0.4px;
     margin-bottom: 6px;
@@ -1538,7 +1920,7 @@
     width: 12px;
     height: 12px;
     min-width: 12px;
-    color: var(--brand-accent, #21A1F7);
+    color: #38BDF8;
   }
 
   /* Status Breakdown */
@@ -1559,7 +1941,7 @@
   }
   .tooltip-status-label {
     font-weight: 600;
-    color: var(--text-secondary, rgba(255,255,255,0.6));
+    color: rgba(255,255,255,0.65);
     min-width: 72px;
   }
   .tooltip-status-bar-track {
@@ -1576,7 +1958,7 @@
   }
   .tooltip-status-pct {
     font-weight: 700;
-    color: var(--text-tertiary, rgba(255,255,255,0.4));
+    color: rgba(255,255,255,0.45);
     min-width: 28px;
     text-align: right;
     font-family: var(--font-mono, monospace);
@@ -1601,17 +1983,17 @@
   }
   .tooltip-child-name {
     font-weight: 600;
-    color: var(--text-secondary, rgba(255,255,255,0.6));
+    color: rgba(255,255,255,0.65);
     flex: 1;
   }
   .tooltip-child-count {
     font-weight: 700;
-    color: var(--text-tertiary, rgba(255,255,255,0.4));
+    color: rgba(255,255,255,0.45);
     font-family: var(--font-mono, monospace);
     font-size: 10px;
   }
   .tooltip-child-more {
-    color: var(--text-tertiary, rgba(255,255,255,0.3));
+    color: rgba(255,255,255,0.3);
     font-style: italic;
     font-size: 10px;
   }
@@ -1626,36 +2008,25 @@
   }
   .tooltip-meta-label {
     font-weight: 600;
-    color: var(--text-tertiary, rgba(255,255,255,0.4));
+    color: rgba(255,255,255,0.45);
     min-width: 55px;
   }
   .tooltip-meta-value {
     font-weight: 600;
-    color: var(--text-secondary, rgba(255,255,255,0.7));
+    color: rgba(255,255,255,0.75);
     display: flex;
     align-items: center;
     gap: 5px;
   }
-  .tooltip-tags-row { margin-top: 2px; align-items: flex-start; }
-  .tooltip-tags { display: flex; flex-wrap: wrap; gap: 3px; }
-  .tooltip-tag {
-    display: inline-block;
-    padding: 1px 6px;
-    border-radius: 9999px;
-    font-size: 9.5px;
-    font-weight: 600;
-    background: rgba(33, 161, 247, 0.12);
-    color: var(--brand-accent, #21A1F7);
-  }
   .tooltip-footer {
     margin-top: 8px;
     padding-top: 7px;
-    border-top: 1px solid var(--surface-card-border, rgba(255,255,255,0.08));
+    border-top: 1px solid rgba(255,255,255,0.08);
   }
   .tooltip-hint {
     font-size: 10px;
     font-weight: 500;
-    color: var(--text-tertiary, rgba(255,255,255,0.35));
+    color: rgba(255,255,255,0.4);
     font-style: italic;
   }
 
@@ -1675,7 +2046,7 @@
     gap: 4px;
     background: rgba(15, 26, 58, 0.88);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.12);
     border-radius: 8px;
     padding: 4px;
   }
@@ -1688,7 +2059,7 @@
     border: none;
     border-radius: 4px;
     background: transparent;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.65);
     cursor: pointer;
     transition: all 0.15s ease;
   }
@@ -1696,10 +2067,13 @@
     background: rgba(33, 161, 247, 0.2);
     color: #38BDF8;
   }
+  .graph-animate-quick-btn {
+    color: #38BDF8;
+  }
   .graph-zoom-label {
     font-size: 10px;
     font-weight: 700;
-    color: rgba(255,255,255,0.4);
+    color: rgba(255,255,255,0.45);
     padding: 0 6px;
     min-width: 36px;
     text-align: center;
@@ -1715,11 +2089,11 @@
     max-height: calc(100% - 64px);
     overflow-y: auto;
     z-index: 50;
-    background: rgba(18, 24, 38, 0.94);
+    background: rgba(18, 24, 38, 0.95);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255,255,255,0.14);
     border-radius: 10px;
-    box-shadow: 0 16px 36px rgba(0,0,0,0.6), 0 0 20px rgba(0,0,0,0.3);
+    box-shadow: 0 16px 36px rgba(0,0,0,0.65), 0 0 20px rgba(0,0,0,0.3);
     animation: panelSlide 0.15s ease-out;
   }
   @keyframes panelSlide {
@@ -1925,19 +2299,18 @@
     gap: 6px;
     padding: 6px 10px;
     margin-top: 4px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.35);
     border-radius: 6px;
     font-size: 11px;
     font-weight: 600;
-    color: #F1F5F9;
+    color: #38BDF8;
     cursor: pointer;
     transition: all 0.15s;
   }
   .obsidian-animate-btn:hover {
-    background: rgba(56, 189, 248, 0.18);
+    background: rgba(56, 189, 248, 0.25);
     border-color: #38BDF8;
-    color: #38BDF8;
   }
 
   /* ─── Top Stats ─── */
@@ -1975,7 +2348,7 @@
     position: absolute;
     bottom: 16px;
     left: 16px;
-    background: rgba(15, 26, 58, 0.92);
+    background: rgba(15, 26, 58, 0.94);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(255,255,255,0.14);
     border-radius: 10px;
@@ -2078,13 +2451,13 @@
   .guide-solid-line {
     width: 16px;
     height: 2px;
-    background: rgba(255,255,255,0.4);
+    background: rgba(148, 163, 184, 0.8);
     border-radius: 1px;
   }
   .guide-dashed-line {
     width: 16px;
     height: 2px;
-    border-top: 2px dashed #38BDF8;
+    border-top: 2px dashed #00D2FF;
   }
   .legend-hint {
     font-size: 9.5px;
