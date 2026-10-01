@@ -202,34 +202,36 @@
         <select class="filter-select" bind:value={filterDeliverable}>
           <option value="all">All Deliverables ({comments.length})</option>
           {#each deliverables as d}
-            <option value={d.id}>{d.name} ({d.format})</option>
+            <option value={d.id}>{d.filename || (d as any).name || d.id}</option>
           {/each}
         </select>
       {/if}
 
-      <div class="resolved-segmented">
-        <button
-          class="seg-btn"
-          class:active={filterResolved === 'all'}
-          onclick={() => (filterResolved = 'all')}
-        >All</button>
-        <button
-          class="seg-btn"
-          class:active={filterResolved === 'unresolved'}
-          onclick={() => (filterResolved = 'unresolved')}
-        >Open</button>
-        <button
-          class="seg-btn"
-          class:active={filterResolved === 'resolved'}
-          onclick={() => (filterResolved = 'resolved')}
-        >Resolved</button>
-      </div>
+      <div class="filter-actions-row">
+        <div class="resolved-segmented">
+          <button
+            class="seg-btn"
+            class:active={filterResolved === 'all'}
+            onclick={() => (filterResolved = 'all')}
+          >All</button>
+          <button
+            class="seg-btn"
+            class:active={filterResolved === 'unresolved'}
+            onclick={() => (filterResolved = 'unresolved')}
+          >Open</button>
+          <button
+            class="seg-btn"
+            class:active={filterResolved === 'resolved'}
+            onclick={() => (filterResolved = 'resolved')}
+          >Resolved</button>
+        </div>
 
-      <button class="refresh-btn" onclick={refreshComments} title="Refresh comments" aria-label="Refresh comments">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
-        </svg>
-      </button>
+        <button class="refresh-btn" onclick={refreshComments} title="Refresh comments" aria-label="Refresh comments">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -267,8 +269,9 @@
                   <span class="author-name">{comment.author}</span>
                   <span class="role-tag role-{comment.authorRole?.toLowerCase() || 'user'}">{comment.authorRole}</span>
                   {#if comment.deliverableId}
-                    <span class="deliverable-tag">
-                      🎯 {deliverables.find(d => d.id === comment.deliverableId)?.name || comment.deliverableId}
+                    {@const matchedDeliv = deliverables.find(d => d.id === comment.deliverableId)}
+                    <span class="deliverable-tag" title={matchedDeliv?.filename || (matchedDeliv as any)?.name || comment.deliverableId}>
+                      🎯 {matchedDeliv?.filename || (matchedDeliv as any)?.name || comment.deliverableId}
                     </span>
                   {/if}
                 </div>
@@ -321,7 +324,7 @@
         <select class="deliverable-link-select" bind:value={selectedDeliverableTag}>
           <option value="">Attach to General Project</option>
           {#each deliverables as d}
-            <option value={d.id}>🎯 {d.name} ({d.format})</option>
+            <option value={d.id}>🎯 {d.filename || (d as any).name || d.id}</option>
           {/each}
         </select>
       {/if}
@@ -368,6 +371,7 @@
       <span class="keyboard-hint">Press <b>Ctrl + Enter</b> to post</span>
       <FluentButton
         appearance="primary"
+        class="post-comment-btn"
         onclick={handleSubmitComment}
         disabled={!newCommentText.trim() || isSubmitting}
       >
@@ -381,73 +385,101 @@
   .comments-container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     background: var(--surface-card);
     border: 1px solid var(--surface-card-border);
     border-radius: var(--radius-lg, 12px);
-    padding: 20px 24px;
+    padding: 16px;
     box-shadow: var(--shadow-sm);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .comments-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
     gap: 12px;
-    padding-bottom: 14px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--surface-card-border);
+    box-sizing: border-box;
+    width: 100%;
   }
 
   .header-title-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    gap: 8px;
+    box-sizing: border-box;
+    width: 100%;
   }
 
   .section-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--text-primary);
     margin: 0;
     display: flex;
     align-items: center;
     gap: 8px;
+    line-height: 1.3;
   }
 
   .thread-count {
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text-brand, #043388);
     background: var(--brand-tint, #EBF4FE);
     padding: 2px 8px;
     border-radius: 9999px;
     border: 1px solid #BFDBFE;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .filter-controls {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .filter-select {
     font-size: 12px;
-    padding: 5px 10px;
+    min-height: 36px;
+    height: 36px;
+    padding: 0 10px;
     border-radius: 6px;
     border: 1px solid var(--surface-card-border);
     background: var(--bg-app);
     color: var(--text-primary);
     font-family: inherit;
     outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    text-overflow: ellipsis;
+  }
+
+  .filter-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .resolved-segmented {
+    flex: 1;
     display: flex;
     background: var(--bg-app);
     border: 1px solid var(--surface-card-border);
     border-radius: 6px;
     overflow: hidden;
+    min-height: 32px;
   }
 
   .seg-btn {
@@ -602,6 +634,12 @@
     border: 1px solid var(--surface-card-border);
     padding: 1px 7px;
     border-radius: 4px;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
   }
 
   .comment-actions-right {
@@ -672,35 +710,47 @@
   .composer-container {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     padding-top: 14px;
     border-top: 1px solid var(--surface-card-border);
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .composer-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .composer-prompt {
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text-primary);
   }
 
   .deliverable-link-select {
-    font-size: 11.5px;
-    padding: 4px 8px;
+    font-size: 12px;
+    min-height: 36px;
+    height: 36px;
+    padding: 0 10px;
     border-radius: 6px;
     border: 1px solid var(--surface-card-border);
     background: var(--bg-app);
-    color: var(--text-secondary);
+    color: var(--text-primary);
     outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    text-overflow: ellipsis;
   }
 
   .textarea-relative-wrap {
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .composer-textarea {
@@ -716,6 +766,7 @@
     resize: vertical;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
+    min-height: 72px;
   }
   .composer-textarea:focus {
     border-color: var(--brand-accent);
@@ -724,13 +775,28 @@
 
   .composer-footer {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .composer-footer :global(.fluent-btn),
+  .composer-footer :global(button) {
+    width: 100% !important;
+    min-height: 36px;
+    height: 36px;
+    display: flex;
     align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
   }
 
   .keyboard-hint {
     font-size: 11px;
     color: var(--text-tertiary);
+    text-align: center;
   }
   .keyboard-hint b { color: var(--text-secondary); }
 

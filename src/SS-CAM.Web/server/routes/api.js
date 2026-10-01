@@ -58,6 +58,7 @@ const loginLimiter = rateLimit({
   skip: (req) => process.env.NODE_ENV === 'test',
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false,
   message: { error: 'Too many failed login attempts for this account. Please wait 15 minutes, or ask an administrator to reset your password from the Admin Panel.' }
 });
 
@@ -545,6 +546,94 @@ router.get('/projects/:id/export', authenticateToken, (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/projects/:id/asset', (req, res) => {
+  try {
+    const project = WorkspaceService.getProjectById(req.params.id);
+    if (!project || !project.fullPath) {
+      return res.status(404).send('Project not found');
+    }
+
+    const rawPath = req.query.path || req.query.file;
+    if (!rawPath || typeof rawPath !== 'string') {
+      return res.status(400).send('Asset path query parameter required');
+    }
+
+    // Clean and normalize the requested relative path
+    let cleanRelPath = rawPath.replace(/\0/g, '').replace(/\\+/g, '/').replace(/^\/+/, '').trim();
+    if (!cleanRelPath) {
+      return res.status(400).send('Invalid asset path');
+    }
+
+    const projectRoot = path.resolve(project.fullPath);
+    const rootWithSep = projectRoot.endsWith(path.sep) ? projectRoot : projectRoot + path.sep;
+
+    // Direct path inside project folder
+    const targetPath = path.resolve(projectRoot, cleanRelPath);
+
+    // Security check: Must reside inside project.fullPath
+    if (!targetPath.startsWith(rootWithSep) && targetPath !== projectRoot) {
+      console.warn(`[API] /projects/:id/asset Path traversal attempt blocked: ${targetPath}`);
+      return res.status(403).send('Access denied: Path traversal detected');
+    }
+
+    // 1. Direct path match
+    if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
+      return res.sendFile(targetPath);
+    }
+
+    // 2. Candidate folder checks (for case sensitivity or shorthand wikilinks)
+    const filename = path.basename(cleanRelPath);
+    const candidateFolders = [
+      '01_Brief_and_Copy',
+      '01_BRIEF_ASSETS',
+      '01_Brief',
+      '01_BRIEF',
+      '02_ASSETS',
+      '03_COPYWRITING',
+      '04_Production',
+      '05_DELIVERABLES'
+    ];
+
+    for (const folder of candidateFolders) {
+      const candidatePath = path.resolve(projectRoot, folder, filename);
+      if (candidatePath.startsWith(rootWithSep) && fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
+        return res.sendFile(candidatePath);
+      }
+    }
+
+    // 3. Case-insensitive / recursive search inside project folder (max depth 3)
+    const findFileRecursive = (dir, targetName, maxDepth = 3, currentDepth = 0) => {
+      if (currentDepth > maxDepth || !fs.existsSync(dir)) return null;
+      try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.name.startsWith('.') || entry.name.startsWith('@') || entry.name === 'node_modules') continue;
+          const full = path.join(dir, entry.name);
+          if (entry.isFile() && entry.name.toLowerCase() === targetName.toLowerCase()) {
+            return full;
+          } else if (entry.isDirectory()) {
+            const found = findFileRecursive(full, targetName, maxDepth, currentDepth + 1);
+            if (found) return found;
+          }
+        }
+      } catch (e) {
+        return null;
+      }
+      return null;
+    };
+
+    const foundPath = findFileRecursive(projectRoot, filename);
+    if (foundPath && foundPath.startsWith(rootWithSep) && fs.existsSync(foundPath) && fs.statSync(foundPath).isFile()) {
+      return res.sendFile(foundPath);
+    }
+
+    return res.status(404).send(`Asset file not found: ${filename}`);
+  } catch (err) {
+    console.error('[API] /projects/:id/asset error:', err);
+    res.status(500).send(err.message);
   }
 });
 
@@ -1616,6 +1705,7 @@ const forgotLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3,
   keyGenerator: (req) => (req.body && req.body.username) ? req.body.username.toLowerCase() : req.ip,
+  validate: false,
   message: { error: 'Too many password reset requests. Please contact your administrator directly.' }
 });
 router.post('/auth/forgot-password', forgotLimiter, (req, res) => {

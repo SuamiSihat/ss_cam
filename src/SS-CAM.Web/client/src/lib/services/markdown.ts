@@ -68,17 +68,71 @@ export class MarkdownService {
   }
 
   /**
+   * Transforms Obsidian-style wiki links [[...]] or ![[...]] and relative images
+   * into rendered image tags or attachment pills.
+   */
+  static transformWikilinksAndAttachments(markdown: string, projectId?: string): string {
+    if (!markdown) return '';
+
+    // 1. Transform standard markdown relative images: ![alt](\path\to\image.jpg) or ![alt](path/to/image.jpg)
+    const stdImgRegex = /!\[(.*?)\]\((.*?)\)/g;
+    let result = markdown.replace(stdImgRegex, (match, alt, rawUrl) => {
+      const trimmed = (rawUrl || '').trim();
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.startsWith('/api/')) {
+        return match;
+      }
+      const cleanPath = trimmed.replace(/\0/g, '').replace(/\\+/g, '/').replace(/^\/+/, '');
+      if (projectId) {
+        const assetUrl = `/api/projects/${encodeURIComponent(projectId)}/asset?path=${encodeURIComponent(cleanPath)}`;
+        return `![${alt}](${assetUrl})`;
+      }
+      return match;
+    });
+
+    // 2. Transform Obsidian wikilinks: [[path\to\file.ext]] or ![[path\to\file.ext|alias_or_width]]
+    // Matches !?[[target|optional_alias]]
+    const wikilinkRegex = /!?\[\[\s*([^\]|\n]+?)(?:\|([^\]\n]*))?\s*\]\]/g;
+    result = result.replace(wikilinkRegex, (_match, rawTarget, aliasOrSize) => {
+      const cleanTarget = (rawTarget || '').trim().replace(/\0/g, '').replace(/\\+/g, '/').replace(/^\/+/, '');
+      if (!cleanTarget) return '';
+
+      const filename = cleanTarget.split('/').pop() || cleanTarget;
+      const isImage = /\.(jpe?g|png|gif|webp|svg|bmp|avif)$/i.test(cleanTarget);
+      
+      const assetUrl = projectId
+        ? `/api/projects/${encodeURIComponent(projectId)}/asset?path=${encodeURIComponent(cleanTarget)}`
+        : cleanTarget;
+
+      if (isImage) {
+        const trimmedAlias = (aliasOrSize || '').trim();
+        const isWidthOnly = /^\d+(?:px)?$/i.test(trimmedAlias);
+        const width = isWidthOnly ? trimmedAlias.replace(/px/i, '') : null;
+        const widthStyle = width ? `style="max-width: ${width}px;"` : '';
+        const altText = (!isWidthOnly && trimmedAlias) ? trimmedAlias : filename;
+
+        return `\n\n<div class="markdown-image-block"><a href="${assetUrl}" target="_blank" rel="noopener noreferrer" class="markdown-image-link" title="Open ${altText} in new tab"><img src="${assetUrl}" alt="${altText}" class="markdown-attached-image" loading="lazy" ${widthStyle}/></a><div class="markdown-image-caption">${filename}</div></div>\n\n`;
+      } else {
+        const linkText = (aliasOrSize || '').trim() || filename;
+        return ` <a href="${assetUrl}" target="_blank" rel="noopener noreferrer" class="markdown-attachment-badge" download="${filename}"><span class="attachment-icon">📎</span> <span class="attachment-name">${linkText}</span></a> `;
+      }
+    });
+
+    return result;
+  }
+
+  /**
    * Parses Markdown string to sanitized HTML.
    */
-  static renderToHtml(markdown: string): string {
+  static renderToHtml(markdown: string, projectId?: string): string {
     if (!markdown || typeof markdown !== 'string') return '';
     
-    const withCallouts = this.transformCallouts(markdown);
+    const withAttachments = this.transformWikilinksAndAttachments(markdown, projectId);
+    const withCallouts = this.transformCallouts(withAttachments);
     const rawHtml = marked.parse(withCallouts, { gfm: true, breaks: true }) as string;
     
     return DOMPurify.sanitize(rawHtml, {
-      ADD_TAGS: ['div', 'span', 'svg', 'path', 'code', 'pre', 'input'],
-      ADD_ATTR: ['class', 'id', 'style', 'type', 'checked', 'disabled', 'viewBox', 'd', 'fill']
+      ADD_TAGS: ['div', 'span', 'svg', 'path', 'code', 'pre', 'input', 'img', 'figure', 'figcaption', 'a'],
+      ADD_ATTR: ['class', 'id', 'style', 'type', 'checked', 'disabled', 'viewBox', 'd', 'fill', 'src', 'alt', 'loading', 'href', 'target', 'rel', 'download', 'title']
     });
   }
 

@@ -203,3 +203,71 @@
   color: var(--text-primary);
 }
 .callout-tip .callout-title { color: var(--color-success); }
+
+/* Attached Markdown Images & Wikilinks */
+.markdown-image-block {
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.markdown-image-link {
+  display: inline-block;
+  max-width: 100%;
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
+  border: 1px solid var(--surface-card-border);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: zoom-in;
+}
+
+.markdown-image-link:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.15));
+}
+
+.markdown-attached-image,
+.markdown-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-card);
+}
+
+.markdown-image-caption {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.markdown-attachment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  margin: 4px 2px;
+  border-radius: 6px;
+  background: var(--surface-card-subtle);
+  border: 1px solid var(--surface-card-border);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.12s ease;
+}
+
+.markdown-attachment-badge:hover {
+  background: var(--brand-tint, #EBF4FE);
+  border-color: var(--brand-accent, #21A1F7);
+  color: var(--brand-primary, #043388);
+}
+
+.markdown-attachment-badge .attachment-icon {
+  font-size: 13px;
+}

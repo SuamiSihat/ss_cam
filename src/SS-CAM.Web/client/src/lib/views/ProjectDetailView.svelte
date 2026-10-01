@@ -937,6 +937,7 @@
           <MarkdownEditor
             title="README.md"
             saveLabel="Save Brief to NAS"
+            projectId={p.id}
             bind:value={currentReadmeBody}
             onSave={saveMarkdownBrief}
           />
@@ -948,6 +949,7 @@
             <MarkdownEditor
               title="03_COPYWRITING / COPY.md"
               saveLabel="Save Copy to NAS"
+              projectId={p.id}
               bind:value={currentCopyBody}
               onSave={saveCopywritingMarkdown}
             />
@@ -2161,6 +2163,8 @@
   .inspector-content {
     padding: 16px;
     overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
 
   /* Properties Sheet */

@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { MarkdownService, type MarkdownToken } from '$lib/services/markdown';
 
   // MermaidViewer is loaded lazily — only when the content actually contains
@@ -10,9 +10,10 @@
   interface Props {
     content: string;
     class?: string;
+    projectId?: string;
   }
 
-  let { content, class: className = '' }: Props = $props();
+  let { content, class: className = '', projectId = '' }: Props = $props();
 
   // Tokenize content into standard markdown vs Mermaid code blocks
   let tokens = $derived.by<MarkdownToken[]>(() => {
@@ -58,7 +59,7 @@
       {:else}
         <!-- Render sanitized standard markdown block -->
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-        {@html MarkdownService.renderToHtml(token.raw || '')}
+        {@html MarkdownService.renderToHtml(token.raw || '', projectId)}
       {/if}
     {/each}
   {/if}

@@ -260,6 +260,26 @@ async function runAdminSmoketest() {
       assert.strictEqual(patchRes.status, 200, `Expected 200 for PATCH, got ${patchRes.status}`);
     });
 
+    const targetProj = (WorkspaceService.getAllProjects({}) || [])[0];
+    const targetProjId = targetProj ? (targetProj.jobId || targetProj.id) : '0085D';
+
+    await test('GET /api/projects/:id/asset blocks path traversal', async () => {
+      const res = await fetch(`${baseUrl}/projects/${targetProjId}/asset?path=../../../../package.json`);
+      assert.strictEqual(res.status, 403, `Expected 403 Forbidden, got ${res.status}`);
+    });
+
+    await test('GET /api/projects/:id/asset serves project file safely', async () => {
+      const res = await fetch(`${baseUrl}/projects/${targetProjId}/asset?path=README.md`);
+      assert.strictEqual(res.status, 200, `Expected 200 OK, got ${res.status}`);
+      const text = await res.text();
+      assert.ok(text.length > 0, 'Should return non-empty file content');
+    });
+
+    await test('GET /api/projects/:id/asset returns 404 for missing file', async () => {
+      const res = await fetch(`${baseUrl}/projects/${targetProjId}/asset?path=nonexistent-file.png`);
+      assert.strictEqual(res.status, 404, `Expected 404 Not Found, got ${res.status}`);
+    });
+
   } finally {
     if (WorkspaceService.watcher) {
       try { await WorkspaceService.watcher.close(); } catch (e) {

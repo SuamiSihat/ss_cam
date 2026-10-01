@@ -9,6 +9,7 @@
     readonly?: boolean;
     title?: string;
     saveLabel?: string;
+    projectId?: string;
   }
 
   let {
@@ -17,7 +18,8 @@
     onSave,
     readonly = false,
     title = '',
-    saveLabel = 'Save Document'
+    saveLabel = 'Save Document',
+    projectId = ''
   }: Props = $props();
 
   let mode = $state<'split' | 'preview' | 'source'>('preview');
@@ -613,7 +615,7 @@
     {#if mode === 'split' || mode === 'preview'}
       <div class="preview-pane">
         {#if value && value.trim()}
-          <MarkdownViewer content={value} />
+          <MarkdownViewer content={value} {projectId} />
         {:else}
           <div class="empty-preview">
             <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36">
