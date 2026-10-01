@@ -2,6 +2,32 @@
 
 All notable SS-CAM changes are documented here.
 
+## [4.12.2] - 2026-10-01 (Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow)
+
+### Web Discussion & Inspector UI Polish
+- **Discussion Card Vertical Stacking**:
+  - Restructured comment cards into distinct vertical tiers:
+    - **Header Row**: Author name, role badge, and delete icon (`✕`) on the top-right.
+    - **Context Row**: Dedicated full-width deliverable tag pill (`🎯 [filename]`) with automatic ellipsis truncation.
+    - **Message Body**: Isolated comment text block with full horizontal breathing room and markdown mention chips.
+    - **Footer Row**: Timestamp (`2m ago`) on the left and resolve action button (`[ ✓ Resolved ]` / `[ ○ Resolve ]`) on the right.
+  - Eliminated horizontal wrap collisions, overlapping timestamps, and clipped text across compact inspector panels.
+- **Discussion Filter Controls & Alignment**:
+  - Balanced the `All`, `Open`, and `Resolved` segmented buttons with `flex: 1 1 0%` and equal 33.33% widths, eliminating empty gaps inside the control.
+  - Aligned segmented control height to 32px matching the refresh button.
+  - Upgraded deliverable filter and composer select dropdowns with custom Fluent 2 SVG chevrons and anti-overflow geometry.
+- **Reviewer Select Anti-Overflow**:
+  - Resolved flexbox `min-width: auto` overflow on the Reviewer `<select class="prop-manager-select">` by enforcing `min-width: 0`, `max-width: 100%`, and `box-sizing: border-box`.
+  - Added Fluent 2 dropdown geometry (`Height="36"`), `appearance: none`, dedicated right padding, embedded SVG arrow, and `text-overflow: ellipsis` truncation.
+  - Added native tooltip display (`title`) revealing the reviewer's full name and organizational title on hover.
+
+### Web Management & Ecosystem Enhancements
+- **Deliverable Attachment & Discussion Linking**:
+  - Linked deliverable filenames directly in discussion threads instead of generic labels.
+  - Added vertical stacking for composer controls and Markdown image attachment rendering.
+- **Ecosystem Synchronization**:
+  - Synchronized version `4.12.2` across WPF Desktop (`AssemblyInfo.cs`, `MainWindow.xaml`), Web Portal (`package.json`, `config.js`, `App.svelte`), and documentation suite.
+
 ## [4.12.1] - 2026-09-29 (Security Hardening, WCAG 2.1 AA Accessibility & Canonical Vault Hierarchy)
 
 ### Security & API Protection

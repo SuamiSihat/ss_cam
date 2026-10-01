@@ -1,6 +1,6 @@
 # SS-CAM Project Roadmap
 
-> **Living document.** Updated with every release. Last updated: 2026-09-27.
+> **Living document.** Updated with every release. Last updated: 2026-10-01.
 
 ---
 
@@ -58,6 +58,7 @@
 | **v4.11.1** | 2026-09-28 | **Security Hardening, RBAC Enforcement & Repository Hygiene Remediation**: Upgraded credential store to salted `bcryptjs` hashes with automated lazy migration; emergency bootstrap recovery password (`ADMIN_BOOTSTRAP_PASSWORD`); isolated `DATA_DIR` credential storage; production secret enforcement ($JWT\_SECRET \ge 32$ chars); exact canonical role matching (`hasCanonicalRole`, `requireRole('admin')`); unified staff handlers; Android release keystore untracking and dynamic signing; and 1,038 tracked build artifacts purged from Git index |
 | **v4.12.1** | 2026-09-29 | **Security Hardening, WCAG 2.1 AA Accessibility & Canonical Vault Hierarchy**: Mandatory JWT route protection on `/export`, `/notes`, and `/users`; note ID and directory-prefix traversal sanitization; WCAG AA contrast rectification for Azure text (`#21A1F7` → `#043388` 11.45:1 contrast); Web skip-to-content landmark; WPF PaneFooter keyboard accessibility; canonical 5-folder vault standardization (`01_BRIEF_ASSETS` through `05_DELIVERABLES`); and multi-platform version sync to `v4.12.1` |
 | **v4.12.0** | 2026-09-29 | **Advanced Batch Operations & Studio Archive Vault**: Batch project archival into cold-storage ZIPs on Synology NAS (`ArchiveVaultService`, `ArchiveVaultPage`, `_archive_catalog.jsonl`); Multi-Format Asset Transcoder Bridge with multi-tier FFmpeg discovery, background queue GUI (`TranscoderBridgePage`), and deliverable gallery quick-actions; 3 new live radio stations (Chillhop, SomaFM Secret Agent, SomaFM Drone Zone); and 3 new rhythm particle visualizer modes (GalaxyDrift, FrequencyBars, PulseRing) |
+| **v4.12.2** | 2026-10-01 | **Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow**: Vertical 4-tier comment layout preventing clipping/collisions, equal-width segmented filter buttons (All/Open/Resolved), Reviewer select anti-overflow with tooltips and custom SVG chevrons, deliverable file-name links and markdown image rendering |
 
 ---
 

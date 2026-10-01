@@ -4,7 +4,7 @@
 
 Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Brand Asset Inspector · Synology NAS Native · Multi-Platform
 
-[![Release](https://img.shields.io/badge/release-v4.12.1-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.12.1)
+[![Release](https://img.shields.io/badge/release-v4.12.2-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.12.2)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20Linux%20%7C%20Android%20%7C%20Docker-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%208.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
 [![Web Stack](https://img.shields.io/badge/web-Svelte%205%20%2B%20Node.js%2020-ff3e00?style=flat-square)](https://svelte.dev)
@@ -12,6 +12,18 @@ Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Br
 [![License](https://img.shields.io/badge/licence-Internal%20Use-orange?style=flat-square)](./installer/EULA.txt)
 
 ---
+
+## 🚀 What's New in v4.12.2 ("Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow")
+
+* **💬 Project Discussion & Review Comments Vertical Stacking (`ProjectComments.svelte`)**:
+  * **Vertical Component Stacking**: Eliminated horizontal clipping and button collision in comment cards. Shifted to a 4-tier vertical structure: Author Header Row (Author + Role badge + Delete button `✕`), Deliverable Reference Row (`🎯 [filename]`), Comment Body, and Action Footer Row (`[ ✓ Resolved ]` / `[ ↻ Reopen ]` button + Timestamp).
+  * **Markdown Embedded Images & File Naming**: Render deliverable reference links with explicit file names and support inline markdown image rendering for visual design feedback.
+  * **Segmented Filter Buttons Alignment**: Re-engineered filter controls (`All`, `Open`, `Resolved`) into an equal-width 3-column segmented button group (`flex: 1 1 0%`), perfectly aligned to match the height and vertical rhythm of the search and refresh actions.
+* **🛡️ Reviewer Dropdown & Select Anti-Overflow Geometry**:
+  * **Anti-Overflow & Tooltips**: Fixed text overflow on lengthy reviewer names and role titles in `Reviewer` selectors. Added `title` tooltips, `text-overflow: ellipsis`, and custom SVG chevron indicators.
+  * **Robust Error Handling**: Hardened comment submission error reporting and deliverable association against server timeouts and internal exceptions.
+* **📦 Platform Build & Distribution Verification**:
+  * **Desktop & Web Synchronized**: Rebuilt web portal client bundle (`npm run build:client`) and desktop application (`SS-CAM.exe` v4.12.2.0, verified 6.2MB binary in `dist/`).
 
 ## 🚀 What's New in v4.12.1 ("Security Hardening, WCAG 2.1 AA Accessibility & Canonical Vault Hierarchy")
 

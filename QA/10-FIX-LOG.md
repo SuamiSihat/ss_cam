@@ -1,5 +1,20 @@
 # SS-CAM FIX LOG
 
+## Release: v4.12.2 — Web Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow — 2026-10-01
+- **Project Discussion & Review Comments UI Architecture (`ProjectComments.svelte`)**:
+  - Re-architected discussion comment cards to full vertical stacking: Author Header Row (Author + Role badge + Delete button `✕`), Deliverable Reference Row (`🎯 [filename]`), Comment Body, and Action Footer Row (`[ ✓ Resolved ]` / `[ ↻ Reopen ]` button + Timestamp).
+  - Eliminated horizontal button and badge collisions/cropping when viewing comments in narrow drawer widths.
+  - Linked deliverable tags now display explicit file names instead of generic MIME labels.
+  - Enabled inline markdown image rendering for visual design critique attachments.
+  - Re-engineered filter controls (`All`, `Open`, `Resolved`) into an equal-width 3-column segmented button group (`flex: 1 1 0%`), matching 32px height and alignment with search and refresh actions.
+- **Reviewer Dropdown Anti-Overflow & SVG Chevrons**:
+  - Added text truncation (`text-overflow: ellipsis`), hover tooltips (`title`), and custom SVG chevrons to `.filter-select` and `.deliverable-link-select` to prevent label clipping across long reviewer names.
+  - Improved error handling for comment submissions with explicit server error messages.
+- **Ecosystem Build Verification**:
+  - Web Client Bundle: PASS (`npm run build:client` completed cleanly).
+  - Windows Desktop MSBuild: PASS (`dist/SS-CAM-v4.12.2.exe` & `dist/SS-CAM.exe` — 6,208,000 bytes).
+  - Source Guardian: Verified.
+
 ## Release: v4.12.1 — Security Hardening, WCAG 2.1 AA Accessibility & Canonical Vault Hierarchy — 2026-10-01
 - **Security & API Protection**:
   - Gated `GET /api/projects/:id/export`, `POST /api/notes`, `DELETE /api/notes/:id`, and `GET /api/users` with mandatory `authenticateToken` middleware.
