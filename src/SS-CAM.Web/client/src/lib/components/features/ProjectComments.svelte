@@ -254,6 +254,7 @@
           {@const isPhoto = comment.authorAvatar && (comment.authorAvatar.startsWith('data:') || comment.authorAvatar.startsWith('http') || comment.authorAvatar.startsWith('/'))}
           {@const avatarSrc = isPhoto ? comment.authorAvatar : (authorMember?.avatar || '')}
           {@const avatarBg = (!isPhoto && comment.authorAvatar) ? comment.authorAvatar : (authorMember?.avatarColor || '#043388')}
+          {@const roleClass = (comment.authorRole || '').toLowerCase().includes('admin') ? 'role-admin' : ((comment.authorRole || '').toLowerCase().includes('manager') || (comment.authorRole || '').toLowerCase().includes('head') || (comment.authorRole || '').toLowerCase().includes('director') || (comment.authorRole || '').toLowerCase().includes('ceo')) ? 'role-manager' : 'role-user'}
           <div class="comment-card" class:is-resolved={comment.resolved}>
             <div class="comment-avatar" style="background: {avatarBg};">
               {#if avatarSrc}
@@ -264,42 +265,33 @@
             </div>
 
             <div class="comment-content-wrap">
-              <div class="comment-header-row">
-                <div class="author-meta">
+              <!-- Top Header: Author + Role + Delete Action -->
+              <div class="comment-top-row">
+                <div class="comment-author-badge">
                   <span class="author-name">{comment.author}</span>
-                  <span class="role-tag role-{comment.authorRole?.toLowerCase() || 'user'}">{comment.authorRole}</span>
-                  {#if comment.deliverableId}
-                    {@const matchedDeliv = deliverables.find(d => d.id === comment.deliverableId)}
-                    <span class="deliverable-tag" title={matchedDeliv?.filename || (matchedDeliv as any)?.name || comment.deliverableId}>
-                      🎯 {matchedDeliv?.filename || (matchedDeliv as any)?.name || comment.deliverableId}
-                    </span>
+                  {#if comment.authorRole}
+                    <span class="role-tag {roleClass}">{comment.authorRole}</span>
                   {/if}
                 </div>
 
-                <div class="comment-actions-right">
-                  <span class="comment-time">{formatTime(comment.timestamp)}</span>
-                  <button
-                    class="btn-resolve"
-                    class:resolved={comment.resolved}
-                    onclick={() => toggleResolve(comment)}
-                    title={comment.resolved ? 'Reopen comment thread' : 'Mark as resolved'}
-                  >
-                    {#if comment.resolved}
-                      ✓ Resolved
-                    {:else}
-                      ○ Resolve
-                    {/if}
+                {#if appState.currentUser?.role === 'admin' || appState.currentUser?.name === comment.author}
+                  <button class="btn-delete" onclick={() => handleDelete(comment.id)} title="Delete comment" aria-label="Delete comment">
+                    ✕
                   </button>
-
-                  {#if appState.currentUser?.role === 'admin' || appState.currentUser?.name === comment.author}
-                    <button class="btn-delete" onclick={() => handleDelete(comment.id)} title="Delete comment">
-                      ✕
-                    </button>
-                  {/if}
-                </div>
+                {/if}
               </div>
 
-              <!-- Comment Body with Highlighted Mentions -->
+              <!-- Context Deliverable Tag (Stacked Vertically) -->
+              {#if comment.deliverableId}
+                {@const matchedDeliv = deliverables.find(d => d.id === comment.deliverableId)}
+                <div class="comment-deliverable-row">
+                  <span class="deliverable-tag" title={matchedDeliv?.filename || (matchedDeliv as any)?.name || comment.deliverableId}>
+                    🎯 {matchedDeliv?.filename || (matchedDeliv as any)?.name || comment.deliverableId}
+                  </span>
+                </div>
+              {/if}
+
+              <!-- Comment Body (Stacked Vertically) -->
               <div class="comment-body">
                 {#each comment.content.split(/(@[a-zA-Z0-9_-]+)/g) as segment}
                   {#if segment.startsWith('@')}
@@ -308,6 +300,24 @@
                     {segment}
                   {/if}
                 {/each}
+              </div>
+
+              <!-- Bottom Footer: Timestamp & Resolve Action (Stacked at bottom) -->
+              <div class="comment-footer-row">
+                <span class="comment-time">{formatTime(comment.timestamp)}</span>
+                <button
+                  class="btn-resolve"
+                  class:resolved={comment.resolved}
+                  onclick={() => toggleResolve(comment)}
+                  title={comment.resolved ? 'Reopen comment thread' : 'Mark as resolved'}
+                  aria-label={comment.resolved ? 'Reopen comment thread' : 'Mark as resolved'}
+                >
+                  {#if comment.resolved}
+                    ✓ Resolved
+                  {:else}
+                    ○ Resolve
+                  {/if}
+                </button>
               </div>
             </div>
           </div>
@@ -450,18 +460,37 @@
 
   .filter-select {
     font-size: 12px;
+    font-weight: 500;
     min-height: 36px;
     height: 36px;
-    padding: 0 10px;
+    padding: 0 26px 0 10px;
     border-radius: 6px;
     border: 1px solid var(--surface-card-border);
-    background: var(--bg-app);
+    background-color: var(--bg-app);
     color: var(--text-primary);
     font-family: inherit;
     outline: none;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
     box-sizing: border-box;
+    overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    transition: border-color 0.14s ease;
+  }
+  .filter-select:hover {
+    border-color: var(--brand-accent, #0078D4);
+  }
+  .filter-select:focus {
+    border-color: var(--brand-primary, #043388);
+    box-shadow: 0 0 0 2px rgba(4, 51, 136, 0.15);
   }
 
   .filter-actions-row {
@@ -473,33 +502,49 @@
   }
 
   .resolved-segmented {
-    flex: 1;
+    flex: 1 1 0%;
     display: flex;
     background: var(--bg-app);
     border: 1px solid var(--surface-card-border);
     border-radius: 6px;
     overflow: hidden;
+    height: 32px;
     min-height: 32px;
+    box-sizing: border-box;
   }
 
   .seg-btn {
+    flex: 1 1 0%;
     border: none;
     background: transparent;
-    padding: 4px 10px;
-    font-size: 11.5px;
+    padding: 0 4px;
+    font-size: 12px;
     font-weight: 600;
+    font-family: inherit;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+    transition: all 0.12s ease;
+    box-sizing: border-box;
+  }
+  .seg-btn:hover:not(.active) {
+    color: var(--text-primary);
+    background: var(--surface-card);
   }
   .seg-btn.active {
     background: var(--brand-primary, #043388);
     color: #FFFFFF;
+    font-weight: 700;
   }
 
   .refresh-btn {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
     border-radius: 6px;
     border: 1px solid var(--surface-card-border);
     background: var(--bg-app);
@@ -508,11 +553,14 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.12s;
+    transition: all 0.12s ease;
+    flex-shrink: 0;
+    box-sizing: border-box;
   }
   .refresh-btn:hover {
-    color: var(--text-primary);
-    border-color: var(--brand-accent);
+    color: var(--brand-primary, #043388);
+    border-color: var(--brand-accent, #0078D4);
+    background: var(--surface-card);
   }
 
   /* Feed */
@@ -552,12 +600,16 @@
 
   .comment-card {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     padding: 12px 14px;
     background: var(--surface-card-subtle, #F8FAFC);
     border: 1px solid var(--surface-card-border);
     border-radius: 8px;
     transition: background 0.12s;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    align-items: flex-start;
   }
   .comment-card.is-resolved {
     opacity: 0.75;
@@ -567,15 +619,17 @@
   .comment-avatar {
     width: 32px;
     height: 32px;
+    min-width: 32px;
     border-radius: 50%;
     color: #FFFFFF;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     overflow: hidden;
+    margin-top: 2px;
   }
   .comment-avatar img.avatar-photo,
   .mention-avatar img.avatar-photo {
@@ -587,70 +641,113 @@
   }
 
   .comment-content-wrap {
-    flex: 1;
+    flex: 1 1 0%;
     display: flex;
     flex-direction: column;
     gap: 6px;
     min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
   }
 
-  .comment-header-row {
+  .comment-top-row {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
     gap: 6px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
-  .author-meta {
+  .comment-author-badge {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
   }
 
   .author-name {
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 700;
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
   }
 
   .role-tag {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 800;
-    padding: 1px 6px;
+    padding: 1px 5px;
     border-radius: 4px;
     text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+    max-width: 120px;
+    line-height: 14px;
   }
   .role-admin { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
   .role-manager { background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; }
   .role-user { background: #EBF4FE; color: #043388; border: 1px solid #BFDBFE; }
 
+  .comment-deliverable-row {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
   .deliverable-tag {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text-secondary);
     background: var(--bg-app);
     border: 1px solid var(--surface-card-border);
-    padding: 1px 7px;
+    padding: 2px 7px;
     border-radius: 4px;
-    max-width: 180px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    display: inline-block;
-    vertical-align: middle;
+    display: block;
   }
 
-  .comment-actions-right {
+  .comment-body {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 0;
+  }
+
+  .comment-footer-row {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding-top: 4px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    margin-top: 2px;
   }
 
   .comment-time {
     font-size: 11px;
     color: var(--text-tertiary);
+    white-space: nowrap;
   }
 
   .btn-resolve {
@@ -662,7 +759,11 @@
     background: var(--bg-app);
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.12s;
+    transition: all 0.12s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
   }
   .btn-resolve:hover {
     background: #ECFDF5;
@@ -683,18 +784,13 @@
     font-size: 12px;
     padding: 2px 4px;
     border-radius: 4px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: all 0.12s ease;
   }
   .btn-delete:hover {
     color: #EF4444;
     background: #FEF2F2;
-  }
-
-  .comment-body {
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--text-primary);
-    white-space: pre-wrap;
-    word-break: break-word;
   }
 
   .mention-chip {
@@ -734,17 +830,37 @@
 
   .deliverable-link-select {
     font-size: 12px;
+    font-weight: 500;
     min-height: 36px;
     height: 36px;
-    padding: 0 10px;
+    padding: 0 26px 0 10px;
     border-radius: 6px;
     border: 1px solid var(--surface-card-border);
-    background: var(--bg-app);
+    background-color: var(--bg-app);
     color: var(--text-primary);
+    font-family: inherit;
     outline: none;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
     box-sizing: border-box;
+    overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    transition: border-color 0.14s ease;
+  }
+  .deliverable-link-select:hover {
+    border-color: var(--brand-accent, #0078D4);
+  }
+  .deliverable-link-select:focus {
+    border-color: var(--brand-primary, #043388);
+    box-shadow: 0 0 0 2px rgba(4, 51, 136, 0.15);
   }
 
   .textarea-relative-wrap {
