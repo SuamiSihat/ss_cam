@@ -1,5 +1,23 @@
 # SS-CAM FIX LOG
 
+## Release: v4.12.1 — Security Hardening, WCAG 2.1 AA Accessibility & Canonical Vault Hierarchy — 2026-10-01
+- **Security & API Protection**:
+  - Gated `GET /api/projects/:id/export`, `POST /api/notes`, `DELETE /api/notes/:id`, and `GET /api/users` with mandatory `authenticateToken` middleware.
+  - Sanitized note identifiers using `path.basename` and alphanumeric regex filtering.
+  - Hardened `DeliverableService.resolveSafePath` against directory-prefix traversal by verifying path boundaries against trailing directory separators (`root + path.sep`).
+- **WCAG 2.1 AA Accessibility & Brand Hierarchy (60:30:10)**:
+  - Replaced low-contrast Azure text (`#21A1F7`) with `--text-brand` (`#043388`), establishing 11.45:1 (AAA Pass) contrast.
+  - Added accessible Skip-to-Content landmark and semantic button elements in Web Portal.
+  - Enabled keyboard tab stops and Enter/Space activation for WPF Desktop PaneFooter status panels.
+- **Canonical 5-Folder Vault Alignment & Ecosystem Sync**:
+  - Standardized `CreativeOrderService.cs` order handover on 5 canonical uppercase folders: `01_BRIEF_ASSETS`, `02_SOURCE_FILES`, `03_COPYWRITING`, `04_WORK_IN_PROGRESS`, `05_DELIVERABLES`.
+  - Updated `PreflightValidatorService.cs` to validate and auto-repair using the 5 canonical folders.
+  - Synchronized versions across Desktop, Web, Android, and Linux to `v4.12.1`.
+- **Ecosystem Build Verification**:
+  - Windows Desktop MSBuild: PASS (`dist/SS-CAM-v4.12.1.exe` & `dist/SS-CAM.exe` — 6,063,104 bytes).
+  - Android Companion: PASS (`dist/SS-CAM-v4.12.1-android-release.aab` 5.77 MB & `dist/SS-CAM-v4.12.1-android-release.apk` 3.39 MB).
+  - Source Guardian: PASS (13/13 checks).
+
 ## Release: v4.12.0 — Advanced Batch Operations & Studio Archive Vault — 2026-09-29
 - **Track 1: Batch Archive Vault & Cold Storage Optimizer**:
   - Created `ArchiveCatalogEntry.cs` and `ArchiveVaultService.cs` supporting multi-select project archival into cold-storage ZIPs on NAS (`_Archive/[YYYY]/[YYYYMM]/`).

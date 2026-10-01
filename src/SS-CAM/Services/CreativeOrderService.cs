@@ -497,18 +497,19 @@ namespace SS_CAM.Services
                 }
 
                 // 5. Scaffold Subfolders
-                string briefDir = Path.Combine(targetProjectDir, "01_Brief_and_Copy");
-                string sourceDir = Path.Combine(targetProjectDir, "02_Source_Assets");
-                string artworkDir = Path.Combine(targetProjectDir, "03_Artwork_Design");
-                string exportsDir = Path.Combine(targetProjectDir, "04_Final_Exports");
+                string briefAssetsDir = Path.Combine(targetProjectDir, "01_BRIEF_ASSETS");
+                string sourceDir = Path.Combine(targetProjectDir, "02_SOURCE_FILES");
+                string copyDir = Path.Combine(targetProjectDir, "03_COPYWRITING");
+                string wipDir = Path.Combine(targetProjectDir, "04_WORK_IN_PROGRESS");
+                string deliverablesDir = Path.Combine(targetProjectDir, "05_DELIVERABLES");
 
-                Directory.CreateDirectory(briefDir);
+                Directory.CreateDirectory(briefAssetsDir);
                 Directory.CreateDirectory(sourceDir);
-                Directory.CreateDirectory(artworkDir);
-                Directory.CreateDirectory(exportsDir);
+                Directory.CreateDirectory(copyDir);
+                Directory.CreateDirectory(wipDir);
+                Directory.CreateDirectory(deliverablesDir);
 
-                // Copy Order Attachments to 01_Brief_and_Copy/Brief_Assets
-                string briefAssetsDir = Path.Combine(briefDir, "Brief_Assets");
+                // Copy Order Attachments directly to 01_BRIEF_ASSETS
                 int attachmentsCopied = CopyAttachmentsToProject(workspaceRoot, order.Id, briefAssetsDir);
 
                 string createdStr = !string.IsNullOrWhiteSpace(order.CreatedDate) ? order.CreatedDate : (!string.IsNullOrWhiteSpace(order.SubmittedAt) ? order.SubmittedAt : DateTime.Now.ToString("yyyy-MM-dd"));

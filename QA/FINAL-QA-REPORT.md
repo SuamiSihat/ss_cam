@@ -1,15 +1,15 @@
 # SS-CAM FINAL QA REPORT
 
-## Status: PASS — v4.12.0 Feature Release
+## Status: PASS — v4.12.1 Feature Release
 
-**QA Date**: 2026-09-29  
+**QA Date**: 2026-10-01  
 **Configuration**: Release (MSBuild 4.8 / .NET Framework 4.8 / .NET 10 / Svelte 5 / Android Jetpack Compose)  
 **Dual-Track Master Gatekeeper**: **PASS — 3/3 Stages Passed (100%)**  
 **Source Guardian**: **PASS — 10 passed, 3 warned (documented exceptions), 0 failed (100%)**  
 **Public Wiki Leakage Scanner**: **PASS — 0 leaks, 5 files clean**  
 **Smoke & Web Test Suite**: **PASS — 58 Automated Tests (51 run-tests.js + 7 admin-smoketest.js, 100% PASS)**  
 **Client Bundle Build**: **PASS — Vite transformed modules successfully**  
-**Windows Desktop Build**: **BUILD SUCCESSFUL (Release executable v4.12.0)**  
+**Windows Desktop Build**: **BUILD SUCCESSFUL (Release executable v4.12.1)**  
 **Linux Desktop Build**: **BLOCKED (Host requires .NET 10 SDK / Linux environment — documented risk)**  
 
 ---
@@ -38,7 +38,7 @@
 ---
 
 ### Executable Binaries & Packages
-- Windows Desktop: `dist/SS-CAM-v4.12.0.exe` and `dist/SS-CAM.exe`
+- Windows Desktop: `dist/SS-CAM-v4.12.1.exe` and `dist/SS-CAM.exe`
 - Commercial Landing Portal: `docs/commercial-landing/` and `dist/commercial-landing/`
 - Public Customer Documentation: `docs/public-wiki/`
 - Web Portal: `src/SS-CAM.Web/`
