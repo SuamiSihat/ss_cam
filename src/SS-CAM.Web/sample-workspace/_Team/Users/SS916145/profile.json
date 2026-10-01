@@ -1,0 +1,17 @@
+{
+  "staffId": "SS916145",
+  "username": "sole_admin_ss916145",
+  "name": "Sole Test Admin",
+  "email": "sole_admin_ss916145@suamisihat.com",
+  "role": "Admin",
+  "roles": [
+    "Admin"
+  ],
+  "department": "Creative Production",
+  "defaultBrand": "SS",
+  "avatar": "",
+  "avatarUrl": "",
+  "avatarColor": "#0078D4",
+  "active": false,
+  "DisplayText": "SS916145 - Sole Test Admin (Admin)"
+}

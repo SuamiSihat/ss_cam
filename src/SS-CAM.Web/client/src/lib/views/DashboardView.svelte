@@ -180,6 +180,19 @@
     return myProjects.filter(p => p && p.status === 'review');
   });
 
+  // In-Flight Pipeline Spotlight (Actionable Art Director Desk)
+  let pipelineSpotlightTab = $state<'review' | 'in-progress'>('review');
+
+  const studioReviewProjects = $derived.by(() => {
+    if (!projectStore.projects || !Array.isArray(projectStore.projects)) return [];
+    return projectStore.projects.filter(p => p && p.status === 'review');
+  });
+
+  const studioInProgressProjects = $derived.by(() => {
+    if (!projectStore.projects || !Array.isArray(projectStore.projects)) return [];
+    return projectStore.projects.filter(p => p && p.status === 'in-progress');
+  });
+
   const totalBrandAssets = $derived.by(() => {
     return Object.values(brandDistribution || {}).reduce((sum, count) => sum + (count || 0), 0) || 1;
   });
@@ -661,6 +674,145 @@
             </div>
             <div class="pstep-val text-done">{pipeline.done || 0}</div>
             <div class="pstep-bar bg-done"></div>
+          </div>
+        </div>
+
+        <!-- In-Flight Pipeline Spotlight (Actionable Art Director Desk) -->
+        <div class="pipeline-spotlight-section">
+          <div class="spotlight-header">
+            <div class="spotlight-title-row">
+              <span class="spotlight-icon">
+                <FluentIcons name="bolt" size={13} color="#0284C7" />
+              </span>
+              <span class="spotlight-title">In-Flight Production Spotlight</span>
+            </div>
+
+            <div class="spotlight-tabs">
+              <button
+                type="button"
+                class="spotlight-tab-btn"
+                class:active={pipelineSpotlightTab === 'review'}
+                onclick={() => (pipelineSpotlightTab = 'review')}
+              >
+                <span>Awaiting Sign-Off</span>
+                <span class="spotlight-pill" class:has-items={studioReviewProjects.length > 0}>
+                  {studioReviewProjects.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                class="spotlight-tab-btn"
+                class:active={pipelineSpotlightTab === 'in-progress'}
+                onclick={() => (pipelineSpotlightTab = 'in-progress')}
+              >
+                <span>In Production</span>
+                <span class="spotlight-pill">{studioInProgressProjects.length}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Items list -->
+          <div class="spotlight-items-wrap">
+            {#if pipelineSpotlightTab === 'review'}
+              {#if studioReviewProjects.length === 0}
+                <div class="spotlight-empty-state">
+                  <FluentIcons name="checkCircle" size={16} color="#10B981" />
+                  <span>Review gate clear · All submitted deliverables signed off</span>
+                </div>
+              {:else}
+                <div class="spotlight-list">
+                  {#each studioReviewProjects.slice(0, 3) as proj (proj.id || proj.jobId)}
+                    {@const bColor = brandColors[proj.brand || 'SS'] || 'var(--brand-primary)'}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div class="spotlight-row" onclick={() => appState.navigate('deliverables')}>
+                      <div class="srow-left">
+                        <span class="srow-id" style="color: {bColor}; background: {bColor}14; border-color: {bColor}30;">
+                          {proj.jobId || proj.id}
+                        </span>
+                        <div class="srow-info">
+                          <span class="srow-title" title={proj.title}>{proj.title}</span>
+                          <span class="srow-meta">
+                            <span class="srow-designer">
+                              <FluentIcons name="user" size={11} color="var(--text-tertiary)" />
+                              {proj.designer || 'Unassigned'}
+                            </span>
+                            {#if proj.deadline}
+                              <span class="srow-sep">•</span>
+                              <span class="srow-deadline">{formatDeadlineDisplay(proj.deadline, proj.status)}</span>
+                            {/if}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="srow-right">
+                        <span class="badge-stage-review">Sign-Off Required</span>
+                        <button
+                          type="button"
+                          class="spotlight-action-btn"
+                          onclick={(e) => {
+                            e.stopPropagation();
+                            appState.navigate('deliverables');
+                          }}
+                        >
+                          Review ↗
+                        </button>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            {:else}
+              {#if studioInProgressProjects.length === 0}
+                <div class="spotlight-empty-state">
+                  <FluentIcons name="info" size={16} color="var(--text-tertiary)" />
+                  <span>No projects currently in production</span>
+                </div>
+              {:else}
+                <div class="spotlight-list">
+                  {#each studioInProgressProjects.slice(0, 3) as proj (proj.id || proj.jobId)}
+                    {@const bColor = brandColors[proj.brand || 'SS'] || 'var(--brand-primary)'}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div class="spotlight-row" onclick={() => appState.navigate('project-detail', { id: proj.id || proj.jobId })}>
+                      <div class="srow-left">
+                        <span class="srow-id" style="color: {bColor}; background: {bColor}14; border-color: {bColor}30;">
+                          {proj.jobId || proj.id}
+                        </span>
+                        <div class="srow-info">
+                          <span class="srow-title" title={proj.title}>{proj.title}</span>
+                          <span class="srow-meta">
+                            <span class="srow-designer">
+                              <FluentIcons name="user" size={11} color="var(--text-tertiary)" />
+                              {proj.designer || 'Unassigned'}
+                            </span>
+                            {#if proj.deadline}
+                              <span class="srow-sep">•</span>
+                              <span class="srow-deadline">{formatDeadlineDisplay(proj.deadline, proj.status)}</span>
+                            {/if}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="srow-right">
+                        <span class="badge-stage-inprog">Designing</span>
+                        <button
+                          type="button"
+                          class="spotlight-action-btn"
+                          onclick={(e) => {
+                            e.stopPropagation();
+                            appState.navigate('project-detail', { id: proj.id || proj.jobId });
+                          }}
+                        >
+                          Open ↗
+                        </button>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            {/if}
           </div>
         </div>
       </FluentCard>
@@ -1854,6 +2006,246 @@
     justify-content: center;
     opacity: 0.55;
     flex-shrink: 0;
+  }
+
+  /* ═══ IN-FLIGHT PIPELINE SPOTLIGHT SECTION ═══ */
+  .pipeline-spotlight-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--surface-card-border);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .spotlight-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .spotlight-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .spotlight-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: rgba(2, 132, 199, 0.1);
+  }
+
+  .spotlight-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .spotlight-tabs {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: var(--surface-card-subtle);
+    padding: 2px;
+    border-radius: 6px;
+    border: 1px solid var(--surface-card-border);
+  }
+
+  .spotlight-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.12s ease;
+    font-family: inherit;
+  }
+  .spotlight-tab-btn:hover {
+    color: var(--text-primary);
+  }
+  .spotlight-tab-btn.active {
+    background: var(--surface-card);
+    color: var(--brand-primary, #043388);
+    font-weight: 800;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .spotlight-pill {
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 0 5px;
+    border-radius: 9999px;
+    background: var(--surface-card-border);
+    color: var(--text-secondary);
+  }
+  .spotlight-pill.has-items {
+    background: #D97706;
+    color: #FFFFFF;
+  }
+
+  .spotlight-items-wrap {
+    min-height: 95px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .spotlight-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .spotlight-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .spotlight-row:hover {
+    background: var(--surface-card);
+    border-color: var(--brand-accent);
+    transform: translateX(2px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .srow-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .srow-id {
+    font-family: var(--font-mono, monospace);
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid;
+    flex-shrink: 0;
+  }
+
+  .srow-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 1px;
+  }
+
+  .srow-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .srow-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    color: var(--text-secondary);
+  }
+
+  .srow-designer {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-weight: 600;
+  }
+
+  .srow-sep {
+    opacity: 0.4;
+  }
+
+  .srow-deadline {
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  .srow-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .badge-stage-review {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #FFFBEB;
+    color: #B45309;
+    border: 1px solid #FDE68A;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-stage-inprog {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #EBF4FE;
+    color: #043388;
+    border: 1px solid #BFDBFE;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .spotlight-action-btn {
+    border: none;
+    background: transparent;
+    color: var(--brand-accent);
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.12s ease;
+  }
+  .spotlight-action-btn:hover {
+    background: rgba(33, 161, 247, 0.12);
+  }
+
+  .spotlight-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px 12px;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    background: var(--surface-card-subtle);
+    border: 1px dashed var(--surface-card-border);
+    text-align: center;
   }
 
   /* ═══ BRAND BAR STACK WITH BRAND TOKENS ═══ */
