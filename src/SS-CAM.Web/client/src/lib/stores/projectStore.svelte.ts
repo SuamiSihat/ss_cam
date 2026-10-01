@@ -31,19 +31,42 @@ class ProjectStore {
   dashboardTimeRange = $state<string>('all');
   dashboardBrand = $state<string>('all');
 
+  // Sorting state — default: latest first (by date descending)
+  sortBy = $state<'date' | 'jobId' | 'title' | 'priority'>('date');
+  sortDir = $state<'asc' | 'desc'>('desc');
+
   activeFilters = $state<FilterState>({
     query: '',
     status: 'all',
     brand: 'all',
     designer: 'all',
     priority: 'all',
-    department: 'all'
+    department: 'all',
+    mediaType: 'all'
   });
 
   // Filtered projects computed via Svelte 5 $derived
+  // Unique designers derived from loaded projects
+  uniqueDesigners = $derived.by(() => {
+    const set = new Set<string>();
+    for (const p of this.projects) {
+      if (p.designer) set.add(p.designer);
+    }
+    return [...set].sort();
+  });
+
+  // Unique media types derived from loaded projects
+  uniqueMediaTypes = $derived.by(() => {
+    const set = new Set<string>();
+    for (const p of this.projects) {
+      if (p.presetType) set.add(p.presetType);
+    }
+    return [...set].sort();
+  });
+
   filteredProjects = $derived.by(() => {
-    return this.projects.filter(p => {
-      const { query, status, brand, designer, priority, department } = this.activeFilters;
+    const filtered = this.projects.filter(p => {
+      const { query, status, brand, designer, priority, department, mediaType } = this.activeFilters;
       
       if (status !== 'all') {
         if (status === 'approved') {
@@ -58,6 +81,7 @@ class ProjectStore {
       if (designer !== 'all' && p.designer !== designer) return false;
       if (priority !== 'all' && p.priority !== priority) return false;
       if (department !== 'all' && p.department !== department) return false;
+      if (mediaType !== 'all' && p.presetType !== mediaType) return false;
 
       if (query && query.trim() !== '') {
         const q = query.toLowerCase();
@@ -70,6 +94,35 @@ class ProjectStore {
 
       return true;
     });
+
+    // Sorting
+    const priorityOrder: Record<string, number> = { P1: 0, P2: 1, P3: 2, P4: 3, P5: 4 };
+    const dir = this.sortDir === 'asc' ? 1 : -1;
+
+    filtered.sort((a, b) => {
+      let cmp = 0;
+      switch (this.sortBy) {
+        case 'jobId':
+          cmp = (a.jobId || '').localeCompare(b.jobId || '');
+          break;
+        case 'title':
+          cmp = (a.title || '').localeCompare(b.title || '');
+          break;
+        case 'priority':
+          cmp = (priorityOrder[a.priority] ?? 99) - (priorityOrder[b.priority] ?? 99);
+          break;
+        case 'date':
+        default: {
+          const dA = a.createdDate || a.created || '';
+          const dB = b.createdDate || b.created || '';
+          cmp = dA.localeCompare(dB);
+          break;
+        }
+      }
+      return cmp * dir;
+    });
+
+    return filtered;
   });
 
   // Review Queue Count
@@ -162,6 +215,15 @@ class ProjectStore {
     this.activeFilters[key] = value;
   }
 
+  setSortBy(field: 'date' | 'jobId' | 'title' | 'priority') {
+    if (this.sortBy === field) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortBy = field;
+      this.sortDir = field === 'date' ? 'desc' : 'asc';
+    }
+  }
+
   resetFilters() {
     this.activeFilters = {
       query: '',
@@ -169,8 +231,11 @@ class ProjectStore {
       brand: 'all',
       designer: 'all',
       priority: 'all',
-      department: 'all'
+      department: 'all',
+      mediaType: 'all'
     };
+    this.sortBy = 'date';
+    this.sortDir = 'desc';
   }
 }
 

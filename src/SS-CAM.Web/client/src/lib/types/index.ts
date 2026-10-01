@@ -299,6 +299,7 @@ export interface FilterState {
   designer: string;
   priority: string;
   department: string;
+  mediaType: string;
 }
 
 export interface ToastMessage {
