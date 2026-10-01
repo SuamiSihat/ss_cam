@@ -1365,6 +1365,7 @@
                       disabled={isUpdatingManager}
                       onchange={() => handleManagerChange(selectedManager)}
                       aria-label="Select Reviewer"
+                      title={selectedManager && selectedManager !== 'Unassigned' ? `${selectedManager}${managerInfo?.role ? ` · ${managerInfo.role}` : ''}` : 'Select Reviewer'}
                     >
                       <option value="Unassigned">-- Unassigned --</option>
                       {#if managerList.length === 0}
@@ -2172,6 +2173,9 @@
     display: flex;
     flex-direction: column;
     gap: 14px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .prop-group {
@@ -2180,6 +2184,9 @@
     gap: 4px;
     padding-bottom: 10px;
     border-bottom: 1px solid var(--surface-card-border);
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .prop-label {
@@ -2197,12 +2204,18 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .user-val {
     display: flex;
     align-items: center;
     gap: 8px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .user-avatar {
@@ -2226,7 +2239,7 @@
     border-radius: 50%;
     display: block;
   }
-  .mgr-avatar { background: #0284C7; }
+  .mgr-avatar { background: #0284C7; flex-shrink: 0; }
 
   .user-val-selectable {
     display: flex;
@@ -2234,25 +2247,42 @@
     gap: 8px;
     position: relative;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .prop-manager-select {
-    flex: 1;
-    font-size: 12.5px;
+    flex: 1 1 0%;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    height: 36px;
+    min-height: 36px;
+    font-size: 12px;
     font-weight: 600;
     font-family: inherit;
     color: var(--text-primary);
-    background: var(--bg-app);
+    background-color: var(--bg-app);
     border: 1px solid var(--surface-card-border);
     border-radius: 6px;
-    padding: 5px 8px;
+    padding: 0 26px 0 10px;
     cursor: pointer;
     outline: none;
-    transition: all 0.14s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    transition: border-color 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
   }
   .prop-manager-select:hover:not(:disabled) {
     border-color: var(--brand-accent, #0078D4);
-    background: var(--surface-card);
+    background-color: var(--surface-card);
   }
   .prop-manager-select:focus {
     border-color: var(--brand-primary, #043388);
@@ -2270,8 +2300,16 @@
     background: var(--brand-tint, #EBF4FE);
     padding: 1px 6px;
     border-radius: 4px;
+    flex-shrink: 0;
   }
-  .brand-full { font-size: 12px; color: var(--text-secondary); }
+  .brand-full {
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   .priority-chip {
     font-size: 11px;
