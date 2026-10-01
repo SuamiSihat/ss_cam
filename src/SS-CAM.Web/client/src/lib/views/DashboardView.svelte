@@ -1590,7 +1590,7 @@
 /* ═══════════ EXECUTIVE SLA QUALITY & VELOCITY BAND ═══════════ */
   .executive-sla-band {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 14px;
     margin-bottom: 2px;
   }
@@ -1689,9 +1689,7 @@
   .sla-band-sub {
     font-size: 11px;
     color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.35;
   }
 
   .sla-pills-wrap {
@@ -1764,9 +1762,11 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    align-items: center;
+    text-align: center;
+    gap: 5px;
     cursor: pointer;
-    padding: 8px 10px;
+    padding: 8px 6px;
     border-radius: 8px;
     background: var(--surface-card-subtle);
     border: 1px solid var(--surface-card-border);
@@ -1791,18 +1791,20 @@
 
   .pstep-header {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: 4px;
+    gap: 2px;
+    min-height: 26px;
+    justify-content: center;
   }
 
   .pstep-label {
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
     color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-align: center;
+    line-height: 1.15;
+    word-break: break-word;
   }
 
   .pstep-bottleneck-badge {
@@ -2345,9 +2347,14 @@
   .empty-workspace-state .empty-title { font-size: 13.5px; font-weight: 700; color: var(--text-primary); margin: 0 0 2px 0; }
   .empty-workspace-state .empty-desc { font-size: 12px; color: var(--text-secondary); margin: 0; }
 
-  @media (max-width: 1024px) {
-    .commercial-pillars,
+  @media (min-width: 1440px) {
     .executive-sla-band {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .commercial-pillars {
       grid-template-columns: repeat(2, 1fr);
     }
     .studio-distribution-grid,
@@ -2362,7 +2369,7 @@
     }
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 768px) {
     .commercial-pillars,
     .executive-sla-band {
       grid-template-columns: 1fr;
