@@ -304,6 +304,121 @@
 
         <div class="nav-spacer"></div>
 
+        <!-- ═══ LIVE STUDIO PULSE (Above Download Badge) ═══ -->
+        <div class="sidebar-pulse-container studio-pulse-container" class:rail-pulse-container={isRail} role="region" aria-label="Studio Activity & Vault Sync">
+          {#if !isRail}
+            <button
+              type="button"
+              class="sidebar-pulse-btn unified-status-pill"
+              class:has-active={appState.activeLiveTasks.length > 0}
+              class:is-reconnecting={appState.sseStatus === 'reconnecting'}
+              onclick={() => (appState.studioDrawerOpen = !appState.studioDrawerOpen)}
+              title={appState.activeLiveTasks.length > 0
+                ? `${appState.activeLiveTasks.length} active studio session(s) · Live Synced with Synology Vault`
+                : appState.sseStatus === 'connected' ? 'Studio idle · Live Synced with Synology Vault' : 'Reconnecting to Synology Vault...'}
+              aria-expanded={appState.studioDrawerOpen}
+            >
+              <span class="studio-pulse-dot" class:pulsing={appState.activeLiveTasks.length > 0} class:dot-reconnect={appState.sseStatus === 'reconnecting'}></span>
+              <span class="sidebar-pulse-label">
+                {#if appState.sseStatus === 'reconnecting'}
+                  Reconnecting...
+                {:else if appState.activeLiveTasks.length > 0}
+                  <strong>{appState.activeLiveTasks.length}</strong> in Studio · Synced
+                {:else}
+                  Studio Idle · Synced
+                {/if}
+              </span>
+              <svg class="studio-pulse-chevron" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" class:open={appState.studioDrawerOpen}>
+                <path d="M7 10l5 5 5-5z"/>
+              </svg>
+            </button>
+          {:else}
+            <button
+              type="button"
+              class="nav-link rail-link rail-pulse-btn"
+              class:has-active={appState.activeLiveTasks.length > 0}
+              class:is-reconnecting={appState.sseStatus === 'reconnecting'}
+              onclick={() => (appState.studioDrawerOpen = !appState.studioDrawerOpen)}
+              title={appState.activeLiveTasks.length > 0
+                ? `${appState.activeLiveTasks.length} active studio session(s) · Live Synced with Synology Vault`
+                : appState.sseStatus === 'connected' ? 'Studio idle · Live Synced with Synology Vault' : 'Reconnecting to Synology Vault...'}
+              aria-expanded={appState.studioDrawerOpen}
+            >
+              <span class="studio-pulse-dot" class:pulsing={appState.activeLiveTasks.length > 0} class:dot-reconnect={appState.sseStatus === 'reconnecting'}></span>
+            </button>
+          {/if}
+
+          {#if appState.studioDrawerOpen}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="studio-flyout" onclick={(e) => e.stopPropagation()}>
+              <div class="studio-flyout-header">
+                <div class="studio-flyout-title">
+                  <span class="pulse-indicator"></span>
+                  Live Studio Pulse
+                </div>
+                <span class="studio-badge-count">{appState.activeLiveTasks.length} Active</span>
+              </div>
+              <div class="studio-flyout-body">
+                {#if appState.activeLiveTasks.length === 0}
+                  <div class="studio-empty-state">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <p>No active sessions right now</p>
+                    <span>Designers will appear here when desktop SS-CAM timers start.</span>
+                  </div>
+                {:else}
+                  <div class="studio-task-list">
+                    {#each appState.activeLiveTasks as task}
+                      <div class="studio-task-row">
+                        <div class="designer-avatar-sm" style="background: {task.AvatarColor || '#21A1F7'}">
+                          {(task.DesignerName || task.StaffId || 'D').slice(0, 2).toUpperCase()}
+                        </div>
+                        <div class="studio-task-info">
+                          <div class="studio-task-top">
+                            <span class="designer-name">{task.DesignerName || task.StaffId}</span>
+                            <span class="studio-client-tag">{task.Client || 'Internal'}</span>
+                          </div>
+                          <div class="studio-task-project" title={task.ProjectName || task.ProjectId}>
+                            {task.ProjectName || task.ProjectId}
+                          </div>
+                          {#if task.SessionNotes}
+                            <div class="studio-task-notes">"{task.SessionNotes}"</div>
+                          {/if}
+                        </div>
+                        {#if task.ProjectId}
+                          <button
+                            class="studio-task-jump-btn"
+                            onclick={() => {
+                              appState.studioDrawerOpen = false;
+                              appState.navigate('project-detail', { id: task.ProjectId });
+                            }}
+                            title="Open workspace"
+                          >
+                            ↗
+                          </button>
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+              <div class="studio-flyout-footer">
+                <button
+                  class="studio-flyout-footer-btn"
+                  onclick={() => {
+                    appState.studioDrawerOpen = false;
+                    appState.navigate('dashboard');
+                  }}
+                >
+                  View Studio Stream in Dashboard →
+                </button>
+              </div>
+            </div>
+          {/if}
+        </div>
+
         {#if !isRail}
           <div class="sidebar-desktop-link-wrap">
             <a
@@ -369,104 +484,6 @@
         </div>
 
         <div class="header-right">
-          <!-- Unified Studio Activity & Vault Sync Pill -->
-          <div class="studio-pulse-container" role="region" aria-label="Studio Activity & Vault Sync">
-            <button
-              class="studio-pulse-pill unified-status-pill"
-              class:has-active={appState.activeLiveTasks.length > 0}
-              class:is-reconnecting={appState.sseStatus === 'reconnecting'}
-              onclick={() => (appState.studioDrawerOpen = !appState.studioDrawerOpen)}
-              title={appState.activeLiveTasks.length > 0
-                ? `${appState.activeLiveTasks.length} active studio session(s) · Live Synced with Synology Vault`
-                : appState.sseStatus === 'connected' ? 'Studio idle · Live Synced with Synology Vault' : 'Reconnecting to Synology Vault...'}
-              aria-expanded={appState.studioDrawerOpen}
-            >
-              <span class="studio-pulse-dot" class:pulsing={appState.activeLiveTasks.length > 0} class:dot-reconnect={appState.sseStatus === 'reconnecting'}></span>
-              <span class="studio-pulse-label">
-                {#if appState.sseStatus === 'reconnecting'}
-                  Reconnecting...
-                {:else if appState.activeLiveTasks.length > 0}
-                  <strong>{appState.activeLiveTasks.length}</strong> in Studio · Synced
-                {:else}
-                  Studio Idle · Synced
-                {/if}
-              </span>
-              <svg class="studio-pulse-chevron" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" class:open={appState.studioDrawerOpen}>
-                <path d="M7 10l5 5 5-5z"/>
-              </svg>
-            </button>
-
-            {#if appState.studioDrawerOpen}
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="studio-flyout" onclick={(e) => e.stopPropagation()}>
-                <div class="studio-flyout-header">
-                  <div class="studio-flyout-title">
-                    <span class="pulse-indicator"></span>
-                    Live Studio Pulse
-                  </div>
-                  <span class="studio-badge-count">{appState.activeLiveTasks.length} Active</span>
-                </div>
-                <div class="studio-flyout-body">
-                  {#if appState.activeLiveTasks.length === 0}
-                    <div class="studio-empty-state">
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                      </svg>
-                      <p>No active sessions right now</p>
-                      <span>Designers will appear here when desktop SS-CAM timers start.</span>
-                    </div>
-                  {:else}
-                    <div class="studio-task-list">
-                      {#each appState.activeLiveTasks as task}
-                        <div class="studio-task-row">
-                          <div class="designer-avatar-sm" style="background: {task.AvatarColor || '#21A1F7'}">
-                            {(task.DesignerName || task.StaffId || 'D').slice(0, 2).toUpperCase()}
-                          </div>
-                          <div class="studio-task-info">
-                            <div class="studio-task-top">
-                              <span class="designer-name">{task.DesignerName || task.StaffId}</span>
-                              <span class="studio-client-tag">{task.Client || 'Internal'}</span>
-                            </div>
-                            <div class="studio-task-project" title={task.ProjectName || task.ProjectId}>
-                              {task.ProjectName || task.ProjectId}
-                            </div>
-                            {#if task.SessionNotes}
-                              <div class="studio-task-notes">"{task.SessionNotes}"</div>
-                            {/if}
-                          </div>
-                          {#if task.ProjectId}
-                            <button
-                              class="studio-task-jump-btn"
-                              onclick={() => {
-                                appState.studioDrawerOpen = false;
-                                appState.navigate('project-detail', { id: task.ProjectId });
-                              }}
-                              title="Open workspace"
-                            >
-                              ↗
-                            </button>
-                          {/if}
-                        </div>
-                      {/each}
-                    </div>
-                  {/if}
-                </div>
-                <div class="studio-flyout-footer">
-                  <button
-                    class="studio-flyout-footer-btn"
-                    onclick={() => {
-                      appState.studioDrawerOpen = false;
-                      appState.navigate('dashboard');
-                    }}
-                  >
-                    View Studio Stream in Dashboard →
-                  </button>
-                </div>
-              </div>
-            {/if}
-          </div>
-
           <button
             class="icon-btn notif-btn"
             onclick={() => (appState.notificationDrawerOpen = !appState.notificationDrawerOpen)}
@@ -1115,46 +1132,81 @@
     border: 1.5px solid var(--surface-card);
   }
 
-  /* Studio Pulse Pill & Flyout */
-  .studio-pulse-container {
+  /* Studio Pulse Pill & Flyout in Sidebar */
+  .sidebar-pulse-container {
+    padding: 2px 10px;
+    margin: 2px 0;
     position: relative;
-    display: inline-flex;
-    align-items: center;
+    box-sizing: border-box;
   }
-  .studio-pulse-pill {
-    display: inline-flex;
+  .sidebar-pulse-container.rail-pulse-container {
+    padding: 0;
+    margin: 2px auto;
+  }
+  .sidebar-pulse-btn {
+    width: 100%;
+    display: flex;
     align-items: center;
-    gap: 7px;
-    padding: 4.5px 11px;
-    background: var(--surface-card-subtle);
-    border: 1px solid var(--surface-card-border);
-    border-radius: 9999px;
+    gap: 8px;
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 8px;
+    color: var(--sidebar-text, #E2E8F0);
     font-size: 11.5px;
     font-weight: 600;
-    color: var(--text-secondary);
     cursor: pointer;
-    user-select: none;
-    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.15s ease;
+    box-sizing: border-box;
+    text-align: left;
+    font-family: inherit;
   }
-  .studio-pulse-pill:hover {
-    background: var(--surface-card);
-    border-color: var(--brand-accent);
-    color: var(--text-primary);
+  .sidebar-pulse-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #FFFFFF;
   }
-  .studio-pulse-pill.has-active {
-    background: rgba(16, 185, 129, 0.08);
-    border-color: rgba(16, 185, 129, 0.28);
-    color: #059669;
+  .sidebar-pulse-btn.has-active {
+    background: rgba(16, 185, 129, 0.14);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #34D399;
   }
-  .studio-pulse-pill.has-active:hover {
+  .sidebar-pulse-btn.has-active:hover {
+    background: rgba(16, 185, 129, 0.2);
     border-color: #10B981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
   }
+  .sidebar-pulse-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rail-pulse-btn {
+    width: 44px;
+    height: 44px;
+    margin: 3px auto;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .rail-pulse-btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+  }
+  .rail-pulse-btn.has-active {
+    background: rgba(16, 185, 129, 0.14);
+  }
+
   .studio-pulse-dot {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: var(--text-tertiary);
+    background: var(--text-tertiary, #94A3B8);
     flex-shrink: 0;
   }
   .studio-pulse-dot.pulsing {
@@ -1165,23 +1217,38 @@
   .studio-pulse-chevron {
     transition: transform 0.2s ease;
     opacity: 0.6;
+    flex-shrink: 0;
   }
   .studio-pulse-chevron.open {
     transform: rotate(180deg);
   }
+
+  /* Flyout Drawer positioned to the right of the sidebar */
   .studio-flyout {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
+    position: fixed;
+    bottom: 24px;
+    left: 270px;
     width: 340px;
-    background: var(--surface-card);
-    border: 1px solid var(--surface-card-border);
+    background: var(--surface-card, #FFFFFF);
+    border: 1px solid var(--surface-card-border, #E2E8F0);
     border-radius: 12px;
-    box-shadow: var(--shadow-lg, 0 10px 25px -5px rgba(0, 0, 0, 0.2));
-    z-index: 1000;
+    box-shadow: var(--shadow-xl, 0 16px 36px rgba(0, 0, 0, 0.25));
+    z-index: 1200;
     overflow: hidden;
     animation: flyoutFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
+  .app-shell.sidebar-rail .studio-flyout {
+    left: 78px;
+  }
+  @media (max-width: 768px) {
+    .studio-flyout {
+      left: 12px !important;
+      right: 12px !important;
+      width: auto !important;
+      bottom: 70px !important;
+    }
+  }
+
   @keyframes flyoutFadeIn {
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
@@ -1233,16 +1300,6 @@
   }
   .studio-empty-state svg {
     margin-bottom: 10px;
-    opacity: 0.5;
-  }
-  .studio-empty-state p {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin: 0 0 4px 0;
-  }
-  .studio-empty-state span {
-    font-size: 11.5px;
   }
   .studio-task-list {
     display: flex;
@@ -1253,27 +1310,26 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 9px 10px;
-    border-radius: 8px;
+    padding: 8px 10px;
     background: var(--surface-card-subtle);
     border: 1px solid var(--surface-card-border);
-    transition: background 0.14s;
+    border-radius: 8px;
+    transition: background 0.12s ease;
   }
   .studio-task-row:hover {
-    background: var(--surface-card-hover);
+    background: var(--surface-card-hover, rgba(0,0,0,0.04));
   }
   .designer-avatar-sm {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    color: #fff;
-    font-size: 10.5px;
-    font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: #FFFFFF;
     flex-shrink: 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
   }
   .studio-task-info {
     flex: 1;
@@ -1282,8 +1338,8 @@
   .studio-task-top {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 6px;
-    margin-bottom: 2px;
   }
   .designer-name {
     font-size: 12px;
@@ -1291,67 +1347,62 @@
     color: var(--text-primary);
   }
   .studio-client-tag {
-    font-size: 9.5px;
-    font-weight: 700;
-    padding: 1px 5px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    background: var(--bg-app);
     border-radius: 4px;
-    background: rgba(33, 161, 247, 0.1);
-    color: var(--brand-accent);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    color: var(--text-tertiary);
   }
   .studio-task-project {
-    font-size: 11.5px;
-    font-weight: 600;
+    font-size: 11px;
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-top: 2px;
   }
   .studio-task-notes {
-    font-size: 11px;
+    font-size: 10.5px;
     font-style: italic;
     color: var(--text-tertiary);
     margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   .studio-task-jump-btn {
     border: none;
     background: transparent;
-    color: var(--brand-accent);
-    font-size: 14px;
-    font-weight: 700;
-    padding: 4px 6px;
-    border-radius: 4px;
+    color: var(--text-tertiary);
     cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.12s;
+    font-size: 13px;
+    padding: 2px 4px;
+    border-radius: 4px;
   }
   .studio-task-jump-btn:hover {
-    background: rgba(33, 161, 247, 0.12);
+    color: var(--brand-primary, #0078D4);
+    background: var(--brand-tint, rgba(0,120,212,0.1));
   }
   .studio-flyout-footer {
     padding: 8px 12px;
     background: var(--surface-card-subtle);
     border-top: 1px solid var(--surface-card-border);
-    text-align: center;
   }
   .studio-flyout-footer-btn {
     width: 100%;
-    border: none;
-    background: transparent;
-    font-size: 11.5px;
-    font-weight: 700;
-    color: var(--brand-accent);
-    padding: 6px;
+    padding: 6px 10px;
+    border: 1px solid var(--surface-card-border);
     border-radius: 6px;
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.14s;
+    transition: all 0.12s ease;
+    text-align: center;
   }
   .studio-flyout-footer-btn:hover {
-    background: rgba(33, 161, 247, 0.08);
+    background: var(--brand-tint, rgba(0,120,212,0.08));
+    color: var(--brand-primary, #0078D4);
+    border-color: var(--brand-accent, #38BDF8);
   }
 
   /* Live Sync Pill */
