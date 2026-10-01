@@ -648,13 +648,15 @@ router.get('/projects/:id/comments', authenticateToken, (req, res) => {
 router.post('/projects/:id/comments', authenticateToken, (req, res) => {
   try {
     const project = WorkspaceService.getProjectById(req.params.id);
-    const { content, deliverableId, mentions } = req.body;
+    const body = typeof req.body === 'string' ? { content: req.body } : (req.body || {});
+    const { content, deliverableId, annotation, mentions } = body;
     const comment = CommentService.addComment(project ? project.fullPath : null, req.params.id, {
       author: req.user ? req.user.name : 'Designer',
       authorRole: req.user ? req.user.role : 'User',
       authorAvatar: req.user ? req.user.avatarColor || '#043388' : '#043388',
       content,
       deliverableId,
+      annotation,
       mentions
     });
     SseService.broadcast('comment:added', { projectId: req.params.id, comment });
@@ -668,6 +670,24 @@ router.patch('/projects/:id/comments/:commentId/resolve', authenticateToken, (re
   try {
     const project = WorkspaceService.getProjectById(req.params.id);
     const { resolved = true } = req.body;
+    const result = CommentService.resolveComment(
+      project ? project.fullPath : null,
+      req.params.id,
+      req.params.commentId,
+      resolved,
+      req.user ? req.user.name : 'System',
+      req.user ? req.user.role : 'User'
+    );
+    SseService.broadcast('comment:resolved', { projectId: req.params.id, commentId: req.params.commentId, resolved });
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+router.put('/projects/:id/comments/:commentId/resolve', authenticateToken, (req, res) => {
+  try {
+    const project = WorkspaceService.getProjectById(req.params.id);
+    const { resolved = true } = req.body || {};
     const result = CommentService.resolveComment(
       project ? project.fullPath : null,
       req.params.id,

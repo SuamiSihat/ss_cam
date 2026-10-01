@@ -119,11 +119,10 @@
 
     isSubmitting = true;
     try {
-      const res = await ApiClient.addComment(
-        projectId,
-        newCommentText,
-        selectedDeliverableTag || null
-      );
+      const res = await ApiClient.addComment(projectId, {
+        content: newCommentText.trim(),
+        deliverableId: selectedDeliverableTag || undefined
+      });
       if (res.comment) {
         comments = [...comments, res.comment];
         if (onCommentAdded) onCommentAdded(res.comment);

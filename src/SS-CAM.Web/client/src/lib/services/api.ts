@@ -265,10 +265,17 @@ export class ApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/comments`);
   }
 
-  static addComment(projectId: string, data: { content: string; deliverableId?: string; annotation?: { x: number; y: number; pinNumber?: number; priority?: string }; mentions?: string[] }): Promise<{ success: boolean; comment: any }> {
+  static addComment(
+    projectId: string,
+    data: string | { content: string; deliverableId?: string; annotation?: { x: number; y: number; pinNumber?: number; priority?: string }; mentions?: string[] },
+    deliverableId?: string | null
+  ): Promise<{ success: boolean; comment: any }> {
+    const payload = typeof data === 'string'
+      ? { content: data, deliverableId: deliverableId || undefined }
+      : data;
     return this.request(`/projects/${encodeURIComponent(projectId)}/comments`, {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
   }
 

@@ -180,7 +180,7 @@ class CommentService {
           const item = JSON.parse(line.replace(/^\uFEFF/, '').trim());
           if (item.id === commentId) {
             // Verify permission: Author or Admin
-            if (role !== 'Admin' && item.author !== actor) {
+            if ((role || '').toLowerCase() !== 'admin' && item.author !== actor) {
               throw new Error('Unauthorized to delete this comment');
             }
             deleted = true;

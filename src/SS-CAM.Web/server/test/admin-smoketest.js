@@ -32,7 +32,7 @@ async function runAdminSmoketest() {
   // Setup ephemeral Express instance for end-to-end HTTP validation
   const app = express();
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ strict: false }));
   app.use('/api', apiRoutes);
 
   const server = await new Promise((resolve) => {
@@ -204,6 +204,60 @@ async function runAdminSmoketest() {
       const data = await res.json();
       assert.strictEqual(data.success, true);
       assert.ok(Array.isArray(data.webhooks), 'webhooks must be an array');
+    });
+
+    // ─── 8. Project Comment Thread Collaboration ─────────────────────────
+    let createdCommentId = null;
+    await test('POST /api/projects/:id/comments creates comment with object payload', async () => {
+      const res = await fetch(`${baseUrl}/projects/0001D/comments`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          content: 'E2E test comment from admin @hasan',
+          deliverableId: 'del_test_01',
+          mentions: ['hasan']
+        })
+      });
+
+      assert.strictEqual(res.status, 201, `Expected 201, got ${res.status}`);
+      const data = await res.json();
+      assert.strictEqual(data.success, true);
+      assert.ok(data.comment && data.comment.id, 'Comment object with ID should be returned');
+      assert.strictEqual(data.comment.content, 'E2E test comment from admin @hasan');
+      createdCommentId = data.comment.id;
+    });
+
+    await test('POST /api/projects/:id/comments handles raw string body safely', async () => {
+      const res = await fetch(`${baseUrl}/projects/0001D/comments`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify('Raw string comment body')
+      });
+
+      assert.strictEqual(res.status, 201, `Expected 201, got ${res.status}`);
+      const data = await res.json();
+      assert.strictEqual(data.success, true);
+      assert.strictEqual(data.comment.content, 'Raw string comment body');
+    });
+
+    await test('PUT and PATCH /api/projects/:id/comments/:id/resolve toggle thread state', async () => {
+      assert.ok(createdCommentId, 'Requires comment from previous test');
+
+      // Test PUT resolve
+      const putRes = await fetch(`${baseUrl}/projects/0001D/comments/${createdCommentId}/resolve`, {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify({ resolved: true })
+      });
+      assert.strictEqual(putRes.status, 200, `Expected 200 for PUT, got ${putRes.status}`);
+
+      // Test PATCH resolve
+      const patchRes = await fetch(`${baseUrl}/projects/0001D/comments/${createdCommentId}/resolve`, {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ resolved: false })
+      });
+      assert.strictEqual(patchRes.status, 200, `Expected 200 for PATCH, got ${patchRes.status}`);
     });
 
   } finally {
