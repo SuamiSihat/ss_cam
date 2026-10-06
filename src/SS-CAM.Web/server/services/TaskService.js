@@ -377,6 +377,75 @@ class TaskService {
     return { success: true, taskId, projectId: project.id };
   }
 
+  /**
+   * Computes aggregate task statistics across studio tasks and projects.
+   */
+  static getStats() {
+    const all = this.getAllTasks();
+    let studioTasks = [];
+    try {
+      studioTasks = this.getAllStudioTasks();
+    } catch (e) {
+      /* ignore */
+    }
+
+    return {
+      total: all.length + studioTasks.length,
+      byStatus: {
+        draft: all.filter(t => t.status === 'draft').length,
+        backlog: studioTasks.filter(t => t.status === 'backlog').length,
+        'in-progress': all.filter(t => t.status === 'in-progress').length + studioTasks.filter(t => t.status === 'in-progress').length,
+        review: all.filter(t => t.status === 'review').length + studioTasks.filter(t => t.status === 'review').length,
+        done: all.filter(t => t.status === 'done').length + studioTasks.filter(t => t.status === 'done').length,
+        converted: studioTasks.filter(t => t.status === 'converted').length
+      },
+      byRole: {
+        copywriter: all.filter(t => t.role === 'copywriter').length,
+        designer: all.filter(t => t.role === 'designer').length,
+        manager: all.filter(t => t.role === 'manager').length
+      },
+      overdue: all.filter(t => t.isOverdue).length + studioTasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done' && t.status !== 'converted').length
+    };
+  }
+
+  /**
+   * Computes statistics specifically for decoupled pre-production studio tasks.
+   */
+  static getStudioTaskStats() {
+    let tasks = [];
+    try {
+      tasks = this.getAllStudioTasks();
+    } catch (e) {
+      /* ignore */
+    }
+
+    return {
+      total: tasks.length,
+      byStatus: {
+        backlog: tasks.filter(t => t.status === 'backlog').length,
+        'in-progress': tasks.filter(t => t.status === 'in-progress').length,
+        review: tasks.filter(t => t.status === 'review').length,
+        done: tasks.filter(t => t.status === 'done').length,
+        converted: tasks.filter(t => t.status === 'converted').length
+      },
+      byPriority: {
+        urgent: tasks.filter(t => t.priority === 'urgent').length,
+        high: tasks.filter(t => t.priority === 'high').length,
+        medium: tasks.filter(t => t.priority === 'medium').length,
+        low: tasks.filter(t => t.priority === 'low').length
+      },
+      byBrand: {
+        SS: tasks.filter(t => t.brand === 'SS').length,
+        SSH: tasks.filter(t => t.brand === 'SSH').length,
+        SSC: tasks.filter(t => t.brand === 'SSC').length,
+        SSW: tasks.filter(t => t.brand === 'SSW').length,
+        SSE: tasks.filter(t => t.brand === 'SSE').length,
+        SST: tasks.filter(t => t.brand === 'SST').length
+      },
+      overdue: tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done' && t.status !== 'converted').length
+    };
+  }
+
   // =========================================================================
   // SECTION 2: Pre-Production Studio Tasks (.sscam/tasks/*.md) & NAS Bridge
   // =========================================================================

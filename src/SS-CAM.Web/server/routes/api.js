@@ -428,20 +428,34 @@ router.get('/auth/users', authenticateToken, (req, res) => {
   res.json({ users: SYSTEM_USERS, roles: Object.keys(ROLE_PERMISSIONS) });
 });
 
-// ─── CLICKUP TASKS & WORKSTREAM ROUTES ──────────────────────────────
+// ─── STUDIO TASKS & CLICKUP WORKSTREAM ROUTES ───────────────────────
 
 router.get('/tasks', authenticateToken, (req, res) => {
   try {
+    if (req.query.projectId) {
+      const filters = {
+        role: req.query.role,
+        assignee: req.query.assignee,
+        status: req.query.status,
+        projectId: req.query.projectId,
+        search: req.query.search
+      };
+      const tasks = TaskService.getAllTasks(filters);
+      const stats = TaskService.getStats();
+      return res.json({ success: true, tasks, stats });
+    }
+
+    // Default to studio pre-production tasks
     const filters = {
-      role: req.query.role,
-      assignee: req.query.assignee,
       status: req.query.status,
-      projectId: req.query.projectId,
-      search: req.query.search
+      priority: req.query.priority,
+      brand: req.query.brand,
+      assignee: req.query.assignee,
+      query: req.query.query || req.query.search
     };
-    const tasks = TaskService.getAllTasks(filters);
-    const stats = TaskService.getStats();
-    res.json({ success: true, tasks, stats });
+    const tasks = TaskService.getAllStudioTasks(filters);
+    const stats = TaskService.getStudioTaskStats();
+    res.json({ success: true, tasks, stats, count: tasks.length });
   } catch (err) {
     console.error('[API:Tasks:GET] Error:', err.message);
     res.status(500).json({ success: false, error: err.message, tasks: [], stats: null });
@@ -450,29 +464,35 @@ router.get('/tasks', authenticateToken, (req, res) => {
 
 router.post('/tasks', authenticateToken, (req, res) => {
   try {
-    const { projectId, name, title, role, assignee, assigneeName, status, weight, channel, specs, notes, deliverableId, linkedFile } = req.body;
-    if (!projectId) return res.status(400).json({ error: 'projectId is required' });
-    if (!name && !title) return res.status(400).json({ error: 'Task name/title is required' });
-
     const actor = req.user?.name || req.user?.username || 'Staff';
-    const task = TaskService.createTask(projectId, {
-      name: name || title,
-      role,
-      assignee,
-      assigneeName,
-      status,
-      weight,
-      channel,
-      specs,
-      notes,
-      deliverableId,
-      linkedFile
-    }, actor);
+    const role = req.user?.role || 'Creative User';
 
+    // If projectId provided, create project-linked subtask
+    if (req.body.projectId) {
+      const { projectId, name, title, status, weight, channel, specs, notes, deliverableId, linkedFile } = req.body;
+      if (!name && !title) return res.status(400).json({ error: 'Task name/title is required' });
+      const task = TaskService.createTask(projectId, {
+        name: name || title,
+        role: req.body.role,
+        assignee: req.body.assignee,
+        assigneeName: req.body.assigneeName,
+        status,
+        weight,
+        channel,
+        specs,
+        notes,
+        deliverableId,
+        linkedFile
+      }, actor);
+      return res.status(201).json({ success: true, task });
+    }
+
+    // Otherwise create standalone Studio Task
+    const task = TaskService.createStudioTask(req.body, actor, role);
     res.status(201).json({ success: true, task });
   } catch (err) {
     console.error('[API:Tasks:POST] Error:', err.message);
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
@@ -497,6 +517,133 @@ router.delete('/tasks/:projectId/:taskId', authenticateToken, (req, res) => {
   } catch (err) {
     console.error('[API:Tasks:DELETE] Error:', err.message);
     res.status(400).json({ error: err.message });
+  }
+});
+
+router.patch('/tasks/:id', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = req.user?.role || 'Creative User';
+    const task = TaskService.updateStudioTask(req.params.id, req.body, actor, role);
+    res.json({ success: true, task });
+  } catch (err) {
+    console.error('[API:Tasks:PATCH:id] Error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+router.delete('/tasks/:id', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = req.user?.role || 'Creative User';
+    const result = TaskService.deleteStudioTask(req.params.id, actor, role);
+    res.json(result);
+  } catch (err) {
+    console.error('[API:Tasks:DELETE:id] Error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/tasks/:id/provision', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = req.user?.role || 'Creative Lead';
+    const result = TaskService.provisionTaskToProject(req.params.id, req.body, actor, role);
+    res.json(result);
+  } catch (err) {
+    console.error('[API:Tasks:Provision] Error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ─── STUDIO TASKS MANAGER CANONICAL ROUTES ──────────────────────────
+
+router.get('/studio-tasks', authenticateToken, (req, res) => {
+  try {
+    const filters = {
+      status: req.query.status,
+      priority: req.query.priority,
+      brand: req.query.brand,
+      assignee: req.query.assignee,
+      query: req.query.query || req.query.search
+    };
+    const tasks = TaskService.getAllStudioTasks(filters);
+    const stats = TaskService.getStudioTaskStats();
+    res.json({ success: true, tasks, stats, count: tasks.length });
+  } catch (err) {
+    console.error('[API:StudioTasks:GET] Error:', err.message);
+    res.status(500).json({ success: false, error: err.message, tasks: [] });
+  }
+});
+
+router.get('/studio-tasks/:id', authenticateToken, (req, res) => {
+  try {
+    const task = TaskService.getStudioTaskById(req.params.id);
+    if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
+    res.json({ success: true, task });
+  } catch (err) {
+    console.error('[API:StudioTasks:GET:id] Error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/studio-tasks', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = req.user?.role || 'Creative User';
+    const task = TaskService.createStudioTask(req.body, actor, role);
+    res.status(201).json({ success: true, task });
+  } catch (err) {
+    console.error('[API:StudioTasks:POST] Error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+router.put('/studio-tasks/:id', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = req.user?.role || 'Creative User';
+    const task = TaskService.updateStudioTask(req.params.id, req.body, actor, role);
+    res.json({ success: true, task });
+  } catch (err) {
+    console.error('[API:StudioTasks:PUT] Error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+router.patch('/studio-tasks/:id', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = req.user?.role || 'Creative User';
+    const task = TaskService.updateStudioTask(req.params.id, req.body, actor, role);
+    res.json({ success: true, task });
+  } catch (err) {
+    console.error('[API:StudioTasks:PATCH] Error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+router.delete('/studio-tasks/:id', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = req.user?.role || 'Creative User';
+    const result = TaskService.deleteStudioTask(req.params.id, actor, role);
+    res.json(result);
+  } catch (err) {
+    console.error('[API:StudioTasks:DELETE] Error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/studio-tasks/:id/provision', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = req.user?.role || 'Creative Lead';
+    const result = TaskService.provisionTaskToProject(req.params.id, req.body, actor, role);
+    res.json(result);
+  } catch (err) {
+    console.error('[API:StudioTasks:Provision] Error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 

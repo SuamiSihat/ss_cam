@@ -1,143 +1,194 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
-  import { projectStore } from '$lib/stores/projectStore.svelte';
   import { ApiClient } from '$lib/services/api';
+  import type { StudioTask, StudioTaskStatus, ProjectPriority } from '$lib/types';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentBadge from '$lib/components/ui/FluentBadge.svelte';
   import TaskCreateModal from '$lib/components/features/TaskCreateModal.svelte';
+  import TaskDetailDrawer from '$lib/components/features/TaskDetailDrawer.svelte';
 
-  interface TaskItem {
-    id: string;
-    name: string;
-    role: 'copywriter' | 'designer' | 'manager' | 'reviewer';
-    assignee: string;
-    assigneeName: string;
-    status: 'draft' | 'in-progress' | 'review' | 'done';
-    weight: number;
-    channel: string;
-    specs?: string;
-    notes?: string;
-    deliverableId?: string;
-    linkedFile?: string;
-    createdAt?: string;
-    updatedAt?: string;
-
-    projectId: string;
-    projectJobId: string;
-    projectTitle: string;
-    projectBrand: string;
-    projectStatus: string;
-    projectPriority: string;
-    projectDeadline?: string;
-    projectDesigner?: string;
-    projectManager?: string;
-    isOverdue?: boolean;
-    daysRemaining?: number;
-  }
-
-  let tasks = $state<TaskItem[]>([]);
-  let stats = $state<{ total: number; byStatus: any; byRole: any; overdue: number }>({
+  let tasks = $state<StudioTask[]>([]);
+  let stats = $state<{
+    total: number;
+    byStatus: Record<string, number>;
+    byPriority: Record<string, number>;
+    byBrand?: Record<string, number>;
+    overdue: number;
+  }>({
     total: 0,
-    byStatus: { draft: 0, 'in-progress': 0, review: 0, done: 0 },
-    byRole: { copywriter: 0, designer: 0, manager: 0 },
+    byStatus: { backlog: 0, 'in-progress': 0, review: 0, done: 0, converted: 0 },
+    byPriority: { urgent: 0, high: 0, medium: 0, low: 0 },
     overdue: 0
   });
 
-  let isLoading = $state<boolean>(true);
+  let isLoading = $state(true);
   let viewMode = $state<'kanban' | 'table'>('kanban');
-  let roleFilter = $state<string>('all');
-  let myTasksOnly = $state<boolean>(false);
-  let searchQuery = $state<string>('');
-  let isCreateModalOpen = $state<boolean>(false);
+  let brandFilter = $state('all');
+  let priorityFilter = $state('all');
+  let statusFilter = $state('all');
+  let myTasksOnly = $state(false);
+  let searchQuery = $state('');
+  let isCreateModalOpen = $state(false);
+
+  // Selected task for detail drawer inspection & editing
+  let selectedTask = $state<StudioTask | null>(null);
+  let isDetailDrawerOpen = $state(false);
+
+  // Drag and drop state
   let draggedTaskId = $state<string | null>(null);
   let dragOverCol = $state<string | null>(null);
 
-  const columns = [
-    { id: 'draft', label: 'Intake / Backlog', icon: '📋', color: '#64748B' },
+  let staffRoster = $state<any[]>([]);
+
+  const columns: { id: StudioTaskStatus; label: string; icon: string; color: string }[] = [
+    { id: 'backlog', label: 'Backlog / Intake', icon: '📋', color: '#64748B' },
     { id: 'in-progress', label: 'In Progress', icon: '⚡', color: '#0284C7' },
     { id: 'review', label: 'Review & QA', icon: '🔍', color: '#8B5CF6' },
     { id: 'done', label: 'Approved & Done', icon: '✅', color: '#10B981' }
   ];
 
+  const brandChips = ['all', 'SS', 'SSH', 'SSC', 'SSW', 'SSE', 'SST'];
+  const priorityChips = ['all', 'urgent', 'high', 'medium', 'low'];
+
   async function loadTasks() {
     isLoading = true;
     try {
-      const res = await ApiClient.getTasks();
+      const res = await ApiClient.getStudioTasks();
       if (res && Array.isArray(res.tasks)) {
         tasks = res.tasks;
-        if (res.stats) stats = res.stats;
+      }
+      if (res && res.stats) {
+        stats = res.stats;
       }
     } catch (err: any) {
+      console.warn('[TasksView] loadTasks error:', err.message);
       appState.addToast(`Failed to load tasks: ${err.message}`, 'error');
     } finally {
       isLoading = false;
     }
   }
 
+  async function loadRoster() {
+    try {
+      const res = await ApiClient.getStaffRoster();
+      if (res && Array.isArray(res.roster)) {
+        staffRoster = res.roster;
+      }
+    } catch (err) {
+      console.debug('Failed to load roster:', err);
+    }
+  }
+
   onMount(() => {
     loadTasks();
-    if (!projectStore.projects || projectStore.projects.length === 0) {
-      projectStore.loadProjects();
-    }
+    loadRoster();
 
     const onTasksChanged = () => {
       loadTasks();
     };
 
+    window.addEventListener('task:created', onTasksChanged);
     window.addEventListener('task:updated', onTasksChanged);
-    window.addEventListener('project:updated', onTasksChanged);
+    window.addEventListener('task:deleted', onTasksChanged);
+    window.addEventListener('studio-task:created', onTasksChanged);
+    window.addEventListener('studio-task:updated', onTasksChanged);
+    window.addEventListener('studio-task:deleted', onTasksChanged);
     window.addEventListener('workspace:updated', onTasksChanged);
 
     return () => {
+      window.removeEventListener('task:created', onTasksChanged);
       window.removeEventListener('task:updated', onTasksChanged);
-      window.removeEventListener('project:updated', onTasksChanged);
+      window.removeEventListener('task:deleted', onTasksChanged);
+      window.removeEventListener('studio-task:created', onTasksChanged);
+      window.removeEventListener('studio-task:updated', onTasksChanged);
+      window.removeEventListener('studio-task:deleted', onTasksChanged);
       window.removeEventListener('workspace:updated', onTasksChanged);
     };
   });
 
   const currentUsername = $derived(
-    (appState.currentUser?.username || appState.currentUser?.name || '').toLowerCase()
+    (appState.currentUser?.username || appState.currentUser?.name || appState.currentUser?.staffId || '').toLowerCase()
   );
 
   const filteredTasks = $derived.by(() => {
     let list = tasks;
 
-    if (roleFilter !== 'all') {
-      list = list.filter(t => t.role === roleFilter);
+    if (brandFilter !== 'all') {
+      list = list.filter(t => (t.brand || 'SS').toUpperCase() === brandFilter.toUpperCase());
+    }
+
+    if (priorityFilter !== 'all') {
+      list = list.filter(t => (t.priority || 'medium').toLowerCase() === priorityFilter.toLowerCase());
+    }
+
+    if (statusFilter !== 'all') {
+      list = list.filter(t => (t.status || 'backlog').toLowerCase() === statusFilter.toLowerCase());
     }
 
     if (myTasksOnly) {
-      list = list.filter(t => 
-        (t.assignee || '').toLowerCase() === currentUsername ||
-        (t.assigneeName || '').toLowerCase().includes(currentUsername)
-      );
+      list = list.filter(t => {
+        const u = currentUsername;
+        return (
+          (t.assignee || '').toLowerCase() === u ||
+          (t.assigneeName || '').toLowerCase().includes(u)
+        );
+      });
     }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(t =>
-        t.name.toLowerCase().includes(q) ||
-        t.projectId.toLowerCase().includes(q) ||
-        t.projectTitle.toLowerCase().includes(q) ||
-        t.assigneeName.toLowerCase().includes(q) ||
-        t.channel.toLowerCase().includes(q)
+        (t.title || '').toLowerCase().includes(q) ||
+        (t.id || '').toLowerCase().includes(q) ||
+        (t.description || '').toLowerCase().includes(q) ||
+        (t.assigneeName || '').toLowerCase().includes(q) ||
+        (t.tags || []).some(tag => tag.toLowerCase().includes(q))
       );
     }
 
     return list;
   });
 
-  function getTasksByColumn(statusId: string) {
+  function getTasksByColumn(statusId: StudioTaskStatus) {
+    if (statusId === 'done') {
+      // Include converted tasks in done column or dedicated indicator
+      return filteredTasks.filter(t => t.status === 'done' || t.status === 'converted');
+    }
     return filteredTasks.filter(t => t.status === statusId);
   }
 
+  function openTaskDetail(task: StudioTask) {
+    selectedTask = task;
+    isDetailDrawerOpen = true;
+  }
+
+  function handleTaskUpdated(updatedTask: StudioTask) {
+    tasks = tasks.map(t => (t.id === updatedTask.id ? updatedTask : t));
+    if (selectedTask?.id === updatedTask.id) {
+      selectedTask = updatedTask;
+    }
+  }
+
+  function handleTaskDeleted(deletedId: string) {
+    tasks = tasks.filter(t => t.id !== deletedId);
+    if (selectedTask?.id === deletedId) {
+      selectedTask = null;
+      isDetailDrawerOpen = false;
+    }
+  }
+
+  function handleTaskCreated(newTask: StudioTask) {
+    tasks = [newTask, ...tasks];
+    loadTasks(); // refresh stats
+  }
+
   // Drag and Drop
-  function handleDragStart(e: DragEvent, task: TaskItem) {
+  function handleDragStart(e: DragEvent, task: StudioTask) {
     draggedTaskId = task.id;
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', `${task.projectId}:::${task.id}`);
+      e.dataTransfer.setData('text/plain', task.id);
     }
   }
 
@@ -151,7 +202,7 @@
     if (dragOverCol === colId) dragOverCol = null;
   }
 
-  async function handleDrop(e: DragEvent, newStatus: string) {
+  async function handleDrop(e: DragEvent, newStatus: StudioTaskStatus) {
     e.preventDefault();
     dragOverCol = null;
     if (!draggedTaskId) return;
@@ -164,11 +215,12 @@
 
     // Optimistic UI update
     const oldStatus = task.status;
-    task.status = newStatus as any;
+    task.status = newStatus;
 
     try {
-      await ApiClient.updateTask(task.projectId, task.id, { status: newStatus });
-      appState.addToast(`Moved "${task.name}" to ${newStatus}`, 'success');
+      const res = await ApiClient.updateStudioTask(task.id, { status: newStatus });
+      handleTaskUpdated(res.task);
+      appState.addToast(`Moved ${task.id} to ${newStatus}`, 'success');
     } catch (err: any) {
       task.status = oldStatus;
       appState.addToast(`Failed to update status: ${err.message}`, 'error');
@@ -177,77 +229,89 @@
     }
   }
 
-  async function cycleStatus(task: TaskItem) {
-    const cycle = ['draft', 'in-progress', 'review', 'done'];
-    const nextIdx = (cycle.indexOf(task.status) + 1) % cycle.length;
-    const nextStatus = cycle[nextIdx];
-    const oldStatus = task.status;
-    task.status = nextStatus as any;
-
+  function isOverdue(dueDate?: string, status?: string): boolean {
+    if (!dueDate || status === 'done' || status === 'converted') return false;
     try {
-      await ApiClient.updateTask(task.projectId, task.id, { status: nextStatus });
-    } catch (err: any) {
-      task.status = oldStatus;
-      appState.addToast(`Error updating status: ${err.message}`, 'error');
+      const d = new Date(dueDate);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      return d < now;
+    } catch {
+      return false;
     }
   }
 
-  function openInCopyStudio(task: TaskItem) {
-    // Select project and navigate to copy-studio
-    projectStore.selectProject(task.projectId);
-    appState.navigate('copy-studio');
-  }
-
-  function openProjectDetail(task: TaskItem) {
-    projectStore.selectProject(task.projectId);
-    appState.navigate('project-detail', { id: task.projectId });
-  }
-
-  async function deleteTask(task: TaskItem) {
-    if (!confirm(`Delete task "${task.name}" from project ${task.projectId}?`)) return;
+  function formatDueDate(iso?: string): string {
+    if (!iso) return '';
     try {
-      await ApiClient.deleteTask(task.projectId, task.id);
-      tasks = tasks.filter(t => t.id !== task.id);
-      appState.addToast(`Task deleted.`, 'info');
-    } catch (err: any) {
-      appState.addToast(`Failed to delete: ${err.message}`, 'error');
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch {
+      return iso;
     }
   }
 </script>
 
-<div class="tasks-workspace">
-  <!-- ═══ HEADER BAR ════════════════════════════════════════════════ -->
-  <header class="tasks-header">
-    <div class="header-titles">
-      <div class="title-with-pill">
-        <h1 class="page-title">Tasks &amp; Creative Workstream</h1>
-        <span class="engine-badge">CLICKUP ENGINE &bull; DUAL-TRACK</span>
-      </div>
+<div class="tasks-page-container">
+  <!-- ═══ HEADER ROW ════════════════════════════════════════════════ -->
+  <header class="tasks-page-header">
+    <div class="header-left">
+      <h1 class="page-title">Tasks &amp; Workstream</h1>
       <p class="page-subtitle">
-        Collaborative task management for Copywriters, Designers &amp; Managers &mdash; unified by Designer Project IDs.
+        Pre-production studio task management. Ideate, track, and provision concepts into NAS workspaces.
       </p>
     </div>
 
-    <div class="header-actions">
-      <FluentButton appearance="subtle" onclick={loadTasks} disabled={isLoading}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class:spinning={isLoading} style="margin-right:6px;">
-          <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
-        </svg>
-        Refresh
-      </FluentButton>
-
+    <div class="header-right">
       <FluentButton appearance="primary" onclick={() => (isCreateModalOpen = true)}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px;">
-          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-        </svg>
-        New Task
+        <span class="btn-icon">＋</span> New Task
       </FluentButton>
     </div>
   </header>
 
-  <!-- ═══ TOOLBAR: VIEWS & FILTERS ═════════════════════════════════ -->
-  <div class="tasks-toolbar">
-    <!-- View Mode Switcher -->
+  <!-- ═══ SUMMARY METRICS BAR ═══════════════════════════════════════ -->
+  <div class="metrics-bar">
+    <div class="metric-card">
+      <span class="metric-label">TOTAL TASKS</span>
+      <span class="metric-val">{tasks.length}</span>
+    </div>
+
+    <div class="metric-card">
+      <span class="metric-label">📋 BACKLOG</span>
+      <span class="metric-val">{tasks.filter(t => t.status === 'backlog').length}</span>
+    </div>
+
+    <div class="metric-card in-progress">
+      <span class="metric-label">⚡ IN PROGRESS</span>
+      <span class="metric-val">{tasks.filter(t => t.status === 'in-progress').length}</span>
+    </div>
+
+    <div class="metric-card review">
+      <span class="metric-label">🔍 IN REVIEW</span>
+      <span class="metric-val">{tasks.filter(t => t.status === 'review').length}</span>
+    </div>
+
+    <div class="metric-card done">
+      <span class="metric-label">✅ COMPLETED</span>
+      <span class="metric-val">{tasks.filter(t => t.status === 'done' || t.status === 'converted').length}</span>
+    </div>
+
+    <div class="metric-card vault">
+      <span class="metric-label">🏛️ NAS PROVISIONED</span>
+      <span class="metric-val">{tasks.filter(t => t.status === 'converted' || !!t.projectId).length}</span>
+    </div>
+
+    {#if tasks.some(t => isOverdue(t.dueDate, t.status))}
+      <div class="metric-card overdue">
+        <span class="metric-label">⚠️ OVERDUE</span>
+        <span class="metric-val">{tasks.filter(t => isOverdue(t.dueDate, t.status)).length}</span>
+      </div>
+    {/if}
+  </div>
+
+  <!-- ═══ CONTROLS & FILTER BAR ═════════════════════════════════════ -->
+  <div class="controls-bar">
+    <!-- View Switcher -->
     <div class="segmented-control">
       <button
         class="seg-btn"
@@ -269,41 +333,46 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/>
         </svg>
-        <span>List</span>
+        <span>Table</span>
       </button>
     </div>
 
-    <!-- Quick Role Filter Chips -->
-    <div class="filter-chips">
-      <button
-        class="chip-btn"
-        class:active={roleFilter === 'all'}
-        onclick={() => (roleFilter = 'all')}
-      >
-        All Roles ({tasks.length})
-      </button>
-      <button
-        class="chip-btn"
-        class:active={roleFilter === 'copywriter'}
-        onclick={() => (roleFilter = 'copywriter')}
-      >
-        ✍️ Copywriters ({stats.byRole.copywriter || 0})
-      </button>
-      <button
-        class="chip-btn"
-        class:active={roleFilter === 'designer'}
-        onclick={() => (roleFilter = 'designer')}
-      >
-        🎨 Designers ({stats.byRole.designer || 0})
-      </button>
-      <button
-        class="chip-btn my-tasks-toggle"
-        class:active={myTasksOnly}
-        onclick={() => (myTasksOnly = !myTasksOnly)}
-      >
-        👤 My Tasks Only
-      </button>
+    <!-- Brand Filter Chips -->
+    <div class="filter-chips-wrap">
+      <span class="filter-group-lbl">Brand:</span>
+      {#each brandChips as b}
+        <button
+          class="chip-btn"
+          class:active={brandFilter === b}
+          onclick={() => (brandFilter = b)}
+        >
+          {b === 'all' ? 'All' : b}
+        </button>
+      {/each}
     </div>
+
+    <!-- Priority Filter -->
+    <div class="filter-chips-wrap">
+      <span class="filter-group-lbl">Priority:</span>
+      {#each priorityChips as p}
+        <button
+          class="chip-btn"
+          class:active={priorityFilter === p}
+          onclick={() => (priorityFilter = p)}
+        >
+          {p === 'all' ? 'All' : p.charAt(0).toUpperCase() + p.slice(1)}
+        </button>
+      {/each}
+    </div>
+
+    <!-- My Tasks Toggle -->
+    <button
+      class="chip-btn my-tasks-toggle"
+      class:active={myTasksOnly}
+      onclick={() => (myTasksOnly = !myTasksOnly)}
+    >
+      👤 My Tasks Only
+    </button>
 
     <!-- Search Input -->
     <div class="search-box">
@@ -312,7 +381,7 @@
       </svg>
       <input
         type="text"
-        placeholder="Filter by title, Project ID, or assignee…"
+        placeholder="Search title, ID, concept, tags, assignee…"
         bind:value={searchQuery}
         class="search-input"
       />
@@ -326,13 +395,19 @@
   {#if isLoading && tasks.length === 0}
     <div class="loading-state">
       <div class="spinner"></div>
-      <span>Loading collaborative tasks…</span>
+      <span>Loading studio workstream tasks…</span>
     </div>
   {:else if filteredTasks.length === 0}
     <div class="empty-state">
       <div class="empty-icon">📝</div>
-      <h3>No tasks match your filter</h3>
-      <p>Create a new task linked to any creative project or reset filters to see all tasks.</p>
+      <h3>No tasks found</h3>
+      <p>
+        {#if tasks.length === 0}
+          Start organizing pre-production activities by creating your first studio task.
+        {:else}
+          No tasks match the selected filters. Reset filters or create a new task.
+        {/if}
+      </p>
       <FluentButton appearance="primary" onclick={() => (isCreateModalOpen = true)}>
         Create First Task
       </FluentButton>
@@ -360,81 +435,85 @@
             </div>
           </div>
 
-          <!-- Cards Scroll Container -->
+          <!-- Cards Container -->
           <div class="col-cards">
-            {#each colTasks as task, i (task.projectId + '___' + task.id + '___' + i)}
+            {#each colTasks as task (task.id)}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
               <div
                 class="task-card"
-                class:is-overdue={task.isOverdue && task.status !== 'done'}
+                class:is-overdue={isOverdue(task.dueDate, task.status)}
+                class:is-converted={task.status === 'converted' || !!task.projectId}
                 draggable="true"
                 ondragstart={(e) => handleDragStart(e, task)}
-                role="listitem"
+                onclick={() => openTaskDetail(task)}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTaskDetail(task); } }}
+                role="button"
+                tabindex="0"
+                aria-label="Inspect task {task.id}: {task.title}"
               >
-                <!-- Card Header: Project Badge & Role -->
+                <!-- Card Top: ID, Brand, Priority, Action -->
                 <div class="card-top-row">
-                  <button
-                    class="project-id-pill"
-                    onclick={() => openProjectDetail(task)}
-                    title="View project: {task.projectTitle} [{task.projectId}]"
-                  >
-                    🎯 {task.projectJobId || task.projectId}
-                  </button>
-
-                  <span class="role-badge {task.role}">
-                    {task.role === 'copywriter' ? '✍️ Copy' : task.role === 'designer' ? '🎨 Design' : '📋 Task'}
-                  </span>
+                  <div class="card-top-left">
+                    <span class="task-id-tag">{task.id}</span>
+                    <FluentBadge type="brand" value={task.brand || 'SS'} />
+                  </div>
+                  <div class="card-top-right">
+                    <FluentBadge type="priority" value={task.priority || 'medium'} />
+                    <button
+                      type="button"
+                      class="card-open-btn"
+                      onclick={(e) => { e.stopPropagation(); openTaskDetail(task); }}
+                      title="Inspect task details"
+                    >
+                      Open ↗
+                    </button>
+                  </div>
                 </div>
 
-                <!-- Task Title -->
-                <div class="card-title-row">
-                  <button class="task-title-btn" onclick={() => cycleStatus(task)} title="Click to advance status">
-                    {task.name}
-                  </button>
-                </div>
+                <!-- Card Title -->
+                <h4 class="card-title">{task.title}</h4>
 
-                <!-- Channel & Weight -->
-                <div class="card-meta-row">
-                  {#if task.channel}
-                    <span class="channel-pill">{task.channel.replace('_', ' ')}</span>
-                  {/if}
-                  <span class="weight-pill">{task.weight || 1} pts</span>
-                  {#if task.isOverdue && task.status !== 'done'}
-                    <span class="overdue-pill">⚠️ Overdue</span>
-                  {/if}
-                </div>
+                <!-- Description Snippet -->
+                {#if task.description}
+                  <p class="card-desc-snippet">{task.description}</p>
+                {/if}
 
-                <!-- Project Title Reference -->
-                <div class="card-project-context" title={task.projectTitle}>
-                  📁 {task.projectTitle}
-                </div>
+                <!-- Tags Row -->
+                {#if task.tags && task.tags.length > 0}
+                  <div class="card-tags-row">
+                    {#each task.tags.slice(0, 3) as tag}
+                      <span class="tag-pill">#{tag}</span>
+                    {/each}
+                    {#if task.tags.length > 3}
+                      <span class="tag-more">+{task.tags.length - 3}</span>
+                    {/if}
+                  </div>
+                {/if}
 
-                <!-- Footer: Assignee & Action Launcher -->
+                <!-- Card Footer: Assignee, Due Date, Provisioned Badge -->
                 <div class="card-footer-row">
-                  <div class="assignee-wrap" title="Assigned to {task.assigneeName || task.assignee}">
-                    <div class="assignee-avatar">
+                  <div class="assignee-wrap" title="Assigned to {task.assigneeName || task.assignee || 'Unassigned'}">
+                    <div
+                      class="assignee-avatar"
+                      style="background: {task.assigneeAvatarColor || '#0078D4'};"
+                    >
                       {(task.assigneeName || task.assignee || 'U').substring(0, 2).toUpperCase()}
                     </div>
-                    <span class="assignee-name">{task.assigneeName || task.assignee}</span>
+                    <span class="assignee-name">{task.assigneeName || task.assignee || 'Unassigned'}</span>
                   </div>
 
-                  <!-- Context Action Button -->
-                  <div class="card-actions">
-                    {#if task.role === 'copywriter'}
-                      <button
-                        class="btn-studio-jump copy"
-                        onclick={() => openInCopyStudio(task)}
-                        title="Jump directly to Copy Studio for this project"
-                      >
-                        ✍️ Copy Studio
-                      </button>
-                    {:else}
-                      <button
-                        class="btn-studio-jump view"
-                        onclick={() => openProjectDetail(task)}
-                        title="View project assets & deliverables"
-                      >
-                        🎨 View
-                      </button>
+                  <div class="card-footer-right">
+                    {#if task.status === 'converted' || task.projectId}
+                      <span class="vault-indicator" title="Scaffolded on Synology NAS: {task.jobId || task.projectId}">
+                        🏛️ {task.jobId || 'NAS'}
+                      </span>
+                    {/if}
+
+                    {#if task.dueDate}
+                      <span class="due-date-pill" class:overdue={isOverdue(task.dueDate, task.status)}>
+                        📅 {formatDueDate(task.dueDate)}
+                      </span>
                     {/if}
                   </div>
                 </div>
@@ -445,117 +524,89 @@
       {/each}
     </div>
   {:else}
-    <!-- ═══ CLICKUP DENSE TABLE / LIST VIEW ═══ -->
+    <!-- ═══ DENSE TABLE VIEW ═══ -->
     <div class="table-container">
-      <table class="clickup-table">
+      <table class="studio-table">
         <thead>
           <tr>
-            <th style="width: 140px;">Status</th>
-            <th>Task Name</th>
-            <th style="width: 180px;">Linked Project ID</th>
-            <th style="width: 110px;">Role</th>
-            <th style="width: 140px;">Assignee</th>
-            <th style="width: 90px;">Weight</th>
-            <th style="width: 120px;">Deadline</th>
-            <th style="width: 130px; text-align: right;">Action</th>
+            <th style="width: 100px;">Task ID</th>
+            <th>Title &amp; Concept</th>
+            <th style="width: 80px;">Brand</th>
+            <th style="width: 150px;">Assignee</th>
+            <th style="width: 100px;">Priority</th>
+            <th style="width: 120px;">Status</th>
+            <th style="width: 110px;">Due Date</th>
+            <th style="width: 130px;">NAS Vault</th>
+            <th style="width: 80px; text-align: right;">Action</th>
           </tr>
         </thead>
         <tbody>
-          {#each filteredTasks as task, i (task.projectId + '___' + task.id + '___' + i)}
-            <tr class="table-row">
-              <!-- Status Cell -->
-              <td>
-                <button
-                  class="status-pill status-{task.status}"
-                  onclick={() => cycleStatus(task)}
-                  title="Click to cycle status"
-                >
-                  <span class="status-dot"></span>
-                  <span>{task.status.replace('-', ' ')}</span>
-                </button>
+          {#each filteredTasks as task (task.id)}
+            <tr
+              class="table-row"
+              onclick={() => openTaskDetail(task)}
+              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTaskDetail(task); } }}
+              role="button"
+              tabindex="0"
+              aria-label="Inspect task {task.id}: {task.title}"
+            >
+              <td class="id-cell">
+                <span class="task-id-tag">{task.id}</span>
               </td>
-
-              <!-- Name -->
-              <td class="task-name-cell">
-                <span class="table-task-name">{task.name}</span>
-                {#if task.notes}
-                  <span class="table-task-notes" title={task.notes}>{task.notes}</span>
+              <td class="title-cell">
+                <div class="tbl-title">{task.title}</div>
+                {#if task.description}
+                  <div class="tbl-snippet">{task.description.substring(0, 60)}…</div>
                 {/if}
               </td>
-
-              <!-- Project ID -->
               <td>
-                <button
-                  class="project-id-pill"
-                  onclick={() => openProjectDetail(task)}
-                  title="[{task.projectId}] {task.projectTitle}"
-                >
-                  🎯 {task.projectJobId || task.projectId}
-                </button>
+                <FluentBadge type="brand" value={task.brand || 'SS'} />
               </td>
-
-              <!-- Role -->
               <td>
-                <span class="role-badge {task.role}">
-                  {task.role === 'copywriter' ? '✍️ Copy' : task.role === 'designer' ? '🎨 Design' : '📋 Task'}
-                </span>
-              </td>
-
-              <!-- Assignee -->
-              <td>
-                <div class="assignee-wrap">
-                  <div class="assignee-avatar">
+                <div class="tbl-assignee">
+                  <div
+                    class="assignee-avatar sm"
+                    style="background: {task.assigneeAvatarColor || '#0078D4'};"
+                  >
                     {(task.assigneeName || task.assignee || 'U').substring(0, 2).toUpperCase()}
                   </div>
-                  <span class="assignee-name">{task.assigneeName || task.assignee}</span>
+                  <span>{task.assigneeName || task.assignee || 'Unassigned'}</span>
                 </div>
               </td>
-
-              <!-- Weight -->
               <td>
-                <span class="weight-pill">{task.weight || 1} pts</span>
+                <FluentBadge type="priority" value={task.priority || 'medium'} />
               </td>
-
-              <!-- Deadline -->
               <td>
-                {#if task.projectDeadline}
-                  <span class="deadline-text" class:overdue={task.isOverdue && task.status !== 'done'}>
-                    {task.projectDeadline}
+                <span class="status-cell-pill status-{task.status}">
+                  {task.status}
+                </span>
+              </td>
+              <td class="date-cell">
+                {#if task.dueDate}
+                  <span class:overdue-text={isOverdue(task.dueDate, task.status)}>
+                    {formatDueDate(task.dueDate)}
                   </span>
                 {:else}
-                  <span class="deadline-text muted">&mdash;</span>
+                  <span class="empty-val">—</span>
                 {/if}
               </td>
-
-              <!-- Action -->
+              <td>
+                {#if task.status === 'converted' || task.projectId}
+                  <span class="vault-cell-badge">
+                    🏛️ {task.jobId || 'NAS'}
+                  </span>
+                {:else}
+                  <span class="pre-prod-cell-badge">Pre-Production</span>
+                {/if}
+              </td>
               <td style="text-align: right;">
-                <div class="table-action-group">
-                  {#if task.role === 'copywriter'}
-                    <button
-                      class="btn-studio-jump copy"
-                      onclick={() => openInCopyStudio(task)}
-                      title="Open in Copywriting Studio"
-                    >
-                      ✍️ Copy
-                    </button>
-                  {:else}
-                    <button
-                      class="btn-studio-jump view"
-                      onclick={() => openProjectDetail(task)}
-                      title="View Project"
-                    >
-                      🎨 View
-                    </button>
-                  {/if}
-
-                  <button
-                    class="btn-row-delete"
-                    onclick={() => deleteTask(task)}
-                    title="Delete task"
-                  >
-                    ✕
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  class="tbl-open-btn"
+                  onclick={(e) => { e.stopPropagation(); openTaskDetail(task); }}
+                >
+                  Inspect ↗
+                </button>
               </td>
             </tr>
           {/each}
@@ -565,84 +616,115 @@
   {/if}
 </div>
 
-<!-- Modal -->
+<!-- Task Create Modal -->
 <TaskCreateModal
-  isOpen={isCreateModalOpen}
+  bind:isOpen={isCreateModalOpen}
   onClose={() => (isCreateModalOpen = false)}
-  onCreated={() => loadTasks()}
+  onCreated={handleTaskCreated}
+/>
+
+<!-- Task Detail Drawer -->
+<TaskDetailDrawer
+  bind:open={isDetailDrawerOpen}
+  task={selectedTask}
+  {staffRoster}
+  onClose={() => { isDetailDrawerOpen = false; selectedTask = null; }}
+  onUpdated={handleTaskUpdated}
+  onDeleted={handleTaskDeleted}
 />
 
 <style>
-  .tasks-workspace {
+  .tasks-page-container {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    height: 100%;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow-y: auto;
+    padding: 24px;
+    max-width: 1800px;
+    margin: 0 auto;
+    width: 100%;
+    min-height: calc(100vh - 60px);
   }
 
-  .tasks-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .header-titles {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .title-with-pill {
+  /* ═══ HEADER ═══════════════════════════════════════════════════ */
+  .tasks-page-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .page-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-primary, #ffffff);
-    margin: 0;
-  }
-
-  .engine-badge {
-    font-size: 0.65rem;
+    font-size: 24px;
     font-weight: 800;
-    letter-spacing: 0.08em;
-    padding: 3px 8px;
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    border-radius: 9999px;
+    color: var(--text-primary, #F8FAFC);
+    margin: 0;
+    letter-spacing: -0.3px;
   }
 
   .page-subtitle {
-    font-size: 0.85rem;
-    color: var(--text-muted, #94a3b8);
-    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary, #94A3B8);
+    margin: 4px 0 0 0;
   }
 
-  .header-actions {
-    display: flex;
+  .btn-icon {
+    font-weight: 800;
+    margin-right: 4px;
+  }
+
+  /* ═══ METRICS BAR ═══════════════════════════════════════════════ */
+  .metrics-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 10px;
   }
 
-  /* ═══ TOOLBAR ═══ */
-  .tasks-toolbar {
+  .metric-card {
+    background: var(--bg-card, #1E293B);
+    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: all 0.15s;
+  }
+  .metric-card:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    transform: translateY(-1px);
+  }
+
+  .metric-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary, #94A3B8);
+  }
+
+  .metric-val {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary, #F8FAFC);
+    font-family: monospace;
+  }
+
+  .metric-card.in-progress .metric-val { color: #38BDF8; }
+  .metric-card.review .metric-val { color: #C084FC; }
+  .metric-card.done .metric-val { color: #34D399; }
+  .metric-card.vault .metric-val { color: #FBBF24; }
+  .metric-card.overdue .metric-val { color: #EF4444; }
+
+  /* ═══ CONTROLS & FILTERS ════════════════════════════════════════ */
+  .controls-bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
-    background: var(--card-bg, rgba(30, 41, 59, 0.6));
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-    padding: 8px 12px;
-    border-radius: 10px;
+    background: var(--bg-card, #1E293B);
+    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    padding: 10px 14px;
   }
 
   .segmented-control {
@@ -650,148 +732,149 @@
     background: rgba(0, 0, 0, 0.3);
     border-radius: 6px;
     padding: 2px;
-    gap: 2px;
   }
 
   .seg-btn {
+    border: none;
+    background: none;
+    color: var(--text-secondary, #94A3B8);
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
-    background: transparent;
-    border: none;
-    color: var(--text-muted, #94a3b8);
-    font-size: 0.8rem;
+    padding: 5px 11px;
+    font-size: 12px;
     font-weight: 600;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.15s;
   }
-
   .seg-btn.active {
-    background: #2563eb;
-    color: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    background: var(--brand-primary, #0078D4);
+    color: #FFFFFF;
   }
 
-  .filter-chips {
+  .filter-chips-wrap {
     display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .filter-group-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted, #64748B);
+    margin-right: 2px;
   }
 
   .chip-btn {
-    padding: 5px 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--text-muted, #cbd5e1);
-    font-size: 0.78rem;
-    font-weight: 500;
-    border-radius: 9999px;
+    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.1));
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text-secondary, #94A3B8);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 9px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s;
   }
-
   .chip-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary, #F8FAFC);
   }
-
   .chip-btn.active {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: #3b82f6;
-    color: #93c5fd;
-    font-weight: 600;
+    background: var(--brand-tint, rgba(0, 120, 212, 0.2));
+    border-color: var(--brand-primary, #0078D4);
+    color: var(--brand-accent, #38BDF8);
   }
 
-  .chip-btn.my-tasks-toggle.active {
+  .my-tasks-toggle.active {
     background: rgba(16, 185, 129, 0.2);
-    border-color: #10b981;
-    color: #6ee7b7;
+    border-color: #10B981;
+    color: #34D399;
   }
 
   .search-box {
+    margin-left: auto;
+    position: relative;
     display: flex;
     align-items: center;
-    position: relative;
-    min-width: 220px;
+    min-width: 240px;
   }
 
   .search-ico {
     position: absolute;
     left: 10px;
-    color: var(--text-muted, #94a3b8);
+    color: var(--text-muted, #64748B);
     pointer-events: none;
   }
 
   .search-input {
     width: 100%;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    min-height: 34px;
     padding: 6px 28px 6px 30px;
-    font-size: 0.8rem;
-    color: #ffffff;
+    border-radius: 6px;
+    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.12));
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--text-primary, #F8FAFC);
+    font-size: 12.5px;
   }
-
   .search-input:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--brand-primary, #0078D4);
   }
 
   .clear-search-btn {
     position: absolute;
     right: 8px;
-    background: transparent;
     border: none;
-    color: #94a3b8;
+    background: none;
+    color: var(--text-muted, #64748B);
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 11px;
+    padding: 2px 4px;
   }
 
-  /* ═══ KANBAN GRID ═══ */
+  /* ═══ KANBAN GRID ═══════════════════════════════════════════════ */
   .kanban-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 14px;
-    flex: 1;
-    min-height: 480px;
+    align-items: start;
   }
 
-  @media (max-width: 1100px) {
+  @media (max-width: 1200px) {
     .kanban-grid {
       grid-template-columns: repeat(2, 1fr);
     }
   }
 
-  @media (max-width: 650px) {
+  @media (max-width: 768px) {
     .kanban-grid {
       grid-template-columns: 1fr;
     }
   }
 
   .kanban-column {
+    background: var(--bg-app, #0F172A);
+    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.08));
+    border-radius: 10px;
     display: flex;
     flex-direction: column;
-    background: var(--card-bg, rgba(30, 41, 59, 0.4));
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
-    border-radius: 10px;
-    overflow: hidden;
-    transition: background 0.15s, border-color 0.15s;
+    min-height: 600px;
+    transition: all 0.15s;
   }
-
   .kanban-column.drag-over {
-    background: rgba(59, 130, 246, 0.08);
-    border-color: #3b82f6;
+    border-color: var(--brand-primary, #0078D4);
+    background: rgba(0, 120, 212, 0.06);
   }
 
   .col-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    border-top: 3px solid #64748B;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
     padding: 12px 14px;
-    background: rgba(0, 0, 0, 0.2);
-    border-top: 3px solid #64748b;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--bg-card, #1E293B);
+    border-bottom: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.06));
   }
 
   .col-title-wrap {
@@ -800,174 +883,153 @@
     gap: 8px;
   }
 
+  .col-icon { font-size: 14px; }
   .col-title {
-    font-size: 0.85rem;
+    font-size: 13px;
     font-weight: 700;
-    color: var(--text-primary, #ffffff);
+    color: var(--text-primary, #F8FAFC);
   }
 
   .col-counter {
-    font-size: 0.7rem;
-    font-weight: 700;
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 800;
     background: rgba(255, 255, 255, 0.1);
-    color: #cbd5e1;
-    padding: 2px 6px;
+    color: var(--text-secondary, #94A3B8);
+    padding: 2px 7px;
     border-radius: 9999px;
   }
 
   .col-cards {
+    padding: 10px 12px 24px 10px;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 10px;
-    overflow-y: auto;
     flex: 1;
+    overflow-y: auto;
   }
 
-  /* ═══ TASK CARD ═══ */
+  /* ═══ TASK CARD ═════════════════════════════════════════════════ */
   .task-card {
-    background: var(--card-surface, #1e293b);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--bg-card, #1E293B);
+    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.08));
     border-radius: 8px;
-    padding: 12px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    cursor: grab;
-    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
   }
-
   .task-card:hover {
+    border-color: rgba(56, 189, 248, 0.4);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  }
+  .task-card:focus {
+    outline: none;
+    border-color: var(--brand-primary, #0078D4);
   }
 
   .task-card.is-overdue {
-    border-left: 3px solid #ef4444;
+    border-left: 3px solid #EF4444;
+  }
+  .task-card.is-converted {
+    border-left: 3px solid #F59E0B;
   }
 
   .card-top-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 6px;
+    justify-content: space-between;
+    gap: 8px;
   }
 
-  .project-id-pill {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 0.72rem;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600;
-    color: #93c5fd;
-    cursor: pointer;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 140px;
-  }
-
-  .project-id-pill:hover {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: #3b82f6;
-  }
-
-  .role-badge {
-    font-size: 0.68rem;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
-
-  .role-badge.copywriter {
-    background: rgba(139, 92, 246, 0.2);
-    color: #c4b5fd;
-    border: 1px solid rgba(139, 92, 246, 0.4);
-  }
-
-  .role-badge.designer {
-    background: rgba(16, 185, 129, 0.2);
-    color: #6ee7b7;
-    border: 1px solid rgba(16, 185, 129, 0.4);
-  }
-
-  .role-badge.manager {
-    background: rgba(245, 158, 11, 0.2);
-    color: #fcd34d;
-    border: 1px solid rgba(245, 158, 11, 0.4);
-  }
-
-  .task-title-btn {
-    background: transparent;
-    border: none;
-    color: #ffffff;
-    font-size: 0.88rem;
-    font-weight: 600;
-    line-height: 1.35;
-    text-align: left;
-    padding: 0;
-    cursor: pointer;
-  }
-
-  .task-title-btn:hover {
-    color: #60a5fa;
-  }
-
-  .card-meta-row {
+  .card-top-left {
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+
+  .card-top-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-open-btn {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary, #94A3B8);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1.4;
+  }
+  .card-open-btn:hover {
+    background: var(--brand-primary, #0078D4);
+    border-color: var(--brand-primary, #0078D4);
+    color: #FFFFFF;
+  }
+
+  .task-id-tag {
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--brand-accent, #38BDF8);
+    background: rgba(56, 189, 248, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .card-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary, #F8FAFC);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .card-desc-snippet {
+    font-size: 12px;
+    color: var(--text-secondary, #94A3B8);
+    margin: 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-tags-row {
+    display: flex;
+    gap: 4px;
     flex-wrap: wrap;
   }
 
-  .channel-pill {
-    font-size: 0.68rem;
-    text-transform: capitalize;
-    background: rgba(255, 255, 255, 0.05);
-    color: #94a3b8;
+  .tag-pill {
+    font-size: 10px;
+    color: var(--text-muted, #64748B);
+    background: rgba(0, 0, 0, 0.25);
     padding: 2px 6px;
     border-radius: 4px;
   }
-
-  .weight-pill {
-    font-size: 0.68rem;
-    background: rgba(255, 255, 255, 0.05);
-    color: #cbd5e1;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 600;
-  }
-
-  .overdue-pill {
-    font-size: 0.68rem;
-    background: rgba(239, 68, 68, 0.2);
-    color: #fca5a5;
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 700;
-  }
-
-  .card-project-context {
-    font-size: 0.72rem;
-    color: var(--text-muted, #94a3b8);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .tag-more {
+    font-size: 10px;
+    color: var(--text-muted, #64748B);
   }
 
   .card-footer-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding-top: 8px;
-    margin-top: 2px;
+    justify-content: space-between;
+    padding-top: 6px;
+    border-top: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.05));
+    font-size: 11px;
   }
 
   .assignee-wrap {
@@ -977,214 +1039,217 @@
   }
 
   .assignee-avatar {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: #3b82f6;
-    color: #ffffff;
-    font-size: 0.65rem;
-    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 9px;
+    font-weight: 800;
+    color: #FFFFFF;
+  }
+  .assignee-avatar.sm {
+    width: 20px;
+    height: 20px;
+    font-size: 8.5px;
   }
 
   .assignee-name {
-    font-size: 0.75rem;
-    color: #cbd5e1;
-  }
-
-  .btn-studio-jump {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.72rem;
+    color: var(--text-secondary, #94A3B8);
     font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: all 0.15s;
-  }
-
-  .btn-studio-jump.copy {
-    background: rgba(139, 92, 246, 0.25);
-    color: #c4b5fd;
-    border: 1px solid rgba(139, 92, 246, 0.4);
-  }
-
-  .btn-studio-jump.copy:hover {
-    background: #7c3aed;
-    color: #ffffff;
-  }
-
-  .btn-studio-jump.view {
-    background: rgba(59, 130, 246, 0.2);
-    color: #93c5fd;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-  }
-
-  .btn-studio-jump.view:hover {
-    background: #2563eb;
-    color: #ffffff;
-  }
-
-  /* ═══ TABLE VIEW ═══ */
-  .table-container {
-    background: var(--card-bg, rgba(30, 41, 59, 0.6));
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-    border-radius: 10px;
-    overflow-x: auto;
-  }
-
-  .clickup-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-  }
-
-  .clickup-table th {
-    text-align: left;
-    padding: 10px 14px;
-    background: rgba(0, 0, 0, 0.25);
-    color: var(--text-muted, #94a3b8);
-    font-weight: 600;
-    font-size: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .clickup-table td {
-    padding: 12px 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    vertical-align: middle;
-  }
-
-  .table-row:hover {
-    background: rgba(255, 255, 255, 0.03);
-  }
-
-  .status-pill {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border-radius: 9999px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: capitalize;
-    border: 1px solid transparent;
-    cursor: pointer;
-  }
-
-  .status-draft {
-    background: rgba(100, 116, 139, 0.2);
-    color: #94a3b8;
-    border-color: rgba(100, 116, 139, 0.3);
-  }
-
-  .status-in-progress {
-    background: rgba(2, 132, 199, 0.2);
-    color: #38bdf8;
-    border-color: rgba(2, 132, 199, 0.3);
-  }
-
-  .status-review {
-    background: rgba(139, 92, 246, 0.2);
-    color: #c4b5fd;
-    border-color: rgba(139, 92, 246, 0.3);
-  }
-
-  .status-done {
-    background: rgba(16, 185, 129, 0.2);
-    color: #6ee7b7;
-    border-color: rgba(16, 185, 129, 0.3);
-  }
-
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-
-  .task-name-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .table-task-name {
-    color: #ffffff;
-    font-weight: 600;
-  }
-
-  .table-task-notes {
-    font-size: 0.72rem;
-    color: var(--text-muted, #94a3b8);
-    max-width: 280px;
+    max-width: 100px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .deadline-text {
-    font-size: 0.78rem;
-    color: #cbd5e1;
-  }
-
-  .deadline-text.overdue {
-    color: #ef4444;
-    font-weight: 700;
-  }
-
-  .table-action-group {
+  .card-footer-right {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
     gap: 6px;
   }
 
-  .btn-row-delete {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    padding: 4px 6px;
+  .vault-indicator {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #FBBF24;
+    background: rgba(245, 158, 11, 0.12);
+    padding: 2px 6px;
     border-radius: 4px;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+  }
+
+  .due-date-pill {
+    font-size: 10.5px;
+    color: var(--text-secondary, #94A3B8);
+    background: rgba(0, 0, 0, 0.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .due-date-pill.overdue {
+    color: #EF4444;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  /* ═══ DENSE TABLE VIEW ══════════════════════════════════════════ */
+  .table-container {
+    background: var(--bg-card, #1E293B);
+    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+
+  .studio-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .studio-table thead {
+    background: rgba(0, 0, 0, 0.35);
+    border-bottom: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.1));
+  }
+
+  .studio-table th {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-secondary, #94A3B8);
+    letter-spacing: 0.4px;
+  }
+
+  .table-row {
+    border-bottom: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.05));
     cursor: pointer;
-    font-size: 0.8rem;
+    transition: all 0.12s;
+  }
+  .table-row:hover {
+    background: rgba(255, 255, 255, 0.04);
   }
 
-  .btn-row-delete:hover {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
+  .studio-table td {
+    padding: 10px 14px;
+    vertical-align: middle;
   }
 
-  /* Loading & Empty */
-  .loading-state, .empty-state {
+  .tbl-title {
+    font-weight: 700;
+    color: var(--text-primary, #F8FAFC);
+  }
+  .tbl-snippet {
+    font-size: 11.5px;
+    color: var(--text-muted, #64748B);
+    margin-top: 2px;
+  }
+
+  .tbl-assignee {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary, #94A3B8);
+  }
+
+  .status-cell-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    text-transform: capitalize;
+  }
+  .status-cell-pill.status-backlog { background: rgba(100, 116, 139, 0.2); color: #94A3B8; }
+  .status-cell-pill.status-in-progress { background: rgba(2, 132, 199, 0.2); color: #38BDF8; }
+  .status-cell-pill.status-review { background: rgba(139, 92, 246, 0.2); color: #C084FC; }
+  .status-cell-pill.status-done { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+  .status-cell-pill.status-converted { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
+
+  .overdue-text {
+    color: #EF4444;
+    font-weight: 700;
+  }
+
+  .vault-cell-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #FBBF24;
+    background: rgba(245, 158, 11, 0.12);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .pre-prod-cell-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted, #64748B);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  .tbl-open-btn {
+    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.12));
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--brand-accent, #38BDF8);
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .tbl-open-btn:hover {
+    background: var(--brand-primary, #0078D4);
+    color: #FFFFFF;
+  }
+
+  /* ═══ EMPTY & LOADING STATES ════════════════════════════════════ */
+  .empty-state {
+    padding: 60px 20px;
+    text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    text-align: center;
     gap: 12px;
-    color: var(--text-muted, #94a3b8);
+    background: var(--bg-card, #1E293B);
+    border: 1px dashed var(--surface-card-border, rgba(255, 255, 255, 0.12));
+    border-radius: 12px;
+  }
+  .empty-icon { font-size: 40px; }
+  .empty-state h3 {
+    margin: 0;
+    font-size: 17px;
+    color: var(--text-primary, #F8FAFC);
+  }
+  .empty-state p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary, #94A3B8);
+    max-width: 440px;
   }
 
-  .empty-icon {
-    font-size: 3rem;
+  .loading-state {
+    padding: 60px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    color: var(--text-secondary, #94A3B8);
   }
 
   .spinner {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top-color: #3b82f6;
+    border-top-color: var(--brand-primary, #0078D4);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
 
   @keyframes spin {
     to { transform: rotate(360deg); }
-  }
-
-  .spinning {
-    animation: spin 0.8s linear infinite;
   }
 </style>

@@ -1,55 +1,54 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { projectStore } from '$lib/stores/projectStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import type { StudioTask, StudioTaskStatus, ProjectPriority } from '$lib/types';
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
 
   interface Props {
     isOpen: boolean;
-    preselectedProjectId?: string;
     onClose: () => void;
-    onCreated: (task: any) => void;
+    onCreated: (task: StudioTask) => void;
   }
 
-  let { isOpen = $bindable(false), preselectedProjectId = '', onClose, onCreated }: Props = $props();
+  let { isOpen = $bindable(false), onClose, onCreated }: Props = $props();
 
-  let projectId = $state(preselectedProjectId || '');
-  let name = $state('');
-  let role = $state<'copywriter' | 'designer' | 'manager' | 'reviewer'>('copywriter');
+  let title = $state('');
+  let brand = $state('SS');
+  let priority = $state<ProjectPriority>('medium');
+  let status = $state<StudioTaskStatus>('backlog');
   let assignee = $state('');
-  let status = $state('draft');
-  let weight = $state(2.0);
-  let channel = $state('whatsapp');
-  let specs = $state('');
-  let notes = $state('');
+  let dueDate = $state('');
+  let tags = $state('');
+  let description = $state('');
   let isSubmitting = $state(false);
-  let projectSearch = $state('');
-
-  $effect(() => {
-    if (preselectedProjectId) {
-      projectId = preselectedProjectId;
-    }
-  });
-
-  const activeProjects = $derived.by(() => {
-    const list = projectStore.projects || [];
-    if (!projectSearch) return list.slice(0, 50);
-    const q = projectSearch.toLowerCase();
-    return list.filter(p => 
-      (p.id || '').toLowerCase().includes(q) ||
-      (p.title || '').toLowerCase().includes(q) ||
-      (p.jobId || '').toLowerCase().includes(q)
-    ).slice(0, 50);
-  });
 
   let staffRoster = $state<any[]>([]);
 
+  const brandOptions = [
+    { code: 'SS', label: 'SuamiSihat (Primary)' },
+    { code: 'SSH', label: 'SuamiSihat Holding' },
+    { code: 'SSC', label: 'SuamiSihat Healthcare' },
+    { code: 'SSW', label: 'SuamiSihat Wellness' },
+    { code: 'SSE', label: 'SuamiSihat E-Commerce' },
+    { code: 'SST', label: 'SuamiSihat Technology' }
+  ];
+
+  const priorityOptions: { id: ProjectPriority; label: string }[] = [
+    { id: 'urgent', label: '🔴 Urgent (P3)' },
+    { id: 'high', label: '🟠 High (P2)' },
+    { id: 'medium', label: '🔵 Medium (P1)' },
+    { id: 'low', label: '⚪ Low' }
+  ];
+
+  const statusOptions: { id: StudioTaskStatus; label: string }[] = [
+    { id: 'backlog', label: '📋 Backlog / Intake' },
+    { id: 'in-progress', label: '⚡ In Progress' },
+    { id: 'review', label: '🔍 Review & QA' }
+  ];
+
   onMount(async () => {
-    if (!projectStore.projects || projectStore.projects.length === 0) {
-      projectStore.loadProjects();
-    }
     try {
       const res = await ApiClient.getStaffRoster();
       if (res && Array.isArray(res.roster)) {
@@ -61,60 +60,49 @@
   });
 
   $effect(() => {
-    if (isOpen) {
-      if (!projectStore.projects || projectStore.projects.length === 0) {
-        projectStore.loadProjects();
-      }
-      if (staffRoster.length === 0) {
-        ApiClient.getStaffRoster().then(res => {
+    if (isOpen && staffRoster.length === 0) {
+      ApiClient.getStaffRoster()
+        .then(res => {
           if (res && Array.isArray(res.roster)) staffRoster = res.roster;
-        }).catch(() => {});
-      }
+        })
+        .catch(() => {});
     }
-  });
-
-  const filteredStaff = $derived.by(() => {
-    if (role === 'copywriter') {
-      const cw = staffRoster.filter(s => (s.role || '').toLowerCase().includes('copy') || (s.role || '').toLowerCase().includes('writer'));
-      return cw.length > 0 ? cw : staffRoster;
-    }
-    if (role === 'designer') {
-      const des = staffRoster.filter(s => (s.role || '').toLowerCase().includes('design') || (s.role || '').toLowerCase().includes('art'));
-      return des.length > 0 ? des : staffRoster;
-    }
-    return staffRoster;
   });
 
   async function handleSubmit() {
-    if (!projectId) {
-      appState.addToast('Please select a project to link this task to.', 'warning');
-      return;
-    }
-    if (!name.trim()) {
+    if (!title.trim()) {
       appState.addToast('Please enter a task title.', 'warning');
       return;
     }
 
     isSubmitting = true;
     try {
-      const selectedStaffObj = staffRoster.find(s => s.staffId === assignee || s.username === assignee);
+      const selectedStaffObj = staffRoster.find(
+        s => (s.staffId && s.staffId.toLowerCase() === assignee.toLowerCase()) ||
+             (s.username && s.username.toLowerCase() === assignee.toLowerCase())
+      );
       const assigneeName = selectedStaffObj ? selectedStaffObj.name : assignee;
+      const assigneeAvatarColor = selectedStaffObj ? selectedStaffObj.avatarColor : undefined;
 
-      const res = await ApiClient.createTask({
-        projectId,
-        name: name.trim(),
-        role,
+      const parsedTags = tags
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean);
+
+      const res = await ApiClient.createStudioTask({
+        title: title.trim(),
+        brand,
+        priority,
+        status,
         assignee,
         assigneeName,
-        status,
-        weight,
-        channel,
-        specs: specs.trim(),
-        notes: notes.trim(),
-        linkedFile: role === 'copywriter' ? '03_COPYWRITING/COPY.md' : ''
+        assigneeAvatarColor,
+        dueDate: dueDate || undefined,
+        tags: parsedTags,
+        description: description.trim()
       });
 
-      appState.addToast(`Task "${name.trim()}" created and linked to ${projectId}`, 'success');
+      appState.addToast(`Task "${title.trim()}" created successfully`, 'success', 'Task Created');
       onCreated(res.task);
       handleReset();
       onClose();
@@ -125,198 +113,233 @@
     }
   }
 
+  function handleClose() {
+    isOpen = false;
+    if (onClose) onClose();
+  }
+
   function handleReset() {
-    name = '';
-    notes = '';
-    specs = '';
-    weight = 2.0;
-    projectSearch = '';
+    title = '';
+    description = '';
+    tags = '';
+    dueDate = '';
+    priority = 'medium';
+    status = 'backlog';
+    brand = 'SS';
   }
 </script>
 
-<FluentDialog {isOpen} title="Create Collaborative Task (ClickUp Engine)" {onClose}>
+<FluentDialog open={isOpen} title="Create Studio Task (Pre-Production)" onClose={handleClose}>
   <div class="task-modal-body">
-    <!-- 1. Link to Designer Project ID -->
+    <!-- Task Title -->
     <div class="form-row">
-      <label for="task-project-select" class="form-label required">
-        <span>Linked Designer Project ID</span>
-        <span class="label-hint">Bi-directionally synced with Designer NAS Vault</span>
+      <label for="create-task-title" class="form-label">
+        TASK TITLE <span class="req">*</span>
       </label>
-      <div class="project-picker-wrap">
-        <select id="task-project-select" class="fluent-select" bind:value={projectId}>
-          <option value="" disabled>-- Select Creative Project --</option>
-          {#each activeProjects as p}
-            <option value={p.id}>
-              [{p.jobId || p.id}] {p.title || p.folderName} ({p.designer || 'Unassigned'})
-            </option>
-          {/each}
-        </select>
-      </div>
-    </div>
-
-    <!-- 2. Task Title -->
-    <div class="form-row">
-      <label for="task-name-input" class="form-label required">Task Title / Action Item</label>
       <input
-        id="task-name-input"
+        id="create-task-title"
         type="text"
-        class="fluent-input"
-        placeholder="e.g. Write 3 Hook Angles for TikTok Video Ad..."
-        bind:value={name}
-        required
+        class="form-input text-lg"
+        placeholder="e.g. Ramadan 2026 Gift Box 3D Mockup Ideation"
+        bind:value={title}
+        autofocus
       />
     </div>
 
-    <!-- 3. Role & Assignee Split -->
+    <!-- Brand & Priority -->
     <div class="form-grid-2">
       <div class="form-row">
-        <label for="task-role-select" class="form-label required">Task Role</label>
-        <select id="task-role-select" class="fluent-select" bind:value={role}>
-          <option value="copywriter">✍️ Copywriter (Copy Studio)</option>
-          <option value="designer">🎨 Graphic Designer (Assets/Dieline)</option>
-          <option value="manager">📋 Manager / Director (Review)</option>
-          <option value="reviewer">🔍 Medical / Compliance Review</option>
+        <label for="create-task-brand" class="form-label">SUBSIDIARY BRAND</label>
+        <select id="create-task-brand" class="form-select" bind:value={brand}>
+          {#each brandOptions as b}
+            <option value={b.code}>[{b.code}] {b.label}</option>
+          {/each}
         </select>
       </div>
 
       <div class="form-row">
-        <label for="task-assignee-select" class="form-label">Assignee</label>
-        <select id="task-assignee-select" class="fluent-select" bind:value={assignee}>
+        <label for="create-task-priority" class="form-label">PRIORITY</label>
+        <select id="create-task-priority" class="form-select" bind:value={priority}>
+          {#each priorityOptions as p}
+            <option value={p.id}>{p.label}</option>
+          {/each}
+        </select>
+      </div>
+    </div>
+
+    <!-- Status & Assignee -->
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label for="create-task-status" class="form-label">INITIAL STAGE</label>
+        <select id="create-task-status" class="form-select" bind:value={status}>
+          {#each statusOptions as s}
+            <option value={s.id}>{s.label}</option>
+          {/each}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label for="create-task-assignee" class="form-label">LEAD ASSIGNEE</label>
+        <select id="create-task-assignee" class="form-select" bind:value={assignee}>
           <option value="">Unassigned</option>
-          {#each filteredStaff as s}
-            <option value={s.username || s.staffId}>
-              {s.name} ({s.officialTitle || s.role})
+          {#each staffRoster as staff}
+            <option value={staff.staffId || staff.username}>
+              {staff.name} ({staff.staffId || staff.role})
             </option>
           {/each}
         </select>
       </div>
     </div>
 
-    <!-- 4. Format Channel & Weight Points -->
+    <!-- Due Date & Tags -->
     <div class="form-grid-2">
       <div class="form-row">
-        <label for="task-channel-select" class="form-label">Marketing Channel</label>
-        <select id="task-channel-select" class="fluent-select" bind:value={channel}>
-          <option value="whatsapp">📱 WhatsApp Broadcast / Script</option>
-          <option value="meta_ads">📸 Meta Ads (Carousel / 9:16)</option>
-          <option value="tiktok">🎵 TikTok / Short-form Hook</option>
-          <option value="packaging">📦 Product Packaging / Box Dieline</option>
-          <option value="print">🖨️ Print / Banner / Bunting</option>
-          <option value="landing_page">🌐 Landing Page / Web Copy</option>
-        </select>
+        <label for="create-task-due" class="form-label">DUE DATE</label>
+        <input
+          id="create-task-due"
+          type="date"
+          class="form-input"
+          bind:value={dueDate}
+        />
       </div>
 
       <div class="form-row">
-        <label for="task-weight-select" class="form-label">Complexity Weight</label>
-        <select id="task-weight-select" class="fluent-select" bind:value={weight}>
-          <option value={1.0}>1 pt (Minor Edit / Hook Variant)</option>
-          <option value={2.0}>2 pts (Standard Post / Script)</option>
-          <option value={3.0}>3 pts (Multi-Slide / Full Campaign)</option>
-          <option value={5.0}>5 pts (High-Complexity / Packaging Overhaul)</option>
-        </select>
+        <label for="create-task-tags" class="form-label">TAGS (COMMA SEPARATED)</label>
+        <input
+          id="create-task-tags"
+          type="text"
+          class="form-input"
+          placeholder="packaging, 3d, social, tiktok"
+          bind:value={tags}
+        />
       </div>
     </div>
 
-    <!-- 5. Specs & Guidelines -->
+    <!-- Concept Brief / Notes -->
     <div class="form-row">
-      <label for="task-notes-area" class="form-label">Creative Brief Notes & Key Angles</label>
+      <label for="create-task-desc" class="form-label">CONCEPT BRIEF &amp; OBJECTIVES</label>
       <textarea
-        id="task-notes-area"
-        class="fluent-textarea"
-        rows="3"
-        placeholder="Specific selling points, target demographics, KKM health precautions, or link previews..."
-        bind:value={notes}
+        id="create-task-desc"
+        class="form-textarea"
+        rows="4"
+        placeholder="Brief description of visual concept, dieline dimensions, angle requirements, or target market..."
+        bind:value={description}
       ></textarea>
+    </div>
+
+    <div class="bridge-info-box">
+      <span class="info-icon">💡</span>
+      <p>
+        <strong>Decoupled Pre-Production:</strong> This creates a lightweight task that will NOT create folders on Synology NAS yet. Once approved, use <em>[Provision NAS Workspace]</em> to generate the official project vault.
+      </p>
     </div>
   </div>
 
-  <svelte:fragment slot="footer">
-    <div class="dialog-actions">
-      <FluentButton appearance="subtle" onclick={onClose} disabled={isSubmitting}>
-        Cancel
-      </FluentButton>
-      <FluentButton appearance="primary" onclick={handleSubmit} disabled={isSubmitting}>
-        {isSubmitting ? 'Creating Task…' : 'Create & Link Task'}
-      </FluentButton>
-    </div>
-  </svelte:fragment>
+  {#snippet footer()}
+    <FluentButton appearance="secondary" onclick={onClose} disabled={isSubmitting}>
+      Cancel
+    </FluentButton>
+    <FluentButton appearance="primary" onclick={handleSubmit} disabled={isSubmitting}>
+      {isSubmitting ? 'Creating Task…' : 'Create Task'}
+    </FluentButton>
+  {/snippet}
 </FluentDialog>
 
 <style>
   .task-modal-body {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     padding: 6px 0;
   }
 
   .form-row {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
   }
 
   .form-grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
-
-  @media (max-width: 600px) {
-    .form-grid-2 {
-      grid-template-columns: 1fr;
-    }
+    gap: 12px;
   }
 
   .form-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-primary, #ffffff);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary, #94A3B8);
+    letter-spacing: 0.4px;
   }
 
-  .form-label.required::after {
-    content: '*';
-    color: #ef4444;
-    margin-left: 4px;
+  .req {
+    color: #EF4444;
   }
 
-  .label-hint {
-    font-size: 0.72rem;
-    font-weight: 400;
-    color: var(--text-muted, #94a3b8);
-  }
-
-  .fluent-input, .fluent-select, .fluent-textarea {
+  .form-input,
+  .form-select,
+  .form-textarea {
     width: 100%;
-    box-sizing: border-box;
-    background: var(--card-bg, #1e293b);
-    border: 1px solid var(--border-color, rgba(255,255,255,0.12));
-    border-radius: 8px;
-    padding: 10px 12px;
-    color: var(--text-primary, #ffffff);
-    font-size: 0.875rem;
+    min-height: 36px;
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.14));
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--text-primary, #F8FAFC);
+    font-size: 13px;
+    transition: all 0.15s;
     font-family: inherit;
-    transition: border-color 0.2s, box-shadow 0.2s;
   }
 
-  .fluent-select {
-    min-height: 38px;
-    cursor: pointer;
+  .form-select option {
+    background: var(--bg-card, #1E293B);
+    color: var(--text-primary, #F8FAFC);
+    padding: 8px 12px;
   }
 
-  .fluent-input:focus, .fluent-select:focus, .fluent-textarea:focus {
+  .form-input.text-lg {
+    font-size: 15px;
+    font-weight: 600;
+    min-height: 40px;
+  }
+
+  .form-input:focus,
+  .form-select:focus,
+  .form-textarea:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    border-color: var(--brand-primary, #0078D4);
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.25);
   }
 
-  .dialog-actions {
+  .form-textarea {
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  .bridge-info-box {
     display: flex;
-    justify-content: flex-end;
+    align-items: flex-start;
     gap: 10px;
-    width: 100%;
+    padding: 10px 14px;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-secondary, #94A3B8);
+    line-height: 1.45;
+  }
+
+  .bridge-info-box strong {
+    color: var(--brand-accent, #38BDF8);
+  }
+
+  .bridge-info-box em {
+    color: var(--text-primary, #F8FAFC);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .info-icon {
+    font-size: 16px;
   }
 </style>

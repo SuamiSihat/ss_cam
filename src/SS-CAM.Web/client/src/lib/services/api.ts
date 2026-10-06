@@ -558,7 +558,7 @@ export class ApiClient {
   }
 
   // ─── Studio Tasks Manager (Lightweight Pre-Production Pipeline) ───
-  static getStudioTasks(filters: Record<string, any> = {}): Promise<{ success: boolean; tasks: StudioTask[]; count: number }> {
+  static getStudioTasks(filters: Record<string, any> = {}): Promise<{ success: boolean; tasks: StudioTask[]; stats?: any; count: number }> {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, val]) => {
       if (val !== undefined && val !== null && val !== '' && val !== 'all') {
