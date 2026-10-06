@@ -2560,6 +2560,86 @@ This is the project brief content.
     assert.ok(emailRes.success, 'EmailService fallback dispatch must succeed');
   });
 
+  // Test 55: HTTP Routes for ClickUp Tasks: GET, POST, PATCH, DELETE /api/tasks
+  test('HTTP Routes for ClickUp Tasks: GET, POST, PATCH, DELETE /api/tasks return 200/201 and valid JSON', async () => {
+    const express = require('express');
+    const { generateToken } = require('../middleware/auth');
+    const testApp = express();
+    testApp.use(express.json());
+    testApp.use('/api', apiRoutes);
+    const server = await new Promise(res => {
+      const s = testApp.listen(0, '127.0.0.1', () => res(s));
+    });
+    const port = server.address().port;
+    const token = generateToken({ username: 'harussani', role: 'admin', name: 'Harussani' });
+
+    const makeReq = (path, method = 'GET', body = null) => {
+      return new Promise((resolve, reject) => {
+        const postData = body ? JSON.stringify(body) : null;
+        const headers = {
+          'Authorization': `Bearer ${token}`
+        };
+        if (postData) {
+          headers['Content-Type'] = 'application/json';
+          headers['Content-Length'] = Buffer.byteLength(postData);
+        }
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port,
+          path,
+          method,
+          headers
+        }, res => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(data || '{}') }));
+        });
+        req.on('error', reject);
+        if (postData) req.write(postData);
+        req.end();
+      });
+    };
+
+    try {
+      // 1. GET /api/tasks -> 200
+      const getRes = await makeReq('/api/tasks');
+      assert.strictEqual(getRes.status, 200, 'GET /api/tasks must return HTTP 200');
+      assert.strictEqual(getRes.body.success, true);
+      assert.ok(Array.isArray(getRes.body.tasks));
+      assert.ok(getRes.body.stats);
+
+      // 2. POST /api/tasks -> 201
+      const projects = WorkspaceService.getAllProjects();
+      const p = projects[0];
+      const postRes = await makeReq('/api/tasks', 'POST', {
+        projectId: p.id,
+        name: 'HTTP Test Task Creation',
+        role: 'copywriter',
+        assignee: 'sarah',
+        status: 'draft',
+        weight: 1.0
+      });
+      assert.strictEqual(postRes.status, 201, 'POST /api/tasks must return HTTP 201');
+      assert.strictEqual(postRes.body.success, true);
+      assert.ok(postRes.body.task?.id);
+      const createdId = postRes.body.task.id;
+
+      // 3. PATCH /api/tasks/:projectId/:taskId -> 200
+      const patchRes = await makeReq(`/api/tasks/${p.id}/${createdId}`, 'PATCH', {
+        status: 'in-progress'
+      });
+      assert.strictEqual(patchRes.status, 200, 'PATCH /api/tasks/:projectId/:taskId must return HTTP 200');
+      assert.strictEqual(patchRes.body.task.status, 'in-progress');
+
+      // 4. DELETE /api/tasks/:projectId/:taskId -> 200
+      const delRes = await makeReq(`/api/tasks/${p.id}/${createdId}`, 'DELETE');
+      assert.strictEqual(delRes.status, 200, 'DELETE /api/tasks/:projectId/:taskId must return HTTP 200');
+      assert.strictEqual(delRes.body.success, true);
+    } finally {
+      server.close();
+    }
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {

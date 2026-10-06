@@ -347,6 +347,18 @@ export class ApiClient {
     eventSource.addEventListener('comment:resolved', (e) => handleMessage(e, 'comment:resolved'));
     eventSource.addEventListener('team:updated', (e) => handleMessage(e, 'team:updated'));
     eventSource.addEventListener('company:updated', (e) => handleMessage(e, 'company:updated'));
+    eventSource.addEventListener('task:created', (e) => {
+      handleMessage(e, 'task:created');
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('task:updated', { detail: e }));
+    });
+    eventSource.addEventListener('task:updated', (e) => {
+      handleMessage(e, 'task:updated');
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('task:updated', { detail: e }));
+    });
+    eventSource.addEventListener('task:deleted', (e) => {
+      handleMessage(e, 'task:deleted');
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('task:updated', { detail: e }));
+    });
 
     eventSource.onerror = (err) => {
       console.warn('[SSE] Connection interrupted, retrying in background...', err);

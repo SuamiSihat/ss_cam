@@ -428,6 +428,78 @@ router.get('/auth/users', authenticateToken, (req, res) => {
   res.json({ users: SYSTEM_USERS, roles: Object.keys(ROLE_PERMISSIONS) });
 });
 
+// ─── CLICKUP TASKS & WORKSTREAM ROUTES ──────────────────────────────
+
+router.get('/tasks', authenticateToken, (req, res) => {
+  try {
+    const filters = {
+      role: req.query.role,
+      assignee: req.query.assignee,
+      status: req.query.status,
+      projectId: req.query.projectId,
+      search: req.query.search
+    };
+    const tasks = TaskService.getAllTasks(filters);
+    const stats = TaskService.getStats();
+    res.json({ success: true, tasks, stats });
+  } catch (err) {
+    console.error('[API:Tasks:GET] Error:', err.message);
+    res.status(500).json({ success: false, error: err.message, tasks: [], stats: null });
+  }
+});
+
+router.post('/tasks', authenticateToken, (req, res) => {
+  try {
+    const { projectId, name, title, role, assignee, assigneeName, status, weight, channel, specs, notes, deliverableId, linkedFile } = req.body;
+    if (!projectId) return res.status(400).json({ error: 'projectId is required' });
+    if (!name && !title) return res.status(400).json({ error: 'Task name/title is required' });
+
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const task = TaskService.createTask(projectId, {
+      name: name || title,
+      role,
+      assignee,
+      assigneeName,
+      status,
+      weight,
+      channel,
+      specs,
+      notes,
+      deliverableId,
+      linkedFile
+    }, actor);
+
+    res.status(201).json({ success: true, task });
+  } catch (err) {
+    console.error('[API:Tasks:POST] Error:', err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.patch('/tasks/:projectId/:taskId', authenticateToken, (req, res) => {
+  try {
+    const { projectId, taskId } = req.params;
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const updated = TaskService.updateTask(projectId, taskId, req.body, actor);
+    res.json({ success: true, task: updated });
+  } catch (err) {
+    console.error('[API:Tasks:PATCH] Error:', err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete('/tasks/:projectId/:taskId', authenticateToken, (req, res) => {
+  try {
+    const { projectId, taskId } = req.params;
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const result = TaskService.deleteTask(projectId, taskId, actor);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[API:Tasks:DELETE] Error:', err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // ─── DASHBOARD ROUTES ───────────────────────────────────────────────
 
 router.get('/dashboard', authenticateToken, (req, res) => {

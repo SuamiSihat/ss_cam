@@ -44,7 +44,34 @@
     ).slice(0, 50);
   });
 
-  const staffRoster = $derived(appState.staffRoster || []);
+  let staffRoster = $state<any[]>([]);
+
+  onMount(async () => {
+    if (!projectStore.projects || projectStore.projects.length === 0) {
+      projectStore.loadProjects();
+    }
+    try {
+      const res = await ApiClient.getStaffRoster();
+      if (res && Array.isArray(res.roster)) {
+        staffRoster = res.roster;
+      }
+    } catch (e) {
+      console.debug('Failed to load roster:', e);
+    }
+  });
+
+  $effect(() => {
+    if (isOpen) {
+      if (!projectStore.projects || projectStore.projects.length === 0) {
+        projectStore.loadProjects();
+      }
+      if (staffRoster.length === 0) {
+        ApiClient.getStaffRoster().then(res => {
+          if (res && Array.isArray(res.roster)) staffRoster = res.roster;
+        }).catch(() => {});
+      }
+    }
+  });
 
   const filteredStaff = $derived.by(() => {
     if (role === 'copywriter') {

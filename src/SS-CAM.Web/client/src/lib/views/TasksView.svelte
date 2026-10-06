@@ -81,15 +81,18 @@
       projectStore.loadProjects();
     }
 
-    // Real-time listener
-    const closeSse = ApiClient.initEventStream((event, data) => {
-      if (event === 'task:created' || event === 'task:updated' || event === 'task:deleted' || event === 'project:updated') {
-        loadTasks();
-      }
-    });
+    const onTasksChanged = () => {
+      loadTasks();
+    };
+
+    window.addEventListener('task:updated', onTasksChanged);
+    window.addEventListener('project:updated', onTasksChanged);
+    window.addEventListener('workspace:updated', onTasksChanged);
 
     return () => {
-      if (typeof closeSse === 'function') closeSse();
+      window.removeEventListener('task:updated', onTasksChanged);
+      window.removeEventListener('project:updated', onTasksChanged);
+      window.removeEventListener('workspace:updated', onTasksChanged);
     };
   });
 

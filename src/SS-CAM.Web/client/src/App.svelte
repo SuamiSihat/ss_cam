@@ -124,6 +124,9 @@
       } else if (event === 'company:updated') {
         appState.lastSyncedAt = new Date();
         window.dispatchEvent(new CustomEvent('company:updated', { detail: data }));
+      } else if (event === 'task:created' || event === 'task:updated' || event === 'task:deleted') {
+        appState.lastSyncedAt = new Date();
+        window.dispatchEvent(new CustomEvent('task:updated', { detail: data }));
       } else if (event === 'project:decision') {
         appState.lastSyncedAt = new Date();
         appState.notificationCount += 1;
