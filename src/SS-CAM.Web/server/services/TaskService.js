@@ -64,6 +64,7 @@ class TaskService {
 
         const taskItem = {
           id: taskId,
+          globalId: `${p.id}:::${taskId}:::${idx}`,
           name: taskName,
           role,
           assignee,

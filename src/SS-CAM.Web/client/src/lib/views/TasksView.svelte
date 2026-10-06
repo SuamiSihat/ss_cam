@@ -362,7 +362,7 @@
 
           <!-- Cards Scroll Container -->
           <div class="col-cards">
-            {#each colTasks as task (task.id)}
+            {#each colTasks as task, i (task.projectId + '___' + task.id + '___' + i)}
               <div
                 class="task-card"
                 class:is-overdue={task.isOverdue && task.status !== 'done'}
@@ -461,7 +461,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each filteredTasks as task (task.id)}
+          {#each filteredTasks as task, i (task.projectId + '___' + task.id + '___' + i)}
             <tr class="table-row">
               <!-- Status Cell -->
               <td>
