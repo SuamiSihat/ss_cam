@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using System.Xml.Linq;
 using SS_CAM.Models;
@@ -20,6 +23,32 @@ namespace SS_CAM.Views
         private DispatcherTimer _liveTasksTickerTimer;
         private List<LiveTaskEntry> _currentLiveTasks;
         private bool _liveFilterUpdating = false;
+
+        private bool _isCustomizingLayout = false;
+        private List<DashboardWidgetConfig> _currentLayout;
+        private readonly List<DashboardSpotlightItem> _allSpotlightItems = new List<DashboardSpotlightItem>();
+        private string _currentSpotlightFilter = "ALL";
+
+        public class DashboardSpotlightItem
+        {
+            public string JobId { get; set; }
+            public string Title { get; set; }
+            public string StatusLabel { get; set; }
+            public Brush StatusBrush { get; set; }
+            public string Designer { get; set; }
+            public string DeadlineDisplay { get; set; }
+            public string ProjectPath { get; set; }
+        }
+
+        public class DashboardTranscodeDisplayItem
+        {
+            public string SourceFileName { get; set; }
+            public string PresetDisplay { get; set; }
+            public string StatusText { get; set; }
+            public int ProgressPercent { get; set; }
+            public string ProgressPercentDisplay { get; set; }
+            public string OutputFilePath { get; set; }
+        }
 
         // ────────────────────────────────────────────────
         // Design Tip data class (C#5 compatible — no tuples)
@@ -99,6 +128,14 @@ namespace SS_CAM.Views
 
             TxtWorkspacePath.Text = workspaceRoot;
             await RefreshDashboard();
+
+            // Initialise customizable layout
+            _currentLayout = DashboardLayoutService.LoadLayout();
+            ApplyDashboardLayout();
+
+            // Initialise Spotlight and Active Transcodes
+            LoadSpotlightProjects();
+            LoadActiveTranscodes();
 
             // Initialise tip widget with a random starting tip
             _tipIndex = new Random().Next(0, _tips.Length);
@@ -259,6 +296,9 @@ namespace SS_CAM.Views
                 if (TxtSlaAvgRevs != null)
                     TxtSlaAvgRevs.Text = string.Format("{0:0.0} Revs", snapshot.SlaMetrics.AvgRevisionsPerProject);
             }
+ 
+            LoadSpotlightProjects();
+            LoadActiveTranscodes();
 
             TxtStatus.Text = string.Format("Scan complete at {0:HH:mm:ss}. Connected to Synology Workspace.", DateTime.Now);
         }
@@ -642,6 +682,479 @@ namespace SS_CAM.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("[DashboardPage] OnRecentProjectCardClicked: " + ex.Message);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Customizable Dashboard Layout Engine
+        // ─────────────────────────────────────────────────────────────────────
+
+        private Dictionary<string, FrameworkElement> GetWidgetCardsMap()
+        {
+            return new Dictionary<string, FrameworkElement>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "kpis", CardWidget_Kpis },
+                { "spotlight", CardWidget_Spotlight },
+                { "transcodes", CardWidget_Transcodes },
+                { "live_tasks", CardWidget_LiveTasks },
+                { "recent_projects", CardWidget_RecentProjects },
+                { "workload_radar", CardWidget_WorkloadRadar },
+                { "sla_analytics", CardWidget_SlaAnalytics },
+                { "designer_tip", CardWidget_DesignerTip },
+                { "team_board", CardWidget_TeamBoard }
+            };
+        }
+
+        private Dictionary<string, FrameworkElement> GetWidgetHeaderControlsMap()
+        {
+            return new Dictionary<string, FrameworkElement>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "kpis", HeaderControls_Kpis },
+                { "spotlight", HeaderControls_Spotlight },
+                { "transcodes", HeaderControls_Transcodes },
+                { "live_tasks", HeaderControls_LiveTasks },
+                { "recent_projects", HeaderControls_RecentProjects },
+                { "workload_radar", HeaderControls_WorkloadRadar },
+                { "sla_analytics", HeaderControls_SlaAnalytics },
+                { "designer_tip", HeaderControls_DesignerTip },
+                { "team_board", HeaderControls_TeamBoard }
+            };
+        }
+
+        private Dictionary<string, Wpf.Ui.Controls.SymbolIcon> GetWidgetPinIconsMap()
+        {
+            return new Dictionary<string, Wpf.Ui.Controls.SymbolIcon>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "kpis", PinIcon_Kpis },
+                { "spotlight", PinIcon_Spotlight },
+                { "transcodes", PinIcon_Transcodes },
+                { "live_tasks", PinIcon_LiveTasks },
+                { "recent_projects", PinIcon_RecentProjects },
+                { "workload_radar", PinIcon_WorkloadRadar },
+                { "sla_analytics", PinIcon_SlaAnalytics },
+                { "designer_tip", PinIcon_DesignerTip },
+                { "team_board", PinIcon_TeamBoard }
+            };
+        }
+
+        private void ApplyDashboardLayout()
+        {
+            if (_currentLayout == null || WidgetsContainer == null) return;
+
+            try
+            {
+                var cardMap = GetWidgetCardsMap();
+                var headerMap = GetWidgetHeaderControlsMap();
+                var pinMap = GetWidgetPinIconsMap();
+
+                // Sort configs: pinned widgets at the top, then by Order ascending
+                var sorted = _currentLayout
+                    .OrderByDescending(x => x.IsPinned)
+                    .ThenBy(x => x.Order)
+                    .ToList();
+
+                // Update visual header customize controls & pin states
+                foreach (var cfg in _currentLayout)
+                {
+                    FrameworkElement headerControls;
+                    if (headerMap.TryGetValue(cfg.Id, out headerControls) && headerControls != null)
+                    {
+                        headerControls.Visibility = _isCustomizingLayout ? Visibility.Visible : Visibility.Collapsed;
+                    }
+
+                    Wpf.Ui.Controls.SymbolIcon pinIcon;
+                    if (pinMap.TryGetValue(cfg.Id, out pinIcon) && pinIcon != null)
+                    {
+                        if (cfg.IsPinned)
+                        {
+                            pinIcon.Foreground = (Brush)FindResource("FluentBrand80");
+                        }
+                        else
+                        {
+                            pinIcon.ClearValue(Wpf.Ui.Controls.SymbolIcon.ForegroundProperty);
+                        }
+                    }
+
+                    FrameworkElement card;
+                    if (cardMap.TryGetValue(cfg.Id, out card) && card != null)
+                    {
+                        card.Visibility = cfg.IsVisible ? Visibility.Visible : Visibility.Collapsed;
+                    }
+                }
+
+                // Reorder children in WidgetsContainer
+                WidgetsContainer.Children.Clear();
+                foreach (var cfg in sorted)
+                {
+                    FrameworkElement card;
+                    if (cardMap.TryGetValue(cfg.Id, out card) && card != null)
+                    {
+                        WidgetsContainer.Children.Add(card);
+                    }
+                }
+
+                // Update customization mode banner
+                if (BannerCustomizeLayout != null)
+                {
+                    BannerCustomizeLayout.Visibility = _isCustomizingLayout ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[DashboardPage] ApplyDashboardLayout error: " + ex.Message);
+            }
+        }
+
+        private void OnCustomizeLayoutClicked(object sender, RoutedEventArgs e)
+        {
+            _isCustomizingLayout = !_isCustomizingLayout;
+            ApplyDashboardLayout();
+        }
+
+        private void OnDoneCustomizingClicked(object sender, RoutedEventArgs e)
+        {
+            _isCustomizingLayout = false;
+            ApplyDashboardLayout();
+        }
+
+        private void OnResetLayoutClicked(object sender, RoutedEventArgs e)
+        {
+            _currentLayout = DashboardLayoutService.ResetToDefault();
+            ApplyDashboardLayout();
+            NotificationService.Show("Layout Reset", "Dashboard widgets restored to standard order.", NotificationType.Info, 2500);
+        }
+
+        private void OnPinWidgetClicked(object sender, RoutedEventArgs e)
+        {
+            FrameworkElement btn = sender as FrameworkElement;
+            string widgetId = btn != null ? btn.Tag as string : null;
+            if (string.IsNullOrEmpty(widgetId) || _currentLayout == null) return;
+
+            var target = _currentLayout.FirstOrDefault(x => string.Equals(x.Id, widgetId, StringComparison.OrdinalIgnoreCase));
+            if (target != null)
+            {
+                target.IsPinned = !target.IsPinned;
+                var sorted = _currentLayout.OrderByDescending(x => x.IsPinned).ThenBy(x => x.Order).ToList();
+                NormalizeWidgetOrders(sorted);
+                DashboardLayoutService.SaveLayout(_currentLayout);
+                ApplyDashboardLayout();
+
+                string status = target.IsPinned ? "Pinned to top" : "Unpinned";
+                NotificationService.Show(target.Title, status, NotificationType.Info, 1800);
+            }
+        }
+
+        private void OnMoveWidgetUpClicked(object sender, RoutedEventArgs e)
+        {
+            FrameworkElement btn = sender as FrameworkElement;
+            string widgetId = btn != null ? btn.Tag as string : null;
+            if (string.IsNullOrEmpty(widgetId) || _currentLayout == null) return;
+
+            var sorted = _currentLayout.OrderByDescending(x => x.IsPinned).ThenBy(x => x.Order).ToList();
+            int idx = sorted.FindIndex(x => string.Equals(x.Id, widgetId, StringComparison.OrdinalIgnoreCase));
+            if (idx > 0)
+            {
+                var current = sorted[idx];
+                var previous = sorted[idx - 1];
+
+                if (current.IsPinned != previous.IsPinned)
+                {
+                    current.IsPinned = previous.IsPinned;
+                }
+
+                int temp = current.Order;
+                current.Order = previous.Order;
+                previous.Order = temp;
+
+                NormalizeWidgetOrders(sorted);
+                DashboardLayoutService.SaveLayout(_currentLayout);
+                ApplyDashboardLayout();
+            }
+        }
+
+        private void OnMoveWidgetDownClicked(object sender, RoutedEventArgs e)
+        {
+            FrameworkElement btn = sender as FrameworkElement;
+            string widgetId = btn != null ? btn.Tag as string : null;
+            if (string.IsNullOrEmpty(widgetId) || _currentLayout == null) return;
+
+            var sorted = _currentLayout.OrderByDescending(x => x.IsPinned).ThenBy(x => x.Order).ToList();
+            int idx = sorted.FindIndex(x => string.Equals(x.Id, widgetId, StringComparison.OrdinalIgnoreCase));
+            if (idx >= 0 && idx < sorted.Count - 1)
+            {
+                var current = sorted[idx];
+                var next = sorted[idx + 1];
+
+                if (current.IsPinned != next.IsPinned)
+                {
+                    current.IsPinned = next.IsPinned;
+                }
+
+                int temp = current.Order;
+                current.Order = next.Order;
+                next.Order = temp;
+
+                NormalizeWidgetOrders(sorted);
+                DashboardLayoutService.SaveLayout(_currentLayout);
+                ApplyDashboardLayout();
+            }
+        }
+
+        private void NormalizeWidgetOrders(List<DashboardWidgetConfig> list)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                list[i].Order = i + 1;
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // In-Flight Production Spotlight Widget
+        // ─────────────────────────────────────────────────────────────────────
+
+        private void LoadSpotlightProjects()
+        {
+            try
+            {
+                _allSpotlightItems.Clear();
+
+                // 1. Check CreativeOrderService orders
+                List<CreativeOrderItem> orders = null;
+                try
+                {
+                    orders = CreativeOrderService.LoadOrders(workspaceRoot);
+                }
+                catch (Exception exOrders)
+                {
+                    System.Diagnostics.Debug.WriteLine("[DashboardPage] LoadSpotlightProjects orders: " + exOrders.Message);
+                }
+
+                if (orders != null && orders.Count > 0)
+                {
+                    foreach (var o in orders)
+                    {
+                        string st = (o.Status ?? "").ToLowerInvariant();
+                        if (st == "in_progress" || st == "in_review" || st == "review" || st == "pending")
+                        {
+                            bool isReview = st.Contains("review");
+                            _allSpotlightItems.Add(new DashboardSpotlightItem
+                            {
+                                JobId = string.IsNullOrWhiteSpace(o.Id) ? "ORD" : o.Id,
+                                Title = string.IsNullOrWhiteSpace(o.Title) ? "Creative Deliverable" : o.Title,
+                                StatusLabel = isReview ? "IN REVIEW" : "IN PRODUCTION",
+                                StatusBrush = isReview 
+                                    ? (Brush)FindResource("SystemFillColorCautionBrush") 
+                                    : (Brush)FindResource("FluentBrand80"),
+                                Designer = string.IsNullOrWhiteSpace(o.RequesterName) ? "Studio Designer" : o.RequesterName,
+                                DeadlineDisplay = !string.IsNullOrWhiteSpace(o.Deadline) ? "Due " + o.Deadline : "Active",
+                                ProjectPath = o.ProjectId
+                            });
+                        }
+                    }
+                }
+
+                // 2. If fewer than 4 items, supplement from workspace folders
+                if (_allSpotlightItems.Count < 4)
+                {
+                    try
+                    {
+                        var recent = WorkspaceScanner.ListDesignerFolders(workspaceRoot, "", "", 8);
+                        if (recent != null)
+                        {
+                            foreach (var f in recent)
+                            {
+                                if (_allSpotlightItems.Count >= 6) break;
+                                if (_allSpotlightItems.Any(x => string.Equals(x.JobId, f.Project, StringComparison.OrdinalIgnoreCase))) continue;
+
+                                _allSpotlightItems.Add(new DashboardSpotlightItem
+                                {
+                                    JobId = f.Project,
+                                    Title = f.Project,
+                                    StatusLabel = "IN FLIGHT",
+                                    StatusBrush = (Brush)FindResource("FluentBrand80"),
+                                    Designer = string.IsNullOrWhiteSpace(f.Designer) ? "Team Member" : f.Designer,
+                                    DeadlineDisplay = "Updated " + f.Modified,
+                                    ProjectPath = f.FullPath
+                                });
+                            }
+                        }
+                    }
+                    catch (Exception exScan)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[DashboardPage] LoadSpotlightProjects folder scan: " + exScan.Message);
+                    }
+                }
+
+                ApplySpotlightFilter();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[DashboardPage] LoadSpotlightProjects error: " + ex.Message);
+            }
+        }
+
+        private void ApplySpotlightFilter()
+        {
+            if (SpotlightProjectsControl == null) return;
+
+            IEnumerable<DashboardSpotlightItem> filtered = _allSpotlightItems;
+
+            if (string.Equals(_currentSpotlightFilter, "IN_PROD", StringComparison.OrdinalIgnoreCase))
+            {
+                filtered = _allSpotlightItems.Where(x => x.StatusLabel == "IN PRODUCTION" || x.StatusLabel == "IN FLIGHT");
+            }
+            else if (string.Equals(_currentSpotlightFilter, "REVIEW", StringComparison.OrdinalIgnoreCase))
+            {
+                filtered = _allSpotlightItems.Where(x => x.StatusLabel == "IN REVIEW");
+            }
+
+            var list = filtered.ToList();
+            SpotlightProjectsControl.ItemsSource = list;
+
+            if (TxtSpotlightActiveCount != null)
+            {
+                TxtSpotlightActiveCount.Text = string.Format("{0} In-Flight", list.Count);
+            }
+
+            if (PanelNoSpotlightProjects != null)
+            {
+                PanelNoSpotlightProjects.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            UpdateSpotlightFilterButtonStyles();
+        }
+
+        private void UpdateSpotlightFilterButtonStyles()
+        {
+            if (BtnSpotlightFilterAll == null || BtnSpotlightFilterInProd == null || BtnSpotlightFilterReview == null) return;
+
+            BtnSpotlightFilterAll.Appearance = _currentSpotlightFilter == "ALL" ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+            BtnSpotlightFilterInProd.Appearance = _currentSpotlightFilter == "IN_PROD" ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+            BtnSpotlightFilterReview.Appearance = _currentSpotlightFilter == "REVIEW" ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+        }
+
+        private void OnSpotlightFilterAllClicked(object sender, RoutedEventArgs e)
+        {
+            _currentSpotlightFilter = "ALL";
+            ApplySpotlightFilter();
+        }
+
+        private void OnSpotlightFilterInProdClicked(object sender, RoutedEventArgs e)
+        {
+            _currentSpotlightFilter = "IN_PROD";
+            ApplySpotlightFilter();
+        }
+
+        private void OnSpotlightFilterReviewClicked(object sender, RoutedEventArgs e)
+        {
+            _currentSpotlightFilter = "REVIEW";
+            ApplySpotlightFilter();
+        }
+
+        private void OnSpotlightOpenProjectClicked(object sender, RoutedEventArgs e)
+        {
+            FrameworkElement btn = sender as FrameworkElement;
+            string pathOrId = btn != null ? btn.Tag as string : null;
+            if (string.IsNullOrWhiteSpace(pathOrId)) return;
+
+            try
+            {
+                if (Directory.Exists(pathOrId))
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", pathOrId);
+                }
+                else
+                {
+                    MainWindow mainWin = Application.Current != null ? Application.Current.MainWindow as MainWindow : null;
+                    if (mainWin != null) mainWin.NavigateTo(typeof(SearchCopyPage));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[DashboardPage] OnSpotlightOpenProjectClicked error: " + ex.Message);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Active Transcodes Widget
+        // ─────────────────────────────────────────────────────────────────────
+
+        private void LoadActiveTranscodes()
+        {
+            if (ActiveTranscodesControl == null) return;
+
+            try
+            {
+                var sharedJobs = TranscoderBridgePage.SharedJobs;
+                var displayList = new List<DashboardTranscodeDisplayItem>();
+
+                if (sharedJobs != null && sharedJobs.Count > 0)
+                {
+                    foreach (var j in sharedJobs)
+                    {
+                        displayList.Add(new DashboardTranscodeDisplayItem
+                        {
+                            SourceFileName = string.IsNullOrWhiteSpace(j.FileName) ? "Asset Transcode" : j.FileName,
+                            PresetDisplay = string.IsNullOrWhiteSpace(j.PresetName) ? "Web Preset" : j.PresetName,
+                            StatusText = !string.IsNullOrWhiteSpace(j.StatusMessage) ? j.StatusMessage : j.Status.ToString(),
+                            ProgressPercent = j.ProgressPercent,
+                            ProgressPercentDisplay = string.Format("{0}%", j.ProgressPercent),
+                            OutputFilePath = j.OutputFilePath
+                        });
+                    }
+                }
+
+                ActiveTranscodesControl.ItemsSource = displayList;
+
+                if (PanelNoTranscodeJobs != null)
+                {
+                    PanelNoTranscodeJobs.Visibility = displayList.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[DashboardPage] LoadActiveTranscodes error: " + ex.Message);
+            }
+        }
+
+        private void OnOpenTranscoderBridgeClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                MainWindow mainWin = Application.Current != null ? Application.Current.MainWindow as MainWindow : null;
+                if (mainWin != null)
+                {
+                    mainWin.NavigateTo(typeof(TranscoderBridgePage));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[DashboardPage] OnOpenTranscoderBridgeClicked: " + ex.Message);
+            }
+        }
+
+        private void OnOpenTranscodeOutputClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                FrameworkElement btn = sender as FrameworkElement;
+                string outputPath = btn != null ? btn.Tag as string : null;
+                if (!string.IsNullOrEmpty(outputPath) && File.Exists(outputPath))
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", string.Format("/select,\"{0}\"", outputPath));
+                }
+                else if (!string.IsNullOrEmpty(outputPath) && Directory.Exists(Path.GetDirectoryName(outputPath)))
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", Path.GetDirectoryName(outputPath));
+                }
+                else
+                {
+                    NotificationService.Show("Output Pending", "Transcoded file is currently in processing queue.", NotificationType.Info, 2500);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[DashboardPage] OnOpenTranscodeOutputClicked error: " + ex.Message);
             }
         }
     }

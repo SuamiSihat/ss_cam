@@ -253,12 +253,21 @@
                                     </StackPanel>
                                 </ui:Button>
 
-                                <!-- 2. Split View (Live & Edit Markdown Side by Side) -->
+                                <!-- 2. Split View: Rendered Markdown Doc -->
                                 <ui:Button x:Name="BtnModeSplit" Appearance="Secondary" Height="28" Padding="10,0" Margin="0,0,2,0"
                                            Click="OnModeSplitClicked" Cursor="Hand" ToolTip="Split View: Raw Editor &amp; Live Rendered Markdown side by side">
                                     <StackPanel Orientation="Horizontal">
                                         <ui:SymbolIcon Symbol="SplitVertical24" Margin="0,0,4,0" FontSize="13"/>
-                                        <ui:TextBlock Text="Split View" FontSize="11.5"/>
+                                        <ui:TextBlock Text="Split Doc" FontSize="11.5"/>
+                                    </StackPanel>
+                                </ui:Button>
+
+                                <!-- 2b. Split View: WhatsApp Simulator -->
+                                <ui:Button x:Name="BtnModeSplitWhatsApp" Appearance="Secondary" Height="28" Padding="10,0" Margin="0,0,2,0"
+                                           Click="OnModeSplitWhatsAppClicked" Cursor="Hand" ToolTip="Split View: Raw Editor &amp; WhatsApp Chat Simulator side by side">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="Chat24" Margin="0,0,4,0" FontSize="13" Foreground="#25D366"/>
+                                        <ui:TextBlock Text="Split WhatsApp" FontSize="11.5"/>
                                     </StackPanel>
                                 </ui:Button>
 
@@ -503,7 +512,7 @@
                                                     BorderThickness="1" CornerRadius="10" VerticalAlignment="Top">
                                                 <StackPanel>
                                                     <!-- WhatsApp Header Bar -->
-                                                    <Border Background="#075E54" CornerRadius="9,9,0,0" Padding="12,10">
+                                                    <Border Background="#075E54" CornerRadius="9,9,0,0" Padding="12,8">
                                                         <Grid>
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="Auto"/>
@@ -511,56 +520,67 @@
                                                                 <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
 
-                                                            <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14" Background="#25D366" Margin="0,0,10,0">
-                                                                <ui:SymbolIcon Symbol="Chat24" FontSize="15" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            <Border Grid.Column="0" Width="30" Height="30" CornerRadius="15" Background="#25D366" Margin="0,0,10,0">
+                                                                <ui:SymbolIcon Symbol="Chat24" FontSize="16" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                             </Border>
                                                             
                                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                                <ui:TextBlock Text="Corporate&#x2122; Official" FontWeight="Bold" FontSize="12" Foreground="#FFFFFF"/>
-                                                                <ui:TextBlock Text="WhatsApp Broadcast Live Preview" FontSize="9.5" Foreground="#DCF8C6"/>
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <ui:TextBlock x:Name="TxtWhatsAppBusinessTitle" Text="Corporate&#x2122; Official" FontWeight="Bold" FontSize="12" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                                                    <ui:SymbolIcon Symbol="CheckmarkCircle24" FontSize="12" Foreground="#25D366" Margin="4,0,0,0" VerticalAlignment="Center" ToolTip="Verified Business Account"/>
+                                                                </StackPanel>
+                                                                <ui:TextBlock Text="WhatsApp Business &#x2022; Online" FontSize="9.5" Foreground="#DCF8C6"/>
                                                             </StackPanel>
 
-                                                            <Border Grid.Column="2" Background="#128C7E" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
-                                                                <ui:TextBlock Text="WHATSAPP" FontSize="8.5" FontWeight="Bold" Foreground="#FFFFFF"/>
-                                                            </Border>
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                                <ui:Button x:Name="BtnCopyFormattedWhatsApp" Appearance="Secondary" Height="26" Padding="8,0" Click="OnCopyFormattedWhatsAppClicked" Cursor="Hand" ToolTip="Copy formatted WhatsApp text (*bold*, emojis) to clipboard">
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <ui:SymbolIcon Symbol="Copy24" FontSize="11" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                                                        <ui:TextBlock Text="Copy Formatted" FontSize="10.5" VerticalAlignment="Center"/>
+                                                                    </StackPanel>
+                                                                </ui:Button>
+                                                            </StackPanel>
                                                         </Grid>
                                                     </Border>
 
                                                     <!-- WhatsApp Chat Bubble Surface -->
-                                                    <Border Background="#E5DDD5" Padding="12" MinHeight="260">
-                                                        <Border Background="#FFFFFF" CornerRadius="8" Padding="12,10" HorizontalAlignment="Stretch"
-                                                                BorderBrush="#D0D7DE" BorderThickness="1">
-                                                            <StackPanel>
-                                                                <!-- Rich Inlines rendered dynamically in code-behind -->
-                                                                <TextBlock x:Name="TxtWhatsAppLiveContent" Text="Drafting your copy in the editor on the left will render formatted text here in real time..."
-                                                                           TextWrapping="Wrap" FontSize="12.5" FontFamily="Segoe UI" LineHeight="19"
-                                                                           Foreground="#111B21"/>
+                                                    <Border Background="#E5DDD5" Padding="12" MinHeight="280">
+                                                        <StackPanel x:Name="WhatsAppChatBubblesPanel">
+                                                            <!-- Primary Single Bubble Container -->
+                                                            <Border x:Name="WhatsAppSingleBubbleContainer" Background="#FFFFFF" CornerRadius="8,8,2,8" Padding="12,10" HorizontalAlignment="Stretch"
+                                                                    BorderBrush="#D0D7DE" BorderThickness="1">
+                                                                <StackPanel>
+                                                                    <!-- Rich Inlines rendered dynamically in code-behind -->
+                                                                    <TextBlock x:Name="TxtWhatsAppLiveContent" Text="Drafting your copy in the editor on the left will render formatted text here in real time..."
+                                                                               TextWrapping="Wrap" FontSize="12.5" FontFamily="Segoe UI" LineHeight="19"
+                                                                               Foreground="#111B21"/>
 
-                                                                <!-- Dynamic WhatsApp OG Link Preview Card (Visible if URL detected) -->
-                                                                <Border x:Name="WhatsAppLinkPreviewCard" Background="#F0F2F5" CornerRadius="6" Padding="8" Margin="0,8,0,4"
-                                                                        BorderBrush="#D0D7DE" BorderThickness="1" Visibility="Collapsed">
-                                                                    <Grid>
-                                                                        <Grid.ColumnDefinitions>
-                                                                            <ColumnDefinition Width="46"/>
-                                                                            <ColumnDefinition Width="*"/>
-                                                                        </Grid.ColumnDefinitions>
-                                                                        <Border Grid.Column="0" Background="{DynamicResource FluentBrand80}" CornerRadius="4" Height="46" Margin="0,0,8,0">
-                                                                            <ui:SymbolIcon Symbol="Globe24" FontSize="18" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                        </Border>
-                                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                                            <ui:TextBlock x:Name="TxtWhatsAppPreviewDomain" Text="CORPORATE.CLINIC" FontSize="9" FontWeight="Bold" Foreground="#667781"/>
-                                                                            <ui:TextBlock x:Name="TxtWhatsAppPreviewTitle" Text="Corporate&#x2122; Official Store &amp; Consultation" FontSize="11" FontWeight="SemiBold" Foreground="#111B21" TextTrimming="CharacterEllipsis"/>
-                                                                            <ui:TextBlock x:Name="TxtWhatsAppPreviewUrl" Text="https://corporate.clinic" FontSize="9.5" Foreground="#027EB5" TextTrimming="CharacterEllipsis"/>
-                                                                        </StackPanel>
-                                                                    </Grid>
-                                                                </Border>
-                                                                
-                                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                                                                    <TextBlock x:Name="TxtWhatsAppTimestamp" Text="10:30 AM" FontSize="9.5" Foreground="#667781" Margin="0,0,4,0"/>
-                                                                    <TextBlock Text="&#x2713;&#x2713;" FontSize="9.5" FontWeight="Bold" Foreground="#53BDEB"/>
+                                                                    <!-- Dynamic WhatsApp OG Link Preview Card (Visible if URL detected) -->
+                                                                    <Border x:Name="WhatsAppLinkPreviewCard" Background="#F0F2F5" CornerRadius="6" Padding="8" Margin="0,8,0,4"
+                                                                            BorderBrush="#D0D7DE" BorderThickness="1" Visibility="Collapsed">
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="46"/>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <Border Grid.Column="0" Background="{DynamicResource FluentBrand80}" CornerRadius="4" Height="46" Margin="0,0,8,0">
+                                                                                <ui:SymbolIcon Symbol="Globe24" FontSize="18" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                                <ui:TextBlock x:Name="TxtWhatsAppPreviewDomain" Text="CORPORATE.CLINIC" FontSize="9" FontWeight="Bold" Foreground="#667781"/>
+                                                                                <ui:TextBlock x:Name="TxtWhatsAppPreviewTitle" Text="Corporate&#x2122; Official Store &amp; Consultation" FontSize="11" FontWeight="SemiBold" Foreground="#111B21" TextTrimming="CharacterEllipsis"/>
+                                                                                <ui:TextBlock x:Name="TxtWhatsAppPreviewUrl" Text="https://corporate.clinic" FontSize="9.5" Foreground="#027EB5" TextTrimming="CharacterEllipsis"/>
+                                                                            </StackPanel>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                    
+                                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                                                        <TextBlock x:Name="TxtWhatsAppTimestamp" Text="10:30 AM" FontSize="9.5" Foreground="#667781" Margin="0,0,4,0"/>
+                                                                        <TextBlock Text="&#x2713;&#x2713;" FontSize="9.5" FontWeight="Bold" Foreground="#53BDEB"/>
+                                                                    </StackPanel>
                                                                 </StackPanel>
-                                                            </StackPanel>
-                                                        </Border>
+                                                            </Border>
+                                                        </StackPanel>
                                                     </Border>
                                                 </StackPanel>
                                             </Border>

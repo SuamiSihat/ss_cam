@@ -1,5 +1,33 @@
 # SS-CAM FIX LOG
 
+## Feature: Split-View WhatsApp Simulator & Customizable Dashboard KPI Grid — 2026-10-06
+- **Split-View WhatsApp Simulator in Copywriting Studio (`CopywritingPage.xaml`, `CopywritingPage.xaml.cs`, `CopywritingDesktopService.cs`)**:
+  - Added dedicated `[ Split WhatsApp ]` segmented button to the primary mode bar (`[ Preview Live ] [ Split Doc ] [ Split WhatsApp ] [ Edit Mode ] [ Mockup View ]`).
+  - Implemented authentic WhatsApp chat bubble simulation in `CopywritingDesktopService.cs`:
+    - Auto-splits raw Markdown ad copy into multi-message conversation sequences based on dividers (`---`, `===`), section headers (`### Message`), or double linebreaks (`\n\n`).
+    - Real-time inline styling parsing: `*bold*` -> Bold text, `_italic_` -> Italic text, `~strike~` -> Strikethrough text, and emoji preserved.
+    - Automatic URL extraction and dynamic WhatsApp link preview rich cards with domain and link icon.
+    - WhatsApp message metadata: dynamic timestamp (`h:mm tt`) and double blue checkmarks (`✓✓`).
+  - Added 1-click `[ Copy Formatted (WhatsApp) ]` action button directly copying the clean WhatsApp text to clipboard with confirmation toast.
+  - Implemented authentic WhatsApp chat backdrop pattern, header with verified business green checkmark badge, and live timer debounce synchronization.
+- **Customizable Dashboard KPI Grid & Real-Time Production Widgets (`DashboardPage.xaml`, `DashboardPage.xaml.cs`, `DashboardLayoutService.cs`)**:
+  - Implemented `DashboardLayoutService.cs` providing persistent JSON storage (`%APPDATA%\SS-CAM\dashboard_layout.json`) for widget ordering, pinning, and visibility.
+  - Added top `[ ⚙ Customize ]` toolbar button that displays an inline customization banner and exposes Pin (`📌`) and Move (`▲` / `▼`) controls on every widget card header.
+  - Implemented dynamic widget reordering with automatic 1..N order normalization and pinned widget separation (pinned widgets float to top).
+  - Built **In-Flight Production Spotlight** widget (`CardWidget_Spotlight`):
+    - Real-time tracking of active deliverables from `CreativeOrderService` and recently updated projects from `WorkspaceScanner`.
+    - 3-way segmented filter bar: `[ All In-Flight ] [ In Production ] [ Needs Review ]`.
+    - Displays Job ID, title, status badge, designer, due date/update time, and 1-click `[ Open ]` in Catalog or Explorer.
+  - Built **Active Transcodes Engine** widget (`CardWidget_Transcodes`):
+    - Exposed `SharedJobs` queue in `TranscoderBridgePage.xaml.cs`.
+    - Live monitoring of active conversions with progress bar, preset tag, file name, and 1-click Explorer folder reveal.
+    - `[ Open Transcoder Bridge ]` button to navigate directly into batch conversion workspace.
+  - Restored UTF-8 BOM across all modified source files and guaranteed strict C# 5 MSBuild compatibility.
+- **Verification & Governance**:
+  - Source Guardian: **PASS** (13 passed / 0 warned / 0 failed).
+  - Dual-Track Governance: **PASS** (All Dual-Track governance checks passed, zero documentation leakage).
+  - MSBuild: **PASS** (`SS-CAM -> E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\bin\Release\SS-CAM.exe` compiled cleanly with 0 errors).
+
 ## Release: v4.12.2 — Web Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow — 2026-10-01
 - **Project Discussion & Review Comments UI Architecture (`ProjectComments.svelte`)**:
   - Re-architected discussion comment cards to full vertical stacking: Author Header Row (Author + Role badge + Delete button `✕`), Deliverable Reference Row (`🎯 [filename]`), Comment Body, and Action Footer Row (`[ ✓ Resolved ]` / `[ ↻ Reopen ]` button + Timestamp).

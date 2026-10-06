@@ -4,7 +4,7 @@
 
 Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Brand Asset Inspector · Synology NAS Native · Multi-Platform
 
-[![Release](https://img.shields.io/badge/release-v4.12.2-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.12.2)
+[![Release](https://img.shields.io/badge/release-v4.13.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.13.0)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20Linux%20%7C%20Android%20%7C%20Docker-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%208.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
 [![Web Stack](https://img.shields.io/badge/web-Svelte%205%20%2B%20Node.js%2020-ff3e00?style=flat-square)](https://svelte.dev)
@@ -12,6 +12,21 @@ Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Br
 [![License](https://img.shields.io/badge/licence-Internal%20Use-orange?style=flat-square)](./installer/EULA.txt)
 
 ---
+
+## 🚀 What's New in v4.13.0 ("Split-View WhatsApp Simulator & Customizable Dashboard KPI Grid")
+
+* **📱 Split-View WhatsApp Simulator in Copywriting Studio (`CopywritingPage.xaml`)**:
+  * **1-Click Segmented View Toggle**: Added `[ Split WhatsApp ]` to the top mode switcher bar alongside Live Preview, Split Doc, Edit Mode, and Mockup View.
+  * **Conversational Multi-Bubble Splitting**: Automatically partitions Markdown ad copy into realistic chat bubbles separated by headers, dividers (`---`), or double linebreaks.
+  * **Rich Text & Link Previews**: Supports `*bold*`, `_italic_`, `~strikethrough~`, preserved emojis, and rich link preview cards with web globe icons and domain names.
+  * **Export to Clipboard**: 1-click `[ Copy Formatted (WhatsApp) ]` action to export copy cleanly for WhatsApp Web / Business.
+* **📊 Customizable Dashboard KPI Grid & Real-Time Production Widgets (`DashboardPage.xaml`)**:
+  * **Layout Customization Toolbar**: Click `[ ⚙ Customize ]` in the dashboard header to reveal inline Pin (`📌`) and Move (`▲` / `▼`) controls on every widget card header.
+  * **In-Flight Production Spotlight**: Live tracking of active deliverables from `CreativeOrderService` and recently updated projects from `WorkspaceScanner`, with a 3-way filter (`All In-Flight`, `In Production`, `Needs Review`).
+  * **Active Transcodes Engine**: Real-time status and progress tracking of FFmpeg background conversion queues (`TranscoderBridgePage.SharedJobs`) with Explorer folder shortcuts.
+  * **Persistent Layout Storage**: Widget order and pinning preferences automatically persist in `%APPDATA%\SS-CAM\dashboard_layout.json`.
+* **📦 Platform Build & Distribution Verification**:
+  * **Desktop & Web Synchronized**: Rebuilt Windows desktop application (`SS-CAM.exe` v4.13.0.0 in `dist/`) with 0 errors and 13/13 Source Guardian checks passing.
 
 ## 🚀 What's New in v4.12.2 ("Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow")
 

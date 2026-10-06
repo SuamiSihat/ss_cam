@@ -22,7 +22,9 @@ namespace SS_CAM.Views
     /// </summary>
     public partial class TranscoderBridgePage : Page
     {
-        private readonly ObservableCollection<TranscodeJob> _jobs = new ObservableCollection<TranscodeJob>();
+        private static readonly ObservableCollection<TranscodeJob> _sharedJobs = new ObservableCollection<TranscodeJob>();
+        public static ObservableCollection<TranscodeJob> SharedJobs { get { return _sharedJobs; } }
+        private readonly ObservableCollection<TranscodeJob> _jobs = _sharedJobs;
         private bool _isConverting = false;
         private volatile bool _cancelRequested = false;
         private string _ffmpegBinaryPath = null;

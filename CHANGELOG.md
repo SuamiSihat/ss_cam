@@ -2,6 +2,38 @@
 
 All notable SS-CAM changes are documented here.
 
+## [4.13.0] - 2026-10-06 (Split-View WhatsApp Simulator & Customizable Dashboard KPI Grid)
+
+### Copywriting Studio
+- **Split-View WhatsApp Simulator**:
+  - Added dedicated `[ Split WhatsApp ]` segmented button to the top mode switcher bar alongside Live Preview, Split Doc, Edit Mode, and Mockup View.
+  - Live conversational chat preview automatically transforms raw Markdown into WhatsApp chat bubbles.
+  - High-fidelity formatting support: `*bold*` -> bold, `_italic_` -> italic, `~strikethrough~` -> strikethrough, and preserved emojis.
+  - Multi-bubble splitting: automatically partitions messages by dividers (`---`, `===`), section headers (`### Message`), or double line-breaks (`\n\n`).
+  - Automatic URL link extraction and rich WhatsApp preview cards with web globe icon and domain overline.
+  - Realistic metadata: authentic bubble notch geometry, dynamic timestamps (`h:mm tt`), and double blue read checks (`✓✓`).
+  - 1-click `[ Copy Formatted (WhatsApp) ]` action to export copy formatted for WhatsApp directly to clipboard.
+
+### Dashboard & Analytics
+- **Customizable Dashboard KPI Grid**:
+  - Implemented persistent JSON storage in `%APPDATA%\SS-CAM\dashboard_layout.json` via `DashboardLayoutService.cs`.
+  - Added top `[ ⚙ Customize ]` toolbar button that displays an inline customization banner and exposes Pin (`📌`) and Move (`▲` / `▼`) controls directly on each widget card header.
+  - Dynamic drag/reorder workflow with automatic 1..N order normalization; pinned widgets automatically float to the top.
+  - Added `[ Reset Default ]` action to quickly revert all widgets to standard studio order.
+- **In-Flight Production Spotlight Widget**:
+  - Surfaces active deliverables (`in_progress`, `review`, `in_review`) from `CreativeOrderService` supplemented by recent workspace projects.
+  - 3-way segmented filter bar: `[ All In-Flight ] [ In Production ] [ Needs Review ]` with real-time active counter badge.
+  - Displays Job ID, title, status badge, designer, delivery deadline, and 1-click `[ Open ]` in Catalog or File Explorer.
+- **Active Transcodes Engine Widget**:
+  - Live monitoring of active background conversions from the Transcoder Bridge queue (`TranscoderBridgePage.SharedJobs`).
+  - Displays progress bar, preset tag, file name, status message, and 1-click Explorer folder reveal (`Folder24`).
+  - Dedicated `[ Open Transcoder Bridge ]` shortcut button to jump directly into batch transcoding.
+
+### Ecosystem Synchronization
+- **Cross-Platform Version Parity**:
+  - Synchronized version `4.13.0` across WPF Desktop (`AssemblyInfo.cs`, `MainWindow.xaml`, `version.json`), Web Portal (`package.json`, `config.js`, `App.svelte`), and documentation suite.
+  - Maintained strict C# 5 MSBuild compatibility and UTF-8 BOM encoding.
+
 ## [4.12.2] - 2026-10-01 (Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow)
 
 ### Web Discussion & Inspector UI Polish

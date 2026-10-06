@@ -73,6 +73,7 @@
   let filterStatus  = $state('all');
   let activeOrderId = $state<string | null>(null);
   let editingOrderId = $state<string | null>(null);
+  let createdOrder   = $state<CreativeOrder | null>(null);
 
   // Form fields
   let f_title          = $state('');
@@ -305,6 +306,9 @@
         roster = res.roster.map((m: any) => ({ name: m.name, staffId: m.staffId }));
       }
     } catch {}
+    const handleOrderUpdated = () => { loadOrders(); };
+    window.addEventListener('order:updated', handleOrderUpdated);
+    return () => { window.removeEventListener('order:updated', handleOrderUpdated); };
   });
 
   async function loadOrders() {
@@ -321,6 +325,7 @@
 
   function openForm() {
     editingOrderId   = null;
+    createdOrder     = null;
     formError        = '';
     submitSuccess    = false;
     f_title          = '';
@@ -342,6 +347,7 @@
 
   function openEditForm(order: CreativeOrder) {
     editingOrderId   = order.id;
+    createdOrder     = null;
     formError        = '';
     submitSuccess    = false;
     f_title          = order.title || '';
@@ -359,6 +365,35 @@
     f_attachmentNote = order.attachmentNote || '';
     f_files          = [];
     showForm         = true;
+  }
+
+  function viewCreatedOrderInQueue(orderId?: string) {
+    showForm = false;
+    submitSuccess = false;
+    filterStatus = 'all';
+    if (orderId) {
+      activeOrderId = orderId;
+      setTimeout(() => {
+        const rowEl = document.getElementById('order-' + orderId);
+        if (rowEl) {
+          rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 120);
+    }
+  }
+
+  function submitAnotherOrder() {
+    openForm();
+  }
+
+  async function copyCreatedOrderId(orderId?: string) {
+    if (!orderId) return;
+    try {
+      await navigator.clipboard.writeText(orderId);
+      appState.addToast(`Copied Order ID: ${orderId}`, 'success');
+    } catch {
+      appState.addToast(orderId, 'info');
+    }
   }
 
   const COMMERCIAL_PRESETS = [
@@ -505,7 +540,7 @@
         await loadOrders();
         setTimeout(() => { showForm = false; submitSuccess = false; editingOrderId = null; }, 1400);
       } else {
-        await ApiClient.request('/orders', {
+        const res = await ApiClient.request<{ success: boolean; order: CreativeOrder }>('/orders', {
           method: 'POST',
           body: JSON.stringify({
             title:          f_title.trim(),
@@ -525,10 +560,16 @@
             attachments:    f_files.map(f => ({ filename: f.filename, fileData: f.fileData }))
           }),
         });
+        if (res && res.order) {
+          createdOrder = res.order;
+        }
         submitSuccess = true;
+        filterStatus = 'all';
         appState.addToast('Your creative request has been submitted and queued.', 'success', 'Request Received');
         await loadOrders();
-        setTimeout(() => { showForm = false; submitSuccess = false; }, 1600);
+        if (res?.order?.id) {
+          activeOrderId = res.order.id;
+        }
       }
     } catch (err: any) {
       formError = err.message || 'Submission failed. Please review your inputs and try again.';
@@ -790,10 +831,44 @@
                 <polyline points="9 12 11 14 15 10" />
               </svg>
             </div>
-            <h2 class="success-heading">{editingOrderId ? 'Changes Saved' : 'Request Submitted'}</h2>
+            <h2 class="success-heading">{editingOrderId ? 'Changes Saved' : 'Request Submitted Successfully'}</h2>
             <p class="success-body">
-              {editingOrderId ? 'Your creative request updates have been saved to the queue.' : 'Your creative brief has been added to the design queue. The team will acknowledge within your selected priority window.'}
+              {editingOrderId ? 'Your creative request updates have been saved to the queue.' : 'Your creative brief has been recorded in the production ledger and queued for the design team.'}
             </p>
+
+            {#if createdOrder}
+              <div class="success-order-card">
+                <div class="success-order-id-row">
+                  <span class="success-id-label">Assigned Order ID:</span>
+                  <span class="success-id-badge">{createdOrder.id}</span>
+                  <button type="button" class="btn-copy-id" onclick={() => copyCreatedOrderId(createdOrder?.id)} title="Copy Order ID">
+                    📋 Copy ID
+                  </button>
+                </div>
+                <div class="success-summary-grid">
+                  <div class="summary-pill"><span class="sum-k">Entity:</span> <strong>{createdOrder.entity}</strong></div>
+                  <div class="summary-pill"><span class="sum-k">Priority:</span> <strong>{priorityLabel(createdOrder.priority)}</strong></div>
+                  <div class="summary-pill"><span class="sum-k">Format:</span> <strong>{formatLabel(createdOrder.format, createdOrder.material, createdOrder.customSize)}</strong></div>
+                  <div class="summary-pill"><span class="sum-k">Deadline:</span> <strong>{fmtDate(createdOrder.deadline || createdOrder.targetDate)}</strong></div>
+                </div>
+              </div>
+            {/if}
+
+            <div class="success-actions">
+              {#if editingOrderId}
+                <button type="button" class="btn-primary" onclick={() => { showForm = false; submitSuccess = false; editingOrderId = null; }}>
+                  Done
+                </button>
+              {:else}
+                <button type="button" class="btn-primary" onclick={() => viewCreatedOrderInQueue(createdOrder?.id)}>
+                  View in Order Queue →
+                </button>
+                <button type="button" class="btn-ghost" onclick={submitAnotherOrder}>
+                  + Submit Another Request
+                </button>
+              {/if}
+            </div>
+
           </div>
 
         {:else}
@@ -1318,7 +1393,7 @@
             {@const pr  = PRIORITY_COLOR[order.priority]}
             {@const expanded = activeOrderId === order.id}
             {@const ch  = getChannelInfo(order)}
-            <tr
+            <tr id={'order-' + order.id}
               class="order-row {expanded ? 'row-open' : ''}"
               aria-expanded={expanded}
               tabindex="0"
@@ -1838,6 +1913,83 @@
     margin: 0;
     max-width: 380px;
     line-height: 1.55;
+  }
+
+  .success-order-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface-card, #FFFFFF);
+    border: 1px solid var(--surface-card-border, #E2E8F0);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+  }
+  .success-order-id-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .success-id-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .success-id-badge {
+    font-family: var(--font-mono, monospace);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary, #043388);
+    background: rgba(4, 51, 136, 0.08);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(4, 51, 136, 0.2);
+  }
+  .btn-copy-id {
+    font-size: 11.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--surface-card-border);
+    background: var(--surface-input);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-copy-id:hover {
+    background: var(--surface-hover);
+    border-color: var(--brand-accent);
+  }
+  .success-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .summary-pill {
+    font-size: 12px;
+    color: var(--text-primary);
+    background: var(--surface-input, #F8FAFC);
+    border: 1px solid var(--surface-card-border, #E2E8F0);
+    padding: 6px 10px;
+    border-radius: 6px;
+  }
+  .sum-k {
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-right: 4px;
+  }
+  .success-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
   }
 
   /* ── Modal Header ── */

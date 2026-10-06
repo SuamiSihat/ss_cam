@@ -262,6 +262,11 @@ namespace SS_CAM.Views
             ApplyViewMode(1);
         }
 
+        private void OnModeSplitWhatsAppClicked(object sender, RoutedEventArgs e)
+        {
+            ApplyViewMode(4);
+        }
+
         private void OnModeEditClicked(object sender, RoutedEventArgs e)
         {
             ApplyViewMode(2);
@@ -298,6 +303,7 @@ namespace SS_CAM.Views
 
                 BtnModePreview.Appearance = Wpf.Ui.Controls.ControlAppearance.Primary;
                 BtnModeSplit.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
+                if (BtnModeSplitWhatsApp != null) BtnModeSplitWhatsApp.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 BtnModeEdit.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 BtnModeMockup.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
             }
@@ -320,6 +326,7 @@ namespace SS_CAM.Views
 
                 BtnModePreview.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 BtnModeSplit.Appearance = Wpf.Ui.Controls.ControlAppearance.Primary;
+                if (BtnModeSplitWhatsApp != null) BtnModeSplitWhatsApp.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 BtnModeEdit.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 BtnModeMockup.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
             }
@@ -340,10 +347,34 @@ namespace SS_CAM.Views
 
                 BtnModePreview.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 BtnModeSplit.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
+                if (BtnModeSplitWhatsApp != null) BtnModeSplitWhatsApp.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 BtnModeEdit.Appearance = Wpf.Ui.Controls.ControlAppearance.Primary;
                 BtnModeMockup.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
 
                 CopyScriptEditor.Focus();
+            }
+            else if (mode == 4) // 5. Split View: WhatsApp Simulator
+            {
+                ColEditor.Width = new GridLength(1, GridUnitType.Star);
+                ColSplitter.Width = new GridLength(12, GridUnitType.Pixel);
+                ColLivePreview.Width = new GridLength(1, GridUnitType.Star);
+
+                if (CopyEditorToolbar != null) CopyEditorToolbar.Visibility = Visibility.Visible;
+                CopyScriptEditor.Visibility = Visibility.Visible;
+                RenderedCopyViewer.Visibility = Visibility.Collapsed;
+                LiveGridSplitter.Visibility = Visibility.Visible;
+                RightPaneContainer.Visibility = Visibility.Visible;
+
+                ApplySubMode(1); // subMode 1 is WhatsApp simulation
+
+                TxtCanvasHeader.Text = "Copywriting Studio — Side-by-Side WhatsApp Simulator";
+                TxtEditorShortcutHint.Visibility = Visibility.Visible;
+
+                BtnModePreview.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
+                BtnModeSplit.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
+                if (BtnModeSplitWhatsApp != null) BtnModeSplitWhatsApp.Appearance = Wpf.Ui.Controls.ControlAppearance.Primary;
+                BtnModeEdit.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
+                BtnModeMockup.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
             }
             else // mode == 3: 4. Mockup View: WhatsApp & Meta Ads Live Simulation
             {
@@ -368,6 +399,7 @@ namespace SS_CAM.Views
 
                 BtnModePreview.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 BtnModeSplit.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
+                if (BtnModeSplitWhatsApp != null) BtnModeSplitWhatsApp.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 BtnModeEdit.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 BtnModeMockup.Appearance = Wpf.Ui.Controls.ControlAppearance.Primary;
             }
@@ -489,7 +521,7 @@ namespace SS_CAM.Views
             {
                 RenderedCopyViewer.Document = MarkdownHelper.ToFlowDocument(currentText);
             }
-            else if (currentViewMode == 1)
+            else if (currentViewMode == 1 || currentViewMode == 4)
             {
                 if (currentSubMode == 0 && RenderedCopyViewerSplit != null)
                 {
@@ -508,17 +540,209 @@ namespace SS_CAM.Views
 
         private void UpdateLiveSimulation(string content)
         {
-            if (TxtWhatsAppLiveContent != null)
+            if (TxtWhatsAppBusinessTitle != null)
             {
-                BuildWhatsAppInlines(TxtWhatsAppLiveContent, content);
+                string brand = (selectedProject != null && !string.IsNullOrWhiteSpace(selectedProject.Client))
+                    ? selectedProject.Client + " Official"
+                    : (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AppName))
+                        ? TenantConfigService.Current.AppName + " Official"
+                        : "SuamiSihat™ Official";
+                TxtWhatsAppBusinessTitle.Text = brand;
             }
 
-            UpdateWhatsAppLinkPreview(content);
-            UpdateMetaAdSimulation(content);
+            var bubbleItems = CopywritingDesktopService.SplitWhatsAppMessages(content);
 
-            if (TxtWhatsAppTimestamp != null)
+            if (bubbleItems.Count <= 1)
             {
-                TxtWhatsAppTimestamp.Text = DateTime.Now.ToString("h:mm tt");
+                // Single bubble standard mode
+                if (WhatsAppSingleBubbleContainer != null) WhatsAppSingleBubbleContainer.Visibility = Visibility.Visible;
+                if (WhatsAppChatBubblesPanel != null)
+                {
+                    for (int i = WhatsAppChatBubblesPanel.Children.Count - 1; i >= 0; i--)
+                    {
+                        var child = WhatsAppChatBubblesPanel.Children[i] as FrameworkElement;
+                        if (child != null && Equals(child.Tag, "dynamic_bubble"))
+                        {
+                            WhatsAppChatBubblesPanel.Children.RemoveAt(i);
+                        }
+                    }
+                }
+
+                if (TxtWhatsAppLiveContent != null)
+                {
+                    string bubbleText = bubbleItems.Count > 0 ? bubbleItems[0].FormattedText : content;
+                    BuildWhatsAppInlines(TxtWhatsAppLiveContent, bubbleText);
+                }
+
+                UpdateWhatsAppLinkPreview(content);
+
+                if (TxtWhatsAppTimestamp != null)
+                {
+                    TxtWhatsAppTimestamp.Text = DateTime.Now.ToString("h:mm tt");
+                }
+            }
+            else
+            {
+                // Multi-bubble conversation thread simulation
+                if (WhatsAppSingleBubbleContainer != null) WhatsAppSingleBubbleContainer.Visibility = Visibility.Collapsed;
+                if (WhatsAppChatBubblesPanel != null)
+                {
+                    for (int i = WhatsAppChatBubblesPanel.Children.Count - 1; i >= 0; i--)
+                    {
+                        var child = WhatsAppChatBubblesPanel.Children[i] as FrameworkElement;
+                        if (child != null && Equals(child.Tag, "dynamic_bubble"))
+                        {
+                            WhatsAppChatBubblesPanel.Children.RemoveAt(i);
+                        }
+                    }
+
+                    foreach (var item in bubbleItems)
+                    {
+                        var bubbleBorder = new Border
+                        {
+                            Background = new SolidColorBrush(Color.FromRgb(255, 255, 255)),
+                            CornerRadius = new CornerRadius(8, 8, 2, 8),
+                            Padding = new Thickness(12, 10, 12, 10),
+                            Margin = new Thickness(0, 0, 0, 8),
+                            BorderBrush = new SolidColorBrush(Color.FromRgb(208, 215, 222)),
+                            BorderThickness = new Thickness(1),
+                            HorizontalAlignment = HorizontalAlignment.Stretch,
+                            Tag = "dynamic_bubble"
+                        };
+
+                        var stack = new StackPanel();
+
+                        var tb = new TextBlock
+                        {
+                            TextWrapping = TextWrapping.Wrap,
+                            FontSize = 12.5,
+                            FontFamily = new FontFamily("Segoe UI"),
+                            LineHeight = 19,
+                            Foreground = new SolidColorBrush(Color.FromRgb(17, 27, 33))
+                        };
+                        BuildWhatsAppInlines(tb, item.FormattedText);
+                        stack.Children.Add(tb);
+
+                        if (item.HasLinkPreview)
+                        {
+                            var linkCard = CreateDynamicLinkPreviewCard(item.Domain, item.UrlTitle, item.ExtractedUrl);
+                            stack.Children.Add(linkCard);
+                        }
+
+                        var timeStack = new StackPanel
+                        {
+                            Orientation = Orientation.Horizontal,
+                            HorizontalAlignment = HorizontalAlignment.Right,
+                            Margin = new Thickness(0, 6, 0, 0)
+                        };
+                        timeStack.Children.Add(new TextBlock
+                        {
+                            Text = item.Timestamp,
+                            FontSize = 9.5,
+                            Foreground = new SolidColorBrush(Color.FromRgb(102, 119, 129)),
+                            Margin = new Thickness(0, 0, 4, 0)
+                        });
+                        timeStack.Children.Add(new TextBlock
+                        {
+                            Text = "✓✓",
+                            FontSize = 9.5,
+                            FontWeight = FontWeights.Bold,
+                            Foreground = new SolidColorBrush(Color.FromRgb(83, 189, 235))
+                        });
+                        stack.Children.Add(timeStack);
+
+                        bubbleBorder.Child = stack;
+                        WhatsAppChatBubblesPanel.Children.Add(bubbleBorder);
+                    }
+                }
+            }
+
+            UpdateMetaAdSimulation(content);
+        }
+
+        private Border CreateDynamicLinkPreviewCard(string domain, string title, string url)
+        {
+            var card = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(240, 242, 245)),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(8),
+                Margin = new Thickness(0, 8, 0, 4),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(208, 215, 222)),
+                BorderThickness = new Thickness(1)
+            };
+
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var iconBorder = new Border
+            {
+                Background = (Brush)FindResource("FluentBrand80"),
+                CornerRadius = new CornerRadius(4),
+                Height = 46,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            var icon = new Wpf.Ui.Controls.SymbolIcon
+            {
+                Symbol = Wpf.Ui.Controls.SymbolRegular.Globe24,
+                FontSize = 18,
+                Foreground = Brushes.White,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            iconBorder.Child = icon;
+            Grid.SetColumn(iconBorder, 0);
+            grid.Children.Add(iconBorder);
+
+            var sp = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            sp.Children.Add(new Wpf.Ui.Controls.TextBlock
+            {
+                Text = domain ?? "WEB LINK",
+                FontSize = 9,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(102, 119, 129))
+            });
+            sp.Children.Add(new Wpf.Ui.Controls.TextBlock
+            {
+                Text = title ?? "Open Preview Link",
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(Color.FromRgb(17, 27, 33)),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+            sp.Children.Add(new Wpf.Ui.Controls.TextBlock
+            {
+                Text = url ?? string.Empty,
+                FontSize = 9.5,
+                Foreground = new SolidColorBrush(Color.FromRgb(2, 126, 181)),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+            Grid.SetColumn(sp, 1);
+            grid.Children.Add(sp);
+
+            card.Child = grid;
+            return card;
+        }
+
+        private void OnCopyFormattedWhatsAppClicked(object sender, RoutedEventArgs e)
+        {
+            string current = CopyScriptEditor != null ? CopyScriptEditor.Text ?? string.Empty : string.Empty;
+            if (string.IsNullOrWhiteSpace(current))
+            {
+                SetStatusBadge("Copy Editor Empty", false);
+                return;
+            }
+
+            string formatted = CopywritingDesktopService.FormatForWhatsApp(current);
+            try
+            {
+                Clipboard.SetText(formatted);
+                SetStatusBadge("WhatsApp Formatted Copy Copied!", true);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[CopywritingPage] Clipboard error: " + ex.Message);
             }
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -522,6 +523,125 @@ namespace SS_CAM.Services
             }
 
             return GetDefaultTemplate(projectTitle);
+        }
+
+        /// <summary>
+        /// Represents an individual chat bubble within the live WhatsApp simulator.
+        /// </summary>
+        public class WhatsAppBubbleItem
+        {
+            public int Index { get; set; }
+            public string RawText { get; set; }
+            public string FormattedText { get; set; }
+            public string ExtractedUrl { get; set; }
+            public string Domain { get; set; }
+            public string UrlTitle { get; set; }
+            public bool HasLinkPreview { get; set; }
+            public string Timestamp { get; set; }
+            public bool IsOutgoing { get; set; }
+
+            public WhatsAppBubbleItem()
+            {
+                IsOutgoing = true;
+            }
+        }
+
+        /// <summary>
+        /// Splits raw copy markdown into a sequence of conversational WhatsApp bubbles.
+        /// Supports dividers (---, ===), headers (### Message), or double line-breaks.
+        /// </summary>
+        public static List<WhatsAppBubbleItem> SplitWhatsAppMessages(string rawMarkdown)
+        {
+            List<WhatsAppBubbleItem> items = new List<WhatsAppBubbleItem>();
+            if (string.IsNullOrWhiteSpace(rawMarkdown))
+            {
+                items.Add(new WhatsAppBubbleItem
+                {
+                    Index = 1,
+                    RawText = string.Empty,
+                    FormattedText = "Drafting your copy in the editor on the left will render formatted WhatsApp inlines here in real time...",
+                    Timestamp = DateTime.Now.ToString("h:mm tt"),
+                    HasLinkPreview = false
+                });
+                return items;
+            }
+
+            string normalized = rawMarkdown.Replace("\r\n", "\n").Replace('\r', '\n');
+            string[] sections;
+
+            if (Regex.IsMatch(normalized, @"(?m)^(?:---|===|\s*###\s*(?:Message|Mesej|Part|Bubble)\s*\d*)\s*$"))
+            {
+                sections = Regex.Split(normalized, @"(?m)^(?:---|===|\s*###\s*(?:Message|Mesej|Part|Bubble)\s*\d*)\s*$");
+            }
+            else
+            {
+                string[] paragraphs = Regex.Split(normalized, @"\n{2,}");
+                if (paragraphs.Length > 1 && normalized.Length > 120)
+                {
+                    sections = paragraphs;
+                }
+                else
+                {
+                    sections = new string[] { normalized };
+                }
+            }
+
+            DateTime baseTime = DateTime.Now.AddMinutes(-Math.Max(1, sections.Length - 1));
+            int bubbleIndex = 1;
+
+            foreach (string section in sections)
+            {
+                string trimmed = section.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed)) continue;
+
+                string formatted = FormatForWhatsApp(trimmed);
+                string url = ExtractFirstUrl(formatted);
+                bool hasUrl = !string.IsNullOrWhiteSpace(url);
+
+                string domain = "LINK PREVIEW";
+                string urlTitle = "Tap to open preview link";
+                if (hasUrl)
+                {
+                    try
+                    {
+                        Uri uri = new Uri(url);
+                        domain = uri.Host.ToUpperInvariant();
+                        urlTitle = uri.Host;
+                    }
+                    catch
+                    {
+                        domain = "WEB LINK";
+                        urlTitle = url;
+                    }
+                }
+
+                items.Add(new WhatsAppBubbleItem
+                {
+                    Index = bubbleIndex++,
+                    RawText = trimmed,
+                    FormattedText = formatted,
+                    ExtractedUrl = url,
+                    Domain = domain,
+                    UrlTitle = urlTitle,
+                    HasLinkPreview = hasUrl,
+                    Timestamp = baseTime.AddMinutes(bubbleIndex - 1).ToString("h:mm tt"),
+                    IsOutgoing = true
+                });
+            }
+
+            if (items.Count == 0)
+            {
+                items.Add(new WhatsAppBubbleItem
+                {
+                    Index = 1,
+                    RawText = rawMarkdown,
+                    FormattedText = FormatForWhatsApp(rawMarkdown),
+                    Timestamp = DateTime.Now.ToString("h:mm tt"),
+                    HasLinkPreview = false
+                });
+            }
+
+            return items;
         }
     }
 }

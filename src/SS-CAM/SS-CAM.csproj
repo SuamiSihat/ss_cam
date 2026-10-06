@@ -251,6 +251,7 @@
     <Compile Include="Services\ExportPackagingService.cs" />
     <Compile Include="Services\ArchiveVaultService.cs" />
     <Compile Include="Services\TranscoderService.cs" />
+    <Compile Include="Services\DashboardLayoutService.cs" />
     <Compile Include="Services\AssetNamingService.cs" />
     <Compile Include="Services\PreflightValidatorService.cs" />
     <Compile Include="Services\WorkloadSlaService.cs" />

@@ -22,7 +22,7 @@
 
   let showDownloadModal = $state(false);
   let commandPaletteOpen = $state(false);
-  let serverVersion = $state('4.12.2');
+  let serverVersion = $state('4.13.0');
 
   function handleGlobalKeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -156,7 +156,7 @@
         if (appState.currentRoute === 'project-detail' && appState.routeParams.id === data.projectId) {
           projectStore.loadProjectDetail(data.projectId, true);
         }
-      }
+      } else if (event === 'order:new' || event === 'order:updated' || event === 'order:cancelled') { appState.lastSyncedAt = new Date(); window.dispatchEvent(new CustomEvent('order:updated', { detail: data })); }
     });
 
     return () => {
