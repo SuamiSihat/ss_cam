@@ -33,7 +33,7 @@
     }
   }
 
-  onMount(async () => {
+  onMount(() => {
     function handleRouteFromHash() {
       const hash = window.location.hash.replace(/^#\/?/, '');
       if (hash.startsWith('reset-password')) {
@@ -56,19 +56,19 @@
     handleRouteFromHash();
 
     if (appState.currentRoute !== 'review' && appState.currentRoute !== 'reset-password') {
-      await appState.loadCurrentUser();
-      appState.loadLiveTasks();
+      appState.loadCurrentUser().then(() => {
+        appState.loadLiveTasks();
+      });
     }
     window.addEventListener('auth:required', () => appState.navigate('login'));
 
     // Fetch live server version for sidebar badge
-    try {
-      const statusRes = await fetch('/api/status');
-      if (statusRes.ok) {
-        const statusData = await statusRes.json();
+    fetch('/api/status')
+      .then(res => res.ok ? res.json() : null)
+      .then(statusData => {
         if (statusData?.version) serverVersion = statusData.version;
-      }
-    } catch { /* non-critical */ }
+      })
+      .catch(() => { /* non-critical */ });
 
     window.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
@@ -364,7 +364,8 @@
 
           {#if appState.studioDrawerOpen}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="studio-flyout" onclick={(e) => e.stopPropagation()}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="studio-flyout" role="presentation" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
               <div class="studio-flyout-header">
                 <div class="studio-flyout-title">
                   <span class="pulse-indicator"></span>
@@ -542,7 +543,8 @@
 
             {#if appState.userMenuOpen}
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="user-dropdown" role="menu" onclick={(e) => e.stopPropagation()}>
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <div class="user-dropdown" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
                 <div class="dd-header">
                   <div class="dd-avatar" style="background: {appState.currentUser?.avatarColor || 'var(--brand-gradient)'};">
                     {#if appState.currentUser?.avatar}
@@ -806,7 +808,7 @@
     </div>
 
     {#snippet footer()}
-      <FluentButton appearance="subtle" onclick={() => (showDownloadModal = false)}>
+      <FluentButton appearance="secondary" onclick={() => (showDownloadModal = false)}>
         Close
       </FluentButton>
     {/snippet}
@@ -1430,48 +1432,6 @@
     background: var(--brand-tint, rgba(0,120,212,0.08));
     color: var(--brand-primary, #0078D4);
     border-color: var(--brand-accent, #38BDF8);
-  }
-
-  /* Live Sync Pill */
-  .live-sync-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.22);
-    border-radius: 9999px;
-    font-size: 11.5px;
-    font-weight: 700;
-    color: #059669;
-    user-select: none;
-    transition: all 0.2s ease;
-  }
-  .live-sync-pill.reconnecting {
-    background: rgba(245, 158, 11, 0.08);
-    border-color: rgba(245, 158, 11, 0.25);
-    color: #D97706;
-  }
-  .live-pulse-dot {
-    width: 6.5px;
-    height: 6.5px;
-    border-radius: 50%;
-    background: #10B981;
-    box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
-    animation: livePulse 2s infinite;
-  }
-  .live-sync-pill.reconnecting .live-pulse-dot {
-    background: #F59E0B;
-    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
-    animation: livePulse 0.8s infinite;
-  }
-  @keyframes livePulse {
-    0% { transform: scale(0.95); opacity: 0.8; }
-    50% { transform: scale(1.25); opacity: 1; }
-    100% { transform: scale(0.95); opacity: 0.8; }
-  }
-  .live-label {
-    letter-spacing: 0.2px;
   }
 
   .vault-link {

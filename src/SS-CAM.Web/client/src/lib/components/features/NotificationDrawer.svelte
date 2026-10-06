@@ -10,7 +10,7 @@
     onclose?: () => void;
   }
 
-  let { open = false, onclose }: Props = $props();
+  let { open = $bindable(false), onclose }: Props = $props();
 
   let notifications = $state<ActivityNotification[]>([]);
   let isLoading = $state<boolean>(false);
@@ -34,10 +34,15 @@
     }
   }
 
+  function close() {
+    open = false;
+    if (onclose) onclose();
+  }
+
   function handleNotificationClick(notif: ActivityNotification) {
     notif.unread = false;
     appState.notificationCount = Math.max(0, appState.notificationCount - 1);
-    if (onclose) onclose();
+    close();
 
     if (notif.route === 'project-detail' && notif.routeId) {
       appState.navigate('project-detail', { id: notif.routeId });
@@ -93,7 +98,7 @@
 {#if open}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="drawer-backdrop" onclick={onclose}></div>
+  <div class="drawer-backdrop" onclick={close}></div>
 
   <aside class="notification-drawer" role="dialog" aria-label="Activity Notifications">
     <div class="drawer-header">
@@ -109,7 +114,7 @@
         {#if notifications.some(n => n.unread)}
           <button class="text-btn" onclick={markAllRead}>Mark all read</button>
         {/if}
-        <button class="close-btn" onclick={onclose} aria-label="Close drawer" title="Close drawer">
+        <button class="close-btn" onclick={close} aria-label="Close drawer" title="Close drawer">
           <FluentIcons name="close" size={16} />
         </button>
       </div>
