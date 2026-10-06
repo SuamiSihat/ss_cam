@@ -24,6 +24,27 @@ export interface User {
 export type ProjectStatus = 'backlog' | 'in-progress' | 'review' | 'revision' | 'approved' | 'on-hold';
 export type ProjectPriority = 'low' | 'medium' | 'high' | 'urgent';
 
+export type StudioTaskStatus = 'backlog' | 'in-progress' | 'review' | 'done' | 'converted';
+
+export interface StudioTask {
+  id: string;
+  title: string;
+  description: string;
+  assignee?: string;
+  assigneeName?: string;
+  assigneeAvatarColor?: string;
+  status: StudioTaskStatus;
+  priority: ProjectPriority;
+  brand?: string;
+  tags: string[];
+  dueDate?: string;
+  createdAt: string;
+  updatedAt?: string;
+  jobId?: string;
+  projectId?: string;
+  convertedAt?: string;
+}
+
 export interface CreativeDirectionState {
   visual_concept?: string;
   color_palette?: string;

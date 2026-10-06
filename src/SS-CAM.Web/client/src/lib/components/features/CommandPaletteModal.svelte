@@ -140,6 +140,7 @@
   const QUICK_ACTIONS: QuickAction[] = [
     { type: 'action', id: 'nav-ai', label: 'Open Creative AI Studio (Gemini Assistant)', icon: 'sparkles', category: 'AI Tools', execute: () => appState.navigate('copy-studio') },
     { type: 'action', id: 'nav-dashboard', label: 'Go to Dashboard', icon: 'dashboard', category: 'Navigation', execute: () => appState.navigate('dashboard') },
+    { type: 'action', id: 'nav-tasks', label: 'Open Studio Tasks (Pre-Production Kanban)', icon: 'kanban', category: 'Studio Pre-Production', execute: () => appState.navigate('tasks') },
     { type: 'action', id: 'nav-projects', label: 'Open Project Manager', icon: 'folder', category: 'Navigation', execute: () => appState.navigate('projects') },
     { type: 'action', id: 'nav-review', label: 'Go to Review Queue', icon: 'checkCircle', category: 'Navigation', execute: () => appState.navigate('deliverables') },
     { type: 'action', id: 'nav-orders', label: 'Open Creative Requests Queue', icon: 'edit', category: 'Navigation', execute: () => appState.navigate('order-form') },

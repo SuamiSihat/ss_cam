@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { projectStore } from '$lib/stores/projectStore.svelte';
+  import { taskStore } from '$lib/stores/taskStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
@@ -44,6 +45,7 @@
   onMount(() => {
     projectStore.loadDashboard();
     projectStore.loadProjects();
+    taskStore.loadTasks(true);
     loadPersonalActivity();
     appState.loadLiveTasks();
 
@@ -562,8 +564,8 @@
 
               <div class="livestream-chip-body">
                 <div class="task-client-badge">{task.Client || 'INTERNAL'}</div>
-                <div class="task-project-name" title={task.ProjectName || task.ProjectId}>
-                  {task.ProjectName || task.ProjectId}
+                <div class="task-project-name" title={task.ProjectName || task.ProjectId || 'Standalone Task'}>
+                  {task.ProjectName || task.ProjectId || 'Studio Task (Unattached)'}
                 </div>
                 {#if task.SessionNotes}
                   <div class="task-notes" title={task.SessionNotes}>
@@ -581,6 +583,13 @@
                     onclick={() => appState.navigate('project-detail', { id: task.ProjectId })}
                   >
                     Open Workspace ↗
+                  </button>
+                {:else}
+                  <button
+                    class="task-jump-btn"
+                    onclick={() => appState.navigate('tasks')}
+                  >
+                    Task Board ↗
                   </button>
                 {/if}
               </div>
@@ -2444,9 +2453,9 @@
     padding: 3px 8px;
     border-radius: 4px;
   }
-  .stat-active { background: #EBF4FE; color: #043388; border: 1px solid #BFDBFE; }
-  .stat-review { background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; }
-  .stat-done { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
+  .stat-active { background: var(--colorBrandBackground2, #EBF4FE); color: var(--colorBrandForeground2, #043388); border: 1px solid var(--colorBrandStroke2, #BFDBFE); }
+  .stat-review { background: var(--colorStatusWarningBackground1, #FFFBEB); color: var(--colorStatusWarningForeground1, #B45309); border: 1px solid var(--colorStatusWarningBorder1, #FDE68A); }
+  .stat-done { background: var(--colorStatusSuccessBackground1, #ECFDF5); color: var(--colorStatusSuccessForeground1, #047857); border: 1px solid var(--colorStatusSuccessBorder1, #A7F3D0); }
 
   /* ═══════════ SLA ANALYTICS GRID STYLES ═══════════ */
   .sla-analytics-grid {
@@ -2658,11 +2667,11 @@
     padding: 2px 7px;
     border-radius: 4px;
   }
-  .status-revision { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
-  .status-in-progress { background: #EBF4FE; color: #043388; border: 1px solid #BFDBFE; }
-  .status-review { background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; }
-  .status-approved { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
-  .status-done { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
+  .status-revision { background: var(--colorStatusDangerBackground1, #FEF2F2); color: var(--colorStatusDangerForeground1, #B91C1C); border: 1px solid var(--colorStatusDangerBorder1, #FECACA); }
+  .status-in-progress { background: var(--colorBrandBackground2, #EBF4FE); color: var(--colorBrandForeground2, #043388); border: 1px solid var(--colorBrandStroke2, #BFDBFE); }
+  .status-review { background: var(--colorStatusWarningBackground1, #FFFBEB); color: var(--colorStatusWarningForeground1, #B45309); border: 1px solid var(--colorStatusWarningBorder1, #FDE68A); }
+  .status-approved { background: var(--colorStatusSuccessBackground1, #ECFDF5); color: var(--colorStatusSuccessForeground1, #047857); border: 1px solid var(--colorStatusSuccessBorder1, #A7F3D0); }
+  .status-done { background: var(--surface-card-subtle, #F1F5F9); color: var(--text-secondary, #475569); border: 1px solid var(--surface-card-border, #CBD5E1); }
 
   .queue-title {
     font-size: 14px;

@@ -11,7 +11,8 @@ import type {
   ApprovalRecord,
   CreativeDirectionState,
   CopywritingState,
-  TeamMember
+  TeamMember,
+  StudioTask
 } from '$lib/types';
 
 const API_BASE = '/api';
@@ -553,6 +554,57 @@ export class ApiClient {
   static deleteTask(projectId: string, taskId: string): Promise<{ success: boolean; taskId: string; projectId: string }> {
     return this.request(`/tasks/${encodeURIComponent(projectId)}/${encodeURIComponent(taskId)}`, {
       method: 'DELETE'
+    });
+  }
+
+  // ─── Studio Tasks Manager (Lightweight Pre-Production Pipeline) ───
+  static getStudioTasks(filters: Record<string, any> = {}): Promise<{ success: boolean; tasks: StudioTask[]; count: number }> {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '' && val !== 'all') {
+        params.append(key, String(val));
+      }
+    });
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request(`/studio-tasks${query}`);
+  }
+
+  static getStudioTask(id: string): Promise<{ success: boolean; task: StudioTask }> {
+    return this.request(`/studio-tasks/${encodeURIComponent(id)}`);
+  }
+
+  static createStudioTask(payload: Partial<StudioTask>): Promise<{ success: boolean; task: StudioTask }> {
+    return this.request('/studio-tasks', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  static updateStudioTask(id: string, payload: Partial<StudioTask>): Promise<{ success: boolean; task: StudioTask }> {
+    return this.request(`/studio-tasks/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  static deleteStudioTask(id: string): Promise<{ success: boolean; id: string }> {
+    return this.request(`/studio-tasks/${encodeURIComponent(id)}`, {
+      method: 'DELETE'
+    });
+  }
+
+  static provisionTaskWorkspace(id: string, options: Record<string, any> = {}): Promise<{
+    success: boolean;
+    jobId: string;
+    projectId: string;
+    folderName: string;
+    projectDir: string;
+    task: StudioTask;
+    message: string;
+  }> {
+    return this.request(`/studio-tasks/${encodeURIComponent(id)}/provision`, {
+      method: 'POST',
+      body: JSON.stringify(options)
     });
   }
 

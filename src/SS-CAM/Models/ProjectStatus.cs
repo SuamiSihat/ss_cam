@@ -82,6 +82,41 @@ namespace SS_CAM.Models
             return string.Empty;
         }
 
+        public bool IsStudioTask { get; set; }
+        public string TaskId { get; set; }
+        public string TaskBrand { get; set; }
+        public string ConvertedJobId { get; set; }
+        public string ConvertedProjectId { get; set; }
+        public bool IsConverted
+        {
+            get { return !string.IsNullOrWhiteSpace(ConvertedJobId); }
+        }
+
+        public System.Windows.Visibility StudioTaskBadgeVisibility
+        {
+            get { return IsStudioTask ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed; }
+        }
+
+        public System.Windows.Visibility ConvertedBadgeVisibility
+        {
+            get { return (IsStudioTask && IsConverted) ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed; }
+        }
+
+        public string ConvertedBadgeText
+        {
+            get { return IsConverted ? string.Format("JOB: {0}", ConvertedJobId) : string.Empty; }
+        }
+
+        public System.Windows.Visibility ProvisionButtonVisibility
+        {
+            get { return (IsStudioTask && !IsConverted) ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed; }
+        }
+
+        public System.Windows.Visibility OpenProjectVisibility
+        {
+            get { return (!IsStudioTask || IsConverted) ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed; }
+        }
+
         public ProjectStatusItem()
         {
             _projectId = "";
@@ -96,6 +131,11 @@ namespace SS_CAM.Models
             StartDate = "";
             Duration = "";
             CanvaUrl = "";
+            IsStudioTask = false;
+            TaskId = "";
+            TaskBrand = "SS";
+            ConvertedJobId = "";
+            ConvertedProjectId = "";
         }
 
         public static string CalculateDuration(string startDateStr, string deadlineStr)

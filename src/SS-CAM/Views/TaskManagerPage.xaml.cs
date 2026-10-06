@@ -189,6 +189,18 @@ namespace SS_CAM.Views
                     if (!string.IsNullOrEmpty(currentDetailText))
                         DetailDesigner.Text = currentDetailText;
                 }
+
+                if (CmbNewTaskAssignee != null)
+                {
+                    string currentNewTaskText = CmbNewTaskAssignee.Text;
+                    CmbNewTaskAssignee.Items.Clear();
+                    foreach (string d in designers)
+                    {
+                        CmbNewTaskAssignee.Items.Add(d);
+                    }
+                    if (!string.IsNullOrEmpty(currentNewTaskText))
+                        CmbNewTaskAssignee.Text = currentNewTaskText;
+                }
             }
             catch (Exception ex)
             {
@@ -219,6 +231,14 @@ namespace SS_CAM.Views
                     List<ProjectStatusItem> list = new List<ProjectStatusItem>();
                     try
                     {
+                        // 1. Load lightweight Studio Tasks from .sscam/tasks/*.md
+                        List<ProjectStatusItem> tasks = StudioTaskService.LoadStudioTasks(root);
+                        if (tasks != null && tasks.Count > 0)
+                        {
+                            list.AddRange(tasks);
+                        }
+
+                        // 2. Load heavy NAS Vault Projects
                         List<DesignerFolderItem> folders = WorkspaceScanner.ListDesignerFolders(root, "", "", 500);
                         if (folders != null)
                         {
@@ -310,6 +330,14 @@ namespace SS_CAM.Views
         {
             try
             {
+                string scopeFilter = "all";
+                if (ScopeFilter != null && ScopeFilter.SelectedItem is ComboBoxItem)
+                {
+                    ComboBoxItem scopeCbi = (ComboBoxItem)ScopeFilter.SelectedItem;
+                    string tag = scopeCbi.Tag != null ? scopeCbi.Tag.ToString().ToLowerInvariant() : "";
+                    if (!string.IsNullOrEmpty(tag)) scopeFilter = tag;
+                }
+
                 string designerFilter = DesignerFilterTM.SelectedItem != null
                     ? DesignerFilterTM.SelectedItem.ToString() : "All Designers";
                 string priorityFilter = "";
@@ -339,6 +367,8 @@ namespace SS_CAM.Views
                 foreach (ProjectStatusItem p in _allProjects)
                 {
                     if (p == null) continue;
+                    if (scopeFilter == "tasks" && !p.IsStudioTask) continue;
+                    if (scopeFilter == "projects" && p.IsStudioTask) continue;
                     if (designerFilter != "All Designers" && !string.IsNullOrWhiteSpace(designerFilter))
                     {
                         bool match = false;
@@ -487,6 +517,7 @@ namespace SS_CAM.Views
         private void OnTMResetFiltersClicked(object sender, RoutedEventArgs e)
         {
             if (TxtSearchQuery != null) TxtSearchQuery.Text = "";
+            if (ScopeFilter != null && ScopeFilter.Items.Count > 0) ScopeFilter.SelectedIndex = 0;
             if (DesignerFilterTM != null && DesignerFilterTM.Items.Count > 0) DesignerFilterTM.SelectedIndex = 0;
             if (StatusFilter != null && StatusFilter.Items.Count > 0) StatusFilter.SelectedIndex = 0;
             if (PriorityFilter != null && PriorityFilter.Items.Count > 0) PriorityFilter.SelectedIndex = 0;
@@ -757,10 +788,17 @@ namespace SS_CAM.Views
                     if (!string.Equals(cur, tgt, StringComparison.OrdinalIgnoreCase))
                     {
                         item.Status = targetStatus;
-                        FrontmatterService.WriteStatus(item);
+                        if (item.IsStudioTask)
+                        {
+                            StudioTaskService.SaveStudioTask(item, null);
+                        }
+                        else
+                        {
+                            FrontmatterService.WriteStatus(item);
+                        }
 
                         NotificationService.ShowSuccess(
-                            "Project Status Updated",
+                            item.IsStudioTask ? "Task Status Updated" : "Project Status Updated",
                             string.Format("'{0}' moved to {1}", item.Project, targetStatus),
                             item.FullPath);
 
@@ -797,6 +835,21 @@ namespace SS_CAM.Views
             if (BtnDetailOpenCanva != null)
             {
                 BtnDetailOpenCanva.Visibility = item.HasCanvaUrl ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            if (BtnDetailProvision != null)
+            {
+                BtnDetailProvision.Visibility = (item.IsStudioTask && !item.IsConverted) ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            if (BtnDetailOpenSource != null)
+            {
+                BtnDetailOpenSource.Visibility = (item.IsStudioTask && !item.IsConverted) ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (BtnDetailHandoverZip != null)
+            {
+                BtnDetailHandoverZip.Visibility = (item.IsStudioTask && !item.IsConverted) ? Visibility.Collapsed : Visibility.Visible;
             }
 
             // Set Status combobox
@@ -836,7 +889,9 @@ namespace SS_CAM.Views
             PopulateDetailSubtasks(item);
 
             // Load README body content notes
-            string body = FrontmatterService.ReadBody(item.FullPath);
+            string body = item.IsStudioTask
+                ? StudioTaskService.ReadStudioTaskBody(item.FullPath)
+                : FrontmatterService.ReadBody(item.FullPath);
             DetailReadmePreview.Text = body ?? "";
             DetailReadmeRendered.Document = MarkdownHelper.ToFlowDocument(body);
 
@@ -1099,8 +1154,16 @@ namespace SS_CAM.Views
 
             try
             {
-                FrontmatterService.WriteStatusAndBody(_editingProject, newBody);
-                DetailSaveStatus.Text = "Saved to README.md \u2713";
+                if (_editingProject.IsStudioTask)
+                {
+                    StudioTaskService.SaveStudioTask(_editingProject, newBody);
+                    DetailSaveStatus.Text = "Saved to task markdown \u2713";
+                }
+                else
+                {
+                    FrontmatterService.WriteStatusAndBody(_editingProject, newBody);
+                    DetailSaveStatus.Text = "Saved to README.md \u2713";
+                }
 
                 // Update rendered markdown preview document
                 DetailReadmeRendered.Document = MarkdownHelper.ToFlowDocument(newBody);
@@ -1163,7 +1226,14 @@ namespace SS_CAM.Views
 
             try
             {
-                FrontmatterService.WriteStatusAndBody(_editingProject, newBody);
+                if (_editingProject.IsStudioTask)
+                {
+                    StudioTaskService.SaveStudioTask(_editingProject, newBody);
+                }
+                else
+                {
+                    FrontmatterService.WriteStatusAndBody(_editingProject, newBody);
+                }
                 DetailSaveStatus.Text = string.Format("Handed over to {0} \u2713", newOwner);
                 DetailReadmeRendered.Document = MarkdownHelper.ToFlowDocument(newBody);
 
@@ -1222,8 +1292,11 @@ namespace SS_CAM.Views
             else if (currentStatus == "in-progress" || currentStatus == "progress" || currentStatus == "review" || currentStatus == "revision") st.Status = "done";
             else st.Status = "draft";
 
-            // Save immediately to README.md
-            FrontmatterService.WriteStatus(_editingProject);
+            // Save immediately
+            if (_editingProject.IsStudioTask)
+                StudioTaskService.SaveStudioTask(_editingProject, null);
+            else
+                FrontmatterService.WriteStatus(_editingProject);
             PopulateDetailSubtasks(_editingProject);
             ApplyFiltersAndUpdateBoard();
             UpdateMetricSummaryCards();
@@ -1408,7 +1481,10 @@ namespace SS_CAM.Views
             _editingSubtaskId = null;
             if (SubtaskEditorCard != null) SubtaskEditorCard.Visibility = Visibility.Collapsed;
 
-            FrontmatterService.WriteStatus(_editingProject);
+            if (_editingProject.IsStudioTask)
+                StudioTaskService.SaveStudioTask(_editingProject, null);
+            else
+                FrontmatterService.WriteStatus(_editingProject);
             PopulateDetailSubtasks(_editingProject);
             ApplyFiltersAndUpdateBoard();
             UpdateMetricSummaryCards();
@@ -1429,7 +1505,10 @@ namespace SS_CAM.Views
                     if (SubtaskEditorCard != null) SubtaskEditorCard.Visibility = Visibility.Collapsed;
                 }
                 _editingProject.Subtasks.Remove(st);
-                FrontmatterService.WriteStatus(_editingProject);
+                if (_editingProject.IsStudioTask)
+                    StudioTaskService.SaveStudioTask(_editingProject, null);
+                else
+                    FrontmatterService.WriteStatus(_editingProject);
                 PopulateDetailSubtasks(_editingProject);
                 ApplyFiltersAndUpdateBoard();
                 UpdateMetricSummaryCards();
@@ -1440,22 +1519,35 @@ namespace SS_CAM.Views
         {
             if (_editingProject == null) return;
 
-            string projectId = !string.IsNullOrWhiteSpace(_editingProject.ProjectId)
-                ? _editingProject.ProjectId
-                : ProjectStatusItem.ExtractProjectId(_editingProject.Project);
-
-            if (string.IsNullOrWhiteSpace(projectId) && DetailReadmePreview != null && !string.IsNullOrWhiteSpace(DetailReadmePreview.Text))
+            string projectId = null;
+            if (_editingProject.IsStudioTask)
             {
-                Match m = Regex.Match(DetailReadmePreview.Text, @"(?:^|\n)\s*-\s*\*{0,2}Project ID\*{0,2}\s*:\s*([A-Za-z0-9_-]+)", RegexOptions.IgnoreCase);
-                if (m.Success)
-                {
-                    projectId = m.Groups[1].Value.Trim();
-                }
+                if (!string.IsNullOrWhiteSpace(_editingProject.ConvertedJobId))
+                    projectId = _editingProject.ConvertedJobId;
+                else if (!string.IsNullOrWhiteSpace(_editingProject.ConvertedProjectId))
+                    projectId = _editingProject.ConvertedProjectId;
+                else
+                    projectId = _editingProject.TaskId;
             }
-
-            if (string.IsNullOrWhiteSpace(projectId))
+            else
             {
-                projectId = _editingProject.Project ?? string.Empty;
+                projectId = !string.IsNullOrWhiteSpace(_editingProject.ProjectId)
+                    ? _editingProject.ProjectId
+                    : ProjectStatusItem.ExtractProjectId(_editingProject.Project);
+
+                if (string.IsNullOrWhiteSpace(projectId) && DetailReadmePreview != null && !string.IsNullOrWhiteSpace(DetailReadmePreview.Text))
+                {
+                    Match m = Regex.Match(DetailReadmePreview.Text, @"(?:^|\n)\s*-\s*\*{0,2}Project ID\*{0,2}\s*:\s*([A-Za-z0-9_-]+)", RegexOptions.IgnoreCase);
+                    if (m.Success)
+                    {
+                        projectId = m.Groups[1].Value.Trim();
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(projectId))
+                {
+                    projectId = _editingProject.Project ?? string.Empty;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(projectId))
@@ -1467,7 +1559,7 @@ namespace SS_CAM.Views
                     {
                         DetailSaveStatus.Text = string.Format("Copied ID '{0}' \u2713", projectId);
                     }
-                    NotificationService.ShowSuccess("Copied Project ID", string.Format("Project ID '{0}' copied to clipboard.", projectId), _editingProject.FullPath);
+                    NotificationService.ShowSuccess("Copied ID", string.Format("ID '{0}' copied to clipboard.", projectId), _editingProject.FullPath);
                 }
                 catch (Exception ex)
                 {
@@ -1482,20 +1574,32 @@ namespace SS_CAM.Views
             {
                 if (DetailSaveStatus != null)
                 {
-                    DetailSaveStatus.Text = "Project ID not found";
+                    DetailSaveStatus.Text = "ID not found";
                 }
             }
         }
 
         private void OnDetailOpenFolderClicked(object sender, RoutedEventArgs e)
         {
-            if (_editingProject != null && Directory.Exists(_editingProject.FullPath))
+            if (_editingProject == null) return;
+
+            string targetFolder = null;
+            if (Directory.Exists(_editingProject.FullPath))
+            {
+                targetFolder = _editingProject.FullPath;
+            }
+            else if (File.Exists(_editingProject.FullPath))
+            {
+                targetFolder = Path.GetDirectoryName(_editingProject.FullPath);
+            }
+
+            if (!string.IsNullOrEmpty(targetFolder) && Directory.Exists(targetFolder))
             {
                 try
                 {
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = _editingProject.FullPath,
+                        FileName = targetFolder,
                         UseShellExecute = true
                     });
                 }
@@ -1652,6 +1756,149 @@ namespace SS_CAM.Views
                         NotificationService.ShowError("Ingestion Failed", result.ErrorMessage ?? "Could not ingest dropped files.");
                     }
                 }
+            }
+        }
+
+        // ─── Studio Task & NAS Workspace Provisioning Bridge ──────────────────
+
+        private async void OnDetailProvisionClicked(object sender, RoutedEventArgs e)
+        {
+            if (_editingProject == null || !_editingProject.IsStudioTask) return;
+
+            string designer = !string.IsNullOrWhiteSpace(_editingProject.Designer) ? _editingProject.Designer : "Unassigned";
+            string brand = !string.IsNullOrWhiteSpace(_editingProject.TaskBrand) ? _editingProject.TaskBrand : "SS";
+
+            var confirmResult = System.Windows.MessageBox.Show(
+                string.Format("Provision heavy NAS project workspace for '{0}'?\n\nDesigner: {1}\nBrand: {2}\n\nThis will assign a Job ID and scaffold the 5 production folders on the NAS.",
+                    _editingProject.Project, designer, brand),
+                "Provision NAS Workspace",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Question);
+
+            if (confirmResult != System.Windows.MessageBoxResult.Yes) return;
+
+            if (BtnDetailProvision != null) BtnDetailProvision.IsEnabled = false;
+            if (DetailSaveStatus != null) DetailSaveStatus.Text = "Provisioning NAS workspace...";
+
+            try
+            {
+                var result = await StudioTaskService.ProvisionTaskToProjectAsync(_workspaceRoot, _editingProject);
+                if (result.Success)
+                {
+                    NotificationService.ShowSuccess(
+                        "Workspace Provisioned",
+                        string.Format("Task upgraded to Project '{0}' ({1})", result.JobId, result.ProjectName),
+                        result.ProjectFolder);
+
+                    if (DetailSaveStatus != null) DetailSaveStatus.Text = string.Format("Provisioned as {0} \u2713", result.JobId);
+
+                    // Reload board
+                    await LoadProjectsAsync();
+
+                    // Close detail panel
+                    DetailPanel.Visibility = Visibility.Collapsed;
+                    _editingProject = null;
+                }
+                else
+                {
+                    NotificationService.ShowError("Provisioning Failed", result.ErrorMessage ?? "Unknown error occurred.");
+                    if (DetailSaveStatus != null) DetailSaveStatus.Text = string.Format("Error: {0}", result.ErrorMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                NotificationService.ShowError("Provisioning Error", ex.Message);
+                if (DetailSaveStatus != null) DetailSaveStatus.Text = string.Format("Error: {0}", ex.Message);
+            }
+            finally
+            {
+                if (BtnDetailProvision != null) BtnDetailProvision.IsEnabled = true;
+            }
+        }
+
+        private void OnNewStudioTaskClicked(object sender, RoutedEventArgs e)
+        {
+            if (NewTaskOverlay == null) return;
+            if (TxtNewTaskTitle != null) TxtNewTaskTitle.Text = "";
+            if (TxtNewTaskBrief != null) TxtNewTaskBrief.Text = "";
+            if (DpNewTaskDueDate != null) DpNewTaskDueDate.SelectedDate = DateTime.Today.AddDays(3);
+            if (CmbNewTaskBrand != null && CmbNewTaskBrand.Items.Count > 0) CmbNewTaskBrand.SelectedIndex = 0;
+            if (CmbNewTaskPriority != null && CmbNewTaskPriority.Items.Count > 2) CmbNewTaskPriority.SelectedIndex = 2; // medium
+            
+            // Set assignee if designer filter is currently selected
+            if (CmbNewTaskAssignee != null)
+            {
+                string curDesigner = DesignerFilterTM != null && DesignerFilterTM.SelectedItem != null ? DesignerFilterTM.SelectedItem.ToString() : "";
+                if (!string.IsNullOrWhiteSpace(curDesigner) && curDesigner != "All Designers")
+                {
+                    CmbNewTaskAssignee.Text = curDesigner;
+                }
+                else
+                {
+                    CmbNewTaskAssignee.Text = "";
+                }
+            }
+
+            NewTaskOverlay.Visibility = Visibility.Visible;
+            if (TxtNewTaskTitle != null) TxtNewTaskTitle.Focus();
+        }
+
+        private void OnCancelNewTaskClicked(object sender, RoutedEventArgs e)
+        {
+            if (NewTaskOverlay != null)
+            {
+                NewTaskOverlay.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private async void OnSubmitNewTaskClicked(object sender, RoutedEventArgs e)
+        {
+            string title = TxtNewTaskTitle != null ? TxtNewTaskTitle.Text.Trim() : "";
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                System.Windows.MessageBox.Show("Please enter a task title.", "Title Required", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+
+            string brand = "SS";
+            if (CmbNewTaskBrand != null && CmbNewTaskBrand.SelectedItem is ComboBoxItem)
+            {
+                ComboBoxItem cbi = (ComboBoxItem)CmbNewTaskBrand.SelectedItem;
+                if (cbi.Tag != null) brand = cbi.Tag.ToString();
+            }
+
+            string priority = "medium";
+            if (CmbNewTaskPriority != null && CmbNewTaskPriority.SelectedItem is ComboBoxItem)
+            {
+                ComboBoxItem priCbi = (ComboBoxItem)CmbNewTaskPriority.SelectedItem;
+                if (priCbi.Content != null) priority = priCbi.Content.ToString();
+            }
+
+            string assignee = CmbNewTaskAssignee != null ? CmbNewTaskAssignee.Text.Trim() : "";
+            string dueDate = DpNewTaskDueDate != null && DpNewTaskDueDate.SelectedDate.HasValue
+                ? DpNewTaskDueDate.SelectedDate.Value.ToString("yyyy-MM-dd")
+                : "";
+
+            string brief = TxtNewTaskBrief != null ? TxtNewTaskBrief.Text.Trim() : "";
+
+            try
+            {
+                var taskItem = StudioTaskService.CreateStudioTask(_workspaceRoot, title, brand, priority, assignee, dueDate, brief);
+                if (taskItem != null)
+                {
+                    NotificationService.ShowSuccess("Studio Task Created", string.Format("Task '{0}' created in .sscam/tasks", title), taskItem.FullPath);
+                    if (NewTaskOverlay != null) NewTaskOverlay.Visibility = Visibility.Collapsed;
+
+                    await LoadProjectsAsync();
+                }
+                else
+                {
+                    NotificationService.ShowError("Creation Failed", "Could not create studio task file.");
+                }
+            }
+            catch (Exception ex)
+            {
+                NotificationService.ShowError("Error Creating Task", ex.Message);
             }
         }
 

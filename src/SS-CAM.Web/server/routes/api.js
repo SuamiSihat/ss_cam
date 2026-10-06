@@ -939,6 +939,76 @@ router.delete('/projects/:id', authenticateToken, requireRole('admin'), (req, re
   }
 });
 
+// ─── STUDIO TASK MANAGER (LIGHTWEIGHT PRE-PRODUCTION PIPELINE) ───────────
+
+router.get('/studio-tasks', authenticateToken, (req, res) => {
+  try {
+    const tasks = TaskService.getAllStudioTasks(req.query);
+    res.json({ success: true, tasks, count: tasks.length });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, tasks: [] });
+  }
+});
+
+router.get('/studio-tasks/:id', authenticateToken, (req, res) => {
+  try {
+    const task = TaskService.getStudioTaskById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ success: false, error: `Task ${req.params.id} not found` });
+    }
+    res.json({ success: true, task });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/studio-tasks', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user ? (req.user.name || req.user.username) : 'Studio User';
+    const role = req.user ? req.user.role : 'Designer';
+    const task = TaskService.createStudioTask(req.body, actor, role);
+    res.status(201).json({ success: true, task });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+router.put('/studio-tasks/:id', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user ? (req.user.name || req.user.username) : 'Studio User';
+    const role = req.user ? req.user.role : 'Designer';
+    const task = TaskService.updateStudioTask(req.params.id, req.body, actor, role);
+    res.json({ success: true, task });
+  } catch (err) {
+    const isNotFound = err.message && err.message.includes('not found');
+    res.status(isNotFound ? 404 : 400).json({ success: false, error: err.message });
+  }
+});
+
+router.delete('/studio-tasks/:id', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user ? (req.user.name || req.user.username) : 'Studio User';
+    const role = req.user ? req.user.role : 'Designer';
+    const result = TaskService.deleteStudioTask(req.params.id, actor, role);
+    res.json(result);
+  } catch (err) {
+    const isNotFound = err.message && err.message.includes('not found');
+    res.status(isNotFound ? 404 : 400).json({ success: false, error: err.message });
+  }
+});
+
+// PHASE 3 THE BRIDGE: Provision NAS Workspace
+router.post('/studio-tasks/:id/provision', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user ? (req.user.name || req.user.username) : 'Studio User';
+    const role = req.user ? req.user.role : 'Creative Lead';
+    const result = TaskService.provisionTaskToProject(req.params.id, req.body, actor, role);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 // ─── PROJECT COMMENTS & COLLABORATION ────────────────────────────────
 
 router.get('/projects/:id/comments', authenticateToken, (req, res) => {

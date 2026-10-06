@@ -962,12 +962,12 @@
                 <div class="subtasks-header-left">
                   <FluentIcons name="checkbox" size={20} color="var(--brand-primary, #0078D4)" />
                   <div>
-                    <h3 class="subtasks-section-title">Deliverables &amp; Subtasks Breakdown</h3>
+                    <h3 class="subtasks-section-title">Production Deliverables Pipeline</h3>
                     <span class="subtasks-section-subtitle">
                       {#if subtaskStats.total > 0}
                         {subtaskStats.completed}/{subtaskStats.total} Completed ({subtaskStats.percent}%) • Total Weight: {subtaskStats.totalWeight} pts
                       {:else}
-                        Track milestone deliverables, format specs, and point weights for this job
+                        Track milestone deliverables, format specs, and point weights for this project
                       {/if}
                     </span>
                   </div>
@@ -1053,7 +1053,7 @@
                     <FluentIcons name="checkbox" size={32} color="var(--text-tertiary, #94A3B8)" />
                   </div>
                   <h4>No Deliverables or Subtasks Configured</h4>
-                  <p>Break down this creative job into trackable outputs (e.g. Master Video 9:16, Story Resizes, Hook variations) with milestone statuses and capacity point weights.</p>
+                  <p>Break down this project into trackable outputs (e.g. Master Video 9:16, Story Resizes, Hook variations) with milestone statuses and capacity point weights.</p>
                   <div class="empty-hero-actions">
                     <button type="button" class="btn-subtask-action primary" onclick={openAddSubtaskModal}>
                       <FluentIcons name="add" size={13} />
@@ -1490,7 +1490,7 @@
             <div class="subtasks-header-title-row">
               <div class="subtasks-title-badge-group">
                 <FluentIcons name="checkbox" size={16} color="var(--brand-primary, #0078D4)" />
-                <h3 class="subtasks-column-title">Subtasks &amp; Deliverables</h3>
+                <h3 class="subtasks-column-title">Production Deliverables</h3>
               </div>
               <button
                 type="button"
@@ -1769,7 +1769,7 @@
           />
         </div>
 
-        <div class="subtask-form-row two-col">
+        <div class="subtask-form-row">
           <div class="subtask-form-group">
             <label class="form-label" for="st-form-type">Deliverable Type</label>
             <select id="st-form-type" class="form-select" bind:value={subtaskForm.type}>
@@ -2043,12 +2043,12 @@
     outline: none;
     border: 1px solid var(--surface-card-border);
   }
-  .status-backlog { background: #F1F5F9; color: #475569; }
-  .status-in-progress { background: #EBF4FE; color: #043388; border-color: #BFDBFE; }
-  .status-review { background: #FFFBEB; color: #B45309; border-color: #FDE68A; }
-  .status-revision { background: #FEF2F2; color: #B91C1C; border-color: #FECACA; }
-  .status-approved { background: #ECFDF5; color: #047857; border-color: #A7F3D0; }
-  .status-done { background: #F3E8FF; color: #7E22CE; border-color: #E9D5FF; }
+  .status-backlog { background: var(--surface-card-subtle, #F1F5F9); color: var(--text-secondary, #475569); }
+  .status-in-progress { background: var(--colorBrandBackground2, #EBF4FE); color: var(--colorBrandForeground2, #043388); border-color: var(--colorBrandStroke2, #BFDBFE); }
+  .status-review { background: var(--colorStatusWarningBackground1, #FFFBEB); color: var(--colorStatusWarningForeground1, #B45309); border-color: var(--colorStatusWarningBorder1, #FDE68A); }
+  .status-revision { background: var(--colorStatusDangerBackground1, #FEF2F2); color: var(--colorStatusDangerForeground1, #B91C1C); border-color: var(--colorStatusDangerBorder1, #FECACA); }
+  .status-approved { background: var(--colorStatusSuccessBackground1, #ECFDF5); color: var(--colorStatusSuccessForeground1, #047857); border-color: var(--colorStatusSuccessBorder1, #A7F3D0); }
+  .status-done { background: var(--colorStatusSuccessBackground2, #F3E8FF); color: var(--colorStatusSuccessForeground2, #7E22CE); border-color: var(--colorStatusSuccessBorder2, #E9D5FF); }
 
   /* Segmented Nav */
   .canvas-segmented-nav {
@@ -2318,10 +2318,10 @@
     padding: 2px 7px;
     border-radius: 4px;
   }
-  .priority-urgent { background: #FEF2F2; color: #DC2626; border: 1px solid #FCA5A5; font-weight: 800; }
-  .priority-high { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
-  .priority-medium { background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; }
-  .priority-low { background: #F8FAFC; color: #64748B; border: 1px solid #E2E8F0; }
+  .priority-urgent { background: var(--colorStatusDangerBackground1, #FEF2F2); color: var(--colorStatusDangerForeground1, #DC2626); border: 1px solid var(--colorStatusDangerBorder1, #FCA5A5); font-weight: 800; }
+  .priority-high { background: var(--colorStatusWarningBackground1, #FFFBEB); color: var(--colorStatusWarningForeground1, #D97706); border: 1px solid var(--colorStatusWarningBorder1, #FDE68A); }
+  .priority-medium { background: var(--colorBrandBackground2, #EFF6FF); color: var(--colorBrandForeground2, #2563EB); border: 1px solid var(--colorBrandStroke2, #BFDBFE); }
+  .priority-low { background: var(--surface-card-subtle, #F8FAFC); color: var(--text-secondary, #64748B); border: 1px solid var(--surface-card-border, #E2E8F0); }
 
   .approvals-mini-section {
     display: flex;
@@ -3575,8 +3575,9 @@
 
   .form-input, .form-select {
     width: 100%;
+    min-height: 36px;
     padding: 8px 12px;
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--text-primary);
     background: var(--surface-card-subtle);
     border: 1px solid var(--surface-card-border);

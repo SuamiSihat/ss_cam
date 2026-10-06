@@ -2640,6 +2640,168 @@ This is the project brief content.
     }
   });
 
+  // ─── TEST: TaskService Decoupled Pre-Production Task Storage ──────
+  test('TaskService manages lightweight pre-production tasks in .sscam/tasks without creating NAS project folders', () => {
+    const TaskService = require('../services/TaskService');
+    const testDir = path.join(__dirname, 'temp-tasks-storage-test-' + Date.now());
+    const origRoot = config.WORKSPACE_ROOT;
+
+    try {
+      config.WORKSPACE_ROOT = testDir;
+      const tasksDir = path.join(testDir, '.sscam', 'tasks');
+
+      // 1. Create a lightweight pre-production task
+      const created = TaskService.createStudioTask({
+        title: 'Ramadan 2026 Gift Box 3D Mockup Exploration',
+        description: 'Explore gold foil stamping and green velvet insert concepts.',
+        assignee: 'SS0004',
+        brand: 'SS',
+        priority: 'urgent',
+        tags: ['packaging', '3d', 'concept']
+      }, 'TestUser', 'Art Director');
+
+      assert.ok(created, 'Task must be created');
+      assert.ok(created.id.startsWith('TSK-'), 'Task must have a TSK- ID');
+      assert.strictEqual(created.status, 'backlog');
+      assert.strictEqual(created.title, 'Ramadan 2026 Gift Box 3D Mockup Exploration');
+
+      // Verify physical storage is in .sscam/tasks/<id>.md
+      const taskFile = path.join(tasksDir, `${created.id}.md`);
+      assert.ok(fs.existsSync(taskFile), 'Markdown task file must exist in .sscam/tasks');
+
+      // Verify NO heavy project folders were created in root
+      const rootItems = fs.readdirSync(testDir);
+      assert.ok(!rootItems.includes('01_BRIEF_ASSETS'), 'Must not create project folder 01_BRIEF_ASSETS in root');
+      assert.ok(!rootItems.includes('05_DELIVERABLES'), 'Must not create 05_DELIVERABLES in root');
+      assert.strictEqual(rootItems.length, 1, 'Only .sscam should exist in test workspace');
+      assert.strictEqual(rootItems[0], '.sscam');
+    } finally {
+      config.WORKSPACE_ROOT = origRoot;
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
+  // ─── TEST: TaskService CRUD & Filtering ──────
+  test('TaskService supports listing, filtering, updating, and deleting tasks', () => {
+    const TaskService = require('../services/TaskService');
+    const testDir = path.join(__dirname, 'temp-tasks-crud-test-' + Date.now());
+    const origRoot = config.WORKSPACE_ROOT;
+
+    try {
+      config.WORKSPACE_ROOT = testDir;
+
+      const t1 = TaskService.createStudioTask({
+        title: 'TikTok Viral Script Variations',
+        status: 'in-progress',
+        brand: 'SSE',
+        priority: 'high',
+        assignee: 'SS0001'
+      });
+
+      const t2 = TaskService.createStudioTask({
+        title: 'Clinic Signage Mockup',
+        status: 'review',
+        brand: 'SSC',
+        priority: 'medium',
+        assignee: 'SS0002'
+      });
+
+      // 1. List all
+      const all = TaskService.getAllStudioTasks({});
+      assert.strictEqual(all.length, 2, 'Must list 2 created tasks');
+
+      // 2. Filter by status
+      const inProgress = TaskService.getAllStudioTasks({ status: 'in-progress' });
+      assert.strictEqual(inProgress.length, 1, 'Must filter 1 in-progress task');
+      assert.strictEqual(inProgress[0].id, t1.id);
+
+      // 3. Filter by brand
+      const sscTasks = TaskService.getAllStudioTasks({ brand: 'SSC' });
+      assert.strictEqual(sscTasks.length, 1, 'Must filter 1 SSC task');
+      assert.strictEqual(sscTasks[0].id, t2.id);
+
+      // 4. Update task
+      const updated = TaskService.updateStudioTask(t1.id, {
+        status: 'review',
+        priority: 'urgent',
+        title: 'TikTok Viral Script Variations (Updated)'
+      });
+      assert.strictEqual(updated.status, 'review');
+      assert.strictEqual(updated.priority, 'urgent');
+      assert.strictEqual(updated.title, 'TikTok Viral Script Variations (Updated)');
+
+      // 5. Delete task
+      const delRes = TaskService.deleteStudioTask(t2.id);
+      assert.strictEqual(delRes.success, true);
+      const remaining = TaskService.getAllStudioTasks({});
+      assert.strictEqual(remaining.length, 1, 'Must have 1 task remaining');
+    } finally {
+      config.WORKSPACE_ROOT = origRoot;
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
+  // ─── TEST: TaskService NAS Workspace Provisioning Bridge ──────
+  test('TaskService provisions a pre-production task into an official NAS project vault (The Bridge)', () => {
+    const TaskService = require('../services/TaskService');
+    const testDir = path.join(__dirname, 'temp-tasks-bridge-test-' + Date.now());
+    const origRoot = config.WORKSPACE_ROOT;
+
+    try {
+      config.WORKSPACE_ROOT = testDir;
+
+      // 1. Create pre-production task
+      const task = TaskService.createStudioTask({
+        title: 'SuperCharge Vitality Packaging Redesign',
+        description: '## Campaign Overview\nRedesign the outer carton box with high-durability UV spot coating.',
+        brand: 'SS',
+        priority: 'high',
+        dueDate: '2026-10-31',
+        assignee: 'SS0004'
+      }, 'Harussani', 'Art Director');
+
+      assert.strictEqual(task.status, 'backlog');
+      assert.strictEqual(task.jobId, null);
+      assert.strictEqual(task.projectId, null);
+
+      // 2. Trigger NAS Workspace Provisioning Bridge
+      const provisionRes = TaskService.provisionTaskToProject(task.id, {
+        brand: 'SS',
+        presetType: 'Graphic & Print Design',
+        designer: 'Harussani'
+      }, 'Harussani', 'Art Director');
+
+      assert.ok(provisionRes.success, 'Provisioning must succeed');
+      assert.ok(provisionRes.jobId, 'Job ID must be generated');
+      assert.ok(provisionRes.folderName, 'Folder name must be generated');
+      assert.ok(provisionRes.projectDir, 'Target project dir must be returned');
+
+      // 3. Verify standard 5 canonical folders were scaffolded
+      const subFolders = ['01_BRIEF_ASSETS', '02_SOURCE_FILES', '03_COPYWRITING', '04_WORK_IN_PROGRESS', '05_DELIVERABLES'];
+      for (const sub of subFolders) {
+        const subPath = path.join(provisionRes.projectDir, sub);
+        assert.ok(fs.existsSync(subPath), `Scaffolded folder ${sub} must exist on NAS`);
+      }
+
+      // 4. Verify initial COPY.md and README.md with migrated brief
+      const readmePath = path.join(provisionRes.projectDir, 'README.md');
+      assert.ok(fs.existsSync(readmePath), 'Project README.md must exist');
+      const readmeContent = fs.readFileSync(readmePath, 'utf8');
+      assert.ok(readmeContent.includes('SuperCharge Vitality Packaging Redesign'), 'README must contain task title');
+      assert.ok(readmeContent.includes(task.id), 'README must reference originating task ID');
+
+      // 5. Verify the task in .sscam/tasks is now marked as converted
+      const updatedTask = TaskService.getStudioTaskById(task.id);
+      assert.strictEqual(updatedTask.status, 'converted', 'Task status must be converted');
+      assert.strictEqual(updatedTask.jobId, provisionRes.jobId, 'Task must store official JobId');
+      assert.strictEqual(updatedTask.projectId, provisionRes.folderName, 'Task must store projectId');
+      assert.ok(updatedTask.convertedAt, 'Task must have convertedAt timestamp');
+    } finally {
+      config.WORKSPACE_ROOT = origRoot;
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {

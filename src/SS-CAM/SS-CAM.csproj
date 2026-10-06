@@ -263,6 +263,7 @@
     <Compile Include="Services\SmartIngesterService.cs" />
     <Compile Include="Services\TextDiffService.cs" />
     <Compile Include="Services\GeminiDesktopService.cs" />
+    <Compile Include="Services\StudioTaskService.cs" />
     <Compile Include="Views\SplashWindow.xaml.cs">
       <DependentUpon>SplashWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
