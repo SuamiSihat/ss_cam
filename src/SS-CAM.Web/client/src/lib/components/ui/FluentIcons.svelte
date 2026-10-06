@@ -71,7 +71,11 @@
     | 'pin'
     | 'externalLink'
     | 'code'
-    | 'diff';
+    | 'diff'
+    | 'flag'
+    | 'overview'
+    | 'circleDashed'
+    | 'pieChart';
 
   interface Props {
     name: IconName;
@@ -280,6 +284,22 @@
   {:else if name === 'clock'}
     <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
       <path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm.75 4.5a.75.75 0 0 0-1.5 0v4.25c0 .2.08.39.22.53l2.5 2.5a.75.75 0 0 0 1.06-1.06L10.75 10.44V6.5z"/>
+    </svg>
+  {:else if name === 'flag'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M4 2.5a.75.75 0 0 1 .75.75V4h9.3a.75.75 0 0 1 .6 1.2l-2.4 3.2 2.4 3.2a.75.75 0 0 1-.6 1.2H5.5v5.25a.75.75 0 0 1-1.5 0V3.25A.75.75 0 0 1 4 2.5zm1.5 3v5.5h8.08l-1.92-2.55a.75.75 0 0 1 0-.9L13.58 5.5H5.5z"/>
+    </svg>
+  {:else if name === 'overview'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h11A1.5 1.5 0 0 1 17 4.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 15.5v-11zm1.5 0v3h11v-3h-11zm0 4.5v6.5h11V9h-11z"/>
+    </svg>
+  {:else if name === 'circleDashed'}
+    <svg viewBox="0 0 20 20" width="100%" height="100%">
+      <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-dasharray="3 3"/>
+    </svg>
+  {:else if name === 'pieChart'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M10 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 .75.75 0 0 0-.75-.75H10.75V2.75A.75.75 0 0 0 10 2zm-.75 1.53V10h6.47A6.5 6.5 0 1 1 9.25 3.53zM12 2.05a8 8 0 0 1 5.95 5.95H12V2.05z"/>
     </svg>
   {:else}
     <!-- Default generic bullet icon -->
