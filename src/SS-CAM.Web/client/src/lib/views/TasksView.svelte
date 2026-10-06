@@ -30,9 +30,24 @@
   });
 
   let isLoading = $state(true);
-  
-  // ClickUp 5-View Switcher: overview | list | board | gantt | table
-  let viewMode = $state<'overview' | 'list' | 'board' | 'gantt' | 'table'>('overview');
+
+  // A/B Layout Mode: 'minimalist' (A: Focus & Speed) vs 'executive' (B: Full Operations & Telemetry)
+  let layoutMode = $state<'minimalist' | 'executive'>(
+    (typeof localStorage !== 'undefined' && localStorage.getItem('ss_cam_tasks_mode') === 'executive') ? 'executive' : 'minimalist'
+  );
+
+  function setLayoutMode(m: 'minimalist' | 'executive') {
+    layoutMode = m;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('ss_cam_tasks_mode', m);
+    }
+    if (m === 'minimalist' && viewMode === 'overview') {
+      viewMode = 'list';
+    }
+  }
+
+  // 5-View Switcher: overview | list | board | gantt | table
+  let viewMode = $state<'overview' | 'list' | 'board' | 'gantt' | 'table'>('list');
   
   // Group By: status | workstream | priority
   let groupBy = $state<'status' | 'workstream' | 'priority'>('workstream');
@@ -52,7 +67,15 @@
   let selectedTask = $state<StudioTask | null>(null);
   let isDetailDrawerOpen = $state(false);
 
-  // Expanded tree states for hierarchical List & Gantt
+  // Table multi-selection & sorting
+  let selectedTaskIds = $state<string[]>([]);
+  let tableSortCol = $state<'title' | 'assignee' | 'status' | 'dueDate' | 'priority'>('title');
+  let tableSortAsc = $state(true);
+
+  // Timeline (Gantt) navigation state
+  let timelineOffset = $state(0); // Offset in 7-day weeks
+
+  // Expanded tree states for hierarchical List & Timeline
   let expandedWorkstreams = $state<Record<string, boolean>>({
     'General Operations': true,
     'Software & App Dev': true,
@@ -76,10 +99,10 @@
   let staffRoster = $state<any[]>([]);
 
   const columns: { id: StudioTaskStatus; label: string; icon: string; color: string }[] = [
-    { id: 'backlog', label: 'BACKLOG', icon: 'circleDashed', color: '#64748B' },
-    { id: 'in-progress', label: 'IN PROGRESS', icon: 'bolt', color: '#0284C7' },
-    { id: 'review', label: 'REVIEW', icon: 'search', color: '#8B5CF6' },
-    { id: 'done', label: 'DONE', icon: 'checkCircle', color: '#10B981' }
+    { id: 'backlog', label: 'Backlog', icon: 'circleDashed', color: '#64748B' },
+    { id: 'in-progress', label: 'In Progress', icon: 'bolt', color: '#0284C7' },
+    { id: 'review', label: 'Review', icon: 'search', color: '#8B5CF6' },
+    { id: 'done', label: 'Done', icon: 'checkCircle', color: '#10B981' }
   ];
 
   const brandChips = ['all', 'SS', 'SSH', 'SSC', 'SSW', 'SSE', 'SST'];
@@ -506,19 +529,27 @@
     return tasks.filter(t => task.blockedBy?.includes(t.id) && t.status !== 'done' && t.status !== 'converted');
   }
 
-  // 14-Day Calendar Dates for ClickUp Gantt View
+  // 14-Day Calendar Dates for Dynamic Timeline (Gantt) View
   const todayDate = new Date();
-  const ganttDates = $derived.by(() => {
+
+  const dynamicTimelineDates = $derived.by(() => {
     const list: Date[] = [];
     const base = new Date();
     base.setHours(0, 0, 0, 0);
-    // 3 days before today, 10 days after today
-    for (let i = -3; i <= 10; i++) {
+    base.setDate(base.getDate() - 3 + timelineOffset * 7);
+    for (let i = 0; i < 14; i++) {
       const d = new Date(base);
       d.setDate(base.getDate() + i);
       list.push(d);
     }
     return list;
+  });
+
+  const timelineRangeLabel = $derived.by(() => {
+    if (dynamicTimelineDates.length === 0) return '';
+    const f = dynamicTimelineDates[0];
+    const l = dynamicTimelineDates[dynamicTimelineDates.length - 1];
+    return `${f.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${l.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
   });
 
   function getGanttBarStyle(task: StudioTask, dates: Date[]) {
@@ -541,6 +572,98 @@
       width: `${width}%`,
       isMilestone: width <= 3
     };
+  }
+
+  // Team Workload & Allocation Telemetry (Replaces bloated emoji links in Overview)
+  const teamWorkloads = $derived.by(() => {
+    const map = new Map<string, { total: number; inProgress: number; review: number; done: number; name: string }>();
+    for (const t of tasks) {
+      const key = (t.assignee || 'unassigned').toLowerCase();
+      const name = t.assigneeName || (key === 'unassigned' ? 'Unassigned' : key);
+      const entry = map.get(key) || { total: 0, inProgress: 0, review: 0, done: 0, name };
+      entry.total += 1;
+      if (t.status === 'in-progress') entry.inProgress += 1;
+      if (t.status === 'review') entry.review += 1;
+      if (t.status === 'done' || t.status === 'converted') entry.done += 1;
+      map.set(key, entry);
+    }
+    return Array.from(map.entries())
+      .map(([key, data]) => ({ key, ...data }))
+      .sort((a, b) => b.total - a.total);
+  });
+
+  // Table Sorting and Batch Operations
+  const sortedTableTasks = $derived.by(() => {
+    const list = [...filteredTasks];
+    const pRanks: Record<string, number> = { urgent: 4, high: 3, medium: 2, low: 1 };
+    return list.sort((a, b) => {
+      let cmp = 0;
+      if (tableSortCol === 'title') {
+        cmp = (a.title || '').localeCompare(b.title || '');
+      } else if (tableSortCol === 'assignee') {
+        cmp = (a.assigneeName || a.assignee || '').localeCompare(b.assigneeName || b.assignee || '');
+      } else if (tableSortCol === 'status') {
+        cmp = (a.status || '').localeCompare(b.status || '');
+      } else if (tableSortCol === 'dueDate') {
+        cmp = (a.dueDate || '').localeCompare(b.dueDate || '');
+      } else if (tableSortCol === 'priority') {
+        cmp = (pRanks[a.priority || 'medium'] || 0) - (pRanks[b.priority || 'medium'] || 0);
+      }
+      return tableSortAsc ? cmp : -cmp;
+    });
+  });
+
+  function toggleTableSort(col: 'title' | 'assignee' | 'status' | 'dueDate' | 'priority') {
+    if (tableSortCol === col) {
+      tableSortAsc = !tableSortAsc;
+    } else {
+      tableSortCol = col;
+      tableSortAsc = true;
+    }
+  }
+
+  function toggleSelectAllTable() {
+    if (selectedTaskIds.length === filteredTasks.length && filteredTasks.length > 0) {
+      selectedTaskIds = [];
+    } else {
+      selectedTaskIds = filteredTasks.map(t => t.id);
+    }
+  }
+
+  function toggleSelectTask(id: string) {
+    if (selectedTaskIds.includes(id)) {
+      selectedTaskIds = selectedTaskIds.filter(i => i !== id);
+    } else {
+      selectedTaskIds = [...selectedTaskIds, id];
+    }
+  }
+
+  async function handleBatchStatusChange(newStatus: StudioTaskStatus) {
+    if (selectedTaskIds.length === 0) return;
+    const targets = [...selectedTaskIds];
+    try {
+      await Promise.all(targets.map(id => ApiClient.updateStudioTask(id, { status: newStatus })));
+      tasks = tasks.map(t => targets.includes(t.id) ? { ...t, status: newStatus } : t);
+      appState.addToast(`Updated ${targets.length} tasks to ${newStatus}`, 'success');
+      selectedTaskIds = [];
+    } catch (err: any) {
+      appState.addToast(`Failed batch update: ${err.message}`, 'error');
+    }
+  }
+
+  async function handleBatchDelete() {
+    if (selectedTaskIds.length === 0) return;
+    const cnt = selectedTaskIds.length;
+    if (!confirm(`Are you sure you want to delete ${cnt} selected task(s)?`)) return;
+    const targets = [...selectedTaskIds];
+    try {
+      await Promise.all(targets.map(id => ApiClient.deleteStudioTask(id)));
+      tasks = tasks.filter(t => !targets.includes(t.id));
+      appState.addToast(`Deleted ${cnt} tasks`, 'info');
+      selectedTaskIds = [];
+    } catch (err: any) {
+      appState.addToast(`Failed to delete tasks: ${err.message}`, 'error');
+    }
   }
 
   // Board Drag and Drop
@@ -590,62 +713,80 @@
 </script>
 
 <div class="clickup-container">
-  <!-- ═══ CLICKUP TOP SUB-HEADER & NAVIGATION ═══════════════════════ -->
+  <!-- ═══ TOP SUB-HEADER & A/B MODE SWITCHER ═══════════════════════ -->
   <header class="clickup-top-header">
     <div class="header-left-cluster">
       <div class="space-title-dropdown">
         <span class="space-icon-dot"></span>
         <h1 class="space-name">Workspace Tasks &amp; Deliverables</h1>
-        <FluentIcons name="chevronDown" size={14} class="caret-down" />
-        <span class="favorite-star" title="Star workspace">☆</span>
       </div>
     </div>
 
     <div class="header-right-tools">
-      <button type="button" class="tool-ghost-btn" title="Automate Workspace Workflows">
-        <FluentIcons name="bolt" size={14} />
-        <span>Automate</span>
-      </button>
+      <!-- Studio A/B Layout Switcher -->
+      <div class="ab-layout-pill">
+        <button
+          type="button"
+          class="ab-pill-btn"
+          class:active={layoutMode === 'minimalist'}
+          onclick={() => setLayoutMode('minimalist')}
+          title="Minimalist View (A): Direct high-density task execution (List, Board, Table)"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+          <span>Minimalist (A)</span>
+        </button>
+        <button
+          type="button"
+          class="ab-pill-btn"
+          class:active={layoutMode === 'executive'}
+          onclick={() => setLayoutMode('executive')}
+          title="Executive View (B): Full operational metrics, KPI telemetry deck, workstream matrix"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Executive (B)</span>
+        </button>
+      </div>
 
-      <button type="button" class="tool-ghost-btn ai-btn" title="Task Assistant AI Brain" onclick={() => {
-        if (tasks.length > 0) openTaskDetail(tasks[0]);
-      }}>
-        <FluentIcons name="sparkles" size={14} color="#8B5CF6" />
-        <span>Task AI</span>
-      </button>
-
-      <button type="button" class="tool-ghost-btn" title="Share with Team / Client">
-        <FluentIcons name="share" size={14} />
-        <span>Share</span>
+      <!-- Sync Live Telemetry Button -->
+      <button
+        type="button"
+        class="sync-telemetry-btn"
+        onclick={() => loadTasks()}
+        disabled={isLoading}
+        title="Sync live tasks from server"
+      >
+        <FluentIcons name="sync" size={13} class={isLoading ? 'spinning' : ''} />
+        <span>{isLoading ? 'Syncing...' : 'Sync'}</span>
       </button>
 
       <div class="tool-divider"></div>
 
-      <!-- + Task Primary Action Button (ClickUp Signature Solid Blue) -->
+      <!-- + Task Primary Action Button -->
       <button
         type="button"
         class="clickup-add-task-btn"
         onclick={() => (isCreateModalOpen = true)}
       >
         <FluentIcons name="plus" size={14} />
-        <span>Task</span>
-        <FluentIcons name="chevronDown" size={12} />
+        <span>New Task</span>
       </button>
     </div>
   </header>
 
-  <!-- ═══ CLICKUP VIEWS NAVIGATION STRIP ════════════════════════════ -->
+  <!-- ═══ VIEWS NAVIGATION STRIP ════════════════════════════════════ -->
   <div class="clickup-views-nav">
     <div class="views-tabs-list">
-      <button
-        type="button"
-        class="view-tab"
-        class:active={viewMode === 'overview'}
-        onclick={() => (viewMode = 'overview')}
-      >
-        <FluentIcons name="overview" size={14} />
-        <span>Overview</span>
-      </button>
+      {#if layoutMode === 'executive'}
+        <button
+          type="button"
+          class="view-tab"
+          class:active={viewMode === 'overview'}
+          onclick={() => (viewMode = 'overview')}
+        >
+          <FluentIcons name="overview" size={14} />
+          <span>Overview</span>
+        </button>
+      {/if}
 
       <button
         type="button"
@@ -669,22 +810,22 @@
 
       <button
         type="button"
-        class="view-tab gantt-tab"
-        class:active={viewMode === 'gantt'}
-        onclick={() => (viewMode = 'gantt')}
-      >
-        <FluentIcons name="gantt" size={14} color={viewMode === 'gantt' ? '#EF4444' : 'currentColor'} />
-        <span>Gantt</span>
-      </button>
-
-      <button
-        type="button"
         class="view-tab"
         class:active={viewMode === 'table'}
         onclick={() => (viewMode = 'table')}
       >
         <FluentIcons name="table" size={14} />
         <span>Table</span>
+      </button>
+
+      <button
+        type="button"
+        class="view-tab timeline-tab"
+        class:active={viewMode === 'gantt'}
+        onclick={() => (viewMode = 'gantt')}
+      >
+        <FluentIcons name="gantt" size={14} />
+        <span>Timeline</span>
       </button>
     </div>
 
@@ -920,55 +1061,74 @@
         </table>
       </div>
 
-      <!-- BOTTOM SPLIT: RESOURCES / HANDOVER & REAL SVG DONUT WORKLOAD -->
+      <!-- BOTTOM SPLIT: TEAM BANDWIDTH & WORKLOAD STATUS DONUT -->
       <div class="overview-bottom-grid">
-        <!-- Resources & Handover Hub Card -->
+        <!-- Team Bandwidth & Allocation Card -->
         <div class="overview-card">
           <div class="overview-card-header">
             <div class="card-header-titles">
-              <h3 class="card-title">Project Handover &amp; Resource Hub</h3>
-              <span class="card-subtitle">Direct access to NAS project archives, design systems, and intake briefs.</span>
+              <h3 class="card-title">Team Bandwidth &amp; Workload Allocation</h3>
+              <span class="card-subtitle">Active task distribution, in-flight execution, and review queues per owner.</span>
             </div>
           </div>
 
-          <div class="resource-quick-links-grid">
-            <a href="#projects" class="resource-quick-tile">
-              <div class="tile-icon-box blue">📁</div>
-              <div class="tile-content">
-                <strong>Project Catalog (NAS)</strong>
-                <span>Direct repository connection</span>
-              </div>
-            </a>
-
-            <a href="#orders" class="resource-quick-tile">
-              <div class="tile-icon-box purple">📋</div>
-              <div class="tile-content">
-                <strong>Brief &amp; Order Intake</strong>
-                <span>Submit deliverables &amp; campaigns</span>
-              </div>
-            </a>
-
-            <a href="#brand" class="resource-quick-tile">
-              <div class="tile-icon-box emerald">🎨</div>
-              <div class="tile-content">
-                <strong>Brand Guidelines Hub</strong>
-                <span>Official colors, typography &amp; logos</span>
-              </div>
-            </a>
-
-            <a href="#copy" class="resource-quick-tile">
-              <div class="tile-icon-box amber">⚙</div>
-              <div class="tile-content">
-                <strong>Copywriting Studio</strong>
-                <span>Ad scripts &amp; packaging copy</span>
-              </div>
-            </a>
-          </div>
-
-          <div class="drop-resources-zone">
-            <FluentIcons name="upload" size={24} color="#0284C7" />
-            <p>Drop project briefs, dielines, or reference assets to attach</p>
-            <span class="upload-hint">Supported formats: PDF, AI, PSD, ZIP, MP4, PNG (Max 500MB)</span>
+          <div class="team-bandwidth-container">
+            <table class="team-bandwidth-table">
+              <thead>
+                <tr>
+                  <th>Team Member</th>
+                  <th style="width: 70px; text-align: center;">Total</th>
+                  <th style="width: 90px; text-align: center;">In Progress</th>
+                  <th style="width: 80px; text-align: center;">In Review</th>
+                  <th style="width: 100px; text-align: center;">Capacity</th>
+                  <th style="width: 70px; text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#if teamWorkloads.length === 0}
+                  <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-tertiary); padding: 18px;">
+                      No team assignments logged
+                    </td>
+                  </tr>
+                {:else}
+                  {#each teamWorkloads as tw}
+                    {@const statusTier = tw.inProgress >= 4 ? 'busy' : (tw.inProgress >= 1 ? 'optimal' : 'light')}
+                    {@const statusLabel = tw.inProgress >= 4 ? 'High Load' : (tw.inProgress >= 1 ? 'Optimal' : 'Light')}
+                    <tr class="tb-row">
+                      <td>
+                        <div class="tb-user-cell">
+                          <div class="tb-avatar">
+                            {tw.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <span class="tb-name">{tw.name}</span>
+                        </div>
+                      </td>
+                      <td style="text-align: center; font-weight: 700;">{tw.total}</td>
+                      <td style="text-align: center;">
+                        <span class="mini-status-chip" style="border-color: #0284C7; color: #0284C7;">{tw.inProgress}</span>
+                      </td>
+                      <td style="text-align: center;">
+                        <span class="mini-status-chip" style="border-color: #8B5CF6; color: #8B5CF6;">{tw.review}</span>
+                      </td>
+                      <td style="text-align: center;">
+                        <span class="tb-status-badge {statusTier}">{statusLabel}</span>
+                      </td>
+                      <td style="text-align: right;">
+                        <button
+                          type="button"
+                          class="table-action-pill"
+                          onclick={() => { searchQuery = tw.name; viewMode = 'list'; }}
+                          title="View tasks for {tw.name}"
+                        >
+                          View ➔
+                        </button>
+                      </td>
+                    </tr>
+                  {/each}
+                {/if}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -1087,17 +1247,15 @@
     <div class="clickup-list-container">
       {#each workstreamGroups as group}
         <div class="workstream-folder-block">
-          <!-- Folder Header with Breadcrumb & Expand -->
+          <!-- Folder Header with Expand & Department Stats -->
           <div class="folder-header" onclick={() => toggleWorkstreamExpand(group.workstream)} role="button" tabindex="0" onkeydown={() => {}}>
-            <div class="breadcrumb-trail">
-              <span>Workspace Tasks</span>
-            </div>
             <div class="folder-title-row">
               <span class="caret-icon">
                 <FluentIcons name={expandedWorkstreams[group.workstream] ? 'chevronDown' : 'chevronRight'} size={14} />
               </span>
               <h2 class="folder-name">{group.workstream}</h2>
-              <span class="folder-actions-ellipsis">•••</span>
+              <span class="folder-count-pill">{group.total} task{group.total !== 1 ? 's' : ''}</span>
+              <span class="folder-progress-pill">{group.percent}% Complete</span>
             </div>
           </div>
 
@@ -1426,28 +1584,39 @@
     </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       4. GANTT / TIMELINE VIEW (Exact ClickUp Split Layout - Image 1 & 4)
+       4. GANTT / TIMELINE VIEW (Dynamic Interactive Timeline)
        ═══════════════════════════════════════════════════════════════ -->
   {:else if viewMode === 'gantt'}
     <div class="clickup-gantt-wrapper">
-      <!-- Gantt Sub-Toolbar -->
+      <!-- Gantt Sub-Toolbar with working timeline navigation -->
       <div class="gantt-sub-toolbar">
         <div class="toolbar-left">
-          <button type="button" class="gantt-btn today-btn">Today</button>
-          <button type="button" class="gantt-btn dropdown-btn">
-            <span>Week</span>
-            <FluentIcons name="chevronDown" size={12} />
+          <button type="button" class="gantt-btn" onclick={() => (timelineOffset -= 1)} title="Previous week">
+            ◀ Prev Week
           </button>
-          <button type="button" class="gantt-btn">Auto fit</button>
-          <button type="button" class="gantt-btn">Export</button>
+          <button type="button" class="gantt-btn today-btn" onclick={() => (timelineOffset = 0)} title="Jump to current week">
+            Today
+          </button>
+          <button type="button" class="gantt-btn" onclick={() => (timelineOffset += 1)} title="Next week">
+            Next Week ▶
+          </button>
+          <span class="timeline-range-pill">{timelineRangeLabel}</span>
         </div>
 
         <div class="toolbar-right">
-          <span class="save-view-pill">Save view ▾</span>
-          <div class="zoom-controls">
-            <button type="button" class="zoom-btn">＋</button>
-            <button type="button" class="zoom-btn">−</button>
-          </div>
+          <button
+            type="button"
+            class="gantt-btn"
+            onclick={() => {
+              const allCollapsed = Object.values(expandedWorkstreams).every(v => !v);
+              const nextState = allCollapsed;
+              for (const k in expandedWorkstreams) {
+                expandedWorkstreams[k] = nextState;
+              }
+            }}
+          >
+            {Object.values(expandedWorkstreams).some(v => v) ? 'Collapse All' : 'Expand All'}
+          </button>
         </div>
       </div>
 
@@ -1468,7 +1637,7 @@
             <div class="tree-row root-space">
               <span class="caret-icon">▾</span>
               <FluentIcons name="box" size={13} color="var(--brand-accent)" />
-              <strong class="row-name">SS Creative Studio</strong>
+              <strong class="row-name">Workspace Directory</strong>
             </div>
 
             <!-- Folders & Tasks -->
@@ -1551,15 +1720,21 @@
         <div class="gantt-right-calendar">
           <!-- Calendar Timeline Header -->
           <div class="gantt-calendar-header">
-            <!-- Weeks Header -->
+            <!-- Dynamic Weeks Header -->
             <div class="weeks-row">
-              <span class="week-label">W40 Oct 5 – 11</span>
-              <span class="week-label">W41 Oct 12 – 18</span>
+              {#if dynamicTimelineDates.length >= 14}
+                <span class="week-label">
+                  Week 1: {dynamicTimelineDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {dynamicTimelineDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+                <span class="week-label">
+                  Week 2: {dynamicTimelineDates[7].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {dynamicTimelineDates[13].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+              {/if}
             </div>
 
             <!-- Days Header -->
             <div class="days-row">
-              {#each ganttDates as d}
+              {#each dynamicTimelineDates as d}
                 {@const isToday = d.toDateString() === todayDate.toDateString()}
                 {@const isWeekend = d.getDay() === 0 || d.getDay() === 6}
                 <div class="day-cell-head" class:is-today={isToday} class:is-weekend={isWeekend}>
@@ -1581,12 +1756,12 @@
 
               {#if expandedWorkstreams[group.workstream]}
                 {#each group.tasks as task}
-                  {@const bar = getGanttBarStyle(task, ganttDates)}
+                  {@const bar = getGanttBarStyle(task, dynamicTimelineDates)}
                   {@const isSubExp = !!expandedTaskIds[task.id]}
 
                   <div class="gantt-grid-task-row">
                     <!-- Day Columns Background Grid -->
-                    {#each ganttDates as d}
+                    {#each dynamicTimelineDates as d}
                       {@const isToday = d.toDateString() === todayDate.toDateString()}
                       {@const isWeekend = d.getDay() === 0 || d.getDay() === 6}
                       <div class="gantt-bg-day-col" class:is-today={isToday} class:is-weekend={isWeekend}>
@@ -1634,29 +1809,48 @@
     </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       5. TABLE VIEW (Exact ClickUp Spreadsheet Grid - Screenshot 5)
+       5. TABLE VIEW (Interactive Multi-Select & Sortable Grid)
        ═══════════════════════════════════════════════════════════════ -->
   {:else if viewMode === 'table'}
     <div class="clickup-table-container">
       <table class="clickup-data-table">
         <thead>
           <tr>
-            <th style="width: 32px; text-align: center;"><input type="checkbox" class="clickup-checkbox" /></th>
+            <th style="width: 32px; text-align: center;">
+              <input
+                type="checkbox"
+                class="clickup-checkbox"
+                checked={selectedTaskIds.length === filteredTasks.length && filteredTasks.length > 0}
+                onchange={toggleSelectAllTable}
+                title="Select all tasks"
+              />
+            </th>
             <th style="width: 40px; text-align: center;">#</th>
-            <th>Name</th>
-            <th style="width: 180px;">Assignee</th>
-            <th style="width: 140px;">Status</th>
-            <th style="width: 120px;">Due date</th>
-            <th style="width: 120px;">Priority</th>
-            <th style="width: 40px; text-align: center;">＋</th>
+            <th class="sortable-th" onclick={() => toggleTableSort('title')}>
+              Name {#if tableSortCol === 'title'}{tableSortAsc ? '▲' : '▼'}{/if}
+            </th>
+            <th class="sortable-th" style="width: 180px;" onclick={() => toggleTableSort('assignee')}>
+              Assignee {#if tableSortCol === 'assignee'}{tableSortAsc ? '▲' : '▼'}{/if}
+            </th>
+            <th class="sortable-th" style="width: 140px;" onclick={() => toggleTableSort('status')}>
+              Status {#if tableSortCol === 'status'}{tableSortAsc ? '▲' : '▼'}{/if}
+            </th>
+            <th class="sortable-th" style="width: 130px;" onclick={() => toggleTableSort('dueDate')}>
+              Due Date {#if tableSortCol === 'dueDate'}{tableSortAsc ? '▲' : '▼'}{/if}
+            </th>
+            <th class="sortable-th" style="width: 120px;" onclick={() => toggleTableSort('priority')}>
+              Priority {#if tableSortCol === 'priority'}{tableSortAsc ? '▲' : '▼'}{/if}
+            </th>
+            <th style="width: 40px; text-align: center;">•••</th>
           </tr>
         </thead>
         <tbody>
-          {#each filteredTasks as task, idx (task.id)}
+          {#each sortedTableTasks as task, idx (task.id)}
             {@const pMeta = getPriorityMeta(task.priority)}
             {@const blockers = getBlockers(task)}
             <tr
               class="clickup-table-row"
+              class:row-selected={selectedTaskIds.includes(task.id)}
               onclick={() => openTaskDetail(task)}
               role="button"
               tabindex="0"
@@ -1664,13 +1858,19 @@
             >
               <!-- Checkbox -->
               <td style="text-align: center;" onclick={(e) => e.stopPropagation()} role="none">
-                <input type="checkbox" class="clickup-checkbox" />
+                <input
+                  type="checkbox"
+                  class="clickup-checkbox"
+                  checked={selectedTaskIds.includes(task.id)}
+                  onchange={() => toggleSelectTask(task.id)}
+                  title="Select task"
+                />
               </td>
 
               <!-- Row Index -->
               <td class="row-num-cell">{idx + 1}</td>
 
-              <!-- Name with ClickUp Status Circle -->
+              <!-- Name with Status Circle -->
               <td class="name-cell">
                 <span class="status-circle-dot" class:done={task.status === 'done'}></span>
                 <span class="table-task-title">{task.title}</span>
@@ -1696,17 +1896,17 @@
                 {/if}
               </td>
 
-              <!-- Status Pill (ClickUp Signature Rounded Pill) -->
+              <!-- Status Pill -->
               <td onclick={(e) => e.stopPropagation()} role="none">
                 <select
                   class="clickup-status-pill status-{task.status}"
                   value={task.status}
                   onchange={(e) => handleInlineStatusChange(task, (e.target as HTMLSelectElement).value as StudioTaskStatus)}
                 >
-                  <option value="backlog">TO DO</option>
-                  <option value="in-progress">IN PROGRESS</option>
-                  <option value="review">REVIEW</option>
-                  <option value="done">COMPLETE</option>
+                  <option value="backlog">Backlog</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="review">Review</option>
+                  <option value="done">Done</option>
                 </select>
               </td>
 
@@ -1725,7 +1925,7 @@
               <td>
                 <span class="table-priority-wrap">
                   <FluentIcons name="flag" size={13} color={pMeta.color} />
-                  <span style="color: {pMeta.color}; font-weight: 500;">{pMeta.label}</span>
+                  <span style="color: {pMeta.color}; font-weight: 600;">{pMeta.label}</span>
                 </span>
               </td>
 
@@ -1737,6 +1937,33 @@
           {/each}
         </tbody>
       </table>
+
+      <!-- Floating Batch Action Bar -->
+      {#if selectedTaskIds.length > 0}
+        <div class="batch-action-bar">
+          <div class="batch-summary">
+            <span class="batch-count-badge">{selectedTaskIds.length}</span>
+            <span>task{selectedTaskIds.length > 1 ? 's' : ''} selected</span>
+          </div>
+          <div class="batch-actions-group">
+            <button type="button" class="batch-btn" onclick={() => handleBatchStatusChange('in-progress')}>
+              Mark In Progress
+            </button>
+            <button type="button" class="batch-btn" onclick={() => handleBatchStatusChange('review')}>
+              Mark Review
+            </button>
+            <button type="button" class="batch-btn success" onclick={() => handleBatchStatusChange('done')}>
+              Mark Done
+            </button>
+            <button type="button" class="batch-btn danger" onclick={handleBatchDelete}>
+              Delete
+            </button>
+            <button type="button" class="batch-btn ghost" onclick={() => (selectedTaskIds = [])}>
+              Deselect All
+            </button>
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -1820,27 +2047,62 @@
     gap: 10px;
   }
 
-  .tool-ghost-btn {
+  /* Studio A/B Layout Switcher Pill */
+  .ab-layout-pill {
+    display: inline-flex;
+    align-items: center;
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .ab-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ab-pill-btn:hover {
+    color: var(--text-primary);
+  }
+  .ab-pill-btn.active {
+    background: var(--surface-card);
+    color: #0078D4;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Live Sync Button */
+  .sync-telemetry-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     background: transparent;
-    border: none;
+    border: 1px solid var(--surface-card-border);
+    border-radius: 6px;
+    padding: 6px 12px;
     color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-    padding: 6px 10px;
-    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
   }
-  .tool-ghost-btn:hover {
+  .sync-telemetry-btn:hover:not(:disabled) {
     background: var(--surface-card-subtle);
     color: var(--text-primary);
+    border-color: #0078D4;
   }
-  .tool-ghost-btn.ai-btn {
-    color: #8B5CF6;
-    font-weight: 600;
+  .sync-telemetry-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .tool-divider {
@@ -2294,79 +2556,79 @@
     border-color: #0284C7;
   }
 
-  /* Bottom Grid: Quick Links & SVG Donut Chart */
+  /* Bottom Grid: Team Bandwidth & SVG Donut Chart */
   .overview-bottom-grid {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: 1.15fr 0.85fr;
     gap: 20px;
   }
-  .resource-quick-links-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
+
+  .team-bandwidth-container {
+    overflow-x: auto;
+    padding: 0;
   }
-  .resource-quick-tile {
+  .team-bandwidth-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .team-bandwidth-table th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--surface-card-border);
+    background: var(--surface-card);
+  }
+  .team-bandwidth-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--surface-card-border);
+    vertical-align: middle;
+  }
+  .tb-row:hover {
+    background: var(--surface-card-subtle);
+  }
+  .tb-user-cell {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border: 1px solid var(--surface-card-border);
-    border-radius: 8px;
-    background: var(--surface-card-subtle);
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.15s ease;
+    gap: 8px;
   }
-  .resource-quick-tile:hover {
-    background: var(--surface-card);
-    border-color: #0284C7;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-  }
-  .tile-icon-box {
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
+  .tb-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #0078D4;
+    color: #FFF;
+    font-size: 10px;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    flex-shrink: 0;
   }
-  .tile-icon-box.blue { background: rgba(2, 132, 199, 0.12); }
-  .tile-icon-box.purple { background: rgba(139, 92, 246, 0.12); }
-  .tile-icon-box.emerald { background: rgba(16, 185, 129, 0.12); }
-  .tile-icon-box.amber { background: rgba(245, 158, 11, 0.12); }
-  .tile-content {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .tile-content strong {
-    font-size: 12px;
+  .tb-name {
+    font-weight: 600;
     color: var(--text-primary);
   }
-  .tile-content span {
-    font-size: 10.5px;
-    color: var(--text-secondary);
+  .tb-status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
   }
-
-  .drop-resources-zone {
-    padding: 24px;
-    border: 2px dashed var(--surface-card-border);
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    color: var(--text-secondary);
-    font-size: 12px;
-    text-align: center;
-    background: var(--surface-card-subtle);
+  .tb-status-badge.busy {
+    background: rgba(239, 68, 68, 0.12);
+    color: #EF4444;
   }
-  .upload-hint {
-    font-size: 10.5px;
-    color: var(--text-tertiary, #94A3B8);
+  .tb-status-badge.optimal {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10B981;
+  }
+  .tb-status-badge.light {
+    background: rgba(100, 116, 139, 0.12);
+    color: #64748B;
   }
 
   /* SVG Donut Chart */
@@ -3191,8 +3453,22 @@
     cursor: pointer;
   }
 
-  /* ═══ 7. TABLE VIEW (SCREENSHOT 5) ══════════════════════════════ */
+  .timeline-range-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 4px 10px;
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 6px;
+    letter-spacing: 0.2px;
+  }
+
+  /* ═══ 7. TABLE VIEW (Interactive Multi-Select & Sortable Grid) ═════ */
   .clickup-table-container {
+    position: relative;
     padding: 0;
     background: var(--surface-card);
     overflow-x: auto;
@@ -3213,6 +3489,15 @@
     border-right: 1px solid var(--surface-card-border);
     background: var(--surface-card);
   }
+  .sortable-th {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s, color 0.12s;
+  }
+  .sortable-th:hover {
+    background: var(--surface-card-subtle);
+    color: var(--text-primary);
+  }
   .clickup-data-table td {
     padding: 6px 10px;
     border-bottom: 1px solid var(--surface-card-border);
@@ -3220,9 +3505,13 @@
   }
   .clickup-table-row {
     cursor: pointer;
+    transition: background 0.1s ease;
   }
   .clickup-table-row:hover {
     background: var(--surface-card-subtle);
+  }
+  .clickup-table-row.row-selected {
+    background: rgba(2, 132, 199, 0.08);
   }
 
   .row-num-cell {
@@ -3297,7 +3586,94 @@
     color: var(--text-secondary);
   }
 
-  /* Loading */
+  /* Floating Batch Action Bar */
+  .batch-action-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1E293B;
+    color: #F8FAFC;
+    padding: 10px 18px;
+    border-radius: 30px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 999;
+    animation: slideUpFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideUpFade {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 15px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+
+  .batch-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .batch-count-badge {
+    background: #0284C7;
+    color: #FFF;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .batch-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .batch-btn {
+    border: none;
+    background: rgba(255, 255, 255, 0.12);
+    color: #FFF;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .batch-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+  .batch-btn.success {
+    background: #10B981;
+    color: #FFF;
+  }
+  .batch-btn.success:hover {
+    background: #059669;
+  }
+  .batch-btn.danger {
+    background: #EF4444;
+    color: #FFF;
+  }
+  .batch-btn.danger:hover {
+    background: #DC2626;
+  }
+  .batch-btn.ghost {
+    background: transparent;
+    color: #94A3B8;
+  }
+  .batch-btn.ghost:hover {
+    color: #FFF;
+  }
+
+  /* Loading & Animation */
   .loading-state {
     display: flex;
     flex-direction: column;
@@ -3316,6 +3692,10 @@
     animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  :global(.spinning) {
+    animation: spin 0.8s linear infinite;
+  }
 
   .clickup-checkbox {
     width: 14px;
