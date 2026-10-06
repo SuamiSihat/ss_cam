@@ -23,6 +23,7 @@
     | 'kanban'
     | 'gantt'
     | 'table'
+    | 'list'
     | 'grid'
     | 'user'
     | 'users'
@@ -159,6 +160,10 @@
   {:else if name === 'table'}
     <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
       <path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v11A1.5 1.5 0 0 0 2.5 17h15a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 17.5 3h-15zm0 1h15a.5.5 0 0 1 .5.5V7H2V4.5a.5.5 0 0 1 .5-.5zM2 8h7v3H2V8zm8 0h8v3h-8V8zm0 4h8v3.5a.5.5 0 0 1-.5.5H10v-4zm-1 4H2.5a.5.5 0 0 1-.5-.5V12h7v4z"/>
+    </svg>
+  {:else if name === 'list'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M2.5 4.5a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM6.5 4a.75.75 0 0 0 0 1.5h11a.75.75 0 0 0 0-1.5h-11zM2.5 10a1 1 0 1 1 2 0 1 1 0 0 1-2 0zm4-.5a.75.75 0 0 0 0 1.5h11a.75.75 0 0 0 0-1.5h-11zM2.5 15.5a1 1 0 1 1 2 0 1 1 0 0 1-2 0zm4-.5a.75.75 0 0 0 0 1.5h11a.75.75 0 0 0 0-1.5h-11z"/>
     </svg>
   {:else if name === 'grid'}
     <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">

@@ -2,9 +2,10 @@
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
-  import type { StudioTask, StudioTaskStatus, ProjectPriority } from '$lib/types';
+  import type { StudioTask, StudioTaskStatus, ProjectPriority, TaskDecisionStatus } from '$lib/types';
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   interface Props {
     isOpen: boolean;
@@ -16,12 +17,16 @@
 
   let title = $state('');
   let brand = $state('SS');
+  let workstream = $state('Packaging');
   let priority = $state<ProjectPriority>('medium');
   let status = $state<StudioTaskStatus>('backlog');
+  let decisionStatus = $state<TaskDecisionStatus>('pending');
   let assignee = $state('');
+  let startDate = $state('');
   let dueDate = $state('');
   let tags = $state('');
   let description = $state('');
+  let subtasksText = $state('');
   let isSubmitting = $state(false);
 
   let staffRoster = $state<any[]>([]);
@@ -35,17 +40,37 @@
     { code: 'SST', label: 'SuamiSihat Technology' }
   ];
 
+  const workstreamOptions = [
+    'Packaging',
+    'Signage',
+    'Copywriting',
+    'Motion & Video',
+    'Digital & Social',
+    'Brand Asset',
+    '3D Rendering',
+    'General Studio'
+  ];
+
   const priorityOptions: { id: ProjectPriority; label: string }[] = [
-    { id: 'urgent', label: '🔴 Urgent (P3)' },
-    { id: 'high', label: '🟠 High (P2)' },
-    { id: 'medium', label: '🔵 Medium (P1)' },
-    { id: 'low', label: '⚪ Low' }
+    { id: 'urgent', label: 'Urgent (P3)' },
+    { id: 'high', label: 'High (P2)' },
+    { id: 'medium', label: 'Medium (P1)' },
+    { id: 'low', label: 'Low' }
   ];
 
   const statusOptions: { id: StudioTaskStatus; label: string }[] = [
-    { id: 'backlog', label: '📋 Backlog / Intake' },
-    { id: 'in-progress', label: '⚡ In Progress' },
-    { id: 'review', label: '🔍 Review & QA' }
+    { id: 'backlog', label: 'Backlog / Intake' },
+    { id: 'in-progress', label: 'In Progress' },
+    { id: 'review', label: 'Review & QA' },
+    { id: 'done', label: 'Approved & Done' }
+  ];
+
+  const decisionOptions: { id: TaskDecisionStatus; label: string }[] = [
+    { id: 'pending', label: 'Pending Evaluation' },
+    { id: 'in_review', label: 'In Art Director Review' },
+    { id: 'approved', label: 'Approved for Production' },
+    { id: 'changes_requested', label: 'Changes Requested' },
+    { id: 'rejected', label: 'Rejected / Shelved' }
   ];
 
   onMount(async () => {
@@ -89,15 +114,30 @@
         .map(t => t.trim())
         .filter(Boolean);
 
+      // Parse initial subtasks from lines
+      const parsedSubtasks = subtasksText
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map((subTitle, idx) => ({
+          id: `st-${Date.now()}-${idx}`,
+          title: subTitle,
+          completed: false
+        }));
+
       const res = await ApiClient.createStudioTask({
         title: title.trim(),
         brand,
+        workstream,
         priority,
         status,
+        decisionStatus,
         assignee,
         assigneeName,
         assigneeAvatarColor,
+        startDate: startDate || undefined,
         dueDate: dueDate || undefined,
+        subtasks: parsedSubtasks,
         tags: parsedTags,
         description: description.trim()
       });
@@ -120,16 +160,20 @@
 
   function handleReset() {
     title = '';
+    workstream = 'Packaging';
     description = '';
     tags = '';
+    subtasksText = '';
+    startDate = '';
     dueDate = '';
     priority = 'medium';
     status = 'backlog';
+    decisionStatus = 'pending';
     brand = 'SS';
   }
 </script>
 
-<FluentDialog open={isOpen} title="Create Studio Task (Pre-Production)" onClose={handleClose}>
+<FluentDialog open={isOpen} title="Create Studio Task" onClose={handleClose}>
   <div class="task-modal-body">
     <!-- Task Title -->
     <div class="form-row">
@@ -140,14 +184,23 @@
         id="create-task-title"
         type="text"
         class="form-input text-lg"
-        placeholder="e.g. Ramadan 2026 Gift Box 3D Mockup Ideation"
+        placeholder="e.g. Ramadan 2026 Gift Box 3D Mockup & Dieline Review"
         bind:value={title}
         autofocus
       />
     </div>
 
-    <!-- Brand & Priority -->
+    <!-- Workstream & Brand -->
     <div class="form-grid-2">
+      <div class="form-row">
+        <label for="create-task-workstream" class="form-label">WORKSTREAM</label>
+        <select id="create-task-workstream" class="form-select" bind:value={workstream}>
+          {#each workstreamOptions as ws}
+            <option value={ws}>{ws}</option>
+          {/each}
+        </select>
+      </div>
+
       <div class="form-row">
         <label for="create-task-brand" class="form-label">SUBSIDIARY BRAND</label>
         <select id="create-task-brand" class="form-select" bind:value={brand}>
@@ -156,7 +209,10 @@
           {/each}
         </select>
       </div>
+    </div>
 
+    <!-- Priority & Status -->
+    <div class="form-grid-2">
       <div class="form-row">
         <label for="create-task-priority" class="form-label">PRIORITY</label>
         <select id="create-task-priority" class="form-select" bind:value={priority}>
@@ -165,10 +221,7 @@
           {/each}
         </select>
       </div>
-    </div>
 
-    <!-- Status & Assignee -->
-    <div class="form-grid-2">
       <div class="form-row">
         <label for="create-task-status" class="form-label">INITIAL STAGE</label>
         <select id="create-task-status" class="form-select" bind:value={status}>
@@ -177,7 +230,10 @@
           {/each}
         </select>
       </div>
+    </div>
 
+    <!-- Lead Assignee & Decision Status -->
+    <div class="form-grid-2">
       <div class="form-row">
         <label for="create-task-assignee" class="form-label">LEAD ASSIGNEE</label>
         <select id="create-task-assignee" class="form-select" bind:value={assignee}>
@@ -189,10 +245,29 @@
           {/each}
         </select>
       </div>
+
+      <div class="form-row">
+        <label for="create-task-decision" class="form-label">DECISION STATE</label>
+        <select id="create-task-decision" class="form-select" bind:value={decisionStatus}>
+          {#each decisionOptions as d}
+            <option value={d.id}>{d.label}</option>
+          {/each}
+        </select>
+      </div>
     </div>
 
-    <!-- Due Date & Tags -->
+    <!-- Timeline: Start Date & Due Date -->
     <div class="form-grid-2">
+      <div class="form-row">
+        <label for="create-task-start" class="form-label">START DATE</label>
+        <input
+          id="create-task-start"
+          type="date"
+          class="form-input"
+          bind:value={startDate}
+        />
+      </div>
+
       <div class="form-row">
         <label for="create-task-due" class="form-label">DUE DATE</label>
         <input
@@ -202,17 +277,32 @@
           bind:value={dueDate}
         />
       </div>
+    </div>
 
-      <div class="form-row">
-        <label for="create-task-tags" class="form-label">TAGS (COMMA SEPARATED)</label>
-        <input
-          id="create-task-tags"
-          type="text"
-          class="form-input"
-          placeholder="packaging, 3d, social, tiktok"
-          bind:value={tags}
-        />
-      </div>
+    <!-- Subtasks breakdown (optional initial checklist) -->
+    <div class="form-row">
+      <label for="create-task-subtasks" class="form-label">
+        ## SUBTASKS (ONE PER LINE, OPTIONAL)
+      </label>
+      <textarea
+        id="create-task-subtasks"
+        class="form-textarea"
+        rows="2"
+        placeholder="Verify die-cut measurements&#10;Check Pantone spot colors&#10;Render 3D mockup"
+        bind:value={subtasksText}
+      ></textarea>
+    </div>
+
+    <!-- Tags -->
+    <div class="form-row">
+      <label for="create-task-tags" class="form-label">TAGS (COMMA SEPARATED)</label>
+      <input
+        id="create-task-tags"
+        type="text"
+        class="form-input"
+        placeholder="packaging, dieline, cmyk, pantone"
+        bind:value={tags}
+      />
     </div>
 
     <!-- Concept Brief / Notes -->
@@ -221,16 +311,18 @@
       <textarea
         id="create-task-desc"
         class="form-textarea"
-        rows="4"
+        rows="3"
         placeholder="Brief description of visual concept, dieline dimensions, angle requirements, or target market..."
         bind:value={description}
       ></textarea>
     </div>
 
     <div class="bridge-info-box">
-      <span class="info-icon">💡</span>
+      <span class="info-icon-wrap">
+        <FluentIcons name="info" size={16} />
+      </span>
       <p>
-        <strong>Decoupled Pre-Production:</strong> This creates a lightweight task that will NOT create folders on Synology NAS yet. Once approved, use <em>[Provision NAS Workspace]</em> to generate the official project vault.
+        <strong>Decoupled Pre-Production:</strong> This creates a lightweight task for conceptual tracking. When ready for NAS file authoring, you can link it directly to an official NAS project vault.
       </p>
     </div>
   </div>
@@ -321,8 +413,8 @@
     align-items: flex-start;
     gap: 10px;
     padding: 10px 14px;
-    background: var(--color-info-bg, #EFF6FF);
-    border: 1px solid var(--color-info-border, #BFDBFE);
+    background: var(--surface-card-subtle, rgba(0, 120, 212, 0.06));
+    border: 1px solid var(--surface-card-border, rgba(0, 120, 212, 0.18));
     border-radius: 8px;
     font-size: 12px;
     color: var(--text-secondary);
@@ -333,13 +425,9 @@
     color: var(--brand-primary);
   }
 
-  .bridge-info-box em {
-    color: var(--text-primary);
-    font-style: normal;
-    font-weight: 600;
-  }
-
-  .info-icon {
-    font-size: 16px;
+  .info-icon-wrap {
+    color: var(--brand-accent, #0078D4);
+    display: inline-flex;
+    margin-top: 2px;
   }
 </style>

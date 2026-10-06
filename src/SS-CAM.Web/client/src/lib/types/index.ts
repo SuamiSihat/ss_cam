@@ -26,10 +26,39 @@ export type ProjectPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export type StudioTaskStatus = 'backlog' | 'in-progress' | 'review' | 'done' | 'converted';
 
+export interface TaskSubtask {
+  id: string;
+  title: string;
+  completed: boolean;
+  assignee?: string;
+  assigneeName?: string;
+  dueDate?: string;
+}
+
+export type TaskDecisionStatus = 'pending' | 'approved' | 'changes_requested' | 'blocked';
+
+export interface TaskComment {
+  id: string;
+  author: string;
+  authorName?: string;
+  avatarColor?: string;
+  message: string;
+  timestamp: string;
+  type?: 'comment' | 'status_change' | 'subtask_toggle' | 'ai_assist' | 'system';
+}
+
 export interface StudioTask {
   id: string;
   title: string;
   description: string;
+  workstream?: string;
+  startDate?: string;
+  dueDate?: string;
+  decisionStatus?: TaskDecisionStatus;
+  decisionSummary?: string;
+  subtasks?: TaskSubtask[];
+  blockedBy?: string[];
+  blocks?: string[];
   assignee?: string;
   assigneeName?: string;
   assigneeAvatarColor?: string;
@@ -37,12 +66,13 @@ export interface StudioTask {
   priority: ProjectPriority;
   brand?: string;
   tags: string[];
-  dueDate?: string;
   createdAt: string;
   updatedAt?: string;
   jobId?: string;
   projectId?: string;
+  projectTitle?: string;
   convertedAt?: string;
+  comments?: TaskComment[];
 }
 
 export interface CreativeDirectionState {

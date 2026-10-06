@@ -647,6 +647,217 @@ router.post('/studio-tasks/:id/provision', authenticateToken, (req, res) => {
   }
 });
 
+router.post('/studio-tasks/:id/ai-assist', authenticateToken, async (req, res) => {
+  try {
+    const task = TaskService.getStudioTaskById(req.params.id);
+    if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
+
+    const { action = 'chat', prompt = '' } = req.body;
+    let reply = '';
+    let suggestedSubtasks = [];
+    let suggestedSpecs = '';
+    let preflightIssues = [];
+
+    const isGeminiReady = GeminiService.getStatus().configured;
+
+    if (action === 'subtasks') {
+      const systemPrompt = `You are a Senior Creative Art Director and Studio Production Manager.
+Given a creative task with title, workstream, and description, output a JSON array of 3 to 5 realistic, actionable production subtasks.
+Each object must have:
+- "title": string (concise, clear action starting with a verb, e.g. "Dieline vector verification", "Proofread body copy against KKM guidelines", "Check 3mm bleed in Illustrator")
+- "completed": false
+Return ONLY a valid JSON array of objects without markdown formatting or other text.`;
+
+      const userPrompt = `Task Title: ${task.title}
+Workstream: ${task.workstream || 'General'}
+Description: ${task.description || 'N/A'}
+Current Specs: ${task.specs || 'N/A'}
+Generate actionable subtasks:`;
+
+      if (isGeminiReady) {
+        try {
+          const raw = await GeminiService.callGemini(systemPrompt, userPrompt);
+          const cleaned = raw.replace(/^```json/m, '').replace(/```$/m, '').trim();
+          const parsed = JSON.parse(cleaned);
+          if (Array.isArray(parsed)) {
+            suggestedSubtasks = parsed.map((item, idx) => ({
+              id: `st-${Date.now()}-${idx}`,
+              title: typeof item === 'string' ? item : item.title || `Subtask ${idx + 1}`,
+              completed: false
+            }));
+          }
+          reply = `Generated ${suggestedSubtasks.length} actionable subtasks tailored for ${task.workstream || 'studio'} production.`;
+        } catch (gemErr) {
+          console.warn('[AI-Assist] Gemini subtasks parse fallback:', gemErr.message);
+        }
+      }
+
+      if (suggestedSubtasks.length === 0) {
+        const ws = (task.workstream || '').toLowerCase();
+        let templates = [
+          'Initial brief & creative direction alignment',
+          'Draft concept & structural layout verification',
+          'Art Director internal pre-flight review',
+          'Client / stakeholder sign-off & export handoff'
+        ];
+        if (ws.includes('packag')) {
+          templates = [
+            'Verify die-cut dieline measurements & 3mm bleed margins',
+            'Check Pantone / CMYK color separations & overprint preview',
+            'Audit nutrition/ingredients, barcode, and regulatory disclaimers',
+            'Render photorealistic 3D packaging mockup for approval',
+            'Export print-ready PDF/X-1a with cut contour vector layers'
+          ];
+        } else if (ws.includes('copy')) {
+          templates = [
+            'Audit target audience pain points & competitor hooks',
+            'Draft 5 high-converting headline variations & emotional angles',
+            'Write body copy, feature-benefit bullets, and WhatsApp CTA',
+            'Review claims against KKM/Halal compliance guidelines',
+            'Final proofreading & copy handover to designer'
+          ];
+        } else if (ws.includes('sign') || ws.includes('print')) {
+          templates = [
+            'Confirm physical site measurements & aspect ratio',
+            'Verify raster resolution meets minimum 150-300 DPI at full scale',
+            'Ensure typography legibility from 10-meter viewing distance',
+            'Prepare printer color proofing and material specs (tarpaulin/acrylic)',
+            'Generate final production archive with packaged fonts & links'
+          ];
+        } else if (ws.includes('motion') || ws.includes('video')) {
+          templates = [
+            'Storyboard key frames & audio script breakdown',
+            'Assemble 3-second hook & motion graphics layout',
+            'Select brand sound effects, voiceover, and subtitle typography',
+            'Export 9:16 vertical 1080x1920 60fps master delivery'
+          ];
+        }
+        suggestedSubtasks = templates.map((title, idx) => ({
+          id: `st-${Date.now()}-${idx}`,
+          title,
+          completed: false
+        }));
+        reply = `Prepared ${suggestedSubtasks.length} production-standard subtasks for ${task.workstream || 'Creative Studio'}.`;
+      }
+    } else if (action === 'specs') {
+      const ws = (task.workstream || '').toLowerCase();
+      if (isGeminiReady) {
+        try {
+          const sys = `You are a prepress technical director. Draft concise, professional production specifications (dimensions, color mode, resolution, file format, bleeds, finishing) for this task. Return markdown.`;
+          const usr = `Task: ${task.title}\nWorkstream: ${task.workstream}\nDescription: ${task.description}`;
+          reply = await GeminiService.callGemini(sys, usr);
+          suggestedSpecs = reply;
+        } catch (gemErr) {
+          console.warn('[AI-Assist] Gemini specs error:', gemErr.message);
+        }
+      }
+      if (!suggestedSpecs) {
+        if (ws.includes('packag')) {
+          suggestedSpecs = `- Format: Adobe Illustrator (.ai) + Press-Ready PDF/X-1a\n- Color: CMYK + Pantone Spot (Gold / Metallic)\n- Bleed: 3mm external bleed, 3mm safety inner margin\n- Dieline: Separate spot-color layer named "DieCut"\n- Barcode: EAN-13 vector at 100% scale (min 80%)\n- Resolution: 300 DPI minimum for all embedded images`;
+        } else if (ws.includes('sign') || ws.includes('print')) {
+          suggestedSpecs = `- Dimensions: Custom signage specs per site survey\n- Color: CMYK with Fogra39 profile\n- Resolution: 150 DPI at 1:1 scale (or 300 DPI at 1:2 scale)\n- Bleed: 20mm wrap-around bleed for lightbox / mounting frame\n- Fonts: All text outlined to vector contours`;
+        } else {
+          suggestedSpecs = `- Resolution: 1080x1920 (9:16 vertical) & 1080x1080 (1:1 square)\n- Color Space: sRGB IEC61966-2.1\n- Safe Margins: Top 150px, Bottom 250px free of critical text\n- File Format: WebP (lossless) / MP4 H.264 high profile`;
+        }
+        reply = suggestedSpecs;
+      }
+    } else if (action === 'preflight') {
+      const allTasks = TaskService.getAllStudioTasks({});
+      const blockers = allTasks.filter(t => (task.blockedBy || []).includes(t.id));
+      const unfinishedBlockers = blockers.filter(t => t.status !== 'done');
+
+      if (unfinishedBlockers.length > 0) {
+        preflightIssues.push({
+          type: 'blocker',
+          message: `Blocked by ${unfinishedBlockers.length} unfinished prerequisite task(s): ${unfinishedBlockers.map(b => b.id + ' (' + b.title + ')').join(', ')}`
+        });
+      } else if ((task.blockedBy || []).length > 0) {
+        preflightIssues.push({
+          type: 'info',
+          message: `All ${task.blockedBy.length} prerequisite pipeline dependencies have been completed.`
+        });
+      }
+
+      if (task.dueDate) {
+        const dueTime = new Date(task.dueDate).getTime();
+        const now = Date.now();
+        if (dueTime < now && task.status !== 'done') {
+          preflightIssues.push({
+            type: 'blocker',
+            message: `Task is past due date (${task.dueDate.split('T')[0]}). Immediate escalation recommended.`
+          });
+        } else if (dueTime - now < 2 * 86400000 && task.status === 'todo') {
+          preflightIssues.push({
+            type: 'warning',
+            message: `Due within 48 hours but status is still "To Do".`
+          });
+        }
+      }
+
+      const totalSub = (task.subtasks || []).length;
+      const doneSub = (task.subtasks || []).filter(s => s.completed).length;
+      if (totalSub > 0 && doneSub < totalSub && task.status === 'done') {
+        preflightIssues.push({
+          type: 'warning',
+          message: `Task marked "Done" but only ${doneSub}/${totalSub} subtasks are completed.`
+        });
+      } else if (totalSub === 0) {
+        preflightIssues.push({
+          type: 'info',
+          message: `No subtasks configured yet. Consider using "Generate Subtasks" for better tracking.`
+        });
+      }
+
+      if (task.decisionStatus === 'changes_requested') {
+        preflightIssues.push({
+          type: 'warning',
+          message: `Decision status is "Changes Requested". Revisions required before production sign-off.`
+        });
+      }
+
+      if (preflightIssues.length === 0) {
+        preflightIssues.push({
+          type: 'info',
+          message: `Preflight passed: No blocker dependencies or timeline conflicts detected.`
+        });
+      }
+
+      reply = `Preflight Audit Complete: Found ${preflightIssues.filter(i => i.type === 'blocker').length} blockers, ${preflightIssues.filter(i => i.type === 'warning').length} warnings.`;
+    } else {
+      const userQuestion = prompt || 'How can I optimize this task for production?';
+      if (isGeminiReady) {
+        try {
+          const sys = `You are an expert Creative Operations Director and Assistant at SuamiSihat Creative Studio.
+Assist the user with clear, actionable creative production guidance.
+Current Task:
+- ID: ${task.id}
+- Title: ${task.title}
+- Workstream: ${task.workstream || 'General'}
+- Status: ${task.status}
+- Decision: ${task.decisionStatus || 'pending'}
+- Description: ${task.description || 'N/A'}`;
+          reply = await GeminiService.callGemini(sys, userQuestion);
+        } catch (gemErr) {
+          reply = `Gemini Assistant: Regarding "${userQuestion}", verify your dielines and ensure all prerequisite tasks are complete before proceeding to final artwork export.`;
+        }
+      } else {
+        reply = `Assistant: Based on the task "${task.title}" in the ${task.workstream || 'Studio'} workstream, ensure all subtasks and print/digital specs are verified before requesting Art Director sign-off.`;
+      }
+    }
+
+    res.json({
+      success: true,
+      reply,
+      suggestedSubtasks,
+      suggestedSpecs,
+      preflightIssues
+    });
+  } catch (err) {
+    console.error('[API:StudioTasks:AIAssist] Error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ─── DASHBOARD ROUTES ───────────────────────────────────────────────
 
 router.get('/dashboard', authenticateToken, (req, res) => {

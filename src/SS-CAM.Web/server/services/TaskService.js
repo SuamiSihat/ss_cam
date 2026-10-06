@@ -480,7 +480,17 @@ class TaskService {
         {
           id: 'TSK-1001',
           title: 'Ramadan 2026 Gift Box 3D Mockup & Concept Ideation',
-          description: `## Concept Overview\nPre-production exploration for the upcoming Ramadan exclusive collector's packaging box.\n\n### Key Exploration Requirements\n- Gold foil stamping accents on deep forest green texture\n- Embossed crescent and geometric Islamic motifs\n- Internal velvet insert for 2x bottles and premium spoon\n\n### Target Audience\nCorporate VIP clients and premium health enthusiasts.`,
+          workstream: 'Packaging & 3D Key Visual',
+          description: `# Main Task
+Pre-production exploration for the upcoming Ramadan exclusive collector's packaging box.
+
+## Brief & Exploration Requirements
+- Gold foil stamping accents on deep forest green texture
+- Embossed crescent and geometric Islamic motifs
+- Internal velvet insert for 2x bottles and premium spoon
+
+### Target Audience
+Corporate VIP clients and premium health enthusiasts.`,
           assignee: 'SS0004',
           assigneeName: 'Harussani',
           assigneeAvatarColor: '#0078D4',
@@ -488,14 +498,39 @@ class TaskService {
           priority: 'urgent',
           brand: 'SS',
           tags: ['packaging', '3d-mockup', 'ramadan', 'luxury'],
+          startDate: '2026-10-10',
           dueDate: '2026-10-20',
+          decisionStatus: 'pending',
+          decisionSummary: 'Dieline draft approved; awaiting sample box foil proof.',
+          subtasks: [
+            { id: 'sub_1001_1', title: 'Dieline structural dimensions & foil stamp coordinates', completed: true, assignee: 'SS0004', assigneeName: 'Harussani', dueDate: '2026-10-14' },
+            { id: 'sub_1001_2', title: '3D Blender key visual rendering with studio lighting', completed: true, assignee: 'SS0004', assigneeName: 'Harussani', dueDate: '2026-10-17' },
+            { id: 'sub_1001_3', title: 'Velvet insert bottle tolerance test', completed: false, assignee: 'SS0002', assigneeName: 'Aliff', dueDate: '2026-10-19' },
+            { id: 'sub_1001_4', title: 'Art Director master sign-off', completed: false, assignee: 'SS0004', assigneeName: 'Harussani', dueDate: '2026-10-20' }
+          ],
+          blockedBy: [],
+          blocks: ['TSK-1002'],
+          comments: [
+            { id: 'c1', author: 'harussani', authorName: 'Harussani', avatarColor: '#0078D4', message: 'Dieline layout submitted to production printer for quote.', timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), type: 'comment' }
+          ],
           createdAt: new Date(Date.now() - 4 * 86400000).toISOString(),
           updatedAt: new Date(Date.now() - 1 * 86400000).toISOString()
         },
         {
           id: 'TSK-1002',
           title: 'TikTok Viral Short-Form Video Hook Scripts (10 Variants)',
-          description: `## Objective\nDraft and test 10 high-converting video hooks for Q4 TikTok ad campaigns.\n\n### Focus Angles\n1. "Rahsia stamina lelaki berkerjaya tanpa gula berlebihan"\n2. "Kenapa formula tradisional herba masih relevan di 2026"\n3. "Before & After 30 hari ujian makmal"\n\n### Deliverables Needed\n- Table of 3-second visual cues and voiceover lines\n- Moodboard for studio lighting setup`,
+          workstream: 'Copywriting & Direct Response',
+          description: `# Main Task
+Draft and test 10 high-converting video hooks for Q4 TikTok ad campaigns.
+
+## Focus Angles
+1. "Rahsia stamina lelaki berkerjaya tanpa gula berlebihan"
+2. "Kenapa formula tradisional herba masih relevan di 2026"
+3. "Before & After 30 hari ujian makmal"
+
+### Deliverables Needed
+- Table of 3-second visual cues and voiceover lines
+- Moodboard for studio lighting setup`,
           assignee: 'SS0001',
           assigneeName: 'Haikal',
           assigneeAvatarColor: '#107C41',
@@ -503,14 +538,34 @@ class TaskService {
           priority: 'high',
           brand: 'SSE',
           tags: ['video', 'tiktok', 'copywriting', 'hooks'],
+          startDate: '2026-10-14',
           dueDate: '2026-10-25',
+          decisionStatus: 'changes_requested',
+          decisionSummary: 'Hooks 1-4 approved; hooks 5-10 require stronger pain points.',
+          subtasks: [
+            { id: 'sub_1002_1', title: 'Draft 10 curiosity & transformation hooks', completed: true, assignee: 'SS0001', assigneeName: 'Haikal', dueDate: '2026-10-16' },
+            { id: 'sub_1002_2', title: 'Review against TikTok ad policy guidelines', completed: false, assignee: 'SS0001', assigneeName: 'Haikal', dueDate: '2026-10-20' },
+            { id: 'sub_1002_3', title: 'Script audio voiceover pacing & B-roll shots', completed: false, assignee: 'SS0001', assigneeName: 'Haikal', dueDate: '2026-10-25' }
+          ],
+          blockedBy: ['TSK-1001'],
+          blocks: [],
+          comments: [
+            { id: 'c2', author: 'haikal', authorName: 'Haikal', avatarColor: '#107C41', message: 'Waiting on TSK-1001 3D renders to match hook scripts with actual product visuals.', timestamp: new Date(Date.now() - 1 * 86400000).toISOString(), type: 'comment' }
+          ],
           createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
           updatedAt: new Date(Date.now() - 2 * 86400000).toISOString()
         },
         {
           id: 'TSK-1003',
           title: 'Wellness Clinic Outdoor Lightbox & Reception Graphics',
-          description: `## Brief\nPrepare initial visual moodboard and typography specifications for the upcoming Bangsar showroom.\n\n### Specifications\n- 4K resolution master graphic layout\n- Minimalist Scandinavian medical aesthetic\n- Clean SuamiSihat Holdings secondary badge placement`,
+          workstream: 'Retail Signage & Interior Branding',
+          description: `# Main Task
+Prepare initial visual moodboard and typography specifications for the upcoming Bangsar showroom.
+
+## Specifications
+- 4K resolution master graphic layout
+- Minimalist Scandinavian medical aesthetic
+- Clean SuamiSihat Holdings secondary badge placement`,
           assignee: 'SS0002',
           assigneeName: 'Aliff',
           assigneeAvatarColor: '#D83B01',
@@ -518,7 +573,20 @@ class TaskService {
           priority: 'medium',
           brand: 'SSW',
           tags: ['retail', 'signage', 'print', 'interior'],
+          startDate: '2026-10-08',
           dueDate: '2026-10-18',
+          decisionStatus: 'approved',
+          decisionSummary: 'Master vector layout verified and approved for Bangsar site lightbox vendor.',
+          subtasks: [
+            { id: 'sub_1003_1', title: 'Bangsar showroom site measurement verification', completed: true, assignee: 'SS0002', assigneeName: 'Aliff', dueDate: '2026-10-10' },
+            { id: 'sub_1003_2', title: 'High-resolution vector typography layout', completed: true, assignee: 'SS0002', assigneeName: 'Aliff', dueDate: '2026-10-14' },
+            { id: 'sub_1003_3', title: 'Print vendor material color check (CMYK)', completed: true, assignee: 'SS0002', assigneeName: 'Aliff', dueDate: '2026-10-18' }
+          ],
+          blockedBy: [],
+          blocks: [],
+          comments: [
+            { id: 'c3', author: 'aliff', authorName: 'Aliff', avatarColor: '#D83B01', message: 'Specs verified with Bangsar clinic contractor.', timestamp: new Date(Date.now() - 3 * 86400000).toISOString(), type: 'comment' }
+          ],
           createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
           updatedAt: new Date(Date.now() - 3 * 86400000).toISOString()
         }
@@ -597,6 +665,15 @@ class TaskService {
             id: taskId,
             title: frontmatter.title || 'Untitled Studio Task',
             description: body || '',
+            workstream: frontmatter.workstream || 'General Production',
+            startDate: frontmatter.startDate || '',
+            dueDate: frontmatter.dueDate || frontmatter.deadline || '',
+            decisionStatus: frontmatter.decisionStatus || 'pending',
+            decisionSummary: frontmatter.decisionSummary || '',
+            subtasks: Array.isArray(frontmatter.subtasks) ? frontmatter.subtasks : [],
+            blockedBy: Array.isArray(frontmatter.blockedBy) ? frontmatter.blockedBy : [],
+            blocks: Array.isArray(frontmatter.blocks) ? frontmatter.blocks : [],
+            comments: Array.isArray(frontmatter.comments) ? frontmatter.comments : [],
             assignee: assignee || '',
             assigneeName: assigneeName || assignee || 'Unassigned',
             assigneeAvatarColor: assigneeAvatarColor || '#64748B',
@@ -604,11 +681,11 @@ class TaskService {
             priority: frontmatter.priority || 'medium',
             brand: frontmatter.brand || 'SS',
             tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
-            dueDate: frontmatter.dueDate || frontmatter.deadline || '',
             createdAt: frontmatter.createdAt || frontmatter.created || stats.birthtime.toISOString(),
             updatedAt: frontmatter.updatedAt || stats.mtime.toISOString(),
             jobId: frontmatter.jobId || null,
             projectId: frontmatter.projectId || null,
+            projectTitle: frontmatter.projectTitle || null,
             convertedAt: frontmatter.convertedAt || null,
             filePath
           };
@@ -693,6 +770,15 @@ class TaskService {
           id: frontmatter.id || cleanId,
           title: frontmatter.title || 'Untitled Studio Task',
           description: body || '',
+          workstream: frontmatter.workstream || 'General Production',
+          startDate: frontmatter.startDate || '',
+          dueDate: frontmatter.dueDate || frontmatter.deadline || '',
+          decisionStatus: frontmatter.decisionStatus || 'pending',
+          decisionSummary: frontmatter.decisionSummary || '',
+          subtasks: Array.isArray(frontmatter.subtasks) ? frontmatter.subtasks : [],
+          blockedBy: Array.isArray(frontmatter.blockedBy) ? frontmatter.blockedBy : [],
+          blocks: Array.isArray(frontmatter.blocks) ? frontmatter.blocks : [],
+          comments: Array.isArray(frontmatter.comments) ? frontmatter.comments : [],
           assignee: assignee || '',
           assigneeName: assigneeName || assignee || 'Unassigned',
           assigneeAvatarColor: assigneeAvatarColor || '#64748B',
@@ -700,11 +786,11 @@ class TaskService {
           priority: frontmatter.priority || 'medium',
           brand: frontmatter.brand || 'SS',
           tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
-          dueDate: frontmatter.dueDate || frontmatter.deadline || '',
           createdAt: frontmatter.createdAt || frontmatter.created || stats.birthtime.toISOString(),
           updatedAt: frontmatter.updatedAt || stats.mtime.toISOString(),
           jobId: frontmatter.jobId || null,
           projectId: frontmatter.projectId || null,
+          projectTitle: frontmatter.projectTitle || null,
           convertedAt: frontmatter.convertedAt || null,
           filePath: directPath
         };
@@ -765,6 +851,15 @@ class TaskService {
     const frontmatter = {
       id,
       title: String(data.title).trim(),
+      workstream: data.workstream || 'General Production',
+      startDate: data.startDate || '',
+      dueDate: data.dueDate || data.deadline || '',
+      decisionStatus: data.decisionStatus || 'pending',
+      decisionSummary: data.decisionSummary || '',
+      subtasks: Array.isArray(data.subtasks) ? data.subtasks : [],
+      blockedBy: Array.isArray(data.blockedBy) ? data.blockedBy : [],
+      blocks: Array.isArray(data.blocks) ? data.blocks : [],
+      comments: Array.isArray(data.comments) ? data.comments : [],
       assignee,
       assigneeName,
       assigneeAvatarColor,
@@ -772,11 +867,11 @@ class TaskService {
       priority: data.priority || 'medium',
       brand: data.brand || 'SS',
       tags: Array.isArray(data.tags) ? data.tags : (typeof data.tags === 'string' ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : []),
-      dueDate: data.dueDate || data.deadline || '',
       createdAt: nowIso,
       updatedAt: nowIso,
       jobId: data.jobId || null,
       projectId: data.projectId || null,
+      projectTitle: data.projectTitle || null,
       convertedAt: data.convertedAt || null
     };
 
@@ -834,6 +929,15 @@ class TaskService {
     const frontmatter = {
       id: existing.id,
       title: updates.title !== undefined ? String(updates.title).trim() : existing.title,
+      workstream: updates.workstream !== undefined ? updates.workstream : (existing.workstream || 'General Production'),
+      startDate: updates.startDate !== undefined ? updates.startDate : (existing.startDate || ''),
+      dueDate: updates.dueDate !== undefined ? updates.dueDate : existing.dueDate,
+      decisionStatus: updates.decisionStatus !== undefined ? updates.decisionStatus : (existing.decisionStatus || 'pending'),
+      decisionSummary: updates.decisionSummary !== undefined ? updates.decisionSummary : (existing.decisionSummary || ''),
+      subtasks: updates.subtasks !== undefined ? (Array.isArray(updates.subtasks) ? updates.subtasks : []) : (existing.subtasks || []),
+      blockedBy: updates.blockedBy !== undefined ? (Array.isArray(updates.blockedBy) ? updates.blockedBy : []) : (existing.blockedBy || []),
+      blocks: updates.blocks !== undefined ? (Array.isArray(updates.blocks) ? updates.blocks : []) : (existing.blocks || []),
+      comments: updates.comments !== undefined ? (Array.isArray(updates.comments) ? updates.comments : []) : (existing.comments || []),
       assignee,
       assigneeName,
       assigneeAvatarColor,
@@ -841,11 +945,11 @@ class TaskService {
       priority: updates.priority !== undefined ? updates.priority : existing.priority,
       brand: updates.brand !== undefined ? updates.brand : existing.brand,
       tags: updates.tags !== undefined ? (Array.isArray(updates.tags) ? updates.tags : updates.tags.split(',').map(t => t.trim()).filter(Boolean)) : existing.tags,
-      dueDate: updates.dueDate !== undefined ? updates.dueDate : existing.dueDate,
       createdAt: existing.createdAt,
       updatedAt: nowIso,
       jobId: updates.jobId !== undefined ? updates.jobId : existing.jobId,
       projectId: updates.projectId !== undefined ? updates.projectId : existing.projectId,
+      projectTitle: updates.projectTitle !== undefined ? updates.projectTitle : existing.projectTitle,
       convertedAt: updates.convertedAt !== undefined ? updates.convertedAt : existing.convertedAt
     };
 

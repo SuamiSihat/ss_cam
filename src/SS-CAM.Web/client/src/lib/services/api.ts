@@ -608,6 +608,19 @@ export class ApiClient {
     });
   }
 
+  static aiAssistStudioTask(id: string, payload: { action: string; prompt?: string }): Promise<{
+    success: boolean;
+    reply: string;
+    suggestedSubtasks?: Array<{ id: string; title: string; completed: boolean }>;
+    suggestedSpecs?: string;
+    preflightIssues?: Array<{ type: 'blocker' | 'warning' | 'info'; message: string }>;
+  }> {
+    return this.request(`/studio-tasks/${encodeURIComponent(id)}/ai-assist`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
   // ─── Password Reset & Recovery Suite ───
   static forgotPassword(identifier: string): Promise<{ success: boolean; message: string }> {
     return this.request('/auth/forgot-password', {
