@@ -75,7 +75,11 @@
     | 'flag'
     | 'overview'
     | 'circleDashed'
-    | 'pieChart';
+    | 'pieChart'
+    | 'paperclip'
+    | 'moreHorizontal'
+    | 'minimize'
+    | 'milestone';
 
   interface Props {
     name: IconName;
@@ -300,6 +304,24 @@
   {:else if name === 'pieChart'}
     <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
       <path d="M10 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 .75.75 0 0 0-.75-.75H10.75V2.75A.75.75 0 0 0 10 2zm-.75 1.53V10h6.47A6.5 6.5 0 1 1 9.25 3.53zM12 2.05a8 8 0 0 1 5.95 5.95H12V2.05z"/>
+    </svg>
+  {:else if name === 'paperclip'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path fill-rule="evenodd" d="M15.621 4.379a3 3 0 0 0-4.242 0l-7 7a3 3 0 0 0 4.242 4.243l7-7a1 1 0 0 0-1.414-1.415l-7 7a1 1 0 0 1-1.414-1.414l7-7a1 1 0 0 1 1.414 0 1 1 0 0 1 0 1.414l-7 7a3 3 0 0 0 4.243 4.243l7-7a5 5 0 0 0-7.072-7.072l-7 7a5 5 0 0 0 7.072 7.072l1.414-1.415a1 1 0 1 0-1.414-1.414l-1.414 1.414a3 3 0 1 1-4.243-4.242l7-7a3 3 0 0 1 4.243 4.242l-7 7a1 1 0 0 1-1.415-1.414l7-7a1 1 0 0 1 1.415 0 3 3 0 0 0 0-4.243z" clip-rule="evenodd"/>
+    </svg>
+  {:else if name === 'moreHorizontal'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <circle cx="5" cy="10" r="1.75"/>
+      <circle cx="10" cy="10" r="1.75"/>
+      <circle cx="15" cy="10" r="1.75"/>
+    </svg>
+  {:else if name === 'minimize'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M12.5 7.5a.75.75 0 0 1 .75-.75h3.25a.75.75 0 0 1 0 1.5h-1.69l3.47 3.47a.75.75 0 1 1-1.06 1.06L14.75 9.31v1.69a.75.75 0 0 1-1.5 0V7.75a.75.75 0 0 1-.75-.25zM7.5 12.5a.75.75 0 0 1-.75.75H3.5a.75.75 0 0 1 0-1.5h1.69L1.72 8.28a.75.75 0 1 1 1.06-1.06l3.47 3.47V9a.75.75 0 0 1 1.5 0v3.25a.75.75 0 0 1-.25.25z"/>
+    </svg>
+  {:else if name === 'milestone'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M10 2.5 17.5 10 10 17.5 2.5 10 10 2.5zm0 2.12L4.62 10 10 15.38 15.38 10 10 4.62z"/>
     </svg>
   {:else}
     <!-- Default generic bullet icon -->
