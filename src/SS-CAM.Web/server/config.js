@@ -117,5 +117,12 @@ module.exports = {
   DEFAULT_NAS_PATH: process.platform === 'win32' ? uncNasPath : linuxNasPath,
   FALLBACK_LOCAL_WORKSPACE: fallbackLocalWorkspace,
   APP_TITLE: 'SuamiSihat Creative Team Portal',
-  VERSION: '4.13.0'
+  VERSION: '4.14.0',
+  APP_URL: process.env.APP_URL || 'https://creative.suamisihat.myds.me',
+  SMTP_HOST: process.env.SMTP_HOST || '',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || '',
+  SMTP_SECURE: process.env.SMTP_SECURE === 'true',
+  SMTP_FROM: process.env.SMTP_FROM || 'SS-CAM Creative Studio <notifications@suamisihat.com>'
 };

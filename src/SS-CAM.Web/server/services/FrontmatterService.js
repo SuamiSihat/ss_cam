@@ -210,6 +210,9 @@ flowchart LR
    * @param {string|null} expectedHash - Optional OCC hash check
    */
   static writeProjectReadme(projectFolderPath, updatedFrontmatter, newBody = null, expectedHash = null) {
+    if (!fs.existsSync(projectFolderPath)) {
+      fs.mkdirSync(projectFolderPath, { recursive: true });
+    }
     const readmePath = path.join(projectFolderPath, 'README.md');
     
     let existingBody = '';

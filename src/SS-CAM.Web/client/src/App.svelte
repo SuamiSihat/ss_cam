@@ -7,6 +7,7 @@
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import DashboardView from '$lib/views/DashboardView.svelte';
+  import TasksView from '$lib/views/TasksView.svelte';
   import ProjectsView from '$lib/views/ProjectsView.svelte';
   import ProjectDetailView from '$lib/views/ProjectDetailView.svelte';
   import DeliverablesView from '$lib/views/DeliverablesView.svelte';
@@ -15,6 +16,7 @@
   import AdminView from '$lib/views/AdminView.svelte';
   import ProfileView from '$lib/views/ProfileView.svelte';
   import LoginView from '$lib/views/LoginView.svelte';
+  import ResetPasswordView from '$lib/views/ResetPasswordView.svelte';
   import ClientReviewView from '$lib/views/ClientReviewView.svelte';
   import OrderFormView from '$lib/views/OrderFormView.svelte';
   import NotificationDrawer from '$lib/components/features/NotificationDrawer.svelte';
@@ -34,7 +36,11 @@
   onMount(async () => {
     function handleRouteFromHash() {
       const hash = window.location.hash.replace(/^#\/?/, '');
-      if (hash.startsWith('review') || window.location.search.includes('token=')) {
+      if (hash.startsWith('reset-password')) {
+        appState.currentRoute = 'reset-password';
+        return;
+      }
+      if (hash.startsWith('review') || (window.location.search.includes('token=') && !hash.startsWith('reset-password'))) {
         appState.currentRoute = 'review';
         return;
       }
@@ -49,7 +55,7 @@
     window.addEventListener('hashchange', handleRouteFromHash);
     handleRouteFromHash();
 
-    if (appState.currentRoute !== 'review') {
+    if (appState.currentRoute !== 'review' && appState.currentRoute !== 'reset-password') {
       await appState.loadCurrentUser();
       appState.loadLiveTasks();
     }
@@ -166,6 +172,7 @@
 
   const pageConfig: Record<string, { title: string; layout: string; parent?: string }> = {
     dashboard:        { title: 'Dashboard',             layout: 'layout-full' },
+    tasks:            { title: 'Tasks & Workstream',     layout: 'layout-full' },
     projects:         { title: 'Project Catalog',       layout: 'layout-fluid' },
     'project-detail': { title: 'Project Workspace',     layout: 'layout-full', parent: 'projects' },
     deliverables:     { title: 'Deliverables & Reviews', layout: 'layout-page' },
@@ -203,10 +210,12 @@
   const adminIcon  = `<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/>`;
 
   const orderIcon = `<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>`;
+  const taskIcon = `<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>`;
 
   const navGroups = [
     { section: 'Production', items: [
       { route: 'dashboard',    label: 'Dashboard',              icon: dashIcon },
+      { route: 'tasks',        label: 'Tasks & Workstream',     icon: taskIcon },
       { route: 'projects',     label: 'Project Catalog',        icon: folderIcon, matchRoutes: ['projects','project-detail'] },
       { route: 'deliverables', label: 'Deliverables & Reviews', icon: reviewIcon, badge: true },
     ]},
@@ -249,6 +258,8 @@
 
 {#if appState.currentRoute === 'review'}
   <ClientReviewView />
+{:else if appState.currentRoute === 'reset-password'}
+  <ResetPasswordView />
 {:else if !appState.currentUser}
   <LoginView />
 {:else}
@@ -573,6 +584,8 @@
         <section class="view-pane {currentConfig.layout}">
           {#if appState.currentRoute === 'dashboard'}
             <DashboardView />
+          {:else if appState.currentRoute === 'tasks'}
+            <TasksView />
           {:else if appState.currentRoute === 'projects'}
             <ProjectsView />
           {:else if appState.currentRoute === 'project-detail'}
@@ -607,6 +620,17 @@
             {@html dashIcon}
           </svg>
           <span class="dock-text">Deck</span>
+        </a>
+        <a
+          href="#tasks"
+          class="dock-link"
+          class:active={appState.currentRoute === 'tasks'}
+          aria-label="Tasks & Workstream"
+        >
+          <svg class="dock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            {@html taskIcon}
+          </svg>
+          <span class="dock-text">Tasks</span>
         </a>
         <a
           href="#projects"

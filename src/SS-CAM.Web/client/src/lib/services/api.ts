@@ -511,6 +511,60 @@ export class ApiClient {
   static getLiveTasks(): Promise<{ success: boolean; liveTasks: any[]; count: number; activeCount: number }> {
     return this.request('/team/live-tasks');
   }
+
+  // ─── ClickUp Tasks & Workstream Engine ───
+  static getTasks(params: { role?: string; assignee?: string; status?: string; projectId?: string; search?: string } = {}): Promise<{ success: boolean; tasks: any[]; stats: any }> {
+    const query = new URLSearchParams();
+    if (params.role) query.set('role', params.role);
+    if (params.assignee) query.set('assignee', params.assignee);
+    if (params.status) query.set('status', params.status);
+    if (params.projectId) query.set('projectId', params.projectId);
+    if (params.search) query.set('search', params.search);
+    const qs = query.toString();
+    return this.request(`/tasks${qs ? `?${qs}` : ''}`);
+  }
+
+  static createTask(payload: { projectId: string; name: string; role?: string; assignee?: string; assigneeName?: string; status?: string; weight?: number; channel?: string; specs?: string; notes?: string; deliverableId?: string; linkedFile?: string }): Promise<{ success: boolean; task: any }> {
+    return this.request('/tasks', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  static updateTask(projectId: string, taskId: string, updates: Record<string, any>): Promise<{ success: boolean; task: any }> {
+    return this.request(`/tasks/${encodeURIComponent(projectId)}/${encodeURIComponent(taskId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates)
+    });
+  }
+
+  static deleteTask(projectId: string, taskId: string): Promise<{ success: boolean; taskId: string; projectId: string }> {
+    return this.request(`/tasks/${encodeURIComponent(projectId)}/${encodeURIComponent(taskId)}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // ─── Password Reset & Recovery Suite ───
+  static forgotPassword(identifier: string): Promise<{ success: boolean; message: string }> {
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ identifier })
+    });
+  }
+
+  static verifyResetToken(token: string): Promise<{ valid: boolean; username?: string; email?: string; error?: string }> {
+    return this.request('/auth/verify-reset-token', {
+      method: 'POST',
+      body: JSON.stringify({ token })
+    });
+  }
+
+  static resetPassword(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword })
+    });
+  }
 }
 
 

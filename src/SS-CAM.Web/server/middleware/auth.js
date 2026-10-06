@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const config = require('../config');
@@ -417,6 +418,130 @@ function requirePermission(permission) {
   };
 }
 
+function findUserByIdentifier(identifier) {
+  if (!identifier || typeof identifier !== 'string') return null;
+  const searchKey = identifier.trim().toLowerCase();
+  
+  let staffRoster = [];
+  try {
+    const TeamService = require('../services/TeamService');
+    staffRoster = TeamService.getStaffRoster() || [];
+  } catch (e) {
+    staffRoster = [];
+  }
+
+  // Check live staff roster first
+  let user = staffRoster.find(u =>
+    (u.username && u.username.toLowerCase() === searchKey) ||
+    (u.email && u.email.toLowerCase() === searchKey) ||
+    (u.name && u.name.toLowerCase() === searchKey) ||
+    (u.staffId && u.staffId.toLowerCase() === searchKey)
+  );
+
+  // Fallback to SYSTEM_USERS
+  if (!user) {
+    user = SYSTEM_USERS.find(u =>
+      (u.username && u.username.toLowerCase() === searchKey) ||
+      (u.email && u.email.toLowerCase() === searchKey) ||
+      (u.name && u.name.toLowerCase() === searchKey) ||
+      (u.id && u.id.toLowerCase() === searchKey) ||
+      (u.staffId && u.staffId.toLowerCase() === searchKey)
+    );
+  }
+
+  return user || null;
+}
+
+function getPasswordResetsPath() {
+  return path.join(config.DATA_DIR, 'password_resets.json');
+}
+
+function getPasswordResets() {
+  const targetPath = getPasswordResetsPath();
+  if (!fs.existsSync(targetPath)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(targetPath, 'utf8')) || {};
+  } catch (e) {
+    console.error('[Auth] Failed to parse password_resets.json:', e.message);
+    return {};
+  }
+}
+
+function savePasswordResets(resets) {
+  const targetPath = getPasswordResetsPath();
+  const tempPath = `${targetPath}.tmp.${Date.now()}`;
+  try {
+    fs.writeFileSync(tempPath, JSON.stringify(resets, null, 2), 'utf8');
+    fs.renameSync(tempPath, targetPath);
+  } catch (e) {
+    console.error('[Auth] Failed to save password_resets.json:', e.message);
+    try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch (_) {}
+  }
+}
+
+function createPasswordResetToken(identifier) {
+  const user = findUserByIdentifier(identifier);
+  if (!user) return null;
+
+  const resets = getPasswordResets();
+  const now = Date.now();
+
+  // Purge expired tokens
+  for (const t of Object.keys(resets)) {
+    if (!resets[t] || resets[t].expiresAt < now) {
+      delete resets[t];
+    }
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  resets[token] = {
+    username: user.username,
+    email: user.email,
+    staffId: user.staffId || user.id,
+    expiresAt: now + (30 * 60 * 1000), // 30 minutes
+    createdAt: new Date().toISOString()
+  };
+
+  savePasswordResets(resets);
+  return { user, token };
+}
+
+function verifyPasswordResetToken(token) {
+  if (!token || typeof token !== 'string') return { valid: false, error: 'Token is required' };
+  const resets = getPasswordResets();
+  const entry = resets[token];
+  if (!entry) return { valid: false, error: 'Invalid or expired reset token' };
+
+  if (Date.now() > entry.expiresAt) {
+    delete resets[token];
+    savePasswordResets(resets);
+    return { valid: false, error: 'Reset token has expired (30 minute limit). Please request a new link.' };
+  }
+
+  return { valid: true, username: entry.username, email: entry.email };
+}
+
+function resetPasswordWithToken(token, newPassword) {
+  const check = verifyPasswordResetToken(token);
+  if (!check.valid) return { success: false, error: check.error };
+
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 8) {
+    return { success: false, error: 'New password must be at least 8 characters long' };
+  }
+
+  const updated = updateUserPassword(check.username, newPassword.trim());
+  if (!updated) {
+    return { success: false, error: 'Failed to update password for user' };
+  }
+
+  // Remove the consumed token
+  const resets = getPasswordResets();
+  delete resets[token];
+  savePasswordResets(resets);
+
+  return { success: true, username: check.username };
+}
+
 module.exports = {
   SYSTEM_USERS,
   ROLE_PERMISSIONS,
@@ -427,6 +552,12 @@ module.exports = {
   getStoredPasswords,
   verifyUserPassword,
   updateUserPassword,
+  findUserByIdentifier,
+  getPasswordResetsPath,
+  getPasswordResets,
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+  resetPasswordWithToken,
   generateToken,
   authenticateToken,
   requirePermission,

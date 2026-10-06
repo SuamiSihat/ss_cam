@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
-const { SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserPermissions, hasCanonicalRole, verifyUserPassword, updateUserPassword, generateToken, authenticateToken, requirePermission, requireRole } = require('../middleware/auth');
+const { SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserPermissions, hasCanonicalRole, verifyUserPassword, updateUserPassword, createPasswordResetToken, verifyPasswordResetToken, resetPasswordWithToken, generateToken, authenticateToken, requirePermission, requireRole } = require('../middleware/auth');
 const WorkspaceService = require('../services/WorkspaceService');
 const FrontmatterService = require('../services/FrontmatterService');
 const DeliverableService = require('../services/DeliverableService');
@@ -21,6 +21,8 @@ const GeminiService = require('../services/GeminiService');
 const SnapshotService = require('../services/SnapshotService');
 const WebhookService = require('../services/WebhookService');
 const OrderService = require('../services/OrderService');
+const TaskService = require('../services/TaskService');
+const EmailService = require('../services/EmailService');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 
@@ -199,6 +201,79 @@ router.post('/auth/change-password', authenticateToken, (req, res) => {
     res.json({ success: true, message: 'Password updated successfully.' });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// ─── AUTH: FORGOT PASSWORD ──────────────────────────────────────────
+router.post('/auth/forgot-password', loginLimiter, async (req, res) => {
+  try {
+    const { identifier } = req.body;
+    if (!identifier || typeof identifier !== 'string') {
+      return res.status(400).json({ error: 'Username, email, or staff ID is required.' });
+    }
+
+    const result = createPasswordResetToken(identifier);
+    if (result && result.user && result.token) {
+      const clientBase = req.headers.origin || config.APP_URL;
+      await EmailService.sendPasswordResetEmail(result.user, result.token, clientBase);
+      AuditService.logEvent({
+        actor: result.user.username,
+        role: result.user.role || 'User',
+        action: 'AUTH_FORGOT_PASSWORD_REQUESTED',
+        entityType: 'User',
+        entityId: result.user.username,
+        details: { email: result.user.email, ip: req.ip }
+      });
+    }
+
+    // Always return success to protect against username enumeration attacks
+    res.json({
+      success: true,
+      message: 'If an account exists with that identifier, a secure reset link has been dispatched to its registered email.'
+    });
+  } catch (err) {
+    console.error('[Auth:ForgotPassword] Error:', err.message);
+    res.status(500).json({ error: 'Unable to process password reset request at this time.' });
+  }
+});
+
+router.post('/auth/verify-reset-token', (req, res) => {
+  const { token } = req.body;
+  const check = verifyPasswordResetToken(token);
+  if (!check.valid) {
+    return res.status(400).json({ valid: false, error: check.error });
+  }
+  res.json({ valid: true, username: check.username, email: check.email });
+});
+
+router.post('/auth/reset-password', loginLimiter, (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token) {
+      return res.status(400).json({ error: 'Reset token is required.' });
+    }
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+    }
+
+    const resetResult = resetPasswordWithToken(token, newPassword);
+    if (!resetResult.success) {
+      return res.status(400).json({ error: resetResult.error });
+    }
+
+    AuditService.logEvent({
+      actor: resetResult.username,
+      role: 'User',
+      action: 'AUTH_PASSWORD_RESET_SUCCESS',
+      entityType: 'User',
+      entityId: resetResult.username,
+      details: { username: resetResult.username, ip: req.ip }
+    });
+
+    res.json({ success: true, message: 'Password has been reset successfully. You can now log in with your new password.' });
+  } catch (err) {
+    console.error('[Auth:ResetPassword] Error:', err.message);
+    res.status(500).json({ error: 'Failed to reset password: ' + err.message });
   }
 });
 
@@ -509,6 +584,76 @@ router.post('/projects', authenticateToken, requirePermission('project:create'),
   } catch (err) {
     console.error('[API:Projects] Create project error:', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── TASKS & WORKSTREAM (CLICKUP-STYLE MULTI-TENANT ENGINE) ─────────────
+
+router.get('/tasks', authenticateToken, (req, res) => {
+  try {
+    const { role, assignee, status, projectId, search } = req.query;
+    const tasks = TaskService.getAllTasks({ role, assignee, status, projectId, search });
+    const stats = TaskService.getStats();
+    res.json({ success: true, tasks, stats });
+  } catch (err) {
+    console.error('[API:Tasks] List tasks error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/tasks', authenticateToken, (req, res) => {
+  try {
+    const { projectId, name, title, role, assignee, assigneeName, status, weight, channel, specs, notes, deliverableId, linkedFile } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ error: 'projectId is required to link task' });
+    }
+    if (!name && !title) {
+      return res.status(400).json({ error: 'Task name/title is required' });
+    }
+
+    const actor = (req.user && (req.user.name || req.user.username)) || 'User';
+    const task = TaskService.createTask(projectId, {
+      name: name || title,
+      role,
+      assignee,
+      assigneeName,
+      status,
+      weight,
+      channel,
+      specs,
+      notes,
+      deliverableId,
+      linkedFile
+    }, actor);
+
+    res.status(201).json({ success: true, task });
+  } catch (err) {
+    console.error('[API:Tasks] Create task error:', err.message);
+    res.status(err.message.includes('not found') ? 404 : 500).json({ error: err.message });
+  }
+});
+
+router.patch('/tasks/:projectId/:taskId', authenticateToken, (req, res) => {
+  try {
+    const { projectId, taskId } = req.params;
+    const actor = (req.user && (req.user.name || req.user.username)) || 'User';
+    const task = TaskService.updateTask(projectId, taskId, req.body, actor);
+    res.json({ success: true, task });
+  } catch (err) {
+    console.error('[API:Tasks] Update task error:', err.message);
+    res.status(err.message.includes('not found') ? 404 : 500).json({ error: err.message });
+  }
+});
+
+router.delete('/tasks/:projectId/:taskId', authenticateToken, requirePermission('project:edit'), (req, res) => {
+  try {
+    const { projectId, taskId } = req.params;
+    const actor = (req.user && (req.user.name || req.user.username)) || 'User';
+    const result = TaskService.deleteTask(projectId, taskId, actor);
+    res.json(result);
+  } catch (err) {
+    console.error('[API:Tasks] Delete task error:', err.message);
+    res.status(err.message.includes('not found') ? 404 : 500).json({ error: err.message });
   }
 });
 

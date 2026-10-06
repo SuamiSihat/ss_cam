@@ -411,10 +411,7 @@
     forgotLoading = true;
     forgotStatus = null;
     try {
-      await ApiClient.request('/auth/forgot-password', {
-        method: 'POST',
-        body: JSON.stringify({ username: forgotUsername.trim() })
-      });
+      await ApiClient.forgotPassword(forgotUsername.trim());
       forgotStatus = 'success';
     } catch (err: any) {
       forgotStatus = 'error';
@@ -532,32 +529,32 @@
           <h3 class="forgot-modal-title">Reset Password Request</h3>
           {#if forgotStatus === 'success'}
             <div class="forgot-success">
-              <strong>Request sent!</strong><br/>
-              Your administrator has been notified via the Audit Log.<br/>
-              Ask <strong>Harussani</strong> to reset your password to the default from <em>Admin Panel → Staff → Reset to Default</em>.
+              <strong>Check your inbox!</strong><br/>
+              A secure password reset link has been dispatched to the registered email address for <strong>{forgotUsername}</strong>.<br/><br/>
+              Please open the link within <strong>30 minutes</strong> to choose a new password.
             </div>
+            <button class="submit-btn" style="margin-top: 16px;" onclick={() => (showForgotModal = false)} type="button">
+              Done
+            </button>
           {:else}
-            <p class="forgot-modal-desc">Enter your username and we'll log a reset request for the administrator.</p>
+            <p class="forgot-modal-desc">Enter your username, staff ID, or registered email address to receive a secure password reset link.</p>
             <div class="forgot-modal-field">
-              <label class="field-label" for="forgot-username-input">Your Username</label>
+              <label class="field-label" for="forgot-username-input">Username, Staff ID, or Email</label>
               <input
                 id="forgot-username-input"
                 type="text"
                 class="field-input"
                 bind:value={forgotUsername}
-                placeholder="e.g. harussani"
+                placeholder="e.g. harussani or staff@suamisihat.com"
                 autocomplete="username"
               />
             </div>
             {#if forgotStatus === 'error'}
-              <div class="login-error-alert" role="alert">Request failed. Please contact your administrator directly.</div>
+              <div class="login-error-alert" role="alert">Unable to send reset link. Please verify your identifier or contact your administrator.</div>
             {/if}
             <button class="submit-btn" disabled={forgotLoading} onclick={handleForgotPassword} type="button">
-              {forgotLoading ? 'Sending...' : 'Send Reset Request'}
+              {forgotLoading ? 'Sending Reset Link...' : 'Send Password Reset Link'}
             </button>
-            <p class="forgot-hint">
-              Default password after reset: <code>SuamiSihat123!</code>
-            </p>
           {/if}
         </div>
       </div>

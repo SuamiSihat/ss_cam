@@ -2466,6 +2466,100 @@ This is the project brief content.
     }
   });
 
+  // Test 53: TaskService & ClickUp Task Management: Aggregates tasks, creates, updates, and deletes task linked to project
+  test('TaskService & ClickUp Task Management: Aggregates tasks, creates, updates, and deletes task linked to project', async () => {
+    const TaskService = require('../services/TaskService');
+    const projects = WorkspaceService.getAllProjects();
+    assert.ok(projects.length > 0, 'Must have at least one sample project');
+    const p = projects[0];
+
+    // 1. Create a task linked to projectId
+    const createdTask = TaskService.createTask(p.id, {
+      name: 'Write 3 Hook Angles for WhatsApp',
+      role: 'copywriter',
+      assignee: 'sarah',
+      assigneeName: 'Sarah Al-Attas',
+      status: 'draft',
+      weight: 2.0,
+      channel: 'whatsapp',
+      notes: 'Test hook script'
+    }, 'TestRunner');
+
+    assert.ok(createdTask.id, 'Created task must have an ID');
+    assert.strictEqual(createdTask.role, 'copywriter', 'Role must normalize to copywriter');
+    assert.strictEqual(createdTask.status, 'draft');
+
+    // 2. Fetch all tasks and verify inclusion
+    const allTasks = TaskService.getAllTasks({ projectId: p.id });
+    const found = allTasks.find(t => t.id === createdTask.id);
+    assert.ok(found, 'Created task must be found in getAllTasks');
+    assert.strictEqual(found.projectId, p.id, 'Task must link to project ID');
+    assert.strictEqual(found.projectTitle, p.title, 'Task must inherit project title');
+
+    // 3. Update task status (e.g. from draft -> in-progress)
+    const updated = TaskService.updateTask(p.id, createdTask.id, {
+      status: 'in-progress',
+      notes: 'Work started'
+    }, 'TestRunner');
+    assert.strictEqual(updated.status, 'in-progress', 'Status must update to in-progress');
+
+    // 4. Update task status to done
+    const doneTask = TaskService.updateTask(p.id, createdTask.id, {
+      status: 'done'
+    }, 'TestRunner');
+    assert.strictEqual(doneTask.status, 'done', 'Status must update to done');
+
+    // 5. Delete task
+    const delResult = TaskService.deleteTask(p.id, createdTask.id, 'TestRunner');
+    assert.ok(delResult.success, 'Delete task must succeed');
+
+    // 6. Verify task no longer in project
+    const afterDelete = TaskService.getAllTasks({ projectId: p.id });
+    assert.ok(!afterDelete.some(t => t.id === createdTask.id), 'Deleted task must not appear');
+  });
+
+  // Test 54: Password Reset Suite & Email Service: Token generation, verification, password reset, and fallback email dispatch
+  test('Password Reset Suite & Email Service: Token generation, verification, password reset, and fallback email dispatch', async () => {
+    const { createPasswordResetToken, verifyPasswordResetToken, resetPasswordWithToken, verifyUserPassword, updateUserPassword } = require('../middleware/auth');
+    const EmailService = require('../services/EmailService');
+
+    // 1. Token generation for valid user
+    const gen = createPasswordResetToken('harussani');
+    assert.ok(gen, 'Token generation for harussani must succeed');
+    assert.ok(gen.token, 'Token string must be present');
+    assert.strictEqual(typeof gen.token, 'string');
+    assert.strictEqual(gen.token.length, 64, 'Token must be 64-char hex string');
+
+    // 2. Token verification
+    const verified = verifyPasswordResetToken(gen.token);
+    assert.ok(verified.valid, 'Newly created token must be valid');
+    assert.strictEqual(verified.username, 'harussani');
+
+    // 3. Invalid / non-existent token verification
+    const invalidCheck = verifyPasswordResetToken('fake_token_12345');
+    assert.strictEqual(invalidCheck.valid, false, 'Invalid token must return valid=false');
+
+    // 4. Password reset with short password fails
+    const shortReset = resetPasswordWithToken(gen.token, 'short');
+    assert.strictEqual(shortReset.success, false, 'Short password (< 8 chars) must fail');
+
+    // 5. Password reset with valid password succeeds
+    const validReset = resetPasswordWithToken(gen.token, 'BrandNewSecurePassword2026!');
+    assert.strictEqual(validReset.success, true, 'Valid password reset must succeed');
+    assert.ok(verifyUserPassword('harussani', 'BrandNewSecurePassword2026!'), 'New password must verify successfully');
+
+    // 6. Token is single-use: cannot be reused after successful reset
+    const reuseCheck = verifyPasswordResetToken(gen.token);
+    assert.strictEqual(reuseCheck.valid, false, 'Consumed token cannot be reused');
+
+    // 7. Restore original password for test user
+    updateUserPassword('harussani', 'SuamiSihat123!');
+
+    // 8. EmailService fallback dispatch test
+    const emailRes = await EmailService.sendPasswordResetEmail({ username: 'harussani', email: 'harussani@suamisihat.com' }, 'dummy_token', 'http://localhost:4000');
+    assert.ok(emailRes.success, 'EmailService fallback dispatch must succeed');
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {
