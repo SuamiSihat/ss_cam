@@ -268,12 +268,12 @@
   .form-label {
     font-size: 11px;
     font-weight: 700;
-    color: var(--text-secondary, #94A3B8);
+    color: var(--text-secondary);
     letter-spacing: 0.4px;
   }
 
   .req {
-    color: #EF4444;
+    color: var(--color-danger, #EF4444);
   }
 
   .form-input,
@@ -283,17 +283,17 @@
     min-height: 36px;
     padding: 7px 12px;
     border-radius: 6px;
-    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.14));
-    background: rgba(0, 0, 0, 0.25);
-    color: var(--text-primary, #F8FAFC);
+    border: 1px solid var(--surface-card-border);
+    background: var(--surface-card);
+    color: var(--text-primary);
     font-size: 13px;
-    transition: all 0.15s;
+    transition: all 0.15s ease;
     font-family: inherit;
   }
 
   .form-select option {
-    background: var(--bg-card, #1E293B);
-    color: var(--text-primary, #F8FAFC);
+    background: var(--surface-card);
+    color: var(--text-primary);
     padding: 8px 12px;
   }
 
@@ -307,8 +307,8 @@
   .form-select:focus,
   .form-textarea:focus {
     outline: none;
-    border-color: var(--brand-primary, #0078D4);
-    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.25);
+    border-color: var(--brand-accent);
+    box-shadow: 0 0 0 2px rgba(33, 161, 247, 0.2);
   }
 
   .form-textarea {
@@ -321,20 +321,20 @@
     align-items: flex-start;
     gap: 10px;
     padding: 10px 14px;
-    background: rgba(56, 189, 248, 0.08);
-    border: 1px solid rgba(56, 189, 248, 0.2);
+    background: var(--color-info-bg, #EFF6FF);
+    border: 1px solid var(--color-info-border, #BFDBFE);
     border-radius: 8px;
     font-size: 12px;
-    color: var(--text-secondary, #94A3B8);
+    color: var(--text-secondary);
     line-height: 1.45;
   }
 
   .bridge-info-box strong {
-    color: var(--brand-accent, #38BDF8);
+    color: var(--brand-primary);
   }
 
   .bridge-info-box em {
-    color: var(--text-primary, #F8FAFC);
+    color: var(--text-primary);
     font-style: normal;
     font-weight: 600;
   }
