@@ -24,7 +24,7 @@ const DashboardView = {
       const workloads = data.designerWorkload || [];
       const brands = data.brandDistribution || { SS: 1, SSE: 1, SSH: 1 };
 
-      // Skill Competency Radar Data (Art Director Matrix)
+      // Skill Competency Radar Data (Studio Matrix)
       const radarSkills = [
         { label: 'Packaging', target: 90, actual: 86 },
         { label: 'Graphic Design', target: 95, actual: 94 },

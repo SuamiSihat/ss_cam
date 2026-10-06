@@ -661,7 +661,7 @@ router.post('/studio-tasks/:id/ai-assist', authenticateToken, async (req, res) =
     const isGeminiReady = GeminiService.getStatus().configured;
 
     if (action === 'subtasks') {
-      const systemPrompt = `You are a Senior Creative Art Director and Studio Production Manager.
+      const systemPrompt = `You are a Senior Project Lead and Operations Manager.
 Given a creative task with title, workstream, and description, output a JSON array of 3 to 5 realistic, actionable production subtasks.
 Each object must have:
 - "title": string (concise, clear action starting with a verb, e.g. "Dieline vector verification", "Proofread body copy against KKM guidelines", "Check 3mm bleed in Illustrator")
@@ -697,7 +697,7 @@ Generate actionable subtasks:`;
         let templates = [
           'Initial brief & creative direction alignment',
           'Draft concept & structural layout verification',
-          'Art Director internal pre-flight review',
+          'Internal QA pre-flight review',
           'Client / stakeholder sign-off & export handoff'
         ];
         if (ws.includes('packag')) {
@@ -841,7 +841,7 @@ Current Task:
           reply = `Gemini Assistant: Regarding "${userQuestion}", verify your dielines and ensure all prerequisite tasks are complete before proceeding to final artwork export.`;
         }
       } else {
-        reply = `Assistant: Based on the task "${task.title}" in the ${task.workstream || 'Studio'} workstream, ensure all subtasks and print/digital specs are verified before requesting Art Director sign-off.`;
+        reply = `Assistant: Based on the task "${task.title}" in the ${task.workstream || 'General'} workstream, ensure all subtasks and project deliverables are verified before requesting final sign-off.`;
       }
     }
 
@@ -1294,76 +1294,6 @@ router.delete('/projects/:id', authenticateToken, requireRole('admin'), (req, re
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
-  }
-});
-
-// ─── STUDIO TASK MANAGER (LIGHTWEIGHT PRE-PRODUCTION PIPELINE) ───────────
-
-router.get('/studio-tasks', authenticateToken, (req, res) => {
-  try {
-    const tasks = TaskService.getAllStudioTasks(req.query);
-    res.json({ success: true, tasks, count: tasks.length });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message, tasks: [] });
-  }
-});
-
-router.get('/studio-tasks/:id', authenticateToken, (req, res) => {
-  try {
-    const task = TaskService.getStudioTaskById(req.params.id);
-    if (!task) {
-      return res.status(404).json({ success: false, error: `Task ${req.params.id} not found` });
-    }
-    res.json({ success: true, task });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-router.post('/studio-tasks', authenticateToken, (req, res) => {
-  try {
-    const actor = req.user ? (req.user.name || req.user.username) : 'Studio User';
-    const role = req.user ? req.user.role : 'Designer';
-    const task = TaskService.createStudioTask(req.body, actor, role);
-    res.status(201).json({ success: true, task });
-  } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
-  }
-});
-
-router.put('/studio-tasks/:id', authenticateToken, (req, res) => {
-  try {
-    const actor = req.user ? (req.user.name || req.user.username) : 'Studio User';
-    const role = req.user ? req.user.role : 'Designer';
-    const task = TaskService.updateStudioTask(req.params.id, req.body, actor, role);
-    res.json({ success: true, task });
-  } catch (err) {
-    const isNotFound = err.message && err.message.includes('not found');
-    res.status(isNotFound ? 404 : 400).json({ success: false, error: err.message });
-  }
-});
-
-router.delete('/studio-tasks/:id', authenticateToken, (req, res) => {
-  try {
-    const actor = req.user ? (req.user.name || req.user.username) : 'Studio User';
-    const role = req.user ? req.user.role : 'Designer';
-    const result = TaskService.deleteStudioTask(req.params.id, actor, role);
-    res.json(result);
-  } catch (err) {
-    const isNotFound = err.message && err.message.includes('not found');
-    res.status(isNotFound ? 404 : 400).json({ success: false, error: err.message });
-  }
-});
-
-// PHASE 3 THE BRIDGE: Provision NAS Workspace
-router.post('/studio-tasks/:id/provision', authenticateToken, (req, res) => {
-  try {
-    const actor = req.user ? (req.user.name || req.user.username) : 'Studio User';
-    const role = req.user ? req.user.role : 'Creative Lead';
-    const result = TaskService.provisionTaskToProject(req.params.id, req.body, actor, role);
-    res.json(result);
-  } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
   }
 });
 

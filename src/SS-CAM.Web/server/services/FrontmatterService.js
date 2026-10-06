@@ -57,7 +57,7 @@ Deliver high-converting visual assets, compliant packaging, and campaign creativ
 \`\`\`mermaid
 flowchart LR
   Intake[📥 Intake & Brief] --> Concept[🎨 Concept & Dieline]
-  Concept --> Review[🔍 Art Director Review]
+  Concept --> Review[🔍 Team Lead Review]
   Review --> Approved[✅ Final Sign-Off]
 \`\`\`
 `;

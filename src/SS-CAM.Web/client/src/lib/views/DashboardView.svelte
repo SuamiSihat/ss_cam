@@ -182,7 +182,7 @@
     return myProjects.filter(p => p && p.status === 'review');
   });
 
-  // In-Flight Pipeline Spotlight (Actionable Art Director Desk)
+  // In-Flight Pipeline Spotlight (Actionable Lead Desk)
   let pipelineSpotlightTab = $state<'review' | 'in-progress'>('review');
 
   const studioReviewProjects = $derived.by(() => {
@@ -466,7 +466,7 @@
             <FluentIcons name="warning" size={16} color="#F59E0B" />
             <strong style="margin-left: 6px;">CREATIVE FRICTION ALERT ({highRevisionProjects.length})</strong>
           </div>
-          <span class="friction-desc">Projects with &ge; 2 revision rounds require Art Director brief alignment &amp; feedback intervention</span>
+          <span class="friction-desc">Projects with &ge; 2 revision rounds require Lead brief alignment &amp; feedback intervention</span>
         </div>
         <div class="friction-items-grid">
           {#each highRevisionProjects as hp}
@@ -686,7 +686,7 @@
           </div>
         </div>
 
-        <!-- In-Flight Pipeline Spotlight (Actionable Art Director Desk) -->
+        <!-- In-Flight Pipeline Spotlight (Actionable Lead Desk) -->
         <div class="pipeline-spotlight-section">
           <div class="spotlight-header">
             <div class="spotlight-title-row">
@@ -950,7 +950,7 @@
             <FluentCard elevated>
               <div class="card-section-header">
                 <div>
-                  <h2>Art Director Skill Competency Matrix</h2>
+                  <h2>Studio Skill Competency Matrix</h2>
                   <p>Multi-dimensional studio balance and design output readiness</p>
                 </div>
               </div>

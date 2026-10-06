@@ -506,7 +506,7 @@ Corporate VIP clients and premium health enthusiasts.`,
             { id: 'sub_1001_1', title: 'Dieline structural dimensions & foil stamp coordinates', completed: true, assignee: 'SS0004', assigneeName: 'Harussani', dueDate: '2026-10-14' },
             { id: 'sub_1001_2', title: '3D Blender key visual rendering with studio lighting', completed: true, assignee: 'SS0004', assigneeName: 'Harussani', dueDate: '2026-10-17' },
             { id: 'sub_1001_3', title: 'Velvet insert bottle tolerance test', completed: false, assignee: 'SS0002', assigneeName: 'Aliff', dueDate: '2026-10-19' },
-            { id: 'sub_1001_4', title: 'Art Director master sign-off', completed: false, assignee: 'SS0004', assigneeName: 'Harussani', dueDate: '2026-10-20' }
+            { id: 'sub_1001_4', title: 'Executive master sign-off', completed: false, assignee: 'SS0004', assigneeName: 'Harussani', dueDate: '2026-10-20' }
           ],
           blockedBy: [],
           blocks: ['TSK-1002'],
@@ -836,7 +836,10 @@ Prepare initial visual moodboard and typography specifications for the upcoming 
     const nowIso = new Date().toISOString();
 
     const staffMap = this.getStaffDirectoryMap();
-    let assignee = data.assignee || '';
+    let assignee = String(data.assignee || '').trim();
+    if (!assignee) {
+      assignee = (actor && actor !== 'System' && actor !== 'Staff' && actor !== 'Studio User') ? actor : 'SS0004';
+    }
     let assigneeName = data.assigneeName || '';
     let assigneeAvatarColor = data.assigneeAvatarColor || '';
 
@@ -845,6 +848,9 @@ Prepare initial visual moodboard and typography specifications for the upcoming 
       if (member) {
         assigneeName = assigneeName || member.name || member.username;
         assigneeAvatarColor = assigneeAvatarColor || member.avatarColor || '#0078D4';
+      } else if (!assigneeName) {
+        assigneeName = assignee;
+        assigneeAvatarColor = '#0078D4';
       }
     }
 

@@ -362,7 +362,7 @@
           {#if hSkill.actual >= hSkill.target}
             <span class="status-good">✓ Good: Fast sign-off, zero dieline/script delays.</span>
           {:else}
-            <span class="status-gap">⚠ Attention: Revision risk; Art Director preflight advised.</span>
+            <span class="status-gap">⚠ Attention: Revision risk; Lead preflight review advised.</span>
           {/if}
         </div>
       </div>
@@ -487,7 +487,7 @@
     <!-- Action Tip -->
     <div class="action-tip-banner">
       <FluentIcons name="sparkle" size={14} color="var(--brand-accent)" />
-      <span class="action-tip-text"><strong>Art Director Action:</strong> {activeMeta.actionAdvice}</span>
+      <span class="action-tip-text"><strong>Lead Action:</strong> {activeMeta.actionAdvice}</span>
     </div>
   </div>
 </div>
@@ -495,7 +495,7 @@
 <!-- "How to Read This Matrix" Deep Dive Modal Dialog -->
 <FluentDialog
   open={showGuideModal}
-  title="Art Director Skill Competency Matrix Guide"
+  title="Studio Skill Competency Matrix Guide"
   confirmText="Got It"
   onClose={() => (showGuideModal = false)}
   onConfirm={() => (showGuideModal = false)}
@@ -503,7 +503,7 @@
   <div class="guide-modal-content">
     <div class="guide-lead-banner">
       <p>
-        The <strong>Art Director Skill Competency Matrix</strong> visualizes the creative studio's real-world
+        The <strong>Studio Skill Competency Matrix</strong> visualizes the studio's real-world
         execution readiness across 6 core commercial disciplines. It contrasts audited performance against quarterly
         management targets to spot capability bottlenecks before they affect launch dates.
       </p>
@@ -518,7 +518,7 @@
           <ul>
             <li><strong>25%</strong>: Foundational knowledge / basic support only.</li>
             <li><strong>50%</strong>: Operational competency; requires regular supervision.</li>
-            <li><strong>75%</strong>: Production-ready standard; independent designer execution.</li>
+            <li><strong>75%</strong>: Production-ready standard; independent execution.</li>
             <li><strong>100%</strong>: Master craftsman level / zero-defect velocity.</li>
           </ul>
         </div>
@@ -528,7 +528,7 @@
           <ul>
             <li>
               <span class="swatch blue"></span>
-              <strong>Target Benchmark (Q3)</strong>: Dashed blue line representing the studio's quarterly SLA quality objective.
+              <strong>Target Benchmark (Q3)</strong>: Dashed blue line representing the quarterly SLA quality objective.
             </li>
             <li>
               <span class="swatch green"></span>
@@ -546,7 +546,7 @@
         <div class="rule-box green">
           <div class="rule-header">🟢 Green Outside Blue (Outperforming / Healthy)</div>
           <p>
-            When the solid green polygon extends <strong>outside or touches</strong> the dashed blue line, the studio is
+            When the solid green polygon extends <strong>outside or touches</strong> the dashed blue line, the team is
             at peak readiness. Outputs are approved with minimal iterations and can be shipped with high confidence.
           </p>
         </div>
@@ -554,7 +554,7 @@
           <div class="rule-header">🔴 Green Inside Blue (Skill Gap / Bottleneck)</div>
           <p>
             When the solid green polygon is <strong>visibly inside</strong> the dashed blue boundary, this discipline is an
-            operational bottleneck. Expect higher revision cycles, delay risks, or required Art Director preflight reviews.
+            operational bottleneck. Expect higher revision cycles, delay risks, or required lead preflight reviews.
           </p>
         </div>
       </div>

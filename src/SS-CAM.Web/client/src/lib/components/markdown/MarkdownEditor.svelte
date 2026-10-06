@@ -96,7 +96,7 @@
   function insertMermaid(type: 'flow' | 'pie' | 'sequence' | 'timeline' | 'architecture') {
     let code = '';
     if (type === 'flow') {
-      code = `\`\`\`mermaid\nflowchart TD\n  Brief[Creative Brief] --> Concept[Visual Concept]\n  Concept --> Review{Art Director Review}\n  Review -->|Approved| Master[Final Production Assets]\n  Review -->|Revision Required| Concept\n\`\`\``;
+      code = `\`\`\`mermaid\nflowchart TD\n  Brief[Creative Brief] --> Concept[Visual Concept]\n  Concept --> Review{Team Lead Review}\n  Review -->|Approved| Master[Final Production Assets]\n  Review -->|Revision Required| Concept\n\`\`\``;
     } else if (type === 'pie') {
       code = `\`\`\`mermaid\npie title Deliverable Media Mix\n  "Packaging Dielines" : 40\n  "Social Media Ads" : 35\n  "3D Render Assets" : 25\n\`\`\``;
     } else if (type === 'sequence') {

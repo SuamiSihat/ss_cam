@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { onMount } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
@@ -791,7 +791,7 @@
     </div>
 
     <div class="header-right-actions">
-      <!-- Art Director A/B Layout Switcher -->
+      <!-- Studio A/B Layout Switcher -->
       <div class="ab-layout-pill">
         <button
           type="button"
@@ -1521,7 +1521,7 @@
   <!-- ══════════════════════════════════════════════════════════════════ -->
   {#if activeTab === 'system'}
     <div class="tab-pane-content">
-      <!-- Art Director Troubleshooting & Rapid Diagnostics Hub -->
+      <!-- Operations Troubleshooting & Rapid Diagnostics Hub -->
       <FluentCard elevated style="margin-bottom: 18px; border-left: 4px solid var(--brand-accent);">
         <div class="troubleshoot-header">
           <div>
@@ -2006,7 +2006,7 @@
         />
         <datalist id="designation-options">
           <option value="Head of Creative">Head of Creative</option>
-          <option value="Art Director">Art Director</option>
+          <option value="Creative Lead">Creative Lead</option>
           <option value="Creative Director">Creative Director</option>
           <option value="Multimedia Designer">Multimedia Designer</option>
           <option value="Senior Graphic Designer">Senior Graphic Designer</option>
@@ -2347,7 +2347,7 @@
     to { transform: rotate(360deg); }
   }
 
-  /* ─── Art Director A/B Layout Switcher ─── */
+  /* ─── Studio A/B Layout Switcher ─── */
   .ab-layout-pill {
     display: inline-flex;
     align-items: center;
@@ -2469,7 +2469,7 @@
     color: var(--text-primary);
   }
 
-  /* ─── Art Director Troubleshooting Diagnostic Hub ─── */
+  /* ─── Operations Troubleshooting Diagnostic Hub ─── */
   .troubleshoot-header {
     display: flex;
     justify-content: space-between;

@@ -287,7 +287,7 @@ ${briefMarkdown}
         rawAnalysis: response,
         strengths: ["Creative context defined"],
         missingItems: [],
-        recommendations: ["Review deliverables with Art Director"],
+        recommendations: ["Review deliverables with Team Lead"],
         suggestedBrandTokens: ["#043388 Royal Navy", "#D4AF37 Luxury Gold"]
       };
     }

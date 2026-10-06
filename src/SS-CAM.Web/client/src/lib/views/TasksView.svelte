@@ -32,7 +32,7 @@
   let isLoading = $state(true);
   
   // ClickUp 5-View Switcher: overview | list | board | gantt | table
-  let viewMode = $state<'overview' | 'list' | 'board' | 'gantt' | 'table'>('list');
+  let viewMode = $state<'overview' | 'list' | 'board' | 'gantt' | 'table'>('overview');
   
   // Group By: status | workstream | priority
   let groupBy = $state<'status' | 'workstream' | 'priority'>('workstream');
@@ -43,6 +43,7 @@
   let statusFilter = $state('all');
   let workstreamFilter = $state('all');
   let myTasksOnly = $state(false);
+  let hideCompleted = $state(false);
   let searchQuery = $state('');
   
   let isCreateModalOpen = $state(false);
@@ -53,14 +54,14 @@
 
   // Expanded tree states for hierarchical List & Gantt
   let expandedWorkstreams = $state<Record<string, boolean>>({
-    Packaging: true,
-    Signage: true,
-    Copywriting: true,
-    'Motion & Video': true,
-    'Digital & Social': true,
-    'Brand Asset': true,
-    '3D Rendering': true,
-    General: true
+    'General Operations': true,
+    'Software & App Dev': true,
+    'Packaging & Dieline': true,
+    'Creative & Brand Identity': true,
+    'Digital Marketing & Social': true,
+    'Motion, Video & 3D': true,
+    'QA & Compliance': true,
+    'Executive & Strategy': true
   });
   let expandedTaskIds = $state<Record<string, boolean>>({});
 
@@ -75,23 +76,24 @@
   let staffRoster = $state<any[]>([]);
 
   const columns: { id: StudioTaskStatus; label: string; icon: string; color: string }[] = [
-    { id: 'backlog', label: 'TO DO', icon: 'circleDashed', color: '#94A3B8' },
+    { id: 'backlog', label: 'BACKLOG', icon: 'circleDashed', color: '#64748B' },
     { id: 'in-progress', label: 'IN PROGRESS', icon: 'bolt', color: '#0284C7' },
     { id: 'review', label: 'REVIEW', icon: 'search', color: '#8B5CF6' },
-    { id: 'done', label: 'COMPLETE', icon: 'checkCircle', color: '#10B981' }
+    { id: 'done', label: 'DONE', icon: 'checkCircle', color: '#10B981' }
   ];
 
   const brandChips = ['all', 'SS', 'SSH', 'SSC', 'SSW', 'SSE', 'SST'];
   const priorityChips = ['all', 'urgent', 'high', 'medium', 'low'];
   const workstreamChips = [
     'all',
-    'Packaging',
-    'Signage',
-    'Copywriting',
-    'Motion & Video',
-    'Digital & Social',
-    'Brand Asset',
-    '3D Rendering'
+    'General Operations',
+    'Software & App Dev',
+    'Packaging & Dieline',
+    'Creative & Brand Identity',
+    'Digital Marketing & Social',
+    'Motion, Video & 3D',
+    'QA & Compliance',
+    'Executive & Strategy'
   ];
 
   async function loadTasks() {
@@ -154,6 +156,10 @@
   const filteredTasks = $derived.by(() => {
     let list = tasks;
 
+    if (hideCompleted) {
+      list = list.filter(t => t.status !== 'done' && t.status !== 'converted');
+    }
+
     if (brandFilter !== 'all') {
       list = list.filter(t => (t.brand || 'SS').toUpperCase() === brandFilter.toUpperCase());
     }
@@ -167,7 +173,7 @@
     }
 
     if (workstreamFilter !== 'all') {
-      list = list.filter(t => (t.workstream || 'General').toLowerCase() === workstreamFilter.toLowerCase());
+      list = list.filter(t => (t.workstream || 'General Operations').toLowerCase() === workstreamFilter.toLowerCase());
     }
 
     if (myTasksOnly) {
@@ -200,26 +206,26 @@
   const presentWorkstreams = $derived.by(() => {
     const set = new Set<string>();
     filteredTasks.forEach(t => {
-      set.add(t.workstream || 'General');
+      set.add(t.workstream || 'General Operations');
     });
-    if (set.size === 0) return ['Packaging', 'Signage', 'Copywriting'];
+    if (set.size === 0) return ['General Operations', 'Software & App Dev', 'Packaging & Dieline'];
     return Array.from(set);
   });
 
   // Grouped tasks by Workstream then Status (ClickUp List arrangement)
   const workstreamGroups = $derived.by(() => {
     return presentWorkstreams.map(ws => {
-      const wsTasks = filteredTasks.filter(t => (t.workstream || 'General') === ws);
+      const wsTasks = filteredTasks.filter(t => (t.workstream || 'General Operations') === ws);
       const total = wsTasks.length;
       const completed = wsTasks.filter(t => t.status === 'done' || t.status === 'converted').length;
       const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
       // Group tasks inside workstream by Status
       const statusGroups = [
-        { status: 'backlog' as StudioTaskStatus, label: 'TO DO', color: '#94A3B8', tasks: wsTasks.filter(t => t.status === 'backlog') },
+        { status: 'backlog' as StudioTaskStatus, label: 'BACKLOG', color: '#64748B', tasks: wsTasks.filter(t => t.status === 'backlog') },
         { status: 'in-progress' as StudioTaskStatus, label: 'IN PROGRESS', color: '#0284C7', tasks: wsTasks.filter(t => t.status === 'in-progress') },
         { status: 'review' as StudioTaskStatus, label: 'REVIEW', color: '#8B5CF6', tasks: wsTasks.filter(t => t.status === 'review') },
-        { status: 'done' as StudioTaskStatus, label: 'COMPLETE', color: '#10B981', tasks: wsTasks.filter(t => t.status === 'done' || t.status === 'converted') }
+        { status: 'done' as StudioTaskStatus, label: 'DONE', color: '#10B981', tasks: wsTasks.filter(t => t.status === 'done' || t.status === 'converted') }
       ];
 
       return {
@@ -231,6 +237,54 @@
         statusGroups
       };
     });
+  });
+
+  // Executive Overview Stats derivation
+  const overviewStats = $derived.by(() => {
+    const total = tasks.length;
+    const completed = tasks.filter(t => t.status === 'done' || t.status === 'converted').length;
+    const inProgress = tasks.filter(t => t.status === 'in-progress').length;
+    const inReview = tasks.filter(t => t.status === 'review').length;
+    const backlog = tasks.filter(t => t.status === 'backlog').length;
+    const urgentOrHigh = tasks.filter(t => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'done' && t.status !== 'converted').length;
+    const overallPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    // SVG Donut calculation: Circumference = 2 * PI * 48 = 301.59
+    const circumference = 301.59;
+    const toRatio = (cnt: number) => total > 0 ? cnt / total : 0;
+
+    const rBacklog = toRatio(backlog);
+    const rProgress = toRatio(inProgress);
+    const rReview = toRatio(inReview);
+    const rDone = toRatio(completed);
+
+    const backlogDash = `${rBacklog * circumference} ${circumference}`;
+    const inProgressDash = `${rProgress * circumference} ${circumference}`;
+    const reviewDash = `${rReview * circumference} ${circumference}`;
+    const doneDash = `${rDone * circumference} ${circumference}`;
+
+    const backlogOffset = 0;
+    const inProgressOffset = -(rBacklog * circumference);
+    const reviewOffset = -((rBacklog + rProgress) * circumference);
+    const doneOffset = -((rBacklog + rProgress + rReview) * circumference);
+
+    return {
+      total,
+      completed,
+      inProgress,
+      inReview,
+      backlog,
+      urgentOrHigh,
+      overallPercent,
+      ratios: {
+        backlog: Math.round(rBacklog * 100),
+        inProgress: Math.round(rProgress * 100),
+        review: Math.round(rReview * 100),
+        done: Math.round(rDone * 100)
+      },
+      dashes: { backlog: backlogDash, inProgress: inProgressDash, review: reviewDash, done: doneDash },
+      offsets: { backlog: backlogOffset, inProgress: inProgressOffset, review: reviewOffset, done: doneOffset }
+    };
   });
 
   // Priority color & flag helper
@@ -269,7 +323,7 @@
     loadTasks();
   }
 
-  // Quick inline task creation directly from List view
+  // Quick inline task creation directly from List view with mandatory assignee
   async function handleQuickInlineCreate(workstream: string, status: StudioTaskStatus = 'backlog') {
     const t = inlineTaskTitle.trim();
     if (!t) {
@@ -279,12 +333,17 @@
     inlineTaskTitle = '';
     inlineCreateParent = null;
     try {
+      const owner = currentUsername || 'harussani';
+      const ownerName = appState.currentUser?.name || 'Harussani (Me)';
       const res = await ApiClient.createStudioTask({
         title: t,
         workstream,
         status,
         priority: 'medium',
-        brand: 'SS'
+        brand: 'SS',
+        assignee: owner,
+        assigneeName: ownerName,
+        assigneeAvatarColor: '#0284C7'
       });
       handleTaskCreated(res.task);
       appState.addToast(`Created task "${t}" in ${workstream}`, 'success');
@@ -318,6 +377,86 @@
       handleTaskUpdated(res.task);
     } catch (err: any) {
       console.warn('Subtask toggle error:', err.message);
+    }
+  }
+
+  // Inline Subtask Enter Key creation: Inserts a new subtask right below the edited one
+  async function handleInlineSubtaskTitleKeydown(e: KeyboardEvent, task: StudioTask, subIndex: number) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const newSub: TaskSubtask = {
+        id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        title: '',
+        completed: false
+      };
+      const curList = [...(task.subtasks || [])];
+      curList.splice(subIndex + 1, 0, newSub);
+      task.subtasks = curList;
+
+      try {
+        const res = await ApiClient.updateStudioTask(task.id, { subtasks: curList });
+        handleTaskUpdated(res.task);
+      } catch (err: any) {
+        console.warn('Failed to insert subtask:', err.message);
+      }
+
+      setTimeout(() => {
+        const rowInputs = document.querySelectorAll<HTMLInputElement>(`.nested-subtask-input-${task.id}`);
+        if (rowInputs[subIndex + 1]) {
+          rowInputs[subIndex + 1].focus();
+        }
+      }, 50);
+    } else if (e.key === 'Backspace' && task.subtasks?.[subIndex]?.title === '' && task.subtasks.length > 1) {
+      e.preventDefault();
+      const curList = task.subtasks.filter((_, i) => i !== subIndex);
+      task.subtasks = curList;
+      try {
+        const res = await ApiClient.updateStudioTask(task.id, { subtasks: curList });
+        handleTaskUpdated(res.task);
+      } catch (err: any) {
+        console.warn('Failed to remove subtask:', err.message);
+      }
+      setTimeout(() => {
+        const rowInputs = document.querySelectorAll<HTMLInputElement>(`.nested-subtask-input-${task.id}`);
+        const targetIdx = Math.max(0, subIndex - 1);
+        if (rowInputs[targetIdx]) {
+          rowInputs[targetIdx].focus();
+        }
+      }, 50);
+    }
+  }
+
+  async function handleSaveSubtaskTitle(task: StudioTask) {
+    try {
+      const res = await ApiClient.updateStudioTask(task.id, { subtasks: task.subtasks });
+      handleTaskUpdated(res.task);
+    } catch (err: any) {
+      console.warn('Failed to save subtask:', err.message);
+    }
+  }
+
+  async function handleQuickAddSubtask(e: KeyboardEvent, task: StudioTask) {
+    if (e.key === 'Enter') {
+      const target = e.target as HTMLInputElement;
+      const text = target.value.trim();
+      if (!text) return;
+      e.preventDefault();
+      target.value = '';
+
+      const newSub: TaskSubtask = {
+        id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        title: text,
+        completed: false
+      };
+      const curList = [...(task.subtasks || []), newSub];
+      task.subtasks = curList;
+
+      try {
+        const res = await ApiClient.updateStudioTask(task.id, { subtasks: curList });
+        handleTaskUpdated(res.task);
+      } catch (err: any) {
+        console.warn('Failed to add subtask:', err.message);
+      }
     }
   }
 
@@ -456,23 +595,23 @@
     <div class="header-left-cluster">
       <div class="space-title-dropdown">
         <span class="space-icon-dot"></span>
-        <h1 class="space-name">SS Creative Studio</h1>
+        <h1 class="space-name">Workspace Tasks &amp; Deliverables</h1>
         <FluentIcons name="chevronDown" size={14} class="caret-down" />
         <span class="favorite-star" title="Star workspace">☆</span>
       </div>
     </div>
 
     <div class="header-right-tools">
-      <button type="button" class="tool-ghost-btn" title="Automate Studio Workflows">
+      <button type="button" class="tool-ghost-btn" title="Automate Workspace Workflows">
         <FluentIcons name="bolt" size={14} />
         <span>Automate</span>
       </button>
 
-      <button type="button" class="tool-ghost-btn ai-btn" title="Gemini AI Studio Brain" onclick={() => {
+      <button type="button" class="tool-ghost-btn ai-btn" title="Task Assistant AI Brain" onclick={() => {
         if (tasks.length > 0) openTaskDetail(tasks[0]);
       }}>
         <FluentIcons name="sparkles" size={14} color="#8B5CF6" />
-        <span>Brain AI</span>
+        <span>Task AI</span>
       </button>
 
       <button type="button" class="tool-ghost-btn" title="Share with Team / Client">
@@ -549,7 +688,7 @@
       </button>
     </div>
 
-    <!-- Right Controls: Status Pill, Filter, Me Mode, Search -->
+    <!-- Right Controls: Status Pill, Filter, Hide Completed, Me Mode, Search -->
     <div class="views-sub-controls">
       <!-- Status Filter Pill -->
       <select class="clickup-filter-pill" bind:value={statusFilter}>
@@ -567,6 +706,18 @@
         {/each}
       </select>
 
+      <!-- Hide Completed Tasks Toggle Button -->
+      <button
+        type="button"
+        class="filter-icon-toggle-btn"
+        class:active={hideCompleted}
+        onclick={() => (hideCompleted = !hideCompleted)}
+        title="Toggle visibility of completed tasks"
+      >
+        <FluentIcons name={hideCompleted ? 'eyeSlash' : 'eye'} size={13} />
+        <span>{hideCompleted ? 'Completed: Hidden' : 'Completed: Shown'}</span>
+      </button>
+
       <!-- Me Mode Toggle -->
       <button
         type="button"
@@ -583,7 +734,7 @@
         <FluentIcons name="search" size={13} color="var(--text-secondary)" />
         <input
           type="text"
-          placeholder="Search Ctrl K"
+          placeholder="Search tasks, deliverables, team... (Ctrl+K)"
           bind:value={searchQuery}
           class="clickup-search-input"
         />
@@ -598,93 +749,330 @@
   {#if isLoading && tasks.length === 0}
     <div class="loading-state">
       <div class="spinner"></div>
-      <span>Loading ClickUp Studio Tasks…</span>
+      <span>Loading Workspace Tasks…</span>
     </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       1. OVERVIEW VIEW (Inspired by Screenshot 3)
+       1. OVERVIEW VIEW (Revamped Executive UI)
        ═══════════════════════════════════════════════════════════════ -->
   {:else if viewMode === 'overview'}
     <div class="overview-view-container">
-      <!-- Lists Progress Table Card -->
+
+      <!-- TOP 4 EXECUTIVE KPI SUMMARY CARDS -->
+      <div class="overview-kpi-grid">
+        <button
+          type="button"
+          class="kpi-metric-card"
+          onclick={() => { statusFilter = 'all'; viewMode = 'list'; }}
+        >
+          <div class="kpi-top-row">
+            <span class="kpi-label">TOTAL WORKSPACE TASKS</span>
+            <span class="kpi-badge neutral">{overviewStats.overallPercent}% VELOCITY</span>
+          </div>
+          <div class="kpi-number-row">
+            <span class="kpi-number">{overviewStats.total}</span>
+            <span class="kpi-trend-pill">
+              <FluentIcons name="checkCircle" size={12} color="#10B981" />
+              <span>{overviewStats.completed} Closed</span>
+            </span>
+          </div>
+          <div class="kpi-progress-bar">
+            <div class="kpi-progress-fill" style="width: {overviewStats.overallPercent}%;"></div>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          class="kpi-metric-card"
+          onclick={() => { statusFilter = 'in-progress'; viewMode = 'board'; }}
+        >
+          <div class="kpi-top-row">
+            <span class="kpi-label">IN FLIGHT PIPELINE</span>
+            <span class="kpi-badge in-progress">ACTIVE</span>
+          </div>
+          <div class="kpi-number-row">
+            <span class="kpi-number" style="color: #0284C7;">{overviewStats.inProgress}</span>
+            <span class="kpi-subtext">Active Execution</span>
+          </div>
+          <div class="kpi-footer-hint">Filter In Progress on Board ➔</div>
+        </button>
+
+        <button
+          type="button"
+          class="kpi-metric-card"
+          onclick={() => { statusFilter = 'review'; viewMode = 'list'; }}
+        >
+          <div class="kpi-top-row">
+            <span class="kpi-label">TEAM REVIEW QUEUE</span>
+            <span class="kpi-badge review">IN REVIEW</span>
+          </div>
+          <div class="kpi-number-row">
+            <span class="kpi-number" style="color: #8B5CF6;">{overviewStats.inReview}</span>
+            <span class="kpi-subtext">Awaiting Sign-Off</span>
+          </div>
+          <div class="kpi-footer-hint">Explore Review Queue ➔</div>
+        </button>
+
+        <button
+          type="button"
+          class="kpi-metric-card"
+          onclick={() => { priorityFilter = 'urgent'; viewMode = 'list'; }}
+        >
+          <div class="kpi-top-row">
+            <span class="kpi-label">CRITICAL ATTENTION</span>
+            <span class="kpi-badge urgent">URGENT / HIGH</span>
+          </div>
+          <div class="kpi-number-row">
+            <span class="kpi-number" style="color: #EF4444;">{overviewStats.urgentOrHigh}</span>
+            <span class="kpi-subtext">Priority Watch</span>
+          </div>
+          <div class="kpi-footer-hint">View High Priority Tasks ➔</div>
+        </button>
+      </div>
+
+      <!-- SERVICE WORKSTREAMS & DELIVERABLE HEALTH MATRIX -->
       <div class="overview-card">
         <div class="overview-card-header">
-          <h3 class="card-title">Lists</h3>
-          <span class="refresh-subtext">Refreshed just now</span>
+          <div class="card-header-titles">
+            <h3 class="card-title">Service Workstreams &amp; Deliverable Health</h3>
+            <span class="card-subtitle">Real-time throughput, status distribution, and active ownership per operational department.</span>
+          </div>
+          <div class="card-header-actions">
+            <span class="refresh-subtext">Refreshed just now</span>
+            <button type="button" class="btn-primary-sm" onclick={() => (isCreateModalOpen = true)}>
+              <FluentIcons name="plus" size={12} />
+              <span>New Task</span>
+            </button>
+          </div>
         </div>
 
         <table class="overview-lists-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th style="width: 80px;">Color</th>
-              <th style="width: 280px;">Progress</th>
-              <th style="width: 100px;">Start</th>
-              <th style="width: 100px;">End</th>
-              <th style="width: 90px;">Priority</th>
-              <th style="width: 90px;">Owner</th>
+              <th>Workstream / Department</th>
+              <th style="width: 220px;">Status Breakdown</th>
+              <th style="width: 240px;">Completion Progress</th>
+              <th style="width: 140px;">Active Owners</th>
+              <th style="width: 110px; text-align: right;">Action</th>
             </tr>
           </thead>
           <tbody>
             {#each workstreamGroups as group}
+              {@const wsAssignees = Array.from(new Set(group.tasks.map(t => t.assigneeName || t.assignee).filter(Boolean)))}
               <tr class="overview-list-row" onclick={() => { workstreamFilter = group.workstream; viewMode = 'list'; }}>
                 <td class="ws-name-cell">
-                  <FluentIcons name="list" size={14} color="#0284C7" />
-                  <strong>{group.workstream}</strong>
+                  <div class="ws-icon-circle">
+                    <FluentIcons name="list" size={13} color="#0284C7" />
+                  </div>
+                  <div class="ws-name-meta">
+                    <strong>{group.workstream}</strong>
+                    <span class="ws-task-total">{group.total} task{group.total !== 1 ? 's' : ''}</span>
+                  </div>
                 </td>
                 <td>
-                  <span class="color-bullet" style="background: #0284C7;"></span>
+                  <div class="status-distribution-pills">
+                    {#each group.statusGroups as sg}
+                      {#if sg.tasks.length > 0}
+                        <span class="mini-status-chip" style="border-color: {sg.color}; color: {sg.color};">
+                          {sg.tasks.length} {sg.status === 'in-progress' ? 'Prog' : sg.status}
+                        </span>
+                      {/if}
+                    {/each}
+                  </div>
                 </td>
                 <td>
                   <div class="progress-bar-cell">
                     <div class="progress-track">
                       <div class="progress-fill" style="width: {group.percent}%;"></div>
                     </div>
+                    <span class="progress-percent-badge">{group.percent}%</span>
                     <span class="progress-count">{group.completed}/{group.total}</span>
                   </div>
                 </td>
-                <td><FluentIcons name="calendar" size={12} color="var(--text-secondary)" /></td>
-                <td><FluentIcons name="calendar" size={12} color="var(--text-secondary)" /></td>
-                <td><FluentIcons name="flag" size={12} color="#CBD5E1" /></td>
-                <td><FluentIcons name="user" size={12} color="var(--text-secondary)" /></td>
+                <td>
+                  <div class="owners-avatar-stack">
+                    {#if wsAssignees.length > 0}
+                      {#each wsAssignees.slice(0, 3) as ownerName}
+                        <div class="mini-owner-circle" title={ownerName}>
+                          {ownerName.substring(0, 2).toUpperCase()}
+                        </div>
+                      {/each}
+                      {#if wsAssignees.length > 3}
+                        <span class="owner-overflow-tag">+{wsAssignees.length - 3}</span>
+                      {/if}
+                    {:else}
+                      <span class="unassigned-text">Unassigned</span>
+                    {/if}
+                  </div>
+                </td>
+                <td style="text-align: right;">
+                  <button type="button" class="table-action-pill" onclick={(e) => {
+                    e.stopPropagation();
+                    workstreamFilter = group.workstream;
+                    viewMode = 'list';
+                  }}>
+                    Open List ➔
+                  </button>
+                </td>
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
 
-      <!-- Bottom Split: Resources & Workload by Status -->
+      <!-- BOTTOM SPLIT: RESOURCES / HANDOVER & REAL SVG DONUT WORKLOAD -->
       <div class="overview-bottom-grid">
+        <!-- Resources & Handover Hub Card -->
         <div class="overview-card">
           <div class="overview-card-header">
-            <h3 class="card-title">Resources</h3>
+            <div class="card-header-titles">
+              <h3 class="card-title">Project Handover &amp; Resource Hub</h3>
+              <span class="card-subtitle">Direct access to NAS project archives, design systems, and intake briefs.</span>
+            </div>
           </div>
+
+          <div class="resource-quick-links-grid">
+            <a href="#projects" class="resource-quick-tile">
+              <div class="tile-icon-box blue">📁</div>
+              <div class="tile-content">
+                <strong>Project Catalog (NAS)</strong>
+                <span>Direct repository connection</span>
+              </div>
+            </a>
+
+            <a href="#orders" class="resource-quick-tile">
+              <div class="tile-icon-box purple">📋</div>
+              <div class="tile-content">
+                <strong>Brief &amp; Order Intake</strong>
+                <span>Submit deliverables &amp; campaigns</span>
+              </div>
+            </a>
+
+            <a href="#brand" class="resource-quick-tile">
+              <div class="tile-icon-box emerald">🎨</div>
+              <div class="tile-content">
+                <strong>Brand Guidelines Hub</strong>
+                <span>Official colors, typography &amp; logos</span>
+              </div>
+            </a>
+
+            <a href="#copy" class="resource-quick-tile">
+              <div class="tile-icon-box amber">⚙</div>
+              <div class="tile-content">
+                <strong>Copywriting Studio</strong>
+                <span>Ad scripts &amp; packaging copy</span>
+              </div>
+            </a>
+          </div>
+
           <div class="drop-resources-zone">
-            <FluentIcons name="upload" size={24} color="var(--text-secondary)" />
-            <p>Drop files here or attach project briefs</p>
+            <FluentIcons name="upload" size={24} color="#0284C7" />
+            <p>Drop project briefs, dielines, or reference assets to attach</p>
+            <span class="upload-hint">Supported formats: PDF, AI, PSD, ZIP, MP4, PNG (Max 500MB)</span>
           </div>
         </div>
 
+        <!-- Workload by Status (Interactive SVG Donut Chart) -->
         <div class="overview-card">
           <div class="overview-card-header">
-            <h3 class="card-title">Workload by Status</h3>
+            <div class="card-header-titles">
+              <h3 class="card-title">Workload by Status</h3>
+              <span class="card-subtitle">Deliverables distributed across execution and review cycles.</span>
+            </div>
           </div>
+
           <div class="workload-breakdown-row">
-            <div class="donut-chart-mock">
-              <FluentIcons name="pieChart" size={64} color="#0284C7" />
-              <div class="donut-center-label">
-                <strong>{tasks.length}</strong>
-                <span>Tasks</span>
+            <!-- Modern SVG Donut Chart -->
+            <div class="donut-chart-container">
+              <svg viewBox="0 0 120 120" class="donut-svg-ring">
+                <!-- Background Track -->
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="48"
+                  fill="none"
+                  stroke="var(--surface-card-border, #E2E8F0)"
+                  stroke-width="12"
+                />
+                <!-- Backlog Arc -->
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="48"
+                  fill="none"
+                  stroke="#64748B"
+                  stroke-width="12"
+                  stroke-linecap="round"
+                  stroke-dasharray={overviewStats.dashes.backlog}
+                  stroke-dashoffset={overviewStats.offsets.backlog}
+                  transform="rotate(-90 60 60)"
+                />
+                <!-- In Progress Arc -->
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="48"
+                  fill="none"
+                  stroke="#0284C7"
+                  stroke-width="12"
+                  stroke-linecap="round"
+                  stroke-dasharray={overviewStats.dashes.inProgress}
+                  stroke-dashoffset={overviewStats.offsets.inProgress}
+                  transform="rotate(-90 60 60)"
+                />
+                <!-- Review Arc -->
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="48"
+                  fill="none"
+                  stroke="#8B5CF6"
+                  stroke-width="12"
+                  stroke-linecap="round"
+                  stroke-dasharray={overviewStats.dashes.review}
+                  stroke-dashoffset={overviewStats.offsets.review}
+                  transform="rotate(-90 60 60)"
+                />
+                <!-- Done Arc -->
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="48"
+                  fill="none"
+                  stroke="#10B981"
+                  stroke-width="12"
+                  stroke-linecap="round"
+                  stroke-dasharray={overviewStats.dashes.done}
+                  stroke-dashoffset={overviewStats.offsets.done}
+                  transform="rotate(-90 60 60)"
+                />
+              </svg>
+
+              <div class="donut-center-overlay">
+                <span class="donut-stat-number">{overviewStats.total}</span>
+                <span class="donut-stat-label">Total Tasks</span>
               </div>
             </div>
-            <div class="donut-legend">
+
+            <!-- Legend Table -->
+            <div class="donut-legend-table">
               {#each columns as col}
-                {@const cCount = tasks.filter(t => t.status === col.id).length}
-                <div class="legend-row">
-                  <span class="legend-dot" style="background: {col.color};"></span>
-                  <span class="legend-name">{col.label}</span>
-                  <span class="legend-val">{cCount}</span>
-                </div>
+                {@const cCount = tasks.filter(t => t.status === col.id || (col.id === 'done' && t.status === 'converted')).length}
+                {@const cRatio = overviewStats.ratios[col.id] || 0}
+                <button
+                  type="button"
+                  class="legend-status-row"
+                  onclick={() => { statusFilter = col.id; viewMode = 'board'; }}
+                >
+                  <div class="legend-left-col">
+                    <span class="legend-dot" style="background: {col.color};"></span>
+                    <span class="legend-label">{col.label}</span>
+                  </div>
+                  <div class="legend-right-col">
+                    <span class="legend-count">{cCount}</span>
+                    <span class="legend-percent-tag">{cRatio}%</span>
+                  </div>
+                </button>
               {/each}
             </div>
           </div>
@@ -702,7 +1090,7 @@
           <!-- Folder Header with Breadcrumb & Expand -->
           <div class="folder-header" onclick={() => toggleWorkstreamExpand(group.workstream)} role="button" tabindex="0" onkeydown={() => {}}>
             <div class="breadcrumb-trail">
-              <span>SS Creative Studio</span>
+              <span>Workspace Tasks</span>
             </div>
             <div class="folder-title-row">
               <span class="caret-icon">
@@ -847,7 +1235,7 @@
                         <!-- Nested Subtasks (ClickUp exact indentation) -->
                         {#if isSubExpanded && task.subtasks}
                           <div class="nested-subtasks-tree">
-                            {#each task.subtasks as sub}
+                            {#each task.subtasks as sub, sIdx}
                               <div class="nested-subtask-row" class:completed={sub.completed}>
                                 <div class="sub-indent-elbow"></div>
                                 <input
@@ -855,10 +1243,30 @@
                                   checked={sub.completed}
                                   onchange={() => handleInlineSubtaskToggle(task, sub.id)}
                                   class="clickup-checkbox"
+                                  title="Toggle subtask completion"
                                 />
-                                <span class="subtask-text">{sub.title}</span>
+                                <input
+                                  type="text"
+                                  class="nested-subtask-input nested-subtask-input-{task.id}"
+                                  bind:value={sub.title}
+                                  onkeydown={(e) => handleInlineSubtaskTitleKeydown(e, task, sIdx)}
+                                  onblur={() => handleSaveSubtaskTitle(task)}
+                                  placeholder="Subtask title (press Return for next)..."
+                                />
                               </div>
                             {/each}
+
+                            <!-- Quick add subtask input row -->
+                            <div class="nested-subtask-quick-add">
+                              <div class="sub-indent-elbow"></div>
+                              <FluentIcons name="plus" size={11} color="var(--text-tertiary)" />
+                              <input
+                                type="text"
+                                class="subtask-quick-input"
+                                placeholder="+ Add new subtask (press Return)..."
+                                onkeydown={(e) => handleQuickAddSubtask(e, task)}
+                              />
+                            </div>
                           </div>
                         {/if}
                       </div>
@@ -961,9 +1369,10 @@
               >
                 <!-- Workstream & Priority -->
                 <div class="card-meta-top">
-                  <span class="ws-tag">{task.workstream || 'General'}</span>
-                  <span class="priority-flag" title="Priority: {pMeta.label}">
-                    <FluentIcons name="flag" size={13} color={pMeta.color} />
+                  <span class="ws-tag">{task.workstream || 'General Operations'}</span>
+                  <span class="priority-pill-badge {task.priority || 'medium'}">
+                    <FluentIcons name="flag" size={11} color={pMeta.color} />
+                    <span>{pMeta.label}</span>
                   </span>
                 </div>
 
@@ -990,13 +1399,17 @@
 
                 <!-- Card Bottom: Assignee & Due Date -->
                 <div class="card-meta-bottom">
-                  {#if task.assignee}
-                    <div class="assignee-avatar-circle sm" style="background: {task.assigneeAvatarColor || '#0078D4'};">
-                      {(task.assigneeName || task.assignee || 'U').substring(0, 2).toUpperCase()}
-                    </div>
-                  {:else}
-                    <FluentIcons name="user" size={13} color="#94A3B8" />
-                  {/if}
+                  <div class="card-bottom-assignee">
+                    {#if task.assignee}
+                      <div class="assignee-avatar-circle sm" style="background: {task.assigneeAvatarColor || '#0078D4'};" title="{task.assigneeName || task.assignee}">
+                        {(task.assigneeName || task.assignee || 'U').substring(0, 2).toUpperCase()}
+                      </div>
+                      <span class="card-assignee-name">{task.assigneeName || task.assignee}</span>
+                    {:else}
+                      <FluentIcons name="user" size={13} color="#94A3B8" />
+                      <span class="card-assignee-name unassigned">Unassigned</span>
+                    {/if}
+                  </div>
 
                   {#if task.dueDate}
                     <span class="date-chip" class:overdue={isOverdue(task.dueDate, task.status)}>
@@ -1543,6 +1956,32 @@
     color: #0078D4;
   }
 
+  .filter-icon-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .filter-icon-toggle-btn:hover {
+    border-color: #0284C7;
+    color: var(--text-primary);
+  }
+  .filter-icon-toggle-btn.active {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: #10B981;
+    color: #047857;
+    font-weight: 600;
+  }
+
   .clickup-search-box {
     display: flex;
     align-items: center;
@@ -1551,7 +1990,7 @@
     border: 1px solid var(--surface-card-border);
     border-radius: 4px;
     padding: 3px 8px;
-    width: 160px;
+    width: 170px;
   }
   .clickup-search-input {
     border: none;
@@ -1563,39 +2002,160 @@
   .clickup-search-input:focus { outline: none; }
   .clear-btn { background: transparent; border: none; font-size: 10px; cursor: pointer; color: var(--text-secondary); }
 
-  /* ═══ 3. OVERVIEW VIEW ══════════════════════════════════════════ */
+  /* ═══ 3. OVERVIEW VIEW (EXECUTIVE DASHBOARD UI) ═════════════════ */
   .overview-view-container {
     padding: 24px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
   }
 
-  .overview-card {
+  /* Top 4 KPI Metrics */
+  .overview-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .kpi-metric-card {
     background: var(--surface-card);
     border: 1px solid var(--surface-card-border);
-    border-radius: 8px;
-    padding: 16px 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .kpi-metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    border-color: #0284C7;
   }
 
-  .overview-card-header {
+  .kpi-top-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+  }
+  .kpi-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+  }
+  .kpi-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 12px;
+  }
+  .kpi-badge.neutral { background: var(--surface-card-subtle); color: var(--text-secondary); }
+  .kpi-badge.in-progress { background: rgba(2, 132, 199, 0.12); color: #0284C7; }
+  .kpi-badge.review { background: rgba(139, 92, 246, 0.12); color: #8B5CF6; }
+  .kpi-badge.urgent { background: rgba(239, 68, 68, 0.12); color: #EF4444; }
+
+  .kpi-number-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .kpi-number {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-primary);
+  }
+  .kpi-trend-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #10B981;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 2px 6px;
+    border-radius: 10px;
+  }
+  .kpi-subtext {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .kpi-progress-bar {
+    width: 100%;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--surface-card-border);
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .kpi-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0284C7, #10B981);
+    border-radius: 3px;
+  }
+  .kpi-footer-hint {
+    font-size: 11px;
+    color: var(--text-tertiary, #94A3B8);
+    margin-top: 4px;
+  }
+
+  /* Overview Card Shell */
+  .overview-card {
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+  .overview-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .card-header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
   .card-title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     margin: 0;
     color: var(--text-primary);
   }
-  .refresh-subtext {
-    font-size: 11px;
+  .card-subtitle {
+    font-size: 12px;
     color: var(--text-secondary);
   }
+  .card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .btn-primary-sm {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: none;
+    background: #0284C7;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-primary-sm:hover { background: #0369A1; }
 
+  /* Workstreams Table */
   .overview-lists-table {
     width: 100%;
     border-collapse: collapse;
@@ -1604,16 +2164,19 @@
   .overview-lists-table th {
     text-align: left;
     font-size: 11px;
+    font-weight: 600;
     color: var(--text-secondary);
-    padding: 8px 10px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--surface-card-border);
   }
   .overview-lists-table td {
-    padding: 12px 10px;
+    padding: 14px 12px;
     border-bottom: 1px solid var(--surface-card-border);
+    vertical-align: middle;
   }
   .overview-list-row {
     cursor: pointer;
+    transition: background 0.12s;
   }
   .overview-list-row:hover {
     background: var(--surface-card-subtle);
@@ -1621,13 +2184,41 @@
   .ws-name-cell {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
-  .color-bullet {
-    display: inline-block;
-    width: 14px;
-    height: 4px;
-    border-radius: 2px;
+  .ws-icon-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(2, 132, 199, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .ws-name-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .ws-task-total {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .status-distribution-pills {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .mini-status-chip {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: var(--surface-card-subtle);
   }
 
   .progress-bar-cell {
@@ -1645,66 +2236,234 @@
   .progress-fill {
     height: 100%;
     background: #0284C7;
+    border-radius: 3px;
+  }
+  .progress-percent-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
   }
   .progress-count {
     font-size: 11px;
-    font-weight: 600;
     color: var(--text-secondary);
   }
 
+  .owners-avatar-stack {
+    display: flex;
+    align-items: center;
+  }
+  .mini-owner-circle {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #0284C7;
+    color: #FFFFFF;
+    font-size: 9px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--surface-card);
+    margin-right: -6px;
+  }
+  .mini-owner-circle:nth-child(2) { background: #8B5CF6; }
+  .mini-owner-circle:nth-child(3) { background: #10B981; }
+  .owner-overflow-tag {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-left: 10px;
+  }
+  .unassigned-text {
+    font-size: 11px;
+    color: var(--text-tertiary, #94A3B8);
+  }
+  .table-action-pill {
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--surface-card-border);
+    background: var(--surface-card);
+    font-size: 11px;
+    font-weight: 600;
+    color: #0284C7;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .table-action-pill:hover {
+    background: rgba(2, 132, 199, 0.1);
+    border-color: #0284C7;
+  }
+
+  /* Bottom Grid: Quick Links & SVG Donut Chart */
   .overview-bottom-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1.1fr 0.9fr;
     gap: 20px;
+  }
+  .resource-quick-links-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .resource-quick-tile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--surface-card-border);
+    border-radius: 8px;
+    background: var(--surface-card-subtle);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.15s ease;
+  }
+  .resource-quick-tile:hover {
+    background: var(--surface-card);
+    border-color: #0284C7;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  }
+  .tile-icon-box {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .tile-icon-box.blue { background: rgba(2, 132, 199, 0.12); }
+  .tile-icon-box.purple { background: rgba(139, 92, 246, 0.12); }
+  .tile-icon-box.emerald { background: rgba(16, 185, 129, 0.12); }
+  .tile-icon-box.amber { background: rgba(245, 158, 11, 0.12); }
+  .tile-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tile-content strong {
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+  .tile-content span {
+    font-size: 10.5px;
+    color: var(--text-secondary);
   }
 
   .drop-resources-zone {
-    height: 160px;
+    padding: 24px;
     border: 2px dashed var(--surface-card-border);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 12px;
+    text-align: center;
+    background: var(--surface-card-subtle);
+  }
+  .upload-hint {
+    font-size: 10.5px;
+    color: var(--text-tertiary, #94A3B8);
   }
 
+  /* SVG Donut Chart */
   .workload-breakdown-row {
     display: flex;
     align-items: center;
-    gap: 32px;
-    height: 160px;
+    gap: 28px;
+    padding: 8px 0;
   }
-  .donut-chart-mock {
+  .donut-chart-container {
     position: relative;
+    width: 140px;
+    height: 140px;
+    flex-shrink: 0;
+  }
+  .donut-svg-ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(0deg);
+  }
+  .donut-center-overlay {
+    position: absolute;
+    inset: 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
   }
-  .donut-center-label {
-    position: absolute;
+  .donut-stat-number {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .donut-stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+
+  .donut-legend-table {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    font-size: 11px;
+    gap: 6px;
   }
-  .donut-center-label strong { font-size: 15px; }
-  .donut-legend {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .legend-row {
+  .legend-status-row {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .legend-status-row:hover {
+    background: var(--surface-card);
+    border-color: #0284C7;
+  }
+  .legend-left-col {
+    display: flex;
+    align-items: center;
     gap: 8px;
+  }
+  .legend-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+  .legend-label {
     font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
   }
-  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
-  .legend-name { color: var(--text-secondary); min-width: 100px; }
-  .legend-val { font-weight: 700; color: var(--text-primary); }
+  .legend-right-col {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .legend-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .legend-percent-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text-secondary);
+  }
 
   /* ═══ 4. CLICKUP LIST VIEW (SCREENSHOT 2) ═══════════════════════ */
   .clickup-list-container {
@@ -1934,9 +2693,48 @@
     font-size: 12px;
     border-bottom: 1px dashed var(--surface-card-border);
   }
-  .nested-subtask-row.completed .subtask-text {
+  .nested-subtask-row.completed .nested-subtask-input {
     text-decoration: line-through;
     color: var(--text-secondary);
+  }
+  .nested-subtask-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 12px;
+    color: var(--text-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.12s, box-shadow 0.12s;
+  }
+  .nested-subtask-input:focus {
+    background: var(--surface-card);
+    box-shadow: 0 0 0 1px #0284C7;
+  }
+  .nested-subtask-quick-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .subtask-quick-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 11.5px;
+    color: var(--text-primary);
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
+  .subtask-quick-input:focus {
+    background: var(--surface-card);
+    box-shadow: 0 0 0 1px #0284C7;
+  }
+  .subtask-quick-input::placeholder {
+    color: var(--text-tertiary, #94A3B8);
   }
   .sub-indent-elbow {
     width: 10px;
@@ -1994,13 +2792,16 @@
     cursor: pointer;
   }
 
-  /* ═══ 5. BOARD VIEW ═════════════════════════════════════════════ */
+  /* ═══ 5. BOARD VIEW (STRICT 4 COLUMNS IN SINGLE ROW) ════════════ */
   .clickup-board-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(4, minmax(260px, 1fr));
     gap: 16px;
     padding: 20px;
     align-items: start;
+    overflow-x: auto;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .board-column {
@@ -2009,7 +2810,7 @@
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    min-height: 480px;
+    min-height: 520px;
   }
 
   .board-col-header {
@@ -2046,8 +2847,8 @@
     transition: all 0.12s ease;
   }
   .board-card:hover {
-    border-color: #0078D4;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: #0284C7;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
   .card-meta-top {
     display: flex;
@@ -2061,6 +2862,51 @@
     border-radius: 3px;
     background: rgba(0, 120, 212, 0.08);
     color: #0078D4;
+  }
+
+  /* Priority color-coded badges */
+  .priority-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+  .priority-pill-badge.urgent {
+    background: #FEE2E2;
+    color: #B91C1C;
+    border: 1px solid #FECACA;
+  }
+  .priority-pill-badge.high {
+    background: #FFEDD5;
+    color: #C2410C;
+    border: 1px solid #FED7AA;
+  }
+  .priority-pill-badge.medium {
+    background: #E0F2FE;
+    color: #0369A1;
+    border: 1px solid #BAE6FD;
+  }
+  .priority-pill-badge.low {
+    background: #F1F5F9;
+    color: #475569;
+    border: 1px solid #CBD5E1;
+  }
+
+  .card-bottom-assignee {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-assignee-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .card-assignee-name.unassigned {
+    color: var(--text-tertiary, #94A3B8);
   }
   .card-name {
     margin: 0;

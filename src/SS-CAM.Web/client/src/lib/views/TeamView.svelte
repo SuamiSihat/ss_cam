@@ -252,7 +252,7 @@
 </script>
 
 <div class="team-view-container">
-  <!-- ═══ ART DIRECTOR STUDIO HERO HEADER ═══════════════════════ -->
+  <!-- ═══ STUDIO LEAD & WORKLOAD HERO HEADER ═══════════════════════ -->
   <div class="team-hero-header">
     <div class="hero-text-col">
       <div class="hero-tag">
@@ -272,7 +272,7 @@
       <FluentButton
         appearance="subtle"
         onclick={() => (showGuideModal = true)}
-        title="View Art Director Workload & Capacity Balancing Framework"
+        title="View Workload & Capacity Balancing Framework"
       >
         <FluentIcons name="info" size={14} color="#0284C7" />
         <span style="margin-left: 6px;">Capacity Guide</span>
@@ -663,7 +663,7 @@
             </div>
             <div
               class="matrix-cell"
-              title="In Review: Completed milestones submitted and awaiting Art Director or client sign-off."
+              title="In Review: Completed milestones submitted and awaiting Lead or client sign-off."
             >
               <span class="cell-num">{w.inReview || 0}</span>
               <span class="cell-lbl">In Review</span>
@@ -870,7 +870,7 @@
     </div>
   {/if}
 
-  <!-- ═══ ART DIRECTOR CAPACITY & BALANCING GUIDE MODAL ════════════ -->
+  <!-- ═══ CAPACITY & BALANCING GUIDE MODAL ════════════ -->
   {#if showGuideModal}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -883,7 +883,7 @@
             </div>
             <div>
               <h2 class="modal-title">Studio Capacity & Workload Balancing Guide</h2>
-              <p class="modal-sub">Art Director & Data Analysis standards for monitoring designer bandwidth.</p>
+              <p class="modal-sub">Leadership & Data Analysis standards for monitoring designer bandwidth.</p>
             </div>
           </div>
           <button class="close-btn" onclick={() => (showGuideModal = false)} aria-label="Close">
@@ -1977,7 +1977,7 @@
     background: rgba(11, 17, 33, 0.98);
   }
 
-  /* ═══ ART DIRECTOR CAPACITY & BALANCING GUIDE MODAL ════════════ */
+  /* ═══ CAPACITY & BALANCING GUIDE MODAL ════════════ */
   .guide-modal {
     width: 95%;
     max-width: 680px;

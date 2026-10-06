@@ -118,7 +118,7 @@
 
   const decisionOptions: { id: TaskDecisionStatus; label: string; badge: string; color: string }[] = [
     { id: 'pending', label: 'Pending Evaluation', badge: 'Pending', color: 'var(--text-secondary)' },
-    { id: 'in_review', label: 'In Art Director Review', badge: 'Reviewing', color: '#8B5CF6' },
+    { id: 'in_review', label: 'In Team Review', badge: 'Reviewing', color: '#8B5CF6' },
     { id: 'approved', label: 'Approved for Production', badge: 'Approved', color: '#10B981' },
     { id: 'changes_requested', label: 'Changes Requested', badge: 'Revisions', color: '#F59E0B' },
     { id: 'rejected', label: 'Rejected / Shelved', badge: 'Rejected', color: '#EF4444' }
@@ -522,7 +522,7 @@
       <div class="meta-grid">
         <!-- Workstream -->
         <div class="field-group">
-          <label for="task-workstream-select" class="field-label">CREATIVE WORKSTREAM</label>
+          <label for="task-workstream-select" class="field-label">WORKSTREAM / DEPARTMENT</label>
           <select id="task-workstream-select" class="fluent-select" bind:value={workstream}>
             {#each workstreamOptions as ws}
               <option value={ws}>{ws}</option>
@@ -579,12 +579,79 @@
         </div>
       </div>
 
+      <!-- ═══ SUBTASKS BREAKDOWN (Create by Return Key) ═══ -->
+      <div class="subtasks-detail-card">
+        <div class="subtasks-detail-header">
+          <span class="card-section-title">
+            <FluentIcons name="list" size={16} />
+            Subtasks Breakdown
+          </span>
+          <span class="subtasks-pill-count">
+            {subtasks.filter(s => s.completed).length}/{subtasks.length} Completed
+          </span>
+        </div>
+
+        {#if subtasks.length > 0}
+          <div class="subtasks-detail-list">
+            {#each subtasks as sub, index (sub.id)}
+              <div class="subtask-detail-row" class:is-done={sub.completed}>
+                <input
+                  type="checkbox"
+                  checked={sub.completed}
+                  onchange={() => handleToggleSubtask(sub.id)}
+                  class="clickup-checkbox"
+                />
+                <input
+                  id={`subtask-input-${sub.id}`}
+                  type="text"
+                  bind:value={sub.title}
+                  placeholder="Enter subtask title..."
+                  class="subtask-inline-edit-input"
+                  onblur={handleQuickSubtaskSave}
+                  onkeydown={(e) => handleSubtaskTitleKeydown(e, index)}
+                />
+                <button
+                  type="button"
+                  class="delete-subtask-row-btn"
+                  onclick={() => handleDeleteSubtask(sub.id)}
+                  title="Remove subtask"
+                >
+                  ✕
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        <!-- Add Subtask Quick Input (Press Enter) -->
+        <div class="add-subtask-detail-row">
+          <span class="add-subtask-icon">＋</span>
+          <input
+            type="text"
+            placeholder="Add a new subtask (press Enter to create)..."
+            bind:value={newSubtaskTitle}
+            class="add-subtask-detail-input"
+            onkeydown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddSubtask();
+              }
+            }}
+          />
+          {#if newSubtaskTitle.trim()}
+            <button type="button" class="btn-submit-subtask" onclick={handleAddSubtask}>
+              Add
+            </button>
+          {/if}
+        </div>
+      </div>
+
       <!-- Decision State & Sign-Off Summary -->
       <div class="decision-card">
         <div class="decision-card-header">
           <span class="card-section-title">
             <FluentIcons name="checkCircle" size={16} />
-            Art Director Decision &amp; Sign-off
+            Decision &amp; Sign-off State
           </span>
           <select class="fluent-select sm" bind:value={decisionStatus}>
             {#each decisionOptions as opt}
@@ -598,7 +665,7 @@
             id="task-decision-summary"
             class="fluent-textarea sm"
             rows="2"
-            placeholder="Document sign-off conditions, dieline feedback, or revision requirements..."
+            placeholder="Document sign-off conditions, specifications, or revision requirements..."
             bind:value={decisionSummary}
           ></textarea>
         </div>

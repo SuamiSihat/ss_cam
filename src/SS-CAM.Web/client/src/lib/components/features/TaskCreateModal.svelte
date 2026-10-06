@@ -19,13 +19,13 @@
   // Form states
   let title = $state('');
   let description = $state('');
-  let workstream = $state('Frontend');
+  let workstream = $state('General Operations');
   let taskType = $state('Task (default)');
   let status = $state<StudioTaskStatus>('backlog');
   let priority = $state<ProjectPriority>('medium');
-  let assignee = $state('');
-  let assigneeName = $state('');
-  let assigneeAvatar = $state('');
+  let assignee = $state('harussani');
+  let assigneeName = $state('Harussani (Me)');
+  let assigneeAvatar = $state('#0284C7');
   let startDate = $state('');
   let dueDate = $state('');
   let tags = $state<string[]>([]);
@@ -61,13 +61,14 @@
   let staffRoster = $state<any[]>([]);
 
   const workstreams = [
-    { id: 'Frontend', name: 'Frontend', count: 0 },
-    { id: 'Backend', name: 'Backend', count: 1 },
-    { id: 'Admin', name: 'Admin', count: 1 },
-    { id: 'Packaging', name: 'Packaging', count: 0 },
-    { id: 'Signage', name: 'Signage', count: 0 },
-    { id: 'Motion & Video', name: 'Motion & Video', count: 0 },
-    { id: 'Digital & Social', name: 'Digital & Social', count: 0 }
+    { id: 'General Operations', name: 'General Operations', count: 2 },
+    { id: 'Software & App Dev', name: 'Software & App Dev', count: 3 },
+    { id: 'Packaging & Dieline', name: 'Packaging & Dieline', count: 1 },
+    { id: 'Creative & Brand Identity', name: 'Creative & Brand Identity', count: 2 },
+    { id: 'Digital Marketing & Social', name: 'Digital Marketing & Social', count: 1 },
+    { id: 'Motion, Video & 3D', name: 'Motion, Video & 3D', count: 1 },
+    { id: 'QA & Compliance', name: 'QA & Compliance', count: 1 },
+    { id: 'Executive & Strategy', name: 'Executive & Strategy', count: 1 }
   ];
 
   const taskTypes = [
@@ -78,10 +79,10 @@
   ];
 
   const statuses: { id: StudioTaskStatus; label: string; color: string }[] = [
-    { id: 'backlog', label: 'TO DO', color: '#94A3B8' },
+    { id: 'backlog', label: 'BACKLOG', color: '#64748B' },
     { id: 'in-progress', label: 'IN PROGRESS', color: '#0284C7' },
     { id: 'review', label: 'REVIEW', color: '#8B5CF6' },
-    { id: 'done', label: 'COMPLETE', color: '#10B981' }
+    { id: 'done', label: 'DONE', color: '#10B981' }
   ];
 
   const priorities: { id: ProjectPriority; label: string; color: string }[] = [
@@ -102,7 +103,7 @@
 
   const decisions: { id: TaskDecisionStatus; label: string }[] = [
     { id: 'pending', label: 'Pending Evaluation' },
-    { id: 'in_review', label: 'In Art Director Review' },
+    { id: 'in_review', label: 'In Team / Lead Review' },
     { id: 'approved', label: 'Approved for Production' },
     { id: 'changes_requested', label: 'Changes Requested' },
     { id: 'rejected', label: 'Rejected / Shelved' }
@@ -173,13 +174,13 @@
   function handleReset() {
     title = '';
     description = '';
-    workstream = 'Frontend';
+    workstream = 'General Operations';
     taskType = 'Task (default)';
     status = 'backlog';
     priority = 'medium';
-    assignee = '';
-    assigneeName = '';
-    assigneeAvatar = '';
+    assignee = 'harussani';
+    assigneeName = 'Harussani (Me)';
+    assigneeAvatar = '#0284C7';
     startDate = '';
     dueDate = '';
     tags = [];
@@ -292,6 +293,33 @@
     subtasksList = subtasksList.filter((_, i) => i !== index);
   }
 
+  function handleSubtaskInputKeydown(e: KeyboardEvent, index: number) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      subtasksList = [
+        ...subtasksList.slice(0, index + 1),
+        '',
+        ...subtasksList.slice(index + 1)
+      ];
+      setTimeout(() => {
+        const inputs = document.querySelectorAll<HTMLInputElement>('.subtask-inline-edit');
+        if (inputs[index + 1]) {
+          inputs[index + 1].focus();
+        }
+      }, 50);
+    } else if (e.key === 'Backspace' && subtasksList[index] === '' && subtasksList.length > 1) {
+      e.preventDefault();
+      removeSubtask(index);
+      setTimeout(() => {
+        const inputs = document.querySelectorAll<HTMLInputElement>('.subtask-inline-edit');
+        const targetIdx = Math.max(0, index - 1);
+        if (inputs[targetIdx]) {
+          inputs[targetIdx].focus();
+        }
+      }, 50);
+    }
+  }
+
   function addTag() {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       tags = [...tags, tagInput.trim()];
@@ -309,11 +337,18 @@
       return;
     }
 
+    if (!assignee || !assignee.trim()) {
+      appState.addToast('Please assign an owner. Each task must have an assignee.', 'warning');
+      showAssigneePicker = true;
+      return;
+    }
+
     isSubmitting = true;
     try {
-      const parsedSubtasks = subtasksList.map((st, idx) => ({
+      const filteredSubtasks = subtasksList.filter(s => s.trim().length > 0);
+      const parsedSubtasks = filteredSubtasks.map((st, idx) => ({
         id: `st-${Date.now()}-${idx}`,
-        title: st,
+        title: st.trim(),
         completed: false
       }));
 
@@ -324,7 +359,7 @@
         priority,
         status,
         decisionStatus,
-        assignee,
+        assignee: assignee.trim(),
         assigneeName: assigneeName || assignee,
         assigneeAvatarColor: assigneeAvatar || undefined,
         startDate: startDate || undefined,
@@ -441,42 +476,42 @@
                 </div>
 
                 <div class="picker-scroll-area">
-                  <div class="picker-section-label">Recents</div>
+                  <div class="picker-section-label">Workstream / Department</div>
                   <button
                     type="button"
-                    class="picker-option-row {workstream === 'Frontend' ? 'active' : ''}"
-                    onclick={() => { workstream = 'Frontend'; showWorkstreamPicker = false; }}
+                    class="picker-option-row {workstream === 'General Operations' ? 'active' : ''}"
+                    onclick={() => { workstream = 'General Operations'; showWorkstreamPicker = false; }}
                   >
                     <div class="option-left">
                       <FluentIcons name="list" size={14} color="var(--text-secondary)" />
-                      <span>Frontend</span>
+                      <span>General Operations</span>
                     </div>
-                    {#if workstream === 'Frontend'}
+                    {#if workstream === 'General Operations'}
                       <FluentIcons name="checkmark" size={13} color="var(--brand-primary, #0084FF)" />
                     {/if}
                   </button>
 
                   <button
                     type="button"
-                    class="picker-option-row {workstream === 'Backend' ? 'active' : ''}"
-                    onclick={() => { workstream = 'Backend'; showWorkstreamPicker = false; }}
+                    class="picker-option-row {workstream === 'Software & App Dev' ? 'active' : ''}"
+                    onclick={() => { workstream = 'Software & App Dev'; showWorkstreamPicker = false; }}
                   >
                     <div class="option-left">
                       <FluentIcons name="list" size={14} color="var(--text-secondary)" />
-                      <span>Backend</span>
+                      <span>Software & App Dev</span>
                     </div>
-                    <span class="picker-count-badge">1</span>
+                    <span class="picker-count-badge">3</span>
                   </button>
 
-                  <div class="picker-section-label">Browse</div>
+                  <div class="picker-section-label">Browse Teams & Services</div>
                   <div class="picker-browse-folder">
                     <FluentIcons name="user" size={14} color="var(--text-tertiary)" />
-                    <span>Personal List</span>
+                    <span>Personal Queue</span>
                   </div>
 
                   <div class="picker-browse-folder team-active">
                     <span class="team-color-badge blue">👥</span>
-                    <span>SS App Dev Team</span>
+                    <span>SS Technology & Dev</span>
                   </div>
 
                   {#each workstreams.filter(w => w.name.toLowerCase().includes(workstreamSearch.toLowerCase())) as ws}
@@ -499,7 +534,7 @@
 
                   <div class="picker-browse-folder">
                     <span class="team-color-badge green">S</span>
-                    <span>SS Data Analyst Team</span>
+                    <span>SS Operations & Logistics</span>
                   </div>
                 </div>
               </div>
@@ -1021,7 +1056,7 @@
                 </div>
 
                 <div class="preset-divider"></div>
-                <div class="picker-section-label">Art Director Decision</div>
+                <div class="picker-section-label">Decision &amp; Review State</div>
                 <div class="menu-brand-grid">
                   {#each decisions as d}
                     <button
@@ -1072,8 +1107,14 @@
                   {#each subtasksList as st, index}
                     <div class="subtask-entry-row">
                       <span class="subtask-circle"></span>
-                      <span class="subtask-text">{st}</span>
-                      <button type="button" class="subtask-delete-btn" onclick={() => removeSubtask(index)}>
+                      <input
+                        type="text"
+                        class="subtask-inline-edit"
+                        bind:value={subtasksList[index]}
+                        onkeydown={(e) => handleSubtaskInputKeydown(e, index)}
+                        placeholder="Subtask name... (press Return to add next)"
+                      />
+                      <button type="button" class="subtask-delete-btn" onclick={() => removeSubtask(index)} title="Remove subtask">
                         ✕
                       </button>
                     </div>
@@ -1084,7 +1125,7 @@
               <div class="subtask-add-row">
                 <input
                   type="text"
-                  placeholder="Add a subtask (press Enter)..."
+                  placeholder="Add a subtask (press Return/Enter to add)..."
                   bind:value={newSubtaskInput}
                   onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSubtask(); } }}
                   class="subtask-text-input"
@@ -1539,6 +1580,22 @@
   .subtask-text {
     flex: 1;
     color: var(--text-primary, #0F172A);
+  }
+
+  .subtask-inline-edit {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 12.5px;
+    color: var(--text-primary, #0F172A);
+    outline: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+
+  .subtask-inline-edit:focus {
+    background: var(--surface-card-subtle, #F8FAFC);
+    box-shadow: 0 0 0 1px #0284C7;
   }
 
   .subtask-delete-btn {

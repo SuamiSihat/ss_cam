@@ -217,7 +217,7 @@
             </div>
           {:else}
             <div class="non-approver-notice">
-              Sign-off decisions are logged by Art Directors and Project Leads.
+              Sign-off decisions are logged by Project Leads and Approvers.
             </div>
           {/if}
         </div>
