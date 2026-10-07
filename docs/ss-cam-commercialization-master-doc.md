@@ -49,6 +49,7 @@ These findings directly gate Phase 0 and are not repeated in full here — see t
 **Objective:** Confirm the codebase can actually be split before spending brand/sales effort on something that can't yet ship separately.
 
 **Actions:**
+
 1. Complete the token bridge and status-enum fixes from the prior technical report — these become the mechanism for tenant-level configuration, not just internal hygiene.
 2. Inventory every hardcoded SuamiSihat-specific reference (NAS paths, subsidiary codes, clinical terminology, logo assets) across WPF, Web, and Android. Produce a single checklist file: `SUAMISIHAT-COUPLING-INVENTORY.md`.
 3. Decide the split model now (see Phase 3) — Core/Edition open-core split is the recommendation in this document; confirm before Phase 1 naming work starts, since naming and licensing model are linked (a name implies a product boundary).
@@ -65,6 +66,7 @@ These findings directly gate Phase 0 and are not repeated in full here — see t
 **Objective:** A commercial name and logo concept set with zero SuamiSihat visual or verbal DNA.
 
 **Actions:**
+
 1. Naming direction: lead with the actual differentiator identified in the narrative work — **self-hosted, NAS-native, cross-platform creative ops for teams that can't/won't go full-cloud SaaS.** Avoid names that read as "asset manager" (crowded, generic) or anything with clinical/health connotation.
 2. Generate 3–5 name candidates; check domain + trademark availability before attaching brand work to any of them.
 3. Logo concept development against the chosen name — standard multi-concept exploration, not committed to a single direction yet.
@@ -79,6 +81,7 @@ These findings directly gate Phase 0 and are not repeated in full here — see t
 **Objective:** Full design-system-grade brand guide for the commercial product, independent of `SS-Design-System` (which stays SuamiSihat-only).
 
 **Actions:**
+
 1. Build the new product's design tokens (palette, type scale, spacing, component library) as its own W3C-token-style system — structurally similar to `SS-Design-System` but visually and verbally distinct.
 2. Write the **product narrative** as a standalone document: positioning statement, target buyer (self-hosted/data-sovereign teams, agencies on existing NAS infrastructure, regulated-industry-adjacent SMEs), category framing, and the specific wedge against incumbents (Bynder, Brandfolder, generic cloud DAM tools).
 3. Produce brand collateral needed for Phase 5 go-to-market: landing page visual system, pitch deck template, product screenshots/mockups using the new (not SuamiSihat) visual identity.
@@ -93,7 +96,7 @@ These findings directly gate Phase 0 and are not repeated in full here — see t
 
 **Recommended model: Open-Core / Edition split, not a permanent fork.**
 
-```
+```text
 [ Core Engine ]
   - Project lifecycle (status enum, generated per-tenant from one source file)
   - Cross-platform sync (Web / WPF / Linux / Android)
@@ -110,6 +113,7 @@ These findings directly gate Phase 0 and are not repeated in full here — see t
 ```
 
 **Actions:**
+
 1. Extract the status-enum and token-bundle mechanism (from the prior technical fix) into a **tenant-config format** — one JSON/YAML bundle per deployment (SuamiSihat included) rather than one global file.
 2. Move everything flagged in the Phase 0 coupling inventory either into the SuamiSihat Edition layer, or behind a config flag if it's genuinely optional for all tenants.
 3. Internal feature work defaults to the Core layer going forward — this benefits both tracks automatically and is the actual mechanism for "continue development for internal team use" without diverging codebases.
@@ -157,6 +161,7 @@ Same screen, two very different verdicts — because each lens is optimizing for
 | **Overall** | **4/10** | Not because the screen is bad — because it's a screenshot of *your* product, not a screenshot of *theirs*. Sales liability, not a design flaw. |
 
 **Proposed A/B test (queue for once there's live traffic, or run informally with prospects during Phase 5 outreach):**
+
 - **Variant A (current):** SuamiSihat-branded hero, mixed yellow/blue accents, `"SSNAS Online"` footer.
 - **Variant B (post-Phase-3a-fix):** Neutral/tenant-branded hero (or empty state prompting "Add your first station"), single accent color, generic storage-status label.
 - **Designer metric:** task-completion time and error rate on "add a stream, then delete a station" — tests whether the color/friction fixes change behavior, not just appearance.
@@ -231,7 +236,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 | Category | Internal-only baseline | Added cost once sold as product | Modelled Annual Budget (USD / MYR) |
 |---|---|---|---|
 | Hosting (Web Portal) | Existing Synology NAS / Docker | Self-hosted on client NAS ($0) or Managed VPS container ($6/mo/tenant) | Managed: $72/yr/tenant (RM 330) |
-| Licensing infrastructure | None | Self-hosted verification API ($0) to Managed licensing server (Keygen/Polar) | Lean: $0 | Production: $468/yr (RM 2,150) |
+| Licensing infrastructure | None | Self-hosted verification API ($0) to Managed licensing server (Keygen/Polar) | Lean: $0 / Production: $468/yr (RM 2,150) |
 | Support | Informal (internal team) | Tiered: Self-Serve ($0) vs Business Standard ($8/mo) vs Enterprise Partner ($50/mo) | Standard: ~$96/yr/tenant (RM 440) |
 | Documentation | Internal `AGENTS.md` / `QA/` | Public documentation site on Cloudflare Pages (Free) + Video Walkthroughs | $0–$100 one-off |
 | Platform builds & Signing | Windows + Android internal | Windows Authenticode Certificate (Certum/DigiCert) + Google Play Console ($25) | Windows Cert: $280–$420/yr (RM 1,280–RM 1,930) |
@@ -239,6 +244,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 | QA & Regression | `verify-sscam.ps1` + manual | GitHub Actions CI/CD automated test runners for Core + multi-tenant builds | $0–$96/yr (RM 0–RM 440) |
 
 **Cost Summary & Operational Economics:**
+
 1. **Fixed Annual Product Overhead:**
    - **Lean Tier:** **$340 / year (RM 1,556 / year)** (~$28 / month)
    - **Production Tier:** **$1,289 / year (RM 5,923 / year)** (~$107 / month)
@@ -260,6 +266,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 **Objective:** Pricing model, initial launch plan, and defensible revenue forecast.
 
 **Selected Commercial Pricing Model:**
+
 - **Tiered Open-Core with Annual Maintenance License:**
   1. **Community Core (Free):** Full-featured desktop app for individual designers/creatives; unbranded; community forum/docs support. Drives developer trust and bottom-up adoption.
   2. **Studio / Business Edition ($49/mo or $490/yr — ~RM 2,250/yr):** Up to 15 team seats, Synology/Docker Web Portal, creative order workflow, automated updates, standard email support (24–48h SLA). Gross margin: **80.0%**.
@@ -267,11 +274,13 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
   4. *Optional Add-On:* Turnkey Managed Cloud Hosting at **$29/mo ($290/yr)** for teams without internal NAS hardware.
 
 **Go-to-Market Wedges:**
+
 1. **Wedge 1: On-Premise Creative & Video Studios:** Boutique teams with 10GbE Synology NAS needing fast local asset catalogs and order workflows without slow cloud sync.
 2. **Wedge 2: Regulated Healthcare Clinics & Franchise Networks:** Expanding private clinic chains under PERNAS/MFA requiring strict advertising compliance (KKM/LIU/Akta Ubat 1956) and automated branch template injection.
 3. **Wedge 3: Digital Product & Brand Agencies:** Managing multi-client design tokens and creative vaults requiring branded client portals.
 
 **First 5 Target Customers (Soft-Launch Pipeline):**
+
 1. **SuamiSihat Healthcare Franchise Network:** 4 initial clinic branches (PERNAS pilot) — Enterprise White-Label.
 2. **Govicle / Appcable Partner Ecosystem:** Established 14-year software/agency network — Business Edition.
 3. **Klang Valley Boutique Video & 3D House:** Fast 10GbE Synology NAS production workflow — Business Edition.
@@ -279,6 +288,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 5. **Independent Brand & Identity Studio:** Corporate client brand system handoff — Business Edition (Managed Cloud).
 
 **Multi-Year Financial Projections (Anchored to Phase 4 Operational Costs):**
+
 - **Year 1 Scenarios:**
   - *Conservative (4 tenants):* Gross: **$3,760 (RM 17,296)** | Costs: $1,934 | Net: **+$1,826 (RM 8,399)** (Margin: 48.6%)
   - *Expected (11 tenants):* Gross: **$10,790 (RM 49,634)** | Costs: $3,126 | Net: **+$7,664 (RM 35,254)** (Margin: 71.0%)
@@ -297,6 +307,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 **Status:** Completed (See full specification in [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md) and deployment package in [`dist/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/dist/commercial-landing/))
 
 **Architecture & Implementation:**
+
 - **Decoupled Commercial Domain & Edge CDN:** Public production site at `https://getcam.dev` hosted on Cloudflare Pages with binary releases delivered via Cloudflare R2 (`cam-releases-public`) with zero egress fees. Structurally zero leakage of internal NAS endpoints (`suamisihat.myds.me`).
 - **Interactive Commercial Landing Portal:** Built and distributed under [`docs/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/docs/commercial-landing/) and [`dist/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/dist/commercial-landing/):
   - **Aesthetic Excellence:** Full Microsoft Fluent 2 Dark Glassmorphic design (`#090B10` dark canvas, Outfit display typography, Inter body typography, JetBrains Mono code snippets, cyan/blue branding gradients, and 60fps micro-animations).
@@ -326,6 +337,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 | **Verification** | [`QA/verify-sscam.ps1`](file:///d:/HaNa_Innovation/ss_cam/QA/verify-sscam.ps1) | [`docs/scripts/audit-public-docs.ps1`](file:///d:/HaNa_Innovation/ss_cam/docs/scripts/audit-public-docs.ps1) |
 
 **Public Documentation Suite (`docs/public-wiki/`):**
+
 1. [`README.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/README.md) — Documentation index and architectural overview.
 2. [`01-GETTING-STARTED.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/01-GETTING-STARTED.md) — Workstation system requirements, Windows setup, and Synology DSM Container Manager setup.
 3. [`02-TENANT-CONFIG-SPEC.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/02-TENANT-CONFIG-SPEC.md) — Comprehensive JSON schema reference for white-labeling logos, colors, shortcuts, and custom endpoints.
@@ -333,6 +345,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 5. [`04-TROUBLESHOOTING.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/04-TROUBLESHOOTING.md) — LAN SMB permission resolution, port conflict remapping, and built-in network diagnostics.
 
 **Automated Pre-Publication Guard:**
+
 - Validated via [`docs/scripts/audit-public-docs.ps1`](file:///d:/HaNa_Innovation/ss_cam/docs/scripts/audit-public-docs.ps1). Scans all public wiki files against the Phase 0 coupling blacklist, guaranteeing that zero internal hostnames, corporate registries, or credentials leak to customers.
 
 ---
@@ -344,6 +357,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 **Principle:** One engine, two editions, enforced by the Phase 3 architecture and automated governance — not by discipline alone.
 
 **Governance Rules & Protocols:**
+
 1. **Core vs. Edition Triage:** New feature requests are triaged first: Core (benefits both commercial product and internal operations) or Edition-specific (SuamiSihat-only or customer-specific)? Default to Core unless there is a clear justification.
 2. **Bidirectional Feature Flow:** Customer-requested generic features are built in Core and ship to SuamiSihat's internal edition too. The internal team benefits directly from commercial development.
 3. **No Code Forks for White-Labeling:** Under no circumstances should a permanent branch or fork be created for white-label customers. All tenant variations must be resolved via `TenantConfig.json` or `IAppPlugin` modules.
@@ -391,6 +405,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 | **8 — Dual-Track Governance**| Anti-Drift & Single Trunk | [`docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md), [`QA/verify-dual-track.ps1`](file:///d:/HaNa_Innovation/ss_cam/QA/verify-dual-track.ps1) | **COMPLETE** |
 
 **Official Release Artifacts:**
+
 - **Git Branch:** `SS-Master` (Single trunk, zero white-label code forks)
 - **Production Release Tag:** `v4.11.0` (Commit: `ed66ea7a`)
 - **Release Executable:** [`dist/SS-CAM-v4.11.0.exe`](file:///d:/HaNa_Innovation/ss_cam/dist/SS-CAM-v4.11.0.exe) and [`dist/SS-CAM.exe`](file:///d:/HaNa_Innovation/ss_cam/dist/SS-CAM.exe) (6,131,200 bytes)
@@ -398,6 +413,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 ---
 
 ## Appendix — Reference Documents
+
 - [`docs/antigravity-drift-fix-report.md`](file:///d:/HaNa_Innovation/ss_cam/docs/antigravity-drift-fix-report.md) — Technical audit: token drift, status-enum drift, enforcement gaps, source evidence.
 - [`docs/SUAMISIHAT-COUPLING-INVENTORY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/SUAMISIHAT-COUPLING-INVENTORY.md) — Complete inventory of network paths, subsidiary codes, brand identity, and module couplings.
 - [`docs/PHASE_4_COST_MODELLING.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_4_COST_MODELLING.md) — Operational cost model, infrastructure budgets, and unit economics.
