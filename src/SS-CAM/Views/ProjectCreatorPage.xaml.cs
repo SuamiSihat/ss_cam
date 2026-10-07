@@ -268,7 +268,11 @@ namespace SS_CAM.Views
             {
                 foreach (var sub in SS_CAM.Services.TenantConfigService.Current.Subsidiaries)
                 {
-                    subBrands.Add(string.IsNullOrWhiteSpace(sub.DisplayName) ? sub.Name : sub.DisplayName);
+                    string label = string.IsNullOrWhiteSpace(sub.DisplayName) ? sub.Name : sub.DisplayName;
+                    if (!string.IsNullOrWhiteSpace(label) && !subBrands.Contains(label))
+                    {
+                        subBrands.Add(label);
+                    }
                 }
             }
             if (subBrands.Count == 0) subBrands.Add("Default - Creative Portal");

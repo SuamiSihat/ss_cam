@@ -8,13 +8,11 @@
   "StorageLabel": "SSNAS",
   "ThemeDefaultName": "SS Default (Nord Light)",
   "Subsidiaries": [
-    { "Code": "SS", "Name": "SuamiSihat", "DisplayName": "SS - SuamiSihat", "ColorHex": "#0047AB" },
-    { "Code": "HQ", "Name": "SuamiSihat Holding", "DisplayName": "HQ - SuamiSihat Holding", "ColorHex": "#1E3A8A" },
-    { "Code": "SSE", "Name": "SuamiSihat Ecommerce", "DisplayName": "SSE - SuamiSihat Ecommerce", "ColorHex": "#0D9488" },
-    { "Code": "SSC", "Name": "SuamiSihat Clinic", "DisplayName": "SSC - Klinik SuamiSihat", "ColorHex": "#0284C7" },
-    { "Code": "KOP", "Name": "Koperasi SuamiSihat", "DisplayName": "KOP - Koperasi SuamiSihat", "ColorHex": "#D97706" },
-    { "Code": "HQM", "Name": "HQ Media", "DisplayName": "HQM - SuamiSihat Media", "ColorHex": "#7C3AED" },
-    { "Code": "PRO", "Name": "SuamiSihat Pro", "DisplayName": "PRO - SuamiSihat Pro", "ColorHex": "#DC2626" }
+    { "Code": "SSH", "Name": "SuamiSihat Holding", "DisplayName": "SSH - SuamiSihat Holding", "ColorHex": "#022057" },
+    { "Code": "SSC", "Name": "SuamiSihat Clinic", "DisplayName": "SSC - SuamiSihat Clinic", "ColorHex": "#043388" },
+    { "Code": "SSW", "Name": "SuamiSihat Wellness", "DisplayName": "SSW - SuamiSihat Wellness", "ColorHex": "#21A1F7" },
+    { "Code": "SSE", "Name": "SuamiSihat Ecommerce", "DisplayName": "SSE - SuamiSihat Ecommerce", "ColorHex": "#BD9A73" },
+    { "Code": "SST", "Name": "SuamiSihat Technology", "DisplayName": "SST - SuamiSihat Technology", "ColorHex": "#6DC6EC" }
   ],
   "Plugins": {
     "waktu-solat": { "Enabled": true, "DefaultZone": "SGR02" },

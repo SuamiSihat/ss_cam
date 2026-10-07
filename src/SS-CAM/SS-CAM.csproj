@@ -356,6 +356,7 @@
       <DependentUpon>CalendarPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <EmbeddedResource Include="tenant_config.json" />
     <Content Include="tenant_config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

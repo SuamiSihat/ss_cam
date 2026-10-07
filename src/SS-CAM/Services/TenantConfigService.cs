@@ -37,6 +37,12 @@ namespace SS_CAM.Services
                 return corpAppDataFile;
             }
 
+            // If localFile directory is drive root (e.g. D:\) or not write-friendly, prefer appDataFile
+            if (baseDir.TrimEnd('\\').Length <= 3)
+            {
+                return appDataFile;
+            }
+
             return localFile;
         }
 
@@ -48,13 +54,19 @@ namespace SS_CAM.Services
                 if (File.Exists(configPath))
                 {
                     string json = File.ReadAllText(configPath);
-                    Current = JsonConvert.DeserializeObject<TenantConfig>(json);
-                    if (Current == null)
+                    var settings = new JsonSerializerSettings
                     {
-                        Current = CreateDefaultConfig();
-                    }
+                        ObjectCreationHandling = ObjectCreationHandling.Replace
+                    };
+                    Current = JsonConvert.DeserializeObject<TenantConfig>(json, settings);
                 }
-                else
+
+                if (Current == null)
+                {
+                    Current = LoadEmbeddedConfig();
+                }
+
+                if (Current == null)
                 {
                     Current = CreateDefaultConfig();
                 }
@@ -62,13 +74,56 @@ namespace SS_CAM.Services
             catch (Exception ex)
             {
                 Debug.WriteLine("[TenantConfigService] Init: " + ex.Message);
-                Current = CreateDefaultConfig();
+                Current = LoadEmbeddedConfig() ?? CreateDefaultConfig();
             }
+        }
+
+        private static TenantConfig LoadEmbeddedConfig()
+        {
+            try
+            {
+                var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                string resourceName = "SS_CAM.tenant_config.json";
+                using (var stream = assembly.GetManifestResourceStream(resourceName))
+                {
+                    if (stream != null)
+                    {
+                        using (var reader = new StreamReader(stream))
+                        {
+                            string json = reader.ReadToEnd();
+                            var settings = new JsonSerializerSettings
+                            {
+                                ObjectCreationHandling = ObjectCreationHandling.Replace
+                            };
+                            return JsonConvert.DeserializeObject<TenantConfig>(json, settings);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[TenantConfigService] LoadEmbeddedConfig error: " + ex.Message);
+            }
+            return null;
         }
 
         public static void SaveCurrentConfig()
         {
             if (Current == null) return;
+
+            // Anti-poisoning guard: Never overwrite SuamiSihat directory with corporate profile
+            if (Current.TenantId == "corporate")
+            {
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string ssDir = Path.Combine(appData, "SuamiSihat");
+                string targetPath = GetConfigFilePath();
+                if (targetPath.StartsWith(ssDir, StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.WriteLine("[TenantConfigService] Refusing to overwrite SuamiSihat profile with corporate fallback.");
+                    return;
+                }
+            }
+
             try
             {
                 string targetPath = GetConfigFilePath();
@@ -80,7 +135,8 @@ namespace SS_CAM.Services
                 catch (UnauthorizedAccessException)
                 {
                     string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                    string dir = Path.Combine(appData, "SuamiSihat");
+                    string targetFolder = Current.TenantId == "suamisihat" ? "SuamiSihat" : "Corporate";
+                    string dir = Path.Combine(appData, targetFolder);
                     if (!Directory.Exists(dir))
                     {
                         Directory.CreateDirectory(dir);
@@ -135,8 +191,10 @@ namespace SS_CAM.Services
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             bool isExistingSuamiSihat = Directory.Exists(Path.Combine(appData, "SuamiSihat"));
+            bool isSsCamProcess = AppDomain.CurrentDomain.FriendlyName != null &&
+                                  AppDomain.CurrentDomain.FriendlyName.IndexOf("SS-CAM", StringComparison.OrdinalIgnoreCase) >= 0;
 
-            if (isExistingSuamiSihat)
+            if (isExistingSuamiSihat || isSsCamProcess)
             {
                 return new TenantConfig
                 {
@@ -159,13 +217,11 @@ namespace SS_CAM.Services
                     },
                     Subsidiaries = new System.Collections.Generic.List<SubsidiaryConfig>
                     {
-                        new SubsidiaryConfig { Code = "SS", Name = "SuamiSihat", DisplayName = "SS - SuamiSihat", ColorHex = "#0047AB" },
-                        new SubsidiaryConfig { Code = "HQ", Name = "SuamiSihat Holding", DisplayName = "HQ - SuamiSihat Holding", ColorHex = "#1E3A8A" },
-                        new SubsidiaryConfig { Code = "SSE", Name = "SuamiSihat Ecommerce", DisplayName = "SSE - SuamiSihat Ecommerce", ColorHex = "#0D9488" },
-                        new SubsidiaryConfig { Code = "SSC", Name = "SuamiSihat Clinic", DisplayName = "SSC - Klinik SuamiSihat", ColorHex = "#0284C7" },
-                        new SubsidiaryConfig { Code = "KOP", Name = "Koperasi SuamiSihat", DisplayName = "KOP - Koperasi SuamiSihat", ColorHex = "#D97706" },
-                        new SubsidiaryConfig { Code = "HQM", Name = "HQ Media", DisplayName = "HQM - SuamiSihat Media", ColorHex = "#7C3AED" },
-                        new SubsidiaryConfig { Code = "PRO", Name = "SuamiSihat Pro", DisplayName = "PRO - SuamiSihat Pro", ColorHex = "#DC2626" }
+                        new SubsidiaryConfig { Code = "SSH", Name = "SuamiSihat Holding", DisplayName = "SSH - SuamiSihat Holding", ColorHex = "#022057" },
+                        new SubsidiaryConfig { Code = "SSC", Name = "SuamiSihat Clinic", DisplayName = "SSC - SuamiSihat Clinic", ColorHex = "#043388" },
+                        new SubsidiaryConfig { Code = "SSW", Name = "SuamiSihat Wellness", DisplayName = "SSW - SuamiSihat Wellness", ColorHex = "#21A1F7" },
+                        new SubsidiaryConfig { Code = "SSE", Name = "SuamiSihat Ecommerce", DisplayName = "SSE - SuamiSihat Ecommerce", ColorHex = "#BD9A73" },
+                        new SubsidiaryConfig { Code = "SST", Name = "SuamiSihat Technology", DisplayName = "SST - SuamiSihat Technology", ColorHex = "#6DC6EC" }
                     }
                 };
             }

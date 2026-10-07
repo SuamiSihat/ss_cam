@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace SS_CAM.Models
 {
@@ -13,7 +14,11 @@ namespace SS_CAM.Models
         public string AssetPortalUrl { get; set; }
         public string StorageLabel { get; set; }
         public string ThemeDefaultName { get; set; }
+
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
         public List<SubsidiaryConfig> Subsidiaries { get; set; }
+
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
         public Dictionary<string, PluginConfig> Plugins { get; set; }
 
         public TenantConfig()

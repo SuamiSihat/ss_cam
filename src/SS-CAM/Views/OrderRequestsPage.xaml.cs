@@ -125,7 +125,11 @@ namespace SS_CAM.Views
                 {
                     foreach (var sub in TenantConfigService.Current.Subsidiaries)
                     {
-                        items.Add(string.IsNullOrWhiteSpace(sub.DisplayName) ? sub.Name : sub.DisplayName);
+                        string label = string.IsNullOrWhiteSpace(sub.DisplayName) ? sub.Name : sub.DisplayName;
+                        if (!string.IsNullOrWhiteSpace(label) && !items.Contains(label))
+                        {
+                            items.Add(label);
+                        }
                     }
                 }
                 CmbEntityFilter.ItemsSource = items;

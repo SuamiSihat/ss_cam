@@ -228,6 +228,38 @@ if (Test-Path $webRoutes) {
     Write-Check "Web login route protected by rate limiter" "WARN" "server\routes\api.js not found"
 }
 
+# ── CHECK 14: Tenant Config & Sub-Brand Contract Integrity ────────────────────
+Write-Host "`n[ TENANT CONTRACT & PACKAGING ]" -ForegroundColor Cyan
+$tenantJsonPath = Join-Path $srcRoot "tenant_config.json"
+$csprojPath = Join-Path $srcRoot "SS-CAM.csproj"
+if (Test-Path $tenantJsonPath) {
+    try {
+        $cfgJson = Get-Content $tenantJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $expectedCodes = @("SSH", "SSC", "SSW", "SSE", "SST")
+        $actualCodes = @($cfgJson.Subsidiaries | ForEach-Object { $_.Code })
+        $hasDuplicates = ($actualCodes.Count -ne ($actualCodes | Select-Object -Unique).Count)
+        $missingCodes = $expectedCodes | Where-Object { $actualCodes -notcontains $_ }
+        $unexpectedCodes = $actualCodes | Where-Object { $expectedCodes -notcontains $_ }
+
+        $csprojText = if (Test-Path $csprojPath) { Get-Content $csprojPath -Raw -Encoding UTF8 } else { "" }
+        $isEmbedded = ($csprojText -match '<EmbeddedResource\s+Include="tenant_config\.json"')
+
+        if ($hasDuplicates) {
+            Write-Check "Tenant config has unique canonical sub-brands" "FAIL" "Duplicate codes found in Subsidiaries array: $($actualCodes -join ', ')"
+        } elseif ($missingCodes.Count -gt 0 -or $unexpectedCodes.Count -gt 0) {
+            Write-Check "Tenant config has unique canonical sub-brands" "FAIL" "Mismatched codes! Expected: ($($expectedCodes -join ', ')), Actual: ($($actualCodes -join ', '))"
+        } elseif (-not $isEmbedded) {
+            Write-Check "Tenant config embedded in SS-CAM.csproj" "FAIL" "tenant_config.json must be declared as <EmbeddedResource Include=""tenant_config.json"" /> in SS-CAM.csproj to guarantee zero-dependency standalone execution"
+        } else {
+            Write-Check "Tenant config canonical contract & embedded binary packaging" "PASS" "Verified 5 canonical sub-brands ($($actualCodes -join ', ')) and EmbeddedResource packaging"
+        }
+    } catch {
+        Write-Check "Tenant config JSON valid syntax" "FAIL" "Failed to parse tenant_config.json: $($_.Exception.Message)"
+    }
+} else {
+    Write-Check "Tenant config file exists" "FAIL" "src\SS-CAM\tenant_config.json missing"
+}
+
 # ── SUMMARY ───────────────────────────────────────────────────────────────────
 Write-Host "`n$("=" * 60)" -ForegroundColor DarkGray
 Write-Host "RESULT: " -NoNewline
