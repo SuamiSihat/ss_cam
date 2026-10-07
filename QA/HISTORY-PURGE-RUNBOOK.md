@@ -17,12 +17,15 @@
 ## 2. Prerequisites & Preparation
 
 1. **Install `git-filter-repo`** (official tool recommended by Git, replacing deprecated `git filter-branch` and BFG):
+
    ```powershell
    pip install git-filter-repo
    ```
+
 2. **Ensure Clean Working Tree**:
    Make sure all active feature and fix branches are merged or stashed.
 3. **Create Fresh Mirror Backup**:
+
    ```powershell
    git clone --mirror e:\Dev\Projects\SS-Brand-Assets e:\Dev\Projects\SS-Brand-Assets.git-backup
    git -C e:\Dev\Projects\SS-Brand-Assets.git-backup fsck
@@ -33,6 +36,7 @@
 ## 3. Execution Steps
 
 ### Step 1: Prepare Password Scrubbing Expressions
+
 Create a temporary expressions file `expressions.txt` to replace compromised credentials across historical commit diffs:
 
 ```text
@@ -40,6 +44,7 @@ SuamiSihat123!==>REDACTED_HISTORICAL_PASSWORD
 ```
 
 ### Step 2: Run `git-filter-repo`
+
 Run `git-filter-repo` to simultaneously purge binary paths and scrub credential occurrences:
 
 ```powershell
@@ -62,6 +67,7 @@ git-filter-repo `
 *Delete `expressions.txt` immediately after execution.*
 
 ### Step 3: Optional Git LFS Migration for Affinity Assets
+
 If preserving `payload/Brand Assets/Libraries/SuamiSihat Branding.afassets` under version control:
 
 ```powershell
@@ -70,6 +76,7 @@ git lfs migrate import --everything --include="*.afassets"
 ```
 
 ### Step 4: Aggressive Garbage Collection
+
 Expire all reflogs and run aggressive packfile pruning:
 
 ```powershell
@@ -81,6 +88,7 @@ git gc --prune=now --aggressive
 ```
 
 ### Step 5: Verify Repository State
+
 Verify that the pack database has shrunk and historical blobs are gone:
 
 ```powershell
@@ -92,16 +100,22 @@ git log --all --full-history -- "**/sscam-release.jks"
 ```
 
 ### Step 6: Coordinate Force-Push with Team
+
 1. Re-add the remote origin (cleared by filter-repo as safety precaution):
+
    ```powershell
    git remote add origin git@github.com:SuamiSihat/ss_cam.git
    ```
+
 2. Force-push rewritten branches and tags:
+
    ```powershell
    git push origin --force --all
    git push origin --force --tags
    ```
+
 3. Instruct all team members to discard local clones and perform a fresh clone:
+
    ```powershell
    git clone git@github.com:SuamiSihat/ss_cam.git
    ```

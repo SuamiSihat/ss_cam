@@ -12,13 +12,16 @@ Before deploying any container updates or restarting services, complete the foll
 
 1. **Workspace Snapshot / Backup**:
    Create a timestamped backup of the current workspace config and credentials:
+
    ```bash
    # On the NAS host or admin workstation
    mkdir -p /volume1/backups/sscam-pre-4.11.1-$(date +%Y%m%d_%H%M%S)
    cp -r /volume1/Creative-Team/_Team/_Config /volume1/backups/sscam-pre-4.11.1-*/
    ```
+
 2. **Password Store Backup**:
    If an existing `user_passwords.json` exists in `_Team/_Config/` or local `data/`:
+
    ```bash
    cp /volume1/Creative-Team/_Team/_Config/user_passwords.json /volume1/backups/sscam-pre-4.11.1-*/user_passwords.json.bak
    ```
@@ -29,6 +32,7 @@ Before deploying any container updates or restarting services, complete the foll
 
 1. **Verify or Generate `.env`**:
    Ensure `src/SS-CAM.Web/.env` contains strong production credentials:
+
    ```ini
    NODE_ENV=production
    PORT=4000
@@ -45,6 +49,7 @@ Before deploying any container updates or restarting services, complete the foll
 
 2. **Verify Docker Compose Configuration**:
    Ensure `src/SS-CAM.Web/docker-compose.yml` mounts the isolated data directory:
+
    ```yaml
    volumes:
      - /volume1/Creative-Team:/volume1/Creative-Team
@@ -56,6 +61,7 @@ Before deploying any container updates or restarting services, complete the foll
 ## 3. Deployment Procedure
 
 1. **Pull and Rebuild Container**:
+
    ```bash
    cd src/SS-CAM.Web
    docker compose pull
@@ -64,12 +70,15 @@ Before deploying any container updates or restarting services, complete the foll
    ```
 
 2. **Verify Container Status & Logs**:
+
    ```bash
    docker compose ps
    docker compose logs -f sscam-web
    ```
+
    Confirm startup banner:
-   ```
+
+   ```text
    [Config] NODE_ENV: production
    [Config] Production JWT_SECRET verified (length >= 32).
    [Config] DATA_DIR configured: /app/data
@@ -81,6 +90,7 @@ Before deploying any container updates or restarting services, complete the foll
 ## 4. Production Smoke Test
 
 Immediately following container startup, perform a smoke test:
+
 1. Navigate to `https://creative.suamisihat.myds.me` in an incognito browser.
 2. Verify brand login screen loads without CSP errors in browser console.
 3. Authenticate with an administrator account (e.g. `harussani`).
@@ -98,7 +108,8 @@ During the initial 48-hour release window, monitor the audit stream for anomalou
 tail -f /volume1/Creative-Team/_Team/audit-log.jsonl | grep -E "SECURITY_ACCESS_DENIED|LOGIN_FAILED|SECURITY_PERMISSION_DENIED"
 ```
 
-### Action Thresholds:
+### Action Thresholds
+
 - **`SECURITY_ACCESS_DENIED`**: Investigated if repeated from non-administrative staff.
 - **Multiple `LOGIN_FAILED` in short succession**: Verify rate limiting triggers HTTP 429.
 - **`PASSWORD_MIGRATED`**: Expected as active users log in and their legacy plaintext passwords are upgraded to bcrypt hashes.

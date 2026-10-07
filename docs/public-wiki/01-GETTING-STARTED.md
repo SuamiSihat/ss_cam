@@ -7,16 +7,18 @@ This guide walks you through installing CAM Studio on your desktop workstations 
 ## 1. System Requirements
 
 ### Workstation (Windows Desktop)
+
 - **Operating System:** Windows 10 (version 1903+) or Windows 11 (64-bit).
 - **Runtime:** .NET Framework 4.8 or higher.
-- **Hardware:** 
+- **Hardware:**
   - Dual-core 2.0 GHz CPU or faster.
   - Minimum 4 GB RAM (8 GB+ recommended for large multi-gigabyte PSD/AI project archives).
   - 250 MB free disk space for desktop workstation files.
 - **Network:** 1GbE LAN connection (10GbE strongly recommended for high-bitrate 4K video workflows).
 
 ### Server / NAS (Web Portal & Sync Daemon)
-- **Supported Platforms:** 
+
+- **Supported Platforms:**
   - Synology NAS running DSM 7.0+ with Container Manager / Docker installed.
   - QNAP NAS with Container Station.
   - Ubuntu 20.04+ / Debian 11+ / TrueNAS SCALE.
@@ -69,8 +71,8 @@ services:
       retries: 3
 ```
 
-6. Click **Next** and **Done** to launch the container.
-7. Access the Web Portal in your browser at `http://<your-nas-ip>:3000`.
+1. Click **Next** and **Done** to launch the container.
+2. Access the Web Portal in your browser at `http://<your-nas-ip>:3000`.
 
 ---
 

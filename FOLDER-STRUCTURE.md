@@ -5,7 +5,9 @@ Official centralized folder structure and naming convention standard for SuamiSi
 This standard establishes a searchable, chronologically indexed directory hierarchy across local workstations and network storage (`SSNAS`).
 
 ### Synology Drive Client Sync Specification
+
 Local workstations connect to SSNAS via **Synology Drive Client** using continuous two-way synchronization:
+
 - **Synology NAS Server Share**: `/Creative-Team` (or `/volume2/Creative-Team`)
 - **Local Workstation Sync Drive**: `E:\SynologyDrive\Creative-Team` (configured as `WorkspaceRoot` in SS-CAM)
 - **Windows Network Share (Direct UNC)**: `\\SSNAS\Creative-Team`
@@ -58,7 +60,8 @@ Format:
 | **Sub-brand** | Identifier | Official business code (`SS`, `SSH`, `SSC`, `SSW`, `SSE`, `SST`) | `SSE` |
 | **Project Name** | Title | Concise description separated by underscores | `Rejal_Packaging` |
 
-### Discipline Suffix Codes:
+### Discipline Suffix Codes
+
 - **`D`**: Graphic & Print Design
 - **`S`**: Social Media Content & Campaigns
 - **`V`**: Video Production & Motion Graphics
@@ -136,6 +139,7 @@ The dedicated copywriting studio document is saved inside `03_COPYWRITING/COPY.m
 ## 🔄 Legacy Backward Compatibility
 
 The SS-CAM scanner automatically recognizes legacy paths and alias folders:
+
 - Legacy root: `Creative-Team/[Staff_ID]/SS-[YYYY]/...`
 - Legacy folder aliases: `Artwork Design` → `02_SOURCE_FILES`, `Production` → `05_DELIVERABLES`, `Artwork Mockup` → `04_WORK_IN_PROGRESS`.
 - Legacy projects are indexed alongside centralized projects without data loss.

@@ -12,6 +12,7 @@
 A common failure mode in software commercialization is attempting to use a **single documentation repository with manual filtering tags**. In practice, developers inevitably forget to tag internal server names, proprietary paths, or company credentials, leading to accidental leakage of sensitive infrastructure details to customers.
 
 SS-CAM enforces **Structural Isolation by Construction**:
+
 - **Internal Ops Wiki:** Hand-maintained; contains the full internal infrastructure reality (Synology DS920+ physical topology, internal credential rules, proprietary subsidiary codes, and release publishing scripts).
 - **Public Product Wiki:** Generated strictly from Core-layer specifications and generic documentation; audited by automated pre-commit scanning scripts against the Phase 0 coupling blacklist.
 
@@ -51,7 +52,8 @@ docs/public-wiki/
 
 To guarantee that no internal SuamiSihat hostnames, NAS paths, or confidential parameters leak into the public documentation, we implement an automated validation script: [`docs/scripts/audit-public-docs.ps1`](file:///d:/HaNa_Innovation/ss_cam/docs/scripts/audit-public-docs.ps1).
 
-### Blacklisted Patterns Enforced by CI/CD:
+### Blacklisted Patterns Enforced by CI/CD
+
 - `suamisihat` (case-insensitive)
 - `suamisihat.myds.me`
 - `assets.suamisihat.myds.me`

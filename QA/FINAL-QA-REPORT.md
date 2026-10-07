@@ -15,6 +15,7 @@
 ---
 
 ### Build & Code Quality Status
+
 - Windows Desktop Release build: **PASS** (`src/SS-CAM/bin/Release/SS-CAM.exe` compiled via MSBuild)
 - Dual-Track Master Gatekeeper: **PASS** (`QA/verify-dual-track.ps1 -Fix -Build` 3-stage validation complete)
 - Public Wiki Reference Audit: **PASS** (`docs/scripts/audit-public-docs.ps1` zero leakage verified across all 5 public wiki files)
@@ -43,6 +44,7 @@
 ---
 
 ### Executable Binaries & Packages
+
 - Windows Desktop: `dist/SS-CAM-v4.13.0.exe` and `dist/SS-CAM.exe`
 - Commercial Landing Portal: `docs/commercial-landing/` and `dist/commercial-landing/`
 - Public Customer Documentation: `docs/public-wiki/`

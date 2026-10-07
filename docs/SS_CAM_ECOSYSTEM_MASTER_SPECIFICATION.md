@@ -288,6 +288,7 @@ Both desktop and web generate identical handover ZIP files:
 | **Waiting Room Smart TV** | Android TV (`SS-CAM.Android`) | Dedicated kiosk/signage mode playing cached video loops, doctor schedules, and clinic operating notices without buffering. |
 
 ### 8.3. Regulatory & KKM Compliance Gate
-* **Strict Medical Advertising Board (LIU/MAB) Alignment**: All branch promotional collaterals distributed through SS-CAM require a registered KKM/LIU approval number and expiration timestamp stored in YAML frontmatter.
-* **Tamper-Resistant Collaterals**: Branch managers can only inject contact/address parameters into locked layout regions; core medical claims and drug schedules cannot be modified at branch level.
-* **Audit Trail**: Every asset download and distribution is logged in `_Clinic/audit-log.jsonl` for regulatory review.
+
+- **Strict Medical Advertising Board (LIU/MAB) Alignment**: All branch promotional collaterals distributed through SS-CAM require a registered KKM/LIU approval number and expiration timestamp stored in YAML frontmatter.
+- **Tamper-Resistant Collaterals**: Branch managers can only inject contact/address parameters into locked layout regions; core medical claims and drug schedules cannot be modified at branch level.
+- **Audit Trail**: Every asset download and distribution is logged in `_Clinic/audit-log.jsonl` for regulatory review.

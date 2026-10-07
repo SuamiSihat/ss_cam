@@ -45,7 +45,8 @@ Based on the operational cost floors established in **Phase 4** ($490/yr for Bus
 └────────────────────────────┴─────────────────────────────┴─────────────────────────────────────────────┘
 ```
 
-### Optional Add-on Services:
+### Optional Add-on Services
+
 - **Turnkey Managed Cloud Hosting:** **$29 / month (or $290 / year)** for teams without internal NAS hardware. Includes dedicated cloud container, daily offsite snapshots, and 200 GB active R2 vault.
 - **Custom Token Bundle / Integration Setup:** **$499 one-time** for enterprise clients requiring bespoke metadata schemas and multi-branch database provisioning.
 
@@ -68,16 +69,19 @@ graph TD
 ```
 
 ### Wedge 1: NAS-Owning Video & 3D Production Studios
+
 - **Profile:** 5–20 person boutique agencies editing 4K/6K video, motion graphics, and 3D.
 - **Pain Point:** Cloud sync (Google Drive/Dropbox) is unbearably slow for 50GB project files. They already own Synology/QNAP NAS hardware with 10GbE connections, but lack an intuitive asset catalog and order workflow.
 - **Pitch:** "Turn your existing Synology NAS into an ultra-fast internal creative studio workstation in 5 minutes."
 
 ### Wedge 2: Regulated Healthcare Clinics & Franchise Networks
+
 - **Profile:** Private clinic chains (aesthetic, men's health, dental, allied health) expanding via franchise or multiple branches under PERNAS / Malaysian Franchise Association.
 - **Pain Point:** Strict medical advertising laws (KKM / LIU / Akta Ubat 1956). Unaudited marketing or rogue branch posters create legal liability and risk of license suspension.
 - **Pitch:** "Guaranteed 100% brand and regulatory compliance across all branch locations with automatic local contact injection."
 
 ### Wedge 3: Design & Software Agencies
+
 - **Profile:** Digital product and UX agencies managing brand design systems across dozens of client accounts.
 - **Pain Point:** Clients constantly lose brand assets, ask for vector marks, and lack centralized design token documentation.
 - **Pitch:** "Deploy a white-labeled asset portal for your clients that matches your agency brand identity."

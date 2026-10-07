@@ -33,14 +33,17 @@
 ## 🚀 Building & Running
 
 ### Using Android Studio
+
 1. Open Android Studio.
 2. Select **Open** and navigate to `d:\HaNa_Innovation\ss_cam\src\SS-CAM.Android`.
 3. Allow Gradle to sync dependencies from `libs.versions.toml`.
 4. Select your connected Android device or emulator and press **Run (Shift+F10)**.
 
 ### Using Gradle CLI
+
 ```bash
 ./gradlew assembleDebug
 ```
+
 Output APK will be generated at:
 `app/build/outputs/apk/debug/app-debug.apk`

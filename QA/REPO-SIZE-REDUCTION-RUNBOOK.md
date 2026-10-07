@@ -9,6 +9,7 @@
 ## 1. Executive Summary & Root Cause Analysis
 
 ### Current Repository Pack State
+
 - **Total Pack Size**: **543.83 MiB** (`git count-objects -vH`).
 - **Target Pack Size Post-Scrubbing**: **< 50 MiB** (~90% size reduction).
 
@@ -39,6 +40,7 @@
 ## 2. Immediate Mitigation (Already Executed)
 
 To stop further repository growth:
+
 1. Files were untracked from the active Git index using `git rm -r --cached`.
 2. `.gitignore` was updated with comprehensive patterns (`dist/`, `publish/`, `installer/*.zip`, `*.zip`, `node_modules/`, `nuget.exe`).
 3. All files remain physically intact on disk for local building, execution, and development.
@@ -50,6 +52,7 @@ To stop further repository growth:
 The Git documentation officially recommends [`git-filter-repo`](https://github.com/newren/git-filter-repo) over deprecated tools like `git filter-branch` or BFG Repo-Cleaner because it is faster, safer, handles commit signatures/tags correctly, and avoids leaving stale refs.
 
 Install prerequisite (Python 3.8+ required):
+
 ```powershell
 pip install git-filter-repo
 ```
@@ -59,7 +62,9 @@ pip install git-filter-repo
 ## 4. Step-by-Step Manual Execution Plan
 
 ### Step 1: Create Full Local and Remote Backups
+
 Before touching Git history:
+
 ```powershell
 # 1. Clone a fresh mirror backup to an external location
 git clone --mirror e:\Dev\Projects\SS-Brand-Assets e:\Dev\Projects\SS-Brand-Assets.git-backup
@@ -69,6 +74,7 @@ git -C e:\Dev\Projects\SS-Brand-Assets.git-backup fsck
 ```
 
 ### Step 2: Purge Build Outputs and Binary Packages from History
+
 Run `git-filter-repo` targeting specific bloat paths:
 
 ```powershell
@@ -87,6 +93,7 @@ git-filter-repo `
 ```
 
 ### Step 3: Handle `.afassets` via Git LFS Migration (Optional / Recommended)
+
 If the 43 MB Affinity Assets file (`SuamiSihat Branding.afassets`) should remain tracked under version control without bloating git packfiles:
 
 ```powershell
@@ -98,6 +105,7 @@ git lfs migrate import --everything --include="*.afassets"
 *Note: Ensure GitHub LFS bandwidth/storage quota is activated for the repository before pushing.*
 
 ### Step 4: Aggressive Garbage Collection & Pruning
+
 Purge loose objects, reflogs, and unreachable pack data:
 
 ```powershell
@@ -109,25 +117,35 @@ git gc --prune=now --aggressive
 ```
 
 ### Step 5: Verify Pack Size Reduction
+
 Check the resulting database size:
+
 ```powershell
 git count-objects -vH
 ```
+
 *Expected output: `size-pack` will drop from **543.83 MiB** to **< 50 MiB**.*
 
 ### Step 6: Coordinate Force-Push to Remotes
+
 Because commit hashes have changed:
+
 1. Re-add origin remote (if cleared by filter-repo):
+
    ```powershell
    git remote add origin <remote-url>
    ```
+
 2. Notify team members to push any pending work beforehand.
 3. Force-push updated branches and tags:
+
    ```powershell
    git push origin --force --all
    git push origin --force --tags
    ```
+
 4. Collaborators must perform a clean re-clone:
+
    ```powershell
    git clone <remote-url>
    ```

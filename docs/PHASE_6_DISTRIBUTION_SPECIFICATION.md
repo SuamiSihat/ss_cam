@@ -30,12 +30,14 @@ The commercial edition of SS-CAM requires a **complete structural decoupling** f
 ## 2. Commercial Web & Download Hub Architecture
 
 ### 2.1. Domain & Edge Hosting
+
 - **Production URL:** `https://getcam.dev` (Commercial Domain)
 - **Hosting Provider:** Cloudflare Pages (Direct Git deployment, automatic preview branches, zero cold-starts, DDoS protection).
 - **SSL / TLS:** Universal SSL with TLS 1.3 enforcement and HSTS.
 - **Cost:** $0/month on Cloudflare standard tier (<100,000 visitors/month).
 
 ### 2.2. Multi-Platform Artifact Delivery Matrix
+
 All downloadable release artifacts are built deterministically via GitHub Actions and synchronized to Cloudflare R2 bucket (`cam-releases-public`):
 
 | Platform / Edition | Target Binary Artifact | Installer Type | Distribution Channel |
@@ -77,6 +79,7 @@ sequenceDiagram
 ```
 
 ### 3.1. Entitlement Verification (In-App Desktop Behavior)
+
 1. **Unregistered Community Core:** Starts in Community Mode with standard features enabled, generic neutral branding, and a subtle "Activate Business License" badge in the navigation sidebar.
 2. **Business & Enterprise License:** The user enters their license key in `Settings > License & Team Hub` or places their provisioned `tenant_config.json` into `%LocalAppData%\[PRODUCT]\`.
 3. **Hardware Lock & Seat Allocation:**
@@ -102,7 +105,8 @@ To prevent white-label customers from being forced onto unscheduled updates, SS-
 └────────────────────────────┴─────────────────────────────┴────────────────────────────────────────────┘
 ```
 
-### Update Manifest Structure (`version.json`):
+### Update Manifest Structure (`version.json`)
+
 ```json
 {
   "version": "4.11.0",
@@ -160,6 +164,7 @@ services:
 ## 6. Pre-Flight Customer Diagnostic Tool (Support Cost Prevention)
 
 To enforce the **Phase 4 support guardrails**, the commercial website and desktop client include a lightweight diagnostic utility:
+
 1. **LAN SMB Check:** Tests read/write throughput to the customer's NAS share (verifies whether 1GbE or 10GbE network is bottlenecking file operations).
 2. **Docker Port Health:** Pings `http://<nas-ip>:3000` to verify container reachability before filing support tickets.
 3. **Write Permission Audit:** Validates folder write access on local creative directories.

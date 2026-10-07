@@ -66,12 +66,15 @@
 ## 🎯 Active Milestone — v4.14.0: Cloud Collaboration & Automated Production Delivery (Target: Q4 2026)
 
 ### 1. Cloud Webhook Pipeline & Production Alerts
+
 * Bi-directional webhooks and Discord/Slack notification triggers on deliverable approval and handover export.
 
 ### 2. Destructive Move-to-Archive & Automated NAS Pruning
+
 * Safe project pruning with multi-factor admin confirmation and dry-run storage quota analytics.
 
 ### 3. Deep Preflight Vector Dieline & Print Validator
+
 * Advanced color space CMYK/RGB inspection, bleed/slug dieline verification, and vector asset rasterization preflights.
 
 ---

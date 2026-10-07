@@ -22,6 +22,7 @@
 Industri perkhidmatan klinik kesihatan lelaki memerlukan tahap ketepatan klinikal, kerahsiaan pesakit, dan pematuhan undang-undang perubatan yang amat tinggi. Dalam usaha memperluaskan model perniagaan **Klinik SuamiSihat** ke peringkat rangkaian francais kebangsaan di bawah naungan **PERNAS**, cabaran paling kritikal bagi pihak Francaisor (HQ) adalah memastikan **standard operasi rawatan, bahan konsultasi doktor, dan pematuhan undang-undang pengiklanan Kementerian Kesihatan Malaysia (KKM)** dapat diseragamkan 100% di semua cawangan francaisi.
 
 **SS-CAM (SuamiSihat Clinic Asset & Operations Management)** dibangunkan sebagai tulang belakang operasi digital (*digital operational backbone*) bagi rangkaian klinik francais SuamiSihat. Sistem ini menggabungkan pengurusan aset digital jenama berpusat dengan operasi harian bilik rawatan klinik, meliputi:
+
 1. **Kit Visual Konsultasi Pesakit (In-Clinic Consultation Suite)** untuk kegunaan doktor menerangkan prosedur rawatan.
 2. **Enjin Papan Tanda Digital Ruang Menunggu (In-Clinic TV Signage)** bagi menyiarkan maklumat giliran dan edukasi kesihatan secara automatik.
 3. **Gerbang Kawal Selia & Pematuhan KKM (Regulatory Compliance Gateway)** bagi mengawal kelulusan Akta Iklan Ubat 1956 merentas cawangan.
@@ -48,12 +49,15 @@ Pengembangan klinik swasta berteraskan francais berhadapan dengan tiga (3) halan
 ```
 
 ### 2.1. Ketidakseragaman Sesi Konsultasi Klinikal (Doctor-to-Patient Consultation Gap)
+
 Rawatan kesihatan lelaki melibatkan prosedur klinikal yang khusus (seperti Terapi Gelombang Kejutan / ESWT, Terapi Penggantian Testosteron / TRT, dan ujian darah hormon). Doktor di cawangan francaisi sering menggunakan kaedah penerangan lisan semata-mata, menyebabkan pesakit berasa sangsi, salah faham mengenai tempoh pemulihan, atau menolak pelan rawatan.
 
 ### 2.2. Risiko Pelanggaran Akta Ubat (Iklan dan Penjualan) 1956 & Lembaga Iklan Ubat (LIU/MAB)
+
 Klinik perubatan terikat dengan undang-undang kawal selia yang amat ketat di Malaysia. Sekiranya mana-mana cawangan francaisi menerbitkan iklan promosi tempatan atau mempamerkan testimoni yang tidak diluluskan oleh KKM, lesen pengoperasian klinik dan reputasi jenama francaisor boleh digantung atau didenda. Francaisor memerlukan sistem kawalan terpusat yang menghalang cawangan daripada menggunakan bahan yang belum diaudit.
 
 ### 2.3. Beban Kos Pengurusan & Ketiadaan Bahan Operasi Setempat
+
 Francaisi biasanya tidak mempunyai keupayaan teknikal atau peruntukan untuk menggaji pereka grafik dan perunding pemasaran sendiri. Tanpa sistem sokongan dari HQ, francaisi terpaksa bergantung kepada poster fizikal yang mudah lusuh, lambat diedarkan, dan sukar dikemas kini apabila terdapat pertukaran jadual doktor atau pelarasan harga pakej.
 
 ---
@@ -104,6 +108,7 @@ Sistem SS-CAM tidak meniru fungsi inventori ubat farmasi (yang sudah dikendalika
 ---
 
 ### MODUL 1: In-Clinic Patient Consultation Suite (Bilik Rawatan Doktor)
+
 * **Pengguna Sasaran**: Doktor Perubatan & Pegawai Konsultasi Cawangan.
 * **Peranti**: Tablet Android (SS-CAM.Android) / Komputer Bilik Doktor (WPF/Web).
 * **Fungsi Utama**:
@@ -114,6 +119,7 @@ Sistem SS-CAM tidak meniru fungsi inventori ubat farmasi (yang sudah dikendalika
 ---
 
 ### MODUL 2: Clinic Waiting Lounge & Digital Signage Engine (Ruang Menunggu)
+
 * **Pengguna Sasaran**: Pesakit di ruang menunggu klinik & Staf Kaunter Pendaftaran.
 * **Peranti**: Android Smart TV / Kotak Media TV Ruang Menunggu.
 * **Fungsi Utama**:
@@ -125,6 +131,7 @@ Sistem SS-CAM tidak meniru fungsi inventori ubat farmasi (yang sudah dikendalika
 ---
 
 ### MODUL 3: Gerbang Pematuhan KKM & Repositori SOP Perubatan (Regulatory Compliance Portal)
+
 * **Pengguna Sasaran**: Pengarah Perubatan HQ (*Medical Director*), Pengurus Pematuhan, Pengurus Cawangan.
 * **Peranti**: Komputer Utama HQ (WPF Desktop) & Web Portal Cawangan.
 * **Fungsi Utama**:
@@ -135,6 +142,7 @@ Sistem SS-CAM tidak meniru fungsi inventori ubat farmasi (yang sudah dikendalika
 ---
 
 ### MODUL 4: Operasi Pemasaran Cawangan & Intake Pesakit (Branch Manager Kit)
+
 * **Pengguna Sasaran**: Pengurus Cawangan Francais & Pegawai Khidmat Pelanggan.
 * **Peranti**: Web Portal Cawangan (`creative.suamisihat.myds.me`).
 * **Fungsi Utama**:
@@ -144,6 +152,7 @@ Sistem SS-CAM tidak meniru fungsi inventori ubat farmasi (yang sudah dikendalika
 ---
 
 ### MODUL 5: Post-Treatment Digital Care Dispatch (Penjagaan Selepas Rawatan)
+
 * **Pengguna Sasaran**: Jururawat / Pembantu Klinik & Pesakit.
 * **Peranti**: Tablet Kaunter / Telefon Pintar Pesakit.
 * **Fungsi Utama**:
@@ -158,12 +167,15 @@ Sistem SS-CAM tidak meniru fungsi inventori ubat farmasi (yang sudah dikendalika
 ## 5. SPESIFIKASI TEKNIKAL & PEMATUHAN AKTA PERLINDUNGAN DATA (PDPA 2010)
 
 ### 5.1. Seni Bina Sistem Hibrid (Offline-First Architecture)
+
 SS-CAM menggunakan seni bina hibrid yang direka khas untuk operasi klinik yang stabil:
+
 * **Aplikasi Utama HQ (Desktop C# WPF / .NET 4.8)**: Berprestasi tinggi, responsif, dan menyokong pemprosesan fail grafik resolusi ultra-tinggi.
 * **Portal Cawangan (Svelte 5 / Node.js)**: Ringan, pantas, boleh diakses oleh cawangan melalui pelayar web selamat tanpa memerlukan pemasangan perisian berat.
 * **Aplikasi Mudah Alih/Tablet (Kotlin / Jetpack Compose)**: Menggunakan pecutan perkakasan grafik (*hardware bitmap acceleration*) untuk paparan lancar di bilik konsultasi dan TV signage.
 
 ### 5.2. Keselamatan Data & Privasi Pesakit (PDPA 2010)
+
 * **Tiada Penyimpanan Rekod Pesakit di Cloud Terbuka**: Sistem ini tidak menyimpan rekod perubatan pesakit (EMR) pada pelayan pihak ketiga. SS-CAM hanya menguruskan templat aset, kod QR, dan pautan panduan pemulihan awam.
 * **Penyulitan Hujung-ke-Hujung (End-to-End Encryption)**: Semua pautan yang dihantar kepada pesakit dilindungi dengan protokol HTTPS selamat (`suamisihat.myds.me`).
 
@@ -220,14 +232,17 @@ Pelaksanaan projek dibahagikan kepada empat (4) fasa utama:
 ## 8. UNJURAN PULANGAN PELABURAN (ROI) & FAEDAH KEPADA EKOSISTEM FRANCAIS
 
 ### 8.1. Faedah Langsung Kepada Francaisor (HQ)
+
 * **Keseragaman Jenama 100%**: Tiada cawangan yang menggunakan logo lapuk, format warna yang salah, atau membuat tawaran harga yang mengelirukan pengguna.
 * **Skalabiliti Pembukaan Cawangan Baharu**: Pembukaan cawangan francais baharu boleh dilakukan dalam tempoh 14 hari dari sudut penyediaan sistem komunikasi dan pemasaran kerana semua aset telah tersedia secara digital (*ready-to-deploy*).
 
 ### 8.2. Faedah Langsung Kepada Francaisi (Cawangan Klinik)
+
 * **Peningkatan Kadar Penerimaan Rawatan Pesakit (Conversion Rate)**: Penggunaan alat visual perubatan di bilik konsultasi dijangka meningkatkan kadar pesakit bersetuju mengambil pakej rawatan susulan sebanyak 25% hingga 35%.
 * **Penjimatan Kos Operasi (OPEX Savings)**: Setiap cawangan menjimatkan purata RM36,000 setahun daripada kos mencetak bahan fizikal yang dibazirkan dan kos melantik agensi pemasaran tempatan.
 
 ### 8.3. Impak Sosioekonomi & Kesihatan Awam
+
 * **Peningkatan Kesedaran Kesihatan Lelaki (Men's Health Literacy)**: Memecahkan stigma masyarakat terhadap masalah seksual lelaki melalui penerangan visual yang beretika, saintifik, dan berhemah.
 * **Peluang Keusahawanan Francais**: Membuka peluang kepada usahawan dan doktor tempatan memiliki klinik kesihatan lelaki sendiri dengan sokongan sistem operasi moden di bawah pembiayaan PERNAS.
 

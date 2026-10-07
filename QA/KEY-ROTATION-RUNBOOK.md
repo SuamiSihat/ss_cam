@@ -2,15 +2,17 @@
 
 ## Overview & Background
 
-The Android release keystore (`sscam-release.jks`) and its initial signing passwords were previously tracked in the git repository. 
+The Android release keystore (`sscam-release.jks`) and its initial signing passwords were previously tracked in the git repository.
 
 As an immediate mitigation:
+
 - Hardcoded passwords and keystore references were removed from `build.gradle.kts`.
 - Keystore credentials and files are now loaded dynamically from untracked `keystore.properties` or environment variables, falling back to unsigned/debug mode for contributors.
 - `src/SS-CAM.Android/app/sscam-release.jks` was untracked from the git index (`git rm --cached`) while being preserved on local disk.
 - `.gitignore` was updated to ignore all `*.jks`, `*.keystore`, and `keystore.properties` files.
 
 Because git commit history may still contain the earlier commits, this runbook outlines the required **manual** recovery procedures:
+
 1. **Resetting the Upload Key via Google Play Console** (since Google Play App Signing manages the real end-user delivery key).
 2. **Configuring local credentials via `keystore.properties`**.
 3. **Purging the compromised keystore and secrets from git history using `git-filter-repo`**.
@@ -80,7 +82,9 @@ keyPassword=YOUR_NEW_SECURE_KEY_PASSWORD
 ```
 
 ### CI/CD Environment Variable Alternative
+
 For automated GitHub Actions or Docker CI builds, set the following repository secrets instead of storing a file:
+
 - `KEYSTORE_FILE`: Path to keystore or base64-encoded keystore path.
 - `KEYSTORE_PASSWORD`: Keystore master password.
 - `KEY_ALIAS`: Alias of the key (e.g., `sscam_upload`).
@@ -103,6 +107,7 @@ python -m pip install --user git-filter-repo
 ```
 
 Verify installation:
+
 ```bash
 git filter-repo --version
 ```
@@ -110,34 +115,40 @@ git filter-repo --version
 ### Execution Steps
 
 1. **Create a Complete Mirror Backup**:
+
    ```bash
    git clone --mirror <remote-url> ss-brand-assets-backup.git
    ```
 
 2. **Clone a Clean Dedicated Workspace**:
+
    ```bash
    git clone <remote-url> ss-brand-assets-cleanup
    cd ss-brand-assets-cleanup
    ```
 
 3. **Remove `sscam-release.jks` from All Past Commits**:
+
    ```bash
    git filter-repo --path src/SS-CAM.Android/app/sscam-release.jks --invert-paths
    ```
 
 4. **Replace Compromised Password Literals from All Commit Messages & Diffs**:
    Create a replacement dictionary file named `replace-passwords.txt`:
+
    ```text
    sscam2026release==>[REDACTED]
    ```
 
    Run the replacement:
+
    ```bash
    git filter-repo --replace-text replace-passwords.txt
    ```
 
 5. **Re-attach the Remote and Verify Clean State**:
    `git-filter-repo` removes remotes as a safety precaution against accidental push. Inspect the log:
+
    ```bash
    git log --all --full-history -- "**/sscam-release.jks"
    # Must return 0 commits
@@ -145,6 +156,7 @@ git filter-repo --version
 
 6. **Coordinate & Force-Push**:
    Once verified:
+
    ```bash
    git remote add origin <remote-url>
    git push origin --force --all

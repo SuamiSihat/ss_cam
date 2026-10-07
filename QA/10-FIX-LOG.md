@@ -1,6 +1,7 @@
 # SS-CAM FIX LOG
 
 ## Feature: Split-View WhatsApp Simulator & Customizable Dashboard KPI Grid — 2026-10-06
+
 - **Split-View WhatsApp Simulator in Copywriting Studio (`CopywritingPage.xaml`, `CopywritingPage.xaml.cs`, `CopywritingDesktopService.cs`)**:
   - Added dedicated `[ Split WhatsApp ]` segmented button to the primary mode bar (`[ Preview Live ] [ Split Doc ] [ Split WhatsApp ] [ Edit Mode ] [ Mockup View ]`).
   - Implemented authentic WhatsApp chat bubble simulation in `CopywritingDesktopService.cs`:
@@ -29,6 +30,7 @@
   - MSBuild: **PASS** (`SS-CAM -> E:\Dev\Projects\SS-Brand-Assets\src\SS-CAM\bin\Release\SS-CAM.exe` compiled cleanly with 0 errors).
 
 ## Release: v4.12.2 — Web Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow — 2026-10-01
+
 - **Project Discussion & Review Comments UI Architecture (`ProjectComments.svelte`)**:
   - Re-architected discussion comment cards to full vertical stacking: Author Header Row (Author + Role badge + Delete button `✕`), Deliverable Reference Row (`🎯 [filename]`), Comment Body, and Action Footer Row (`[ ✓ Resolved ]` / `[ ↻ Reopen ]` button + Timestamp).
   - Eliminated horizontal button and badge collisions/cropping when viewing comments in narrow drawer widths.
@@ -44,6 +46,7 @@
   - Source Guardian: Verified.
 
 ## Release: v4.12.1 — Security Hardening, WCAG 2.1 AA Accessibility & Canonical Vault Hierarchy — 2026-10-01
+
 - **Security & API Protection**:
   - Gated `GET /api/projects/:id/export`, `POST /api/notes`, `DELETE /api/notes/:id`, and `GET /api/users` with mandatory `authenticateToken` middleware.
   - Sanitized note identifiers using `path.basename` and alphanumeric regex filtering.
@@ -62,6 +65,7 @@
   - Source Guardian: PASS (13/13 checks).
 
 ## Release: v4.12.0 — Advanced Batch Operations & Studio Archive Vault — 2026-09-29
+
 - **Track 1: Batch Archive Vault & Cold Storage Optimizer**:
   - Created `ArchiveCatalogEntry.cs` and `ArchiveVaultService.cs` supporting multi-select project archival into cold-storage ZIPs on NAS (`_Archive/[YYYY]/[YYYYMM]/`).
   - Added JSONL catalog append logging (`_archive_catalog.jsonl`) recording batch GUID, operator, project list, compressed bytes, and status.
@@ -84,6 +88,7 @@
   - Release MSBuild: compiled cleanly to `bin/Release/SS-CAM.exe`.
 
 ## Fix: Phase 5 — Verification & Release Preparation (Branch: fix/p5-release) — 2026-09-28
+
 - **Ecosystem Test Suite & Build Verification (Task 5.1)**:
   - Executed full automated verification across all platforms:
     - **Combined Web Suite (`npm test`)**: **56 Passed, 0 Failed (100% PASS)** (49 unit/integration + 7 admin smoketests).
@@ -111,6 +116,7 @@
   - Resolved Windows libuv handle teardown assertion in `src/SS-CAM.Web/server/test/admin-smoketest.js` by adding an asynchronous event-loop tick (`setTimeout(100ms)`) before process exit, ensuring `admin-smoketest.js` exits with status code 0 cleanly.
 
 ## Fix: Phase 4 — Dependencies and Code Quality (Branch: fix/p4-quality) — 2026-09-28
+
 - **Safe Dependency Vulnerability Remediation (Task 4.1, N1)**:
   - Executed safe, non-breaking `npm audit fix` in `src/SS-CAM.Web`.
   - Resolved high-severity vulnerability in `js-yaml` (Prototype Pollution via Merge Keys) and moderate-severity vulnerabilities in `qs`, `body-parser`, `express`, and `devalue`.
@@ -159,6 +165,7 @@
   - Client Build: `npm run build:client`: **PASS (16.53s)**
 
 ## Fix: Phase 3 — Secrets, Repository & Asset Hygiene (Branch: fix/p3-repo) — 2026-09-28
+
 - **Android Keystore Security & Dynamic Signing (Task 3.1, C3)**:
   - Untracked release keystore `src/SS-CAM.Android/app/sscam-release.jks` from git index (`git rm --cached`) while preserving the binary on local disk for local developer use (`Test-Path` returned `True`).
   - Rewrote `src/SS-CAM.Android/app/build.gradle.kts` signing configuration: eliminated hardcoded plaintext passwords (`storePassword`, `keyPassword`).
@@ -192,6 +199,7 @@
   - Source Guardian: `verify-sscam.ps1 -Fix` verified.
 
 ## Fix: Phase 2 — Authorization & RBAC Hardening (Branch: fix/p2-authz) — 2026-09-28
+
 - **Route Authorization Audit (Task 2.1)**:
   - Created `QA/scripts/generate-route-authz-matrix.js` and generated `QA/ROUTE-AUTHZ-MATRIX.md`. Audited all 85 Express routes in `src/SS-CAM.Web/server/routes/api.js`.
   - Categorized all routes into public (unauthenticated), authenticated staff, and admin-only endpoints.
@@ -223,6 +231,7 @@
   - `npm run build:client`: **PASS** (Vite built 2,267 modules in 16.01s generating valid `dist/` bundle).
 
 ## Fix: Phase 1 — Authentication Hardening (Branch: fix/p1-auth) — 2026-09-28
+
 - **Password Verification & Bcrypt Lazy Migration (Task 1.1, C1)**:
   - `src/SS-CAM.Web/server/middleware/auth.js`: Rewrote `verifyUserPassword` to immediately reject empty, whitespace, null, or non-string passwords with `false`.
   - Removed all shared default password fallbacks (`SuamiSihat123!` / `DEFAULT_PASSWORD`).
@@ -269,6 +278,7 @@
   - `npm run build:client`: **PASS** (Vite built 2,267 modules in 21.30s generating valid `dist/` bundle).
 
 ## Fix: Untrack Ignored Files, Parity Cleanup & History Size Reduction Proposal — 2026-09-28 (Branch: fix/untrack-ignored-files)
+
 - **Untracked Ignored Files from Git Index (`git rm -r --cached`)**:
   - `src/SS-CAM.Web/node_modules/`: 1,013 files removed from git tracking.
   - `src/SS-CAM.Web/client/dist/`: 18 pre-compiled Vite bundle files removed from git tracking.
@@ -291,6 +301,7 @@
   - `msbuild src\SS-CAM\SS-CAM.csproj`: **PASS** (`SS-CAM -> src/SS-CAM/bin/Debug/SS-CAM.exe` compiled cleanly with exit code 0).
 
 ## Fix: Android Keystore Security & Signing Hardening — 2026-09-28 (Branch: fix/android-keystore-security)
+
 - **Untracked Release Keystore (`src/SS-CAM.Android/app/sscam-release.jks`)**:
   - Untracked the release keystore binary from the git index (`git rm --cached`) while preserving the actual keystore file intact on local disk (`Test-Path` returned `True`).
 - **Gitignore Protection (`.gitignore`)**:
@@ -311,6 +322,7 @@
   - Keystore untracked status verification: **PASS** (deleted in git index, untracked from repository).
 
 ## Fix: Admin RBAC Hardening & Mutating Route Protection — 2026-09-28 (Branch: fix/admin-rbac-hardening)
+
 - **Role & Permission Middleware (`src/SS-CAM.Web/server/middleware/auth.js`)**:
   - Implemented and exported `requireRole(...allowedRoles)` middleware enforcing canonical role validation (`admin`, `administrator`).
   - Refactored `requirePermission(permission)`: eliminated loose substring checks (`isAdminOrLead` matching "manager", "lead", "head", "director", etc.) and replaced with canonical admin role verification.
@@ -338,6 +350,7 @@
   - Total automated test suite: **46 Passed, 0 Failed (100% PASS)**.
 
 ## Fix: Authentication & Security Hardening — 2026-09-28 (Branch: fix/auth-security-hardening)
+
 - **Password Verification & Bcrypt Hashing Overhaul (`src/SS-CAM.Web/server/middleware/auth.js`)**:
   - Eliminated empty password bypass and removed the hardcoded shared default password across all authentication logic.
   - Upgraded password storage to `bcryptjs` (salt rounds: 10).
@@ -364,6 +377,7 @@
   - Total automated test suite: **45 Passed, 0 Failed (100% PASS)**.
 
 ## v4.11.0 — 2026-09-27 (Dual-Track Commercialization Architecture, Multi-Tenant Plugin Engine & Open-Core Governance)
+
 - **Modular Multi-Tenant Plugin Engine (`IAppPlugin`, `PluginRegistry`)**:
   - Abstracted auxiliary features (`WaktuSolatPlugin`, `RadioPlayerPlugin`, `QrCodeStudioPlugin`, `CreativeWellbeingPlugin`) into self-contained plugins implementing canonical `IAppPlugin` interface.
   - Dynamically registers navigation items in `MainWindow.xaml.cs` and Command Palette launcher (`CommandPaletteService.cs`) based on tenant capability enablement.
@@ -384,6 +398,7 @@
   - Windows Desktop MSBuild: PASS (`dist/SS-CAM-v4.11.0.exe` & `dist/SS-CAM.exe` — 6,126,592 bytes).
 
 ## v4.10.2 — 2026-09-26 (Cross-Platform 4-Date Schema Synchronization, Brief Attachment Handover & Universal Markdown Studio)
+
 - **Universal 4-Date Temporal Schema Synchronization**:
   - Aligned Web Portal, Windows Desktop, Linux Avalonia Desktop, and Android Companion App on the canonical 4-date schema: `createdDate`, `startDate`, `deadline`, and auto-calculated `duration`.
   - Added robust date parsing across all platforms handling both ISO-8601 timestamps and date-only strings without timezone offset drift.
@@ -434,6 +449,7 @@
   - Runtime STA Instantiation: QuickNotePage instantiated cleanly with 0 exceptions (`Page Title: Quick Notes & Markdown Studio`).
 
 ## v4.10.1 — 2026-09-15 (Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine)
+
 - **Assembly Version**: `4.10.1.0`
 - **Official SuamiSihat Radio Live Stream Migration (`RadioStreamService.cs`, `MainViewModel.cs`, `StudioRadioScreen.kt`)**:
   - Migrated primary stream endpoint from `https://dj.suamisihat.myds.me/listen/suamisihat-radio/radio.mp3` to `https://radio.suamisihat.myds.me/listen` (broadcasting 192 kbps MP3 with embedded ICY real-time metadata).
@@ -453,6 +469,7 @@
   - M3U Engine: Verified parsing, generation, relative path resolution, and stream testing.
 
 ## v4.10.0 — 2026-09-14 (Smart Drag-and-Drop Vault Ingester, Myers LCS Diff Engine & AI Brief Intelligence)
+
 - **Assembly Version**: `4.10.0.0`
 - **Android Version**: `versionCode = 4100`, `versionName = "4.10.0"`
 - **Web Portal Version**: `4.10.0`
@@ -498,6 +515,7 @@
   - Web Admin Smoketest: 7 passed / 0 failed (100%).
 
 ## v4.9.0 — 2026-09-11 (Visual Project Timeline & Gantt Inspector Drawer, Live Studio Workstream Telemetry, Command Palette v3.5.1 & Tri-Platform Parity)
+
 - **Assembly Version**: `4.9.0.0`
 - **Android Version**: `versionCode = 490`, `versionName = "4.9.0"`
 - **Web Portal Version**: `4.9.0`
@@ -533,6 +551,7 @@
   - GitHub Release: v4.9.0 Published with artifacts as Latest.
 
 ## v4.8.1 — 2026-09-10 (Global Studio Command Palette `Ctrl + K`, Art Director 60-30-10 Polish, Live Work Session Stopwatch & Status Indicator, Creative Operations Upgrade)
+
 - **Assembly Version**: `4.8.1.0`
 - **Creative Operations & Intake Architecture Upgrade (`OrderFormView.svelte`, `OrderService.js`, `CreativeOrder.cs`)**:
   - Implemented Low Priority / Pipeline Tier (`tier_0`) with automated +21 day minimum delivery date threshold.
@@ -602,6 +621,7 @@
 ---
 
 ## v4.8.0 — 2026-09-09 (Interactive Visual Asset Revision Diff Slider, Copywriting Studio Live Preview & Cross-Platform Avatar Sync)
+
 - **Assembly Version**: `4.8.0.0` / Android `versionCode = 480`, `versionName = "4.8.0"`
 - **Interactive Visual Asset Revision Diff Inspector (`VisualDiffService.cs`, `VisualDiffDialog.xaml`, `VisualDiffDialog.xaml.cs`)**:
   - Standalone Fluent 2 comparison inspector extending `<ui:FluentWindow>` with `DynamicResource` tokens.
@@ -632,6 +652,7 @@
 ---
 
 ## v4.7.0 — 2026-09-09 (Velocity Navigation Engine, Canva Creative Cloud Bridge, Per-User Team Storage & Visual Timeline Alignment)
+
 - **Assembly Version**: `4.7.0.0` / Android `versionCode = 471`, `versionName = "4.7.0"`
 - **High-Velocity Desktop Navigation Engine (`MainWindow.xaml`, `WorkspaceScanner.cs`, `DashboardModels.cs`)**:
   - Configured `NavigationCacheMode="Required"` across all 15 navigation views in the desktop application. Tab navigation is now instantaneous (0 ms), retaining active state, scroll position, search filters, and loaded view models without re-inflating XAML BAML trees.
@@ -664,6 +685,7 @@
 ---
 
 ## v4.6.2 — 2026-09-08 (NAS Temporary Attachment Vault, Designer Task Handover, Web Multi-File Upload & Desktop Auto-Ingestion)
+
 - **Assembly Version**: `4.6.2.0` / Android `versionCode = 466`, `versionName = "4.6.2"`
 - **Desktop Task Ownership Handover & Reassignment (`TaskManagerPage.xaml`, `TaskManagerPage.xaml.cs`)**:
   - Added `DetailDesigner` editable ComboBox and `BtnDetailHandover` ("Hand Over Task") button in Row 6 of the Detail Drawer metadata grid.
@@ -697,6 +719,7 @@
 ---
 
 ## v4.6.1 — 2026-09-04 (Cross-Platform Creative Orders Real-Time Sync, Order Requests Scaffolding Engine & Desktop Startup Resilience)
+
 - **Assembly Version**: `4.6.1.0` / Android `versionCode = 462`, `versionName = "4.6.1"`
 - **Cross-Platform Creative Orders Real-Time Sync**:
   - Unified Desktop (Windows WPF & Linux Avalonia) with Web Portal (`/api/orders`) using direct live REST API calls.
@@ -738,6 +761,7 @@
 ---
 
 ## v4.6.0-linux — 2026-09-02 (Linux Port — Full Feature Parity with Windows v4.6.0)
+
 - **Scope**: Complete rebuild of SS-CAM.Linux (Avalonia 11 / .NET 10) to match all 14 pages and backend logic of Windows WPF v4.6.0.
 - **Architecture**: Replaced StackPanel-based navigation with ContentControl + NavigateTo(key) pattern. Single MainViewModel drives all 15 views.
 - **Services added**: `RadioStreamService` (mpv subprocess), `PrayerTimeService` (JAKIM waktusolat.app API), `QuickNoteService` (JSON persistence), `WorkstationHealthService` (/proc + df + which), `WorkspaceService`.
@@ -751,6 +775,7 @@
 ---
 
 ## v4.6.0 — 2026-09-01 (Beta Release — Preflight Quality Auditor, Android Bento Telemetry, Persistent Caching, Live Radio Streaming & Desk Standby Mode)
+
 - **Assembly Version**: `4.6.0.0` / Android `versionCode = 460`, `versionName = "4.6.0"`
 - **Desktop Preflight Quality Auditor (`PreflightValidatorService.cs`)**: Automated 5-folder vault hierarchy audit, YAML frontmatter validation, `COPY.md` script length checks, deliverable file inspection, and canonical asset naming validation with 1-Click Auto-Fix scaffolding.
 - **Android 2×2 Bento KPI Telemetry (`DashboardCompanionScreen.kt`)**: Zero-scroll telemetry grid with instant touch filtering for Active Tasks, Due Projects, Active Brands, and NAS Assets.
@@ -767,6 +792,7 @@
 ---
 
 ## v4.5.1 — 2026-08-30 (Cross-Platform Ecosystem Synchronization & Major Stable Release)
+
 - **Assembly Version**: `4.5.1.0`
 - **Windows Desktop Client**: Compiled single-file portable executable (`dist/SS-CAM-v4.5.1.exe`), 100% theme-adaptive DynamicResource tokens in `WellbeingPage.xaml`, and UTF-8 BOM compliance.
 - **Web Management Portal**: Resolved desktop mobile bottom dock rendering defect, hardened theme persistence in `appState.svelte.ts`, zero-emoji Fluent 2 design system with 45+ SVG icons, and 28/28 passing test suite.
@@ -776,6 +802,7 @@
 ---
 
 ## v4.5.0 — 2026-08-28 (Master Brand System v3.5.1 Integration & Brand Assets Vault Modernization)
+
 - **Assembly Version**: `4.5.0.0`
 - **Master Brand System Integration**: Synchronized with official SuamiSihat Master Brand System Guide v3.5.1 with Two-Layer System Architecture.
 - **Multi-Format Color Matrix**: Added Primary, Secondary Warm, Foundation, and Semantic palettes (`#107C10`, `#D83B01`, `#A80000`) and calibrated 7-stop grayscale with corrected Grey 90 (`#3C3C3B`).
@@ -788,6 +815,7 @@
 ---
 
 ## v4.4.3 — 2026-08-27 (Radio Visualizer Overhaul & Station Upgrades)
+
 - **Assembly Version**: `4.4.3.0`
 - **Dynamic Real-Time Playback Gating**: Mars symbols and logomarks automatically hide (`Opacity = 0.0`) when radio is stopped/idle, smoothly fading in on active playback.
 - **Song Wavelength & Beat Modulation**: Particles oscillate along sinusoidal wavelength across canvas width; beat kicks trigger size pulse (+35%) and upward acceleration.
@@ -799,6 +827,7 @@
 ---
 
 ## v4.4.2 — 2026-08-27 (Art Director Polish & Live Ad/WhatsApp Preview Engine)
+
 - **Assembly Version**: `4.4.2.0`
 - **Copywriting Studio Split-View Live Preview**: Built real-time 3-mode segmented switcher (`Split Preview`, `Rendered Doc`, `Editor Only`) with dual-pane layout.
 - **WhatsApp Live Chat Bubble Simulation**: Real-time rendering of formatted WhatsApp broadcast copy (`*bold*`, emojis, live timestamp, double checkmarks).
@@ -810,6 +839,7 @@
 ---
 
 ## v4.4.1 — 2026-08-26 (Maintenance & Enhancement Release — PUBLISHED)
+
 - **GitHub Release**: PUBLISHED (`v4.4.1` set as Latest on SuamiSihat/ss_cam)
 - **Documentation**: Updated (CHANGELOG.md, ROADMAP.md, QA suite headers aligned to v4.4.1)
 - **Source Guardian**: PASS (9/9 checks passed)
@@ -817,6 +847,7 @@
 - **Wiki**: N/A (wiki update deferred)
 
 ### Features
+
 - **Official SuamiSihat Radio Stream**: Integrated live stream (`https://dj.suamisihat.myds.me/listen/suamisihat-radio/radio.mp3`) as pinned `#1` preset in `RadioStreamService.cs` with migration preservation.
 - **Deep Month-Container Vault Discovery**: Updated directory matching regex to bypass intermediate month containers (`202608_August`) across `WorkspaceScanner.cs`, `WorkloadSlaService.cs`, and `CopywritingPage.xaml.cs`.
 - **Dynamic Project ID Counter Calculation**: Multi-tier directory scan in `ProjectCreatorPage.xaml.cs` to accurately compute sequential job IDs across containers and year vaults.
@@ -825,6 +856,7 @@
 - **UI Text Clipping Remediation**: Standardized ComboBox heights and paddings in `SearchCopyPage.xaml`.
 
 ### Fixes
+
 - **Dashboard Workload Year Bug**: Fixed `ComputeDesignerWorkloads` erroneously returning year folder names (`2026`) as designer names. Overhauled to use staff directory + `ResolveProjectDesigner`.
 - **Manager Role Exclusion — Metrics & Filters**: Added `IsDesignerOrAdminRole` predicate; excluded Manager / CEO / Executive roles from Dashboard capacity radar (Desktop & Web), all designer filter dropdowns (`WorkspaceScanner.GetDesignerFolders`, `TaskManagerPage`, `CalendarPage`), Web metrics (`WorkspaceService.js`, `TeamService.js`).
 - **Mouse Wheel Scrolling Restored (All 15 Pages)**: Added global `OnGlobalPreviewMouseWheel` on `MainWindow` NavigationView (walks visual tree). Per-page `PreviewMouseWheel` wire-up on 10 previously broken pages. Kanban board gains horizontal wheel scroll support.
@@ -832,6 +864,7 @@
 ---
 
 ## v4.4.0 — 2026-08-20 (Designer Workload Heatmaps & Creative SLA Analytics)
+
 - **GitHub Release**: PUBLISHED (`v4.4.0` set as Latest on SuamiSihat/ss_cam)
 - **Designer Workload & Capacity Radar**: Integrated `WorkloadSlaService.cs` and `DashboardPage.xaml` radar grid computing real-time designer capacity scores and bandwidth statuses (`Optimal`, `High Load`, `At Capacity`).
 - **Creative SLA Turnaround Telemetry**: Added First-Time Right %, Average Turnaround Days, and Average Revision Rounds tracking.
@@ -842,6 +875,7 @@
 ---
 
 ## v4.3.0 — 2026-08-20 (Asset Export, Packaging & Naming Engine)
+
 - **1-Click Creative Handover Packaging**: Built `ExportPackagingService.cs` and `ExportService.js` with auto-generated `HANDOVER_SUMMARY.html`.
 - **Canonical Asset Naming & Sanitizer**: Built `AssetNamingService.cs` canonical validator and batch sanitizer.
 - **Source Guardian & Build**: PASS (9/9 checks, 19/19 tests).
@@ -849,6 +883,7 @@
 ---
 
 ## v4.2.0 — 2026-08-20 (Desktop NAS Sync & Batch Operations + Web Real-Time SSE)
+
 - **Desktop NAS File Watcher & Thumbnail Engine**: Built `WorkspaceWatcherService.cs` and `ThumbnailCacheService.cs`.
 - **Desktop Batch Operations & Virtualization**: Extended `SearchCopyPage.xaml` with multi-select ribbon and virtualization.
 - **Web Real-Time SSE Feed & Video Range Streaming**: Built `SseService.js` and HTTP 206 partial content range requests in `DeliverableService.js`.
@@ -856,6 +891,7 @@
 ---
 
 ## v4.1.0 — 2026-08-19 (Desktop Feature Parity & Studio Overhaul)
+
 - **Desktop Copywriting Studio**: Built `CopywritingPage.xaml` and `CopywritingDesktopService.cs`.
 - **Contextual Discussions & Comments Engine**: Built `ProjectCommentService.cs` for `_comments.jsonl`.
 - **ClickUp 3.0-Style 2-Column Task Workspace**: Upgraded `SearchCopyPage.xaml`.
@@ -863,24 +899,28 @@
 ---
 
 ## v4.0.0 — 2026-08-18 (Centralized Vault Hierarchy & Web Management Portal)
+
 - Unified Year-first hierarchy (`Creative-Team/[YYYY]/[YYYYMM_Month]/[ProjectFolder]`).
 - Built Svelte 5 + Node.js Web Management Portal (`SS-CAM.Web`).
 
 ---
 
 ### Added & Refined Modules
+
 - **Metamorphosis Theme Surface Opacity (`MetamorphosisTheme.xaml`)**: Replaced all semi-transparent white card background brushes (`#26FFFFFF`, `#14FFFFFF`) with solid opaque deep space navy surface colors (`#0F1A3A`, `#142045`), eliminating background text bleed-through on overlay drawers (`DayDetailPanel`) and cards.
 - **Input & Control Surfaces**: Replaced transparent control fills with solid navy control fills (`#0C1633` input background, `#14224B` control fill) and updated border stroke tokens (`#1E2E5C`, `#243977`).
 - **Web Portal Alignment (`fluent2-tokens.css`)**: Set `--glass-bg` to `#0F1A3A` for `[data-theme="metamorphosis"]`.
 - **Automated Quality Attestation**: Source Guardian audit 100% PASS (9/9 checks).
 
 ### Verification
+
 - Release Build: PASS (`src/SS-CAM/bin/Release/SS-CAM.exe` / `dist/SS-CAM-v3.6.1.exe`).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
 
 ---
 
 ## v3.6.0 — 2026-08-17 (Fluent UI Web & Data Visualization Release)
+
 - **Fluent UI Web Integration**: Incorporated official Microsoft Fluent UI Web token custom properties (`--colorNeutralBackground1`, `--colorBrandBackground`) and `sscam-fluentui-web` skill guidelines.
 - **3-Tier F-Pattern Dashboard**: Built 5-KPI Strategic Summary Bar, Production Stage Pipeline Velocity Flow, and Designer Capacity Heatmap in `DashboardView.js`.
 - **Copywriting AI Presets**: Built TikTok Hooks, Facebook Problem/Solution Angles, and Product Packaging Benefit Claims presets in `CopyStudioView.js`.
@@ -890,6 +930,7 @@
 ## v3.5.0 — 2026-08-17 (In-App Project Brief Editor, Workspace Designer Scoping & Repository Hygiene)
 
 ### Added & Refined Modules
+
 - **In-App Project Brief Markdown Editor (`SearchCopyPage`)**: Live editing and saving of project `README.md` and YAML frontmatter directly inside the Search & Copy catalog pane with Markdown formatting toolbar (Headings, Bold, Italic, Code, List) and real-time feedback via `NotificationService`.
 - **Workspace Designer Scoping**: Dynamic discovery and dropdown filtering across designer workspaces (`0001D`, `0002S`, etc.) on local and Synology NAS shares.
 - **Minimal Brand Assets & Swatch Inspector**: Minimal 2-column layout with tabbed Primary/Secondary/Neutrals swatches and live HEX/RGB/CMYK/Pantone inspector.
@@ -897,6 +938,7 @@
 - **Automated Source Guardian Validation**: 100% PASS on UTF-8 BOM, Fluent 2 standards, thread and data safety.
 
 ### Verification
+
 - Release Build: PASS (`src/SS-CAM/bin/Release/SS-CAM.exe` / `dist/SS-CAM-v3.5.0.exe`).
 - Smoke Test: PASS (`tests/SmokeTest.ps1` — 100% clean instantiation).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
@@ -904,6 +946,7 @@
 ---
 
 ## v3.5.0-linux — 2026-08-14 (Fedora Linux Native Desktop Port)
+
 - **Linux Platform**: Native Avalonia UI (.NET 8) desktop app scaffolded (`src/SS-CAM.Linux/`).
 - **Target OS & NAS**: Fedora Linux (GNOME / Wayland) & Synology Drive Client (`~/SynologyDrive/`).
 - **Windows Safety**: Existing Windows WPF application (`src/SS-CAM/`) remained 100% untouched.
@@ -915,12 +958,14 @@
 ## v3.4.0 — 2026-08-13 (Starter Canvas Engine, Category Filtering & Calendar Quick Status Actions)
 
 ### Added & Refined Modules
+
 - **Starter Canvas Engine**: Integrated `.af`, `.psd`, and `.ai` starter canvas format generation with default Affinity Designer format support (`.af`) and 2026 industry platform specs.
 - **Project Creator Presets & Dynamic Category Filtering**: Added Rollup Bunting (80x200cm), Trifold A4 Brochure, A5 Leaflet, and Web Design category presets. Dynamically filters target platform options and highlights visual cards based on category.
 - **Search & Copy Category Filter**: Added category filter dropdown in `SearchCopyPage` for dynamic asset and copy snippet filtering.
 - **Creative Calendar Quick Status Actions**: Integrated direct project status actions (`In Progress`, `Review`, `Done`) inside `CalendarPage.xaml.cs` day detail view overlay with automatic frontmatter synchronization.
 
 ### Verification
+
 - Release Build: PASS (`src/SS-CAM/bin/Release/SS-CAM.exe`).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
 
@@ -929,11 +974,13 @@
 ## v3.3.0 — 2026-08-13 (Fluent 2 Splash, Notification & Clipboard Services Release)
 
 ### Added & Refined Modules
+
 - **Fluent 2 Startup Splash Window (`SplashWindow`)**: Branded Fluent 2 startup splash screen with smooth progress initialization, animated branding visual, and background service loading.
 - **Centralized Notification & Clipboard Services (`NotificationService`, `ClipboardService`)**: Toast notification dispatcher for background tasks, copy events, and file system warnings alongside safe non-blocking clipboard helpers.
 - **Task Manager Queue & Parser Upgrades**: Expanded drawer sorting options, date sorting refinements, and frontmatter parser enhancements for Markdown rendering.
 
 ### Verification
+
 - Release Build: PASS (`src/SS-CAM/bin/Release/SS-CAM.exe`).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
 
@@ -942,11 +989,13 @@
 ## v3.2.0 — 2026-08-12 (Big Calendar & Task Manager Upgrade Release)
 
 ### Added & Refined Modules
+
 - **Big Calendar Module (`CalendarPage`)**: Native 7×6 monthly calendar timetable displaying project creation start dates and campaign deadlines as color-coded chips, Friday Solat indicators, interactive Day Detail Overlay inspector, and month navigation.
 - **Task Manager Queue Management**: `created:` frontmatter tag support, auto-inferring legacy project creation dates (`InferCreatedDate`), queue age display (`📅 14d in queue`), FIFO Queue Order sorting (`Oldest First`), and `Created Date` drawer editor.
 - **SSNAS Synology Drive Setup Guide**: Created official setup guide (`docs/SSNAS-SETUP.md`).
 
 ### Verification
+
 - Release Build: PASS (`src/SS-CAM/bin/Release/SS-CAM.exe`).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
 
@@ -955,10 +1004,12 @@
 ## v3.1.2 — 2026-08-12 (Multi-User NAS Isolation Release)
 
 ### Multi-User NAS Scoping & Isolation
+
 - **User Scoped Config Files**: Personal configs (`user_profile_{username}.json`, `theme_config_{username}.json`, `Notes_{username}/`) are automatically isolated per designer on shared NAS folders.
 - **Shared Team Resources**: Category presets (`category_presets.json`) and Team Board announcements (`_Team\team-notes.json`) remain team-wide shared.
 
 ### Verification
+
 - Release Build: PASS (`src/SS-CAM/bin/Release/SS-CAM.exe`).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
 - GitHub Release: PUBLISHED (v3.1.2 set as Latest on SuamiSihat/ss_cam).
@@ -968,10 +1019,12 @@
 ## v3.1.1 — 2026-08-12 (NAS Settings & Preferences Auto-Sync Release)
 
 ### Native NAS Settings Auto-Sync
+
 - **`NasConfigSyncService`**: Implemented timestamp-aware auto-sync for `user_profile.json`, `theme_config.json`, `category_presets.json`, and `Notes/` directory to `<WorkspaceRoot>\_Team\_Config\`.
 - **Multi-PC Seamless Sync**: Setting changes on PC 1 automatically update NAS config files; PC 2 auto-detects and loads newer NAS config on launch.
 
 ### Verification
+
 - Release Build: PASS (`src/SS-CAM/bin/Release/SS-CAM.exe`).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
 - GitHub Release: PUBLISHED (v3.1.1 set as Latest on SuamiSihat/ss_cam).
@@ -981,11 +1034,13 @@
 ## v3.1.0 — 2026-08-12 (QR Code Studio & Audio Visualizer Release)
 
 ### QR Code Generator & Studio Visualizer Upgrades
+
 - **QR Code Studio Module**: Added `QrCodePage.xaml` / `QrCodeEncoderService.cs` supporting URL, Plain Text, Wi-Fi, and VCard payload types with brand palette customization, high-res PNG file export, and Clipboard copying.
 - **Sound Engineer Studio Visualizer**: Upgraded `VisualizerService` with floating Mars symbols (♂), SuamiSihat crest particle physics, peak-reactive motion, and watermark removal.
 - **Radio & Audio Studio**: Enhanced `RadioPage` layout, spectrum feedback, and station controls.
 
 ### Verification
+
 - Release Build: PASS (`src/SS-CAM/bin/Release/SS-CAM.exe`).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
 - GitHub Release: PUBLISHED (v3.1.0 set as Latest on SuamiSihat/ss_cam).
@@ -996,11 +1051,13 @@
 ## v3.0.1 — 2026-08-12 (Art Director Full QA Run)
 
 ### Sidebar Navigation & Footer Collapse
+
 - **Categorized Navigation**: Grouped all 11 application modules into 5 logical categories (`OVERVIEW`, `CREATION & ASSETS`, `PRODUCTIVITY`, `WELLBEING & FAITH`, `SYSTEM`) using `ui:NavigationViewItemHeader` and `ui:NavigationViewItemSeparator`.
 - **Adaptive Footer Collapse**: `OnNavigationPaneOpened` / `OnNavigationPaneClosed` handlers hide status text and switch bottom player to compact mode when sidebar collapses.
 - **Footer Icon Centering**: Status icons correctly centered in compact collapsed mode.
 
 ### Verification
+
 - Release Build: PASS (`src/SS-CAM/bin/Release/SS-CAM.exe`).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
 - GitHub Release: PUBLISHED (v3.0.1 set as Latest on SuamiSihat/ss_cam).
@@ -1011,12 +1068,14 @@
 ## v3.0.0 — 2026-08-12 (Major Release)
 
 ### Major UI/UX & Settings Module Overhaul
+
 - **Settings & Profile Revamp**: Rebuilt `SettingsPage.xaml` with Fluent 2 two-column grid, section icon badges, interactive theme swatches (Falconia, Metamorphosis, Catppuccin, Rosé Pine, Nord), workstation payload installer, category preset management, and reset action rows.
 - **Theme Engine Expansion**: Added 3 new switchable theme profiles (`Catppuccin`, `RosePine`, `Nord`) to `SettingsPage.xaml.cs` and `ThemeService.cs`.
 - **Navigation Safety**: Relocated Settings item to `MenuItems` in `MainWindow.xaml` to eliminate hit-test collisions.
 - **100% Clean Source Guardian & Encoding**: Fixed non-ASCII characters with XML entities, restored UTF-8 BOM, and verified zero undefined `DynamicResource` tokens.
 
 ### Verification
+
 - Release Build: PASS (`SS-CAM-v3.0.0.exe`).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
 
@@ -1025,27 +1084,32 @@
 ## v2.6.3 — 2026-08-11 (Art-Director & Architecture Audit Remediation)
 
 ### Phase P0: Git Hygiene & Core Logic Fixes
+
 - **Binary Untracking**: Un-tracked ~50 MB of binary files (`src/SS-CAM/packages/`, `SS-CAM-v2.6.1.exe`, `nuget.exe`) from Git tracking.
 - **Regex Capture Fix**: Updated `ProjectPattern` in `WorkspaceScanner.cs` to `^(\d{6})_([A-Z0-9]+)(?:_([A-Z0-9_-]+))?` to parse job and brand codes.
 - **Hardcoded Path Clean**: Removed machine-specific `e:\Dev\...` path fallback from `PayloadInstallerService.cs`.
 
 ### Phase P1: Async Network & Timer Leak Prevention
+
 - **Async Network Fetch**: Replaced synchronous `HttpWebRequest` in `PrayerTimeService.cs` with static `HttpClient` singleton and `FetchTodayAsync`.
 - **UI Responsiveness**: Made `WaktuSolatPage.xaml.cs` fetch asynchronous to eliminate 2–9s UI thread freezes.
 - **Timer Leak Fixes**: Added `Unloaded` handlers to stop `DispatcherTimer` instances on `WaktuSolatPage`, `WellbeingPage`, and `DesignTokensPage`.
 - **Dark Mode Repair**: Fixed hardcoded hex avatar border colors in `SettingsPage.xaml` using `{DynamicResource FluentBrand80}` and `{DynamicResource FluentBrand70}`.
 
 ### Phase P2: UI/UX Token & Icon Standardization
+
 - **Dynamic Surface Tokens**: Converted hardcoded white backgrounds in `SearchCopyPage.xaml`, `QuickNotePage.xaml`, `TaskManagerPage.xaml`, and `ProjectCreatorPage.xaml` to `{DynamicResource TextControlBackground}` and card tokens.
 - **Icon Vector Migration**: Replaced raw text emojis in `ProjectCreatorPage.xaml` with vector Segoe Fluent icons (`&#xE713;`, `&#xE8B7;`, `&#xE8EA;`, `&#xE8B2;`, `&#xE749;`).
 - **Control Template Target**: Fixed `ControlTemplate TargetType="ui:Button"` in `DesignTokensPage.xaml`.
 
 ### Phase P3: Synology NAS & Diagnostics Safety
+
 - **NAS File Lock Resilience**: Added 3-attempt exponential backoff retry loop for `IOException` in `TeamBoardService.Save`.
 - **MAX_PATH Protection**: Added 240-character path validation to `ProjectGeneratorService.cs`.
 - **Diagnostic Logging**: Replaced all silent `catch {}` blocks across `PrayerTimeService`, `ThemeService`, `ProjectCreatorPage`, `SearchCopyPage`, and `MainWindow` with `Debug.WriteLine` logging.
 
 ### Verification
+
 - Release Build: PASS (`src/SS-CAM/bin/Release/SS-CAM.exe`).
 - Source Guardian: PASS with 9/9 passed, 0 warnings, 0 fails (`verify-sscam.ps1`).
 
@@ -1054,6 +1118,7 @@
 ## v2.6.1 — 2026-08-11 (Header Title Rebranding & Persistent SS Blue Wavelength Player)
 
 ### Key Updates & Fixes
+
 - **Header Title Rebranding**: Rebranded app title to `SS Creative Assets Management` with a 100% full-width `#022057` SuamiSihat deep blue TitleBar strip, transparent window caption buttons (`— 🗖 ✕`), and native window dragging (`DragMove`).
 - **Persistent SS Blue Bottom Radio Player Bar**:
   - Full SuamiSihat deep blue background (`#022057`) with `#043388` accent border.
@@ -1065,6 +1130,7 @@
 - **Sidebar Cleanup**: Removed redundant radio status text from left navigation sidebar footer (`PaneFooter`).
 
 ### Verification
+
 - Release Build: PASS (`bin\Release\SS-CAM.exe`).
 - Source Guardian: PASS with 0 FAIL findings (`verify-sscam.ps1`).
 - Package Executables: `SS-CAM-v2.6.1.exe` and `dist\SS-CAM-v2.6.1.exe` verified.
@@ -1072,20 +1138,24 @@
 ---
 
 ### Phase 1 — UI/UX Modernization
+
 - **Dashboard Enhancements**: Updated metric cards with relative time calculations ("Today", "2 days ago") and replaced GroupBox containers with elevated `<ui:Card>` components.
 - **Project Creator Polish**: Replaced all GroupBox containers with Fluent 2 `<ui:Card>` wrappers and migrated text emojis to `ui:SymbolIcon` vector icons.
 
 ### Phase 2 — High-Impact Workflow Automation
+
 - **Deep App Bridge**: Added dynamic canvas launcher button ("Open in Photoshop / Illustrator / Affinity") to Project Creator success UI.
 - **One-Click Project Finalizer**: Added "Finalize & Archive..." feature to Search & Copy inspector. Automatically locates and compresses `04_Production`/`_Deliverables` and `01_Artwork_Design`/`_Raw_Assets` into standardized ZIP archives.
 - **Dependencies**: Added `System.IO.Compression` and `System.IO.Compression.FileSystem` assembly references.
 
 ### Phase 3 — Visual Tools & Assets Management
+
 - **Global Brand Kit Quick-Tray**: Added `🎨 Brand Kit` title bar button and popover tray with 1-click HEX swatch clipboard copying accessible anywhere in the app.
 - **Visual Asset Lightbox**: Upgraded image previewer in Search & Copy to a dark Fluent 2 Lightbox modal (`#0B1120`) displaying pixel dimensions, file size, format badges, and action controls.
 - **Visual Version Control Timeline View**: Added `Timeline` mode tab to Search & Copy inspector. Scans project directory and renders chronological revision timeline with color-coded status badges (`Revision`, `Production`, `Master Canvas`, `Asset`).
 
 ### Verification
+
 - Debug Build: PASS (`SS-CAM -> bin\Debug\SS-CAM.exe`).
 - Source Guardian: PASS with zero FAIL findings (`verify-sscam.ps1`).
 - Package Executable: [`SS-CAM-v2.6.2-Phase3.exe`](file:///e:/Dev/Projects/SS-Brand-Assets/SS-CAM-v2.6.2-Phase3.exe) generated and verified.
@@ -1164,5 +1234,3 @@
   - Fixed empty top/bottom whitespace by normalizing Fluent 2 card padding and wave container height.
 - **Dynamic 30-Day Heatmap**:
   - Standardized day coordinate math, day labels (`Mon`, `Wed`, `Fri`), and high-contrast theme-aware 0-minute day tiles.
-
-

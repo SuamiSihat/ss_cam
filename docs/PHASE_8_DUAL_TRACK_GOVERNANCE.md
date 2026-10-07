@@ -36,7 +36,8 @@ graph TD
     Q2 -- NO --> Reject[Reject / Refactor into Generic Parameter]
 ```
 
-### Governance Rules:
+### Governance Rules
+
 1. **Default to Core:** If a feature improves performance, UI accessibility, diffing precision, or metadata extraction, it MUST be built in Core. The internal team directly benefits from commercial feature development, and vice versa.
 2. **Never Fork for Branding:** Under no circumstances should a permanent Git branch or code fork be created to service a white-label client. Any styling or metadata differences must be expressed in `TenantConfig.json`.
 3. **No Hardcoded Tenant Endpoints:** Core C# code must always query `TenantConfigService.Current` for URLs, falling back to neutral placeholders (`https://corporate.myds.me` or `https://getcam.dev`).
@@ -84,6 +85,7 @@ Because AI coding assistants can inadvertently re-introduce hardcoded company st
 ## 5. Automated Governance Gatekeeper (`QA/verify-dual-track.ps1`)
 
 To automate dual-track compliance in local environments and CI/CD pipelines, we provide the master gatekeeper script [`QA/verify-dual-track.ps1`](file:///d:/HaNa_Innovation/ss_cam/QA/verify-dual-track.ps1):
+
 1. **Runs Source Guardian:** Verifies UTF-8 BOM, Fluent 2 control standards, silent catch blocks, and UI thread safety.
 2. **Runs Documentation Leakage Scanner:** Verifies zero internal hostnames or credentials in public wiki docs.
 3. **Validates Release Build:** Verifies that the solution compiles cleanly in Release configuration under C# 5.0 constraints.

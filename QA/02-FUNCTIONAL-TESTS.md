@@ -1,9 +1,11 @@
 # 02 — Functional Test Suite
+
 **SS-CAM v4.9.0** | Last updated: 2026-09-11
 
 ---
 
 ## Testing Environment
+
 - **Workspace:** `e:\Dev\Projects\SS-Brand-Assets\QA\TestWorkspace`
 - **Network:** Connected
 - **OS:** Windows Desktop (PowerShell automation testbed)
@@ -51,6 +53,7 @@
 - **Blocked**: 1
 
 ### Defect Breakdown
+
 - **P0 issues**: 0
 - **P1 issues**: 0
 - **P2 issues**: 3 (Missing network pre-flight checks, Clipboard STA issues)

@@ -37,6 +37,7 @@ public interface IAppPlugin
 ## 3. Dynamic Navigation Binding
 
 When `MainWindow` starts, it interrogates `PluginRegistry`:
+
 1. Inspects `TenantConfig.plugins`.
 2. For each enabled plugin, instantiates a `NavigationViewItem`.
 3. Binds the plugin's navigation trigger to the shell's central frame navigator.

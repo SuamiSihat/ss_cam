@@ -10,6 +10,7 @@ Official workstation setup guide for connecting local Windows workstations to Su
 SSNAS is the central network-attached storage system for the SuamiSihat design team. Through **Synology Drive Client**, designers maintain a continuous two-way local folder synchronization between the NAS server share (`/Creative-Team`) and their local workstation drive (`E:\SynologyDrive\Creative-Team`).
 
 SS-CAM integrates natively with this synchronized folder hierarchy for:
+
 - Standardized project folder creation (`YYYYMM_####X_BRAND_ProjectName`)
 - Team-wide shared category presets (`_Team\_Config\category_presets.json`)
 - Multi-user configuration isolation (`_Team\_Config\profile_{username}.json`)
@@ -20,6 +21,7 @@ SS-CAM integrates natively with this synchronized folder hierarchy for:
 ## 2. Prerequisites
 
 Before configuring Synology Drive Client:
+
 1. **Windows 10 / 11 Workstation** connected to the SuamiSihat local network or VPN.
 2. **Synology Drive Client** desktop app installed.
 3. Dedicated storage drive or partition formatted with NTFS (recommended drive letter: `E:\`).
@@ -32,11 +34,13 @@ Before configuring Synology Drive Client:
 Follow these steps to establish the official folder sync task:
 
 ### Step 1: Create New Sync Task
+
 1. Launch **Synology Drive Client** on your workstation.
 2. Select **Sync Task** and click **Create**.
 3. Authenticate with your SSNAS server address and credentials.
 
 ### Step 2: Select Server and Local Folders
+
 In the **"Select the folders that you want to sync between your Synology NAS and computer"** screen:
 
 | Component | Target Path | Notes |
@@ -49,7 +53,9 @@ In the **"Select the folders that you want to sync between your Synology NAS and
 > Always maintain the exact folder name `Creative-Team` on both NAS and local computer to ensure relative path compatibility across all designer workstations.
 
 ### Step 3: Advanced Sync Settings
+
 Click **Advanced** in the bottom-left corner of the wizard to verify:
+
 - **Sync Mode**: Two-way synchronization (Default).
 - **File Filter**: Ensure active working file types (`.afdesign`, `.psd`, `.ai`, `.pdf`, `.json`, `.md`) are allowed.
 - **On-Demand Sync**: Disabled (recommended for active design workstations to ensure complete local offline availability).
@@ -91,13 +97,17 @@ To connect SS-CAM to your Synology Drive workspace:
 1. Launch **SS-CAM**.
 2. Navigate to **Settings & Profile** from the sidebar navigation.
 3. Under **Workspace Root**, enter or browse to:
+
    ```text
    E:\SynologyDrive\Creative-Team
    ```
+
 4. Under **Synology NAS Path**, configure the mapped network path or DDNS address:
+
    ```text
    \\SSNAS\Creative-Team
    ```
+
 5. Click **Save Settings**.
 
 ---

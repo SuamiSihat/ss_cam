@@ -11,9 +11,9 @@
 
 > [!CAUTION]
 > **CRITICAL LEGAL NOTICE BEFORE EXTERNAL OR PUBLIC DISTRIBUTION**  
-> Several commercial typography libraries and proprietary fonts are currently bundled inside the repository payload (`payload/Fonts/`). 
+> Several commercial typography libraries and proprietary fonts are currently bundled inside the repository payload (`payload/Fonts/`).
 > Under the End User License Agreements (EULAs) of **Font Awesome Pro**, **Linotype/Monotype (Helvetica Neue)**, **Microsoft (Calibri)**, **Envato Elements (Banaue Extended)**, and **Miller Type Foundry (TacticSans)**, **redistributing raw font files in a public repository, open-source project, or un-gated third-party handover is strictly prohibited.**
-> 
+>
 > Before publishing open-core binaries or making the repository accessible to external third parties, all items marked **ACTION REQUIRED** below must be removed from the public repository and transitioned to private internal asset distribution or replaced with open-source alternatives.
 
 ---
@@ -76,11 +76,13 @@
 ## 2. Redistribution Recommendations for Dual-Track Architecture
 
 ### Open-Core / Generic Commercial Edition (`src/SS-CAM/` & Generic Releases)
+
 1. **Fonts**: Bundle **only** OFL / Apache 2.0 licensed fonts (Inter, Poppins, Montserrat, Roboto, Trueno, Libre Barcode). Completely remove Font Awesome Pro, Helvetica Neue, Calibri, TacticSans, and Banaue from the generic open-core build.
 2. **Icons**: Use Fluent 2 System Icons (`Wpf.Ui.Common.SymbolRegular`) and open-source SVG sets.
 3. **Logos & Jingles**: Replace SuamiSihat proprietary logos (`SS`, `SSC`, `SSH`) and jingles with generic white-label assets or load them dynamically via `TenantConfig.json`.
 
 ### SuamiSihat Internal Production Edition
+
 1. Maintain commercial fonts (Font Awesome Pro, Helvetica Neue, TacticSans) in the private Synology NAS asset share (`\\SSNAS\Creative-Team\_Assets\Fonts\`).
 2. Install licensed fonts directly to designers' local Windows system font directories (`C:\Windows\Fonts`) rather than distributing raw licensed `.otf`/`.ttf` files through Git.
 

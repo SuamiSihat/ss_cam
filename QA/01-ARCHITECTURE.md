@@ -1,4 +1,5 @@
 # 01 — Architecture Review & Governance
+
 **SS-CAM v4.9.0** | Last updated: 2026-09-11  
 **Governance Agent**: `wpf-architecture-governance`
 
@@ -6,7 +7,7 @@
 
 ## 1. Project Structure
 
-```
+```text
 SS-Brand-Assets/
 ├── src/
 │   ├── SS-CAM/                         # Windows Desktop Application (WPF / .NET 4.8 / Fluent 2)

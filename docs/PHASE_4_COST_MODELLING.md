@@ -9,11 +9,12 @@
 
 ## 1. Executive Summary & Cost Philosophy
 
-SS-CAM’s core technical architecture—specifically its **hybrid offline-first, local NAS/Docker web portal, and client-side WPF/Android runtime**—provides a decisive structural cost advantage compared to conventional cloud-native SaaS applications. 
+SS-CAM’s core technical architecture—specifically its **hybrid offline-first, local NAS/Docker web portal, and client-side WPF/Android runtime**—provides a decisive structural cost advantage compared to conventional cloud-native SaaS applications.
 
 Because storage, media processing, and file delivery are designed to run on customer-owned infrastructure (such as Synology NAS or on-premise local servers), **our marginal hosting and storage costs per customer approach near-zero for the primary self-hosted distribution tier**.
 
 This model provides:
+
 1. **Gross Margins exceeding 85%–95%** on self-hosted licenses.
 2. **Minimal cash burn** during early go-to-market.
 3. **Resilience against cloud egress cost spikes**, as massive creative assets (4K raw video, multi-gigabyte PSD/AI project archives) never touch our servers.
@@ -42,6 +43,7 @@ These represent the mandatory annual expenses required to maintain, sign, secure
 We evaluate two distinct commercial deployment modes:
 
 ### Model A: Self-Hosted / On-Premise License (Native Model)
+
 *The customer installs SS-CAM Desktop, connects to their own Synology NAS or local Linux Docker daemon.*
 
 | Marginal Cost Item | Frequency | Cost per Tenant (USD) | Cost per Tenant (MYR) | Notes |
@@ -58,6 +60,7 @@ We evaluate two distinct commercial deployment modes:
 ---
 
 ### Model B: Managed Cloud Hosted Edition (Turnkey SaaS)
+
 *For design teams without internal NAS or network IT capabilities. HQ manages the Web Portal and asset vault.*
 
 | Marginal Cost Item | Frequency | Cost per Tenant (USD) | Cost per Tenant (MYR) | Notes |
@@ -90,7 +93,8 @@ Support burden is the single highest operational risk in multi-platform desktop/
 └────────────────────────────┴──────────────────────────────┴───────────────────────────────────────────┘
 ```
 
-### Key Support Operational Guardrails:
+### Key Support Operational Guardrails
+
 1. **Self-Diagnosis Tooling:** Build an automated pre-flight diagnostic check into the desktop app (testing NAS SMB access, Docker port 3000 connectivity, network latency, and write permissions). Over 70% of support requests in on-premise software stem from LAN configuration errors; an automated diagnostic tool drastically suppresses support costs.
 2. **Standardized Docker Compose Templates:** Provide official, immutable `.yml` configurations for Synology Container Manager, TrueNAS, and Ubuntu Docker to avoid ad-hoc troubleshooting.
 3. **No Custom Code Forks:** White-label clients must operate strictly via `TenantConfig.json` files and asset replacement. Under no circumstances should custom source code forks be supported, as maintaining parallel branches would triple QA overhead.
@@ -105,6 +109,7 @@ $$\text{Price Floor} = \text{Marginal Support Cost} + \left( \frac{\text{Fixed A
 Assuming a conservative launch volume of **10 initial tenants**:
 
 ### Scenario A: Self-Hosted Business Edition (10 Tenants)
+
 - Fixed Cost Allocation: $\$1,289 / 10 = \$128.90$ / tenant / year
 - Variable Marginal Cost: $\$98.40$ / tenant / year
 - Total Cost of Delivery: **$227.30 / year (RM 1,045 / year)**
@@ -112,6 +117,7 @@ Assuming a conservative launch volume of **10 initial tenants**:
 - **Recommended Price Floor (60%+ Margin):** **$49/month or $490/year (approx RM 2,250/year)**.
 
 ### Scenario B: Enterprise White-Label Partner (Franchise / Agency)
+
 - Dedicated Setup & Token Engineering: ~8 hours one-time (RM 600 cost)
 - Annual Dedicated Support & Updates: ~$600 / year (RM 2,760 / year)
 - Fixed Cost Contribution: ~$200 / year

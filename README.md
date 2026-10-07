@@ -159,7 +159,6 @@ Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Br
   * Windows Desktop portable binary `dist/SS-CAM-v4.9.0.exe` (5.99 MB).
   * Android production app bundle `app-release.aab` (6.03 MB, RSA 2048 cryptographically verified) and standalone release `app-release.apk` (3.39 MB).
 
-
 * **📋 Deliverables & Subtask Management Engine (`README.md` Frontmatter)**:
   * Unified deliverables schema structuring actual artwork outputs directly in `subtasks:` YAML frontmatter (ID, Name, Type, Weight, Status, Specs, Designer).
   * Subtask weight points dynamically aggregate to compute total project complexity points and calculate progress completion ratios across the studio.

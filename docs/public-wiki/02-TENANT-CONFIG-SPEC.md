@@ -84,6 +84,7 @@ When CAM Studio initializes, it resolves tenant configuration in the following o
 ## 4. Deploying Custom Brand Assets
 
 Place your custom vector SVG logomark in the same folder as `tenant_config.json`:
+
 - `logo_light.svg` (displayed on dark sidebar)
 - `logo_dark.svg` (displayed on light canvas)
 - `favicon.ico` (workstation icon)

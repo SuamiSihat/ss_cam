@@ -24,7 +24,7 @@ Technical reference for maintainers and contributors of **SS-CAM — SuamiSihat 
 
 SS-CAM v2.0+ is a **native C# WPF application** targeting .NET Framework 4.8, distributed as a single self-contained executable. All dependencies are embedded at compile time using **Fody/Costura** assembly weaving.
 
-```
+```text
 Application Stack
 ─────────────────────────────────────────────────────
 UI Layer          WPF + WPF-UI (Fluent Design System)
@@ -68,7 +68,7 @@ Dependency Mgmt   NuGet (packages.config)
 
 ## 2. Repository Structure
 
-```
+```text
 SS-Brand-Assets/
 ├── src/
 │   └── SS-CAM/                        C# WPF application source
@@ -118,6 +118,7 @@ SS-Brand-Assets/
 | **GitHub CLI (`gh`)** | Any | For publishing GitHub releases with assets |
 
 > **NuGet Restore**: Before building for the first time, restore packages by opening the solution in Visual Studio (it restores automatically), or run:
+>
 > ```powershell
 > .\src\nuget.exe restore .\src\SS-CAM\SS-CAM.csproj -PackagesDirectory .\src\SS-CAM\packages
 > ```
@@ -140,7 +141,7 @@ powershell -ExecutionPolicy Bypass -File .\installer\Build-Installer.ps1 -Versio
 
 **Build output:**
 
-```
+```text
 dist\SS-CAM-v2.5.0.exe   (~5 MB, single-file, all dependencies embedded)
 ```
 
@@ -154,7 +155,7 @@ powershell -ExecutionPolicy Bypass -File .\installer\Build-Installer.ps1 -Versio
 
 **Build output:**
 
-```
+```text
 dist\SS-CAM-v1.9.10.exe   (~48 MB, PowerShell wizard + payload ZIP)
 ```
 
@@ -175,7 +176,7 @@ The app reads user settings from `%LOCALAPPDATA%\SuamiSihat\SS-CAM\` and workspa
 
 To reset to a clean state during development, delete:
 
-```
+```text
 %LOCALAPPDATA%\SuamiSihat\SS-CAM\
 ```
 
@@ -382,4 +383,4 @@ Use **Segoe Fluent Icons** exclusively for UI chrome icons. Set `FontFamily="Seg
 
 ---
 
-*For user-facing documentation, see [README.md](./README.md). For the full version history, see [CHANGELOG.md](./CHANGELOG.md).*
+_For user-facing documentation, see [README.md](./README.md). For the full version history, see [CHANGELOG.md](./CHANGELOG.md)._
