@@ -32,7 +32,7 @@ Distribution (download hub), documentation (public wiki), and dual-track governa
 
 ## 1. Current State Assessment (carried forward from prior technical audit)
 
-These findings directly gate Phase 0 and are not repeated in full here — see the companion report `antigravity-drift-fix-report.md` for evidence and line-level detail.
+These findings directly gate Phase 0 and are not repeated in full here — see the companion report [`docs/antigravity-drift-fix-report.md`](file:///d:/HaNa_Innovation/ss_cam/docs/antigravity-drift-fix-report.md) for evidence and line-level detail.
 
 - **No single source of truth for tokens.** WPF theme XAML is hand-maintained, disconnected from `SS-Design-System`'s token export.
 - **No single source of truth for status/terminology.** Web, WPF, and Android each hand-maintain their own status-string sets; Android code shows active, unresolved drift (multiple string variants checked defensively in the same conditional).
@@ -380,7 +380,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 
 | Phase | Focus Area | Deliverables & Artifacts | Status |
 |---|---|---|---|
-| **0 — Foundation Audit** | Coupling Inventory & Baseline | [`SUAMISIHAT-COUPLING-INVENTORY.md`](file:///d:/HaNa_Innovation/ss_cam/SUAMISIHAT-COUPLING-INVENTORY.md), `antigravity-drift-fix-report.md` | **COMPLETE** |
+| **0 — Foundation Audit** | Coupling Inventory & Baseline | [`docs/SUAMISIHAT-COUPLING-INVENTORY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/SUAMISIHAT-COUPLING-INVENTORY.md), [`docs/antigravity-drift-fix-report.md`](file:///d:/HaNa_Innovation/ss_cam/docs/antigravity-drift-fix-report.md) | **COMPLETE** |
 | **1 — Naming & Identity** | Commercial Identity Architecture | CAM Studio / CreativeOps Core branding, zero-leakage naming | **COMPLETE** |
 | **2 — Brand Guide** | Visual Token Separation | Design tokens, Fluent 2 dark glassmorphic system | **COMPLETE** |
 | **3 / 3a — Architecture Split** | Plugin Engine & TenantConfig | `IAppPlugin.cs`, `TenantConfigService.cs`, `PluginRegistry.cs`, `SettingsPage.xaml` toggles | **COMPLETE** |
@@ -398,8 +398,8 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 ---
 
 ## Appendix — Reference Documents
-- [`antigravity-drift-fix-report.md`](file:///d:/HaNa_Innovation/ss_cam/antigravity-drift-fix-report.md) — Technical audit: token drift, status-enum drift, enforcement gaps, source evidence.
-- [`SUAMISIHAT-COUPLING-INVENTORY.md`](file:///d:/HaNa_Innovation/ss_cam/SUAMISIHAT-COUPLING-INVENTORY.md) — Complete inventory of network paths, subsidiary codes, brand identity, and module couplings.
+- [`docs/antigravity-drift-fix-report.md`](file:///d:/HaNa_Innovation/ss_cam/docs/antigravity-drift-fix-report.md) — Technical audit: token drift, status-enum drift, enforcement gaps, source evidence.
+- [`docs/SUAMISIHAT-COUPLING-INVENTORY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/SUAMISIHAT-COUPLING-INVENTORY.md) — Complete inventory of network paths, subsidiary codes, brand identity, and module couplings.
 - [`docs/PHASE_4_COST_MODELLING.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_4_COST_MODELLING.md) — Operational cost model, infrastructure budgets, and unit economics.
 - [`docs/PHASE_5_REVENUE_GTM.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_5_REVENUE_GTM.md) — Pricing architecture, go-to-market wedges, and 3-year revenue projections.
 - [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md) — Edge CDN, multi-platform artifact delivery matrix, and licensing checkout architecture.
