@@ -332,12 +332,37 @@
 
 <style>
   .client-portal-shell {
-    min-height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
     background: #090D16;
     color: #F8FAFC;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     display: flex;
     flex-direction: column;
+  }
+
+  .client-portal-shell::-webkit-scrollbar {
+    width: 8px;
+  }
+  .client-portal-shell::-webkit-scrollbar-track {
+    background: #090D16;
+  }
+  .client-portal-shell::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+  }
+  .client-portal-shell::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 189, 248, 0.5);
   }
 
   /* Header */
@@ -383,7 +408,7 @@
     max-width: 1200px;
     width: 100%;
     margin: 0 auto;
-    padding: 28px 24px;
+    padding: 28px 24px 80px;
     display: flex;
     flex-direction: column;
     gap: 24px;
