@@ -1,5 +1,28 @@
 # SS-CAM FIX LOG
 
+## Feature: Deliverables & Production Vault UX / Art Direction Overhaul (`DeliverablesView.svelte`) — 2026-10-08
+
+- **Production Vault Telemetry Ribbon (`DeliverablesView.svelte`)**:
+  - Replaced basic KPI bar with an executive **Production Vault Telemetry Ribbon**:
+    - Live master deliverables count with total storage footprint badge (e.g. `24 Masters · 1.42 GB`).
+    - Status pills with color-coded counts: Pending (`#F59E0B`), Revision (`#EF4444`), Approved (`#10B981`).
+    - Format Distribution segmented bar calculating real-time ratios of Raster Images (`#0078D4`), Video Masters (`#7C3AED`), and Print Documents (`#DC2626`) with legend tooltips.
+- **Mandatory Dropdown Anti-Clipping & Keyboard Accessibility**:
+  - Enforced canonical `height: 36px`, `line-height: 36px`, `padding: 0 12px`, and `border-radius: 8px` on `.clean-select` and `.search-box` to eliminate font baseline clipping.
+  - Added global `Ctrl+K` (or `Cmd+K`) keyboard shortcut listener to instantly focus the search input, indicated by an accessible `<kbd class="search-kbd">` badge.
+  - Added reactive `[ Reset Filters ]` pill button visible whenever search query or filters are active.
+- **1-Click Fast Sign-Off & Quick Link Sharing**:
+  - Implemented direct 1-click Quick Approve (`✓`) and Quick Revision (`✕`) action buttons on grouped grid cards, flat grid cards, and DAM metadata table rows without opening the full lightbox.
+  - Implemented 1-click Quick Copy Share Link (`link` icon) that fetches/creates the client review link and copies it directly to the clipboard with toast feedback.
+- **Theme-Tokenized Metadata Table & Style Deduplication**:
+  - Replaced hardcoded dark hex values (`#0F172A`, `#CBD5E1`, `#FFF`) in `.dam-table-card` and `.dam-table` with dynamic CSS custom properties (`var(--surface-card)`, `var(--surface-card-border)`, `var(--text-primary)`, `var(--surface-card-subtle)`), ensuring clean rendering across SS Default, Falconia, and Metamorphosis themes.
+  - Removed duplicate declarations of `.view-mode-toggle` and `.mode-btn`.
+  - Upgraded `.tool-icon-btn` touch/click targets from 26px to 32px with dedicated hover tints for approve (`#10B981`) and revision (`#EF4444`).
+- **Verification & Dual-Track Governance**:
+  - Client Build: **PASS** (`npm run build:client` completed cleanly in 13.34s).
+  - Test Suite: **PASS** (82 passed: 69 unit/integration + 13 admin smoketests, 0 failed).
+  - Dual-Track Governance: **PASS** (`.\QA\verify-dual-track.ps1 -Fix` passed all 14 checks with zero documentation leakage).
+
 ## Feature: Split-View WhatsApp Simulator & Customizable Dashboard KPI Grid — 2026-10-06
 
 - **Split-View WhatsApp Simulator in Copywriting Studio (`CopywritingPage.xaml`, `CopywritingPage.xaml.cs`, `CopywritingDesktopService.cs`)**:

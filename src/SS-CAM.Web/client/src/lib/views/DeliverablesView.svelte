@@ -32,6 +32,7 @@
   let searchQuery = $state<string>('');
   let rawSearchInput = $state<string>('');
   let searchDebounceTimer: any = null;
+  let searchInputRef = $state<HTMLInputElement | null>(null);
   let filterBrand = $state<string>('all');
   let filterMediaClass = $state<string>('all');
   let filterAspectRatio = $state<string>('all');
@@ -58,8 +59,40 @@
     if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   }
 
-  onMount(async () => {
-    await projectStore.loadDeliverables();
+  function resetAllFilters() {
+    filterStatus = 'all';
+    searchQuery = '';
+    rawSearchInput = '';
+    filterBrand = 'all';
+    filterMediaClass = 'all';
+    filterAspectRatio = 'all';
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  }
+
+  const hasActiveFilters = $derived(
+    filterStatus !== 'all' ||
+    searchQuery.trim().length > 0 ||
+    filterBrand !== 'all' ||
+    filterMediaClass !== 'all' ||
+    filterAspectRatio !== 'all'
+  );
+
+  function handleGlobalKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      const activeTag = (document.activeElement as HTMLElement)?.tagName;
+      if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+        e.preventDefault();
+        searchInputRef?.focus();
+      }
+    }
+  }
+
+  onMount(() => {
+    projectStore.loadDeliverables();
+    window.addEventListener('keydown', handleGlobalKeydown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeydown);
+    };
   });
 
   function openLightbox(d: DeliverableItem) {
@@ -161,6 +194,76 @@
   const revisionCount = $derived(projectStore.deliverables.filter(d => d.status === 'revision').length);
   const approvedCount = $derived(projectStore.deliverables.filter(d => d.status === 'approved').length);
   const availableBrands = $derived(Array.from(new Set(projectStore.deliverables.map(d => d.project?.brand || d.projectBrand || 'SS'))).filter(Boolean));
+
+  // Vault Telemetry & Distribution
+  const totalStorageBytes = $derived(
+    projectStore.deliverables.reduce((acc, d) => acc + (d.sizeBytes || 0), 0)
+  );
+
+  const formattedTotalStorage = $derived.by(() => {
+    if (totalStorageBytes >= 1024 * 1024 * 1024) {
+      return (totalStorageBytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    }
+    return (totalStorageBytes / (1024 * 1024)).toFixed(1) + ' MB';
+  });
+
+  const imageCount = $derived(
+    projectStore.deliverables.filter(d => d.isImage || d.previewType === 'image' || (!d.isVideo && !d.isPdf && ['PNG', 'JPG', 'JPEG', 'WEBP'].includes(d.format?.toUpperCase()))).length
+  );
+  const videoCount = $derived(
+    projectStore.deliverables.filter(d => d.isVideo || d.previewType === 'video' || ['MP4', 'MOV', 'WEBM'].includes(d.format?.toUpperCase())).length
+  );
+  const docCount = $derived(
+    projectStore.deliverables.filter(d => d.isPdf || d.previewType === 'pdf' || ['PDF', 'AI', 'PSD'].includes(d.format?.toUpperCase())).length
+  );
+
+  const imagePct = $derived(projectStore.deliverables.length > 0 ? (imageCount / projectStore.deliverables.length) * 100 : 0);
+  const videoPct = $derived(projectStore.deliverables.length > 0 ? (videoCount / projectStore.deliverables.length) * 100 : 0);
+  const docPct = $derived(projectStore.deliverables.length > 0 ? (docCount / projectStore.deliverables.length) * 100 : 0);
+
+  // 1-Click Fast Sign-Off Actions
+  async function handleQuickApprove(e: MouseEvent, d: DeliverableItem) {
+    e.stopPropagation();
+    const projId = d.project?.id || d.projectId || d.project?.jobId || d.projectJobId;
+    if (!projId) return;
+    try {
+      await ApiClient.submitDecision(projId, { decision: 'approved', deliverableId: d.id });
+      appState.addToast(`Deliverable "${d.filename}" approved!`, 'success', 'Sign-Off Recorded');
+      await projectStore.loadDeliverables();
+    } catch (err: any) {
+      appState.addToast(err?.message || 'Failed to record approval', 'critical', 'Approval Error');
+    }
+  }
+
+  async function handleQuickRevision(e: MouseEvent, d: DeliverableItem) {
+    e.stopPropagation();
+    const projId = d.project?.id || d.projectId || d.project?.jobId || d.projectJobId;
+    if (!projId) return;
+    try {
+      await ApiClient.submitDecision(projId, { decision: 'revision_requested', deliverableId: d.id });
+      appState.addToast(`Revision requested for "${d.filename}"`, 'warning', 'Revision Logged');
+      await projectStore.loadDeliverables();
+    } catch (err: any) {
+      appState.addToast(err?.message || 'Failed to record revision', 'critical', 'Revision Error');
+    }
+  }
+
+  async function handleQuickCopyShareLink(e: MouseEvent, d: DeliverableItem) {
+    e.stopPropagation();
+    const projId = d.project?.id || d.projectId || d.project?.jobId || d.projectJobId;
+    if (!projId) return;
+    try {
+      const res = await ApiClient.getOrCreateProjectShare(projId);
+      if (res && res.shareUrl) {
+        await navigator.clipboard.writeText(res.shareUrl);
+        appState.addToast('Client review link copied to clipboard!', 'success', 'Share Link');
+      } else {
+        openShare(d);
+      }
+    } catch {
+      openShare(d);
+    }
+  }
 </script>
 
 <div class="deliverables-view-container">
@@ -201,27 +304,49 @@
     </div>
   </div>
 
-  <!-- Summary KPI Bar -->
-  <div class="deliverable-kpi-bar">
-    <button class="kpi-pill {filterStatus === 'all' ? 'active' : ''}" onclick={() => filterStatus = 'all'}>
-      <span class="kpi-label">All</span>
-      <span class="kpi-count">{projectStore.deliverables.length}</span>
-    </button>
-    <button class="kpi-pill pill-pending {filterStatus === 'pending' ? 'active' : ''}" onclick={() => filterStatus = 'pending'}>
-      <span class="status-dot dot-pending"></span>
-      <span class="kpi-label">Pending</span>
-      <span class="kpi-count">{pendingCount}</span>
-    </button>
-    <button class="kpi-pill pill-revision {filterStatus === 'revision' ? 'active' : ''}" onclick={() => filterStatus = 'revision'}>
-      <span class="status-dot dot-revision"></span>
-      <span class="kpi-label">Revision</span>
-      <span class="kpi-count">{revisionCount}</span>
-    </button>
-    <button class="kpi-pill pill-approved {filterStatus === 'approved' ? 'active' : ''}" onclick={() => filterStatus = 'approved'}>
-      <span class="status-dot dot-approved"></span>
-      <span class="kpi-label">Approved</span>
-      <span class="kpi-count">{approvedCount}</span>
-    </button>
+  <!-- Production Vault Telemetry Ribbon -->
+  <div class="vault-telemetry-ribbon">
+    <div class="telemetry-kpi-group">
+      <button class="kpi-pill {filterStatus === 'all' ? 'active' : ''}" onclick={() => filterStatus = 'all'} title="View all deliverables">
+        <span class="kpi-label">All Masters</span>
+        <span class="kpi-count">{projectStore.deliverables.length}</span>
+        <span class="kpi-footprint-badge">{formattedTotalStorage}</span>
+      </button>
+      <button class="kpi-pill pill-pending {filterStatus === 'pending' ? 'active' : ''}" onclick={() => filterStatus = 'pending'} title="Filter pending review">
+        <span class="status-dot dot-pending"></span>
+        <span class="kpi-label">Pending</span>
+        <span class="kpi-count count-pending">{pendingCount}</span>
+      </button>
+      <button class="kpi-pill pill-revision {filterStatus === 'revision' ? 'active' : ''}" onclick={() => filterStatus = 'revision'} title="Filter revision requested">
+        <span class="status-dot dot-revision"></span>
+        <span class="kpi-label">Revision</span>
+        <span class="kpi-count count-revision">{revisionCount}</span>
+      </button>
+      <button class="kpi-pill pill-approved {filterStatus === 'approved' ? 'active' : ''}" onclick={() => filterStatus = 'approved'} title="Filter approved deliverables">
+        <span class="status-dot dot-approved"></span>
+        <span class="kpi-label">Approved</span>
+        <span class="kpi-count count-approved">{approvedCount}</span>
+      </button>
+    </div>
+
+    <!-- Media Distribution Segmented Bar -->
+    {#if projectStore.deliverables.length > 0}
+      <div class="telemetry-distribution-card">
+        <div class="dist-meta">
+          <span class="dist-title">Format Distribution</span>
+          <span class="dist-legend">
+            <span class="legend-dot img-dot"></span> Images ({imageCount})
+            <span class="legend-dot vid-dot"></span> Videos ({videoCount})
+            <span class="legend-dot doc-dot"></span> Docs ({docCount})
+          </span>
+        </div>
+        <div class="dist-bar-track">
+          <div class="dist-bar-fill img-fill" style="width: {imagePct}%" title="Images: {imageCount} ({imagePct.toFixed(0)}%)"></div>
+          <div class="dist-bar-fill vid-fill" style="width: {videoPct}%" title="Videos: {videoCount} ({videoPct.toFixed(0)}%)"></div>
+          <div class="dist-bar-fill doc-fill" style="width: {docPct}%" title="Documents: {docCount} ({docPct.toFixed(0)}%)"></div>
+        </div>
+      </div>
+    {/if}
   </div>
 
   <!-- Filter & Search Toolbar -->
@@ -232,6 +357,7 @@
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
       <input
+        bind:this={searchInputRef}
         type="text"
         placeholder="Filter deliverables by filename, job ID, designer..."
         value={rawSearchInput}
@@ -240,6 +366,7 @@
       {#if rawSearchInput}
         <button class="clear-search" onclick={handleClearSearch} title="Clear search">✕</button>
       {/if}
+      <kbd class="search-kbd" title="Press Ctrl+K to quick filter">Ctrl K</kbd>
     </div>
 
     <div class="filter-group">
@@ -268,6 +395,17 @@
           <option value={b}>{b}</option>
         {/each}
       </select>
+
+      <!-- Reset Filters Pill -->
+      {#if hasActiveFilters}
+        <button class="filter-reset-btn" onclick={resetAllFilters} title="Reset all active filters">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+          <span>Reset Filters</span>
+        </button>
+      {/if}
 
       <!-- Group By Toggle -->
       <div class="view-mode-toggle" title="Grouping Mode">
@@ -459,6 +597,16 @@
                             </button>
 
                             <div class="action-icons-right">
+                              {#if (d.status || 'pending') !== 'approved'}
+                                <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </button>
+                              {/if}
+                              {#if (d.status || 'pending') !== 'revision'}
+                                <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+                              {/if}
                               {#if d.isImage || d.previewType === 'image'}
                                 <button class="tool-icon-btn" title="Smart Social Resizer" onclick={() => openResizer(d)}>
                                   <FluentIcons name="vector" size={13} />
@@ -467,7 +615,7 @@
                                   <FluentIcons name="printer" size={13} />
                                 </button>
                               {/if}
-                              <button class="tool-icon-btn" title="Copy Client Review Link" onclick={() => openShare(d)}>
+                              <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
                                 <FluentIcons name="link" size={13} />
                               </button>
                               {#if d.downloadUrl}
@@ -581,6 +729,16 @@
                   </button>
 
                   <div class="action-icons-right">
+                    {#if (d.status || 'pending') !== 'approved'}
+                      <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      </button>
+                    {/if}
+                    {#if (d.status || 'pending') !== 'revision'}
+                      <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      </button>
+                    {/if}
                     {#if d.isImage || d.previewType === 'image'}
                       <button class="tool-icon-btn" title="Smart Social Resizer" onclick={() => openResizer(d)}>
                         <FluentIcons name="vector" size={13} />
@@ -589,7 +747,7 @@
                         <FluentIcons name="printer" size={13} />
                       </button>
                     {/if}
-                    <button class="tool-icon-btn" title="Copy Client Review Link" onclick={() => openShare(d)}>
+                    <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
                       <FluentIcons name="link" size={13} />
                     </button>
                     {#if d.downloadUrl}
@@ -657,6 +815,16 @@
               <td><span class="status-badge status-{(d.status || 'pending')}">{(d.status || 'pending').toUpperCase()}</span></td>
               <td style="text-align:right;" onclick={(e) => e.stopPropagation()}>
                 <div class="table-actions">
+                  {#if (d.status || 'pending') !== 'approved'}
+                    <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </button>
+                  {/if}
+                  {#if (d.status || 'pending') !== 'revision'}
+                    <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  {/if}
                   {#if d.isImage || d.previewType === 'image'}
                     <button class="tool-icon-btn" title="Social Resizer" onclick={() => openResizer(d)}>
                       <FluentIcons name="vector" size={13} />
@@ -665,7 +833,7 @@
                       <FluentIcons name="printer" size={13} />
                     </button>
                   {/if}
-                  <button class="tool-icon-btn" title="Share Link" onclick={() => openShare(d)}>
+                  <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
                     <FluentIcons name="link" size={13} />
                   </button>
                   {#if d.downloadUrl}
@@ -789,19 +957,33 @@
     margin-top: 4px;
   }
 
-  /* Summary KPI Bar */
-  .deliverable-kpi-bar {
+  /* Production Vault Telemetry Ribbon */
+  .vault-telemetry-ribbon {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
     flex-wrap: wrap;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  }
+
+  .telemetry-kpi-group {
+    display: flex;
+    align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
   }
 
   .kpi-pill {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 14px;
-    background: var(--surface-card);
+    padding: 6px 13px;
+    background: var(--surface-card-subtle);
     border: 1px solid var(--surface-card-border);
     border-radius: 20px;
     cursor: pointer;
@@ -812,8 +994,8 @@
   }
 
   .kpi-pill:hover {
-    background: var(--surface-card-subtle, #F8FAFC);
-    border-color: var(--brand-accent, #0078D4);
+    background: var(--surface-card);
+    border-color: var(--brand-accent);
     color: var(--text-primary);
   }
 
@@ -824,11 +1006,26 @@
   }
 
   .kpi-count {
-    background: var(--surface-card-subtle);
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
     padding: 1px 7px;
     border-radius: 10px;
     font-size: 11px;
     font-weight: 700;
+  }
+  .count-pending { color: #F59E0B; }
+  .count-revision { color: #EF4444; }
+  .count-approved { color: #10B981; }
+
+  .kpi-footprint-badge {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono, monospace);
+    color: var(--brand-accent);
+    background: rgba(33, 161, 247, 0.12);
+    padding: 1px 6px;
+    border-radius: 6px;
+    margin-left: 2px;
   }
 
   .status-dot {
@@ -841,6 +1038,64 @@
   .dot-revision { background: #EF4444; }
   .dot-approved { background: #10B981; }
 
+  .telemetry-distribution-card {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 240px;
+  }
+
+  .dist-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    gap: 12px;
+  }
+
+  .dist-title {
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .dist-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .legend-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .img-dot { background: #0078D4; }
+  .vid-dot { background: #7C3AED; }
+  .doc-dot { background: #DC2626; }
+
+  .dist-bar-track {
+    height: 6px;
+    width: 100%;
+    background: var(--surface-card-subtle);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+  }
+
+  .dist-bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+  .img-fill { background: #0078D4; }
+  .vid-fill { background: #7C3AED; }
+  .doc-fill { background: #DC2626; }
+
   /* Toolbar */
   .deliverable-toolbar {
     display: flex;
@@ -852,15 +1107,23 @@
 
   .search-box {
     flex: 1;
-    min-width: 240px;
+    min-width: 260px;
+    height: 36px;
+    min-height: 36px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     gap: 8px;
     background: var(--surface-card);
     border: 1px solid var(--surface-card-border);
     border-radius: 8px;
-    padding: 7px 12px;
+    padding: 0 12px;
     color: var(--text-secondary);
+    transition: border-color 0.15s;
+  }
+  .search-box:focus-within {
+    border-color: var(--brand-accent);
+    box-shadow: 0 0 0 2px rgba(33, 161, 247, 0.15);
   }
 
   .search-box input {
@@ -878,6 +1141,23 @@
     color: var(--text-tertiary);
     cursor: pointer;
     font-size: 11px;
+    padding: 2px 4px;
+  }
+  .clear-search:hover {
+    color: var(--text-primary);
+  }
+
+  .search-kbd {
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 4px;
+    padding: 2px 5px;
+    pointer-events: none;
+    user-select: none;
   }
 
   .filter-group {
@@ -888,7 +1168,10 @@
   }
 
   .clean-select {
-    padding: 6px 12px;
+    height: 36px;
+    line-height: 36px;
+    min-height: 36px;
+    padding: 0 12px;
     background: var(--surface-card);
     border: 1px solid var(--surface-card-border);
     border-radius: 8px;
@@ -897,14 +1180,44 @@
     font-weight: 600;
     outline: none;
     cursor: pointer;
+    box-sizing: border-box;
     transition: all 0.12s;
   }
   .clean-select:hover {
     border-color: var(--brand-accent);
   }
+  .clean-select:focus {
+    border-color: var(--brand-accent);
+    box-shadow: 0 0 0 2px rgba(33, 161, 247, 0.15);
+  }
+
+  .filter-reset-btn {
+    height: 36px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    background: var(--brand-tint, rgba(0, 120, 212, 0.08));
+    border: 1px solid var(--brand-accent);
+    border-radius: 8px;
+    color: var(--brand-accent);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: all 0.12s ease;
+  }
+  .filter-reset-btn:hover {
+    background: var(--brand-accent);
+    color: #FFFFFF;
+  }
 
   .view-mode-toggle {
     display: flex;
+    align-items: center;
+    height: 36px;
+    box-sizing: border-box;
     background: var(--surface-card);
     border: 1px solid var(--surface-card-border);
     border-radius: 8px;
@@ -913,8 +1226,8 @@
   }
 
   .mode-btn {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -928,8 +1241,8 @@
   .mode-btn:hover { color: var(--text-primary); }
   .mode-btn.active {
     background: var(--brand-tint, rgba(0, 120, 212, 0.1));
-    color: var(--text-primary);
-    border-color: var(--brand-accent);
+    color: var(--brand-primary, #0078D4);
+    border: 1px solid rgba(0, 120, 212, 0.2);
   }
 
   /* Project Groups */
@@ -1317,8 +1630,10 @@
   }
 
   .tool-icon-btn {
-    width: 26px;
-    height: 26px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1346,6 +1661,16 @@
   .tool-icon-btn:active {
     transform: translateY(0);
     box-shadow: none;
+  }
+  .tool-icon-btn.action-approve:hover {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10B981;
+    border-color: #10B981;
+  }
+  .tool-icon-btn.action-revision:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #EF4444;
+    border-color: #EF4444;
   }
 
   /* State Cards */
@@ -1380,28 +1705,6 @@
     margin-bottom: 12px;
   }
 
-
-
-  .view-mode-toggle {
-    display: flex;
-    background: var(--surface-card, #0F172A);
-    border: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.15));
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  .mode-btn {
-    background: transparent;
-    border: none;
-    padding: 6px 10px;
-    color: #94A3B8;
-    cursor: pointer;
-    font-size: 13px;
-  }
-  .mode-btn.active {
-    background: #043388;
-    color: #FFF;
-  }
-
   .ratio-pill {
     position: absolute;
     top: 8px;
@@ -1418,10 +1721,11 @@
 
   /* DAM Table */
   .dam-table-card {
-    background: #0F172A;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
     border-radius: 12px;
     overflow-x: auto;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   }
 
   .dam-table {
@@ -1433,18 +1737,20 @@
 
   .dam-table th {
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-card-subtle);
+    border-bottom: 1px solid var(--surface-card-border);
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    color: #94A3B8;
+    letter-spacing: 0.5px;
+    color: var(--text-tertiary);
   }
 
   .dam-table td {
     padding: 10px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    color: #CBD5E1;
+    border-bottom: 1px solid var(--surface-card-border);
+    color: var(--text-secondary);
+    vertical-align: middle;
   }
 
   .table-row-clickable {
@@ -1452,7 +1758,7 @@
     transition: background 0.15s ease;
   }
   .table-row-clickable:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--surface-card-subtle);
   }
 
   .table-thumb-col { width: 50px; }
@@ -1461,40 +1767,48 @@
     height: 40px;
     object-fit: cover;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--surface-card-border);
+    background: var(--surface-card-subtle);
   }
   .table-icon-pill {
     font-size: 10px;
     font-weight: 700;
-    padding: 2px 6px;
-    background: rgba(255, 255, 255, 0.08);
+    padding: 3px 7px;
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
     border-radius: 4px;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
   }
 
-  .table-filename { font-weight: 700; color: #FFF; }
+  .table-filename { font-weight: 700; color: var(--text-primary); }
   .table-proj-info { display: flex; flex-direction: column; gap: 2px; }
-  .job-id-sm { font-size: 11px; font-weight: 800; color: #38BDF8; font-family: monospace; }
-  .proj-title-sm { font-size: 11px; color: #94A3B8; }
+  .job-id-sm { font-size: 11px; font-weight: 800; color: var(--brand-accent); font-family: var(--font-mono, monospace); }
+  .proj-title-sm { font-size: 11px; color: var(--text-tertiary); }
 
   .format-badge, .ratio-badge {
     font-size: 10px;
     font-weight: 800;
     padding: 2px 6px;
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
     border-radius: 4px;
-    font-family: monospace;
+    font-family: var(--font-mono, monospace);
+    color: var(--text-secondary);
   }
-  .ratio-badge { color: #38BDF8; }
+  .ratio-badge { color: var(--brand-accent); }
 
   .status-badge {
     font-size: 10px;
     font-weight: 800;
-    padding: 2px 6px;
+    padding: 3px 8px;
     border-radius: 4px;
+    letter-spacing: 0.5px;
   }
-  .status-badge.status-pending { background: rgba(245, 158, 11, 0.2); color: #F59E0B; }
-  .status-badge.status-revision { background: rgba(239, 68, 68, 0.2); color: #EF4444; }
-  .status-badge.status-approved { background: rgba(16, 185, 129, 0.2); color: #10B981; }
+  .status-badge.status-pending { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+  .status-badge.status-revision { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+  .status-badge.status-approved { background: rgba(16, 185, 129, 0.15); color: #10B981; }
 
   .table-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 </style>
