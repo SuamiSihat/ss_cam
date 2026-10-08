@@ -69,6 +69,7 @@
 
   // Table multi-selection & sorting
   let selectedTaskIds = $state<string[]>([]);
+  let showBatchDeleteConfirm = $state(false);
   let tableSortCol = $state<'title' | 'assignee' | 'status' | 'dueDate' | 'priority'>('title');
   let tableSortAsc = $state(true);
 
@@ -743,6 +744,7 @@
   }
 
   function toggleSelectAllTable() {
+    showBatchDeleteConfirm = false;
     if (selectedTaskIds.length === filteredTasks.length && filteredTasks.length > 0) {
       selectedTaskIds = [];
     } else {
@@ -751,6 +753,7 @@
   }
 
   function toggleSelectTask(id: string) {
+    showBatchDeleteConfirm = false;
     if (selectedTaskIds.includes(id)) {
       selectedTaskIds = selectedTaskIds.filter(i => i !== id);
     } else {
@@ -766,21 +769,27 @@
       tasks = tasks.map(t => targets.includes(t.id) ? { ...t, status: newStatus } : t);
       appState.addToast(`Updated ${targets.length} tasks to ${newStatus}`, 'success');
       selectedTaskIds = [];
+      showBatchDeleteConfirm = false;
     } catch (err: any) {
       appState.addToast(`Failed batch update: ${err.message}`, 'error');
     }
   }
 
-  async function handleBatchDelete() {
+  function handleBatchDelete() {
+    if (selectedTaskIds.length === 0) return;
+    showBatchDeleteConfirm = true;
+  }
+
+  async function handleBatchDeleteConfirmed() {
     if (selectedTaskIds.length === 0) return;
     const cnt = selectedTaskIds.length;
-    if (!confirm(`Are you sure you want to delete ${cnt} selected task(s)?`)) return;
     const targets = [...selectedTaskIds];
     try {
       await Promise.all(targets.map(id => ApiClient.deleteStudioTask(id)));
       tasks = tasks.filter(t => !targets.includes(t.id));
       appState.addToast(`Deleted ${cnt} tasks`, 'info');
       selectedTaskIds = [];
+      showBatchDeleteConfirm = false;
     } catch (err: any) {
       appState.addToast(`Failed to delete tasks: ${err.message}`, 'error');
     }
@@ -2165,23 +2174,37 @@
             <span class="batch-count-badge">{selectedTaskIds.length}</span>
             <span>task{selectedTaskIds.length > 1 ? 's' : ''} selected</span>
           </div>
-          <div class="batch-actions-group">
-            <button type="button" class="batch-btn" onclick={() => handleBatchStatusChange('in-progress')}>
-              Mark In Progress
-            </button>
-            <button type="button" class="batch-btn" onclick={() => handleBatchStatusChange('review')}>
-              Mark Review
-            </button>
-            <button type="button" class="batch-btn success" onclick={() => handleBatchStatusChange('done')}>
-              Mark Done
-            </button>
-            <button type="button" class="batch-btn danger" onclick={handleBatchDelete}>
-              Delete
-            </button>
-            <button type="button" class="batch-btn ghost" onclick={() => (selectedTaskIds = [])}>
-              Deselect All
-            </button>
-          </div>
+          {#if !showBatchDeleteConfirm}
+            <div class="batch-actions-group">
+              <button type="button" class="batch-btn" onclick={() => handleBatchStatusChange('in-progress')}>
+                Mark In Progress
+              </button>
+              <button type="button" class="batch-btn" onclick={() => handleBatchStatusChange('review')}>
+                Mark Review
+              </button>
+              <button type="button" class="batch-btn success" onclick={() => handleBatchStatusChange('done')}>
+                Mark Done
+              </button>
+              <button type="button" class="batch-btn danger" onclick={handleBatchDelete}>
+                Delete
+              </button>
+              <button type="button" class="batch-btn ghost" onclick={() => (selectedTaskIds = [])}>
+                Deselect All
+              </button>
+            </div>
+          {:else}
+            <div class="batch-actions-group" style="gap: 8px; align-items: center;">
+              <span style="font-size: 12px; font-weight: 600; color: #EF4444;">
+                Permanently delete {selectedTaskIds.length} tasks?
+              </span>
+              <button type="button" class="batch-btn danger" onclick={handleBatchDeleteConfirmed}>
+                Yes, Delete All
+              </button>
+              <button type="button" class="batch-btn ghost" onclick={() => (showBatchDeleteConfirm = false)}>
+                Cancel
+              </button>
+            </div>
+          {/if}
         </div>
       {/if}
     </div>

@@ -76,6 +76,7 @@
   // Provisioning
   let isSaving = $state(false);
   let isDeleting = $state(false);
+  let showDeleteConfirm = $state(false);
   let isProvisioning = $state(false);
   let showProvisionForm = $state(false);
   let presetType = $state('Graphic & Print Design');
@@ -166,6 +167,7 @@
       projectTitle = task.projectTitle || undefined;
       provisionDesigner = task.assigneeName || task.assignee || 'Harussani';
       showProvisionForm = false;
+      showDeleteConfirm = false;
       aiMessages = [];
       preflightIssues = [];
     }
@@ -202,9 +204,14 @@
     };
   });
 
-  function close() {
+  function closeDrawer() {
+    showDeleteConfirm = false;
     open = false;
-    onClose();
+    if (onClose) onClose();
+  }
+
+  function close() {
+    closeDrawer();
   }
 
   function handleAddSubtask() {
@@ -387,23 +394,32 @@
     }
   }
 
-  async function handleDelete() {
-    if (!task) return;
-    if (!confirm(`Are you sure you want to delete task ${task.id} ("${task.title}")?`)) {
-      return;
-    }
+  function handleDeleteClick() {
+    showDeleteConfirm = true;
+  }
 
+  function handleCancelDelete() {
+    showDeleteConfirm = false;
+  }
+
+  async function handleConfirmDelete() {
+    if (!task) return;
     isDeleting = true;
     try {
       await ApiClient.deleteStudioTask(task.id);
       appState.addToast(`Deleted task ${task.id}`, 'info');
       if (onDeleted) onDeleted(task.id);
-      close();
+      closeDrawer();
     } catch (err: any) {
       appState.addToast(`Failed to delete task: ${err.message}`, 'error');
     } finally {
       isDeleting = false;
+      showDeleteConfirm = false;
     }
+  }
+
+  async function handleDelete() {
+    handleDeleteClick();
   }
 
   async function handleProvision() {
@@ -433,14 +449,14 @@
 
   function jumpToProject() {
     if (projectId || task?.jobId) {
-      close();
+      closeDrawer();
       appState.navigate('project-detail', { id: projectId || task?.jobId });
     }
   }
 
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape' && open) {
-      close();
+      closeDrawer();
     }
   }
 </script>
@@ -450,7 +466,7 @@
 {#if open && task}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="drawer-backdrop" onclick={close}></div>
+  <div class="drawer-backdrop" onclick={closeDrawer}></div>
 
   <aside class="task-drawer" role="dialog" aria-label="Task Details">
     <!-- ═══ HEADER ═══ -->
@@ -465,7 +481,7 @@
       </div>
 
       <div class="header-right">
-        <button class="close-icon-btn" onclick={close} aria-label="Close drawer" title="Close drawer">
+        <button class="close-icon-btn" onclick={closeDrawer} aria-label="Close drawer" title="Close drawer">
           <FluentIcons name="close" size={16} />
         </button>
       </div>
@@ -1154,23 +1170,46 @@
     <!-- ═══ FOOTER ACTIONS ═══ -->
     <div class="drawer-footer">
       <div class="footer-left">
-        <button
-          type="button"
-          class="delete-task-btn"
-          onclick={handleDelete}
-          disabled={isDeleting}
-          title="Delete Task Permanently"
-        >
-          <FluentIcons name="trash" size={14} />
-          <span>{isDeleting ? 'Deleting…' : 'Delete'}</span>
-        </button>
+        {#if !showDeleteConfirm}
+          <button
+            type="button"
+            class="delete-task-btn"
+            onclick={handleDeleteClick}
+            disabled={isDeleting || isSaving}
+            title="Delete Task Permanently"
+          >
+            <FluentIcons name="trash" size={14} />
+            <span>Delete</span>
+          </button>
+        {:else}
+          <div class="delete-confirm-group" role="alert">
+            <span class="delete-confirm-prompt">Permanently delete #{task.id}?</span>
+            <button
+              type="button"
+              class="delete-confirm-yes-btn"
+              onclick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              <FluentIcons name="trash" size={13} />
+              <span>{isDeleting ? 'Deleting…' : 'Yes, Delete'}</span>
+            </button>
+            <button
+              type="button"
+              class="delete-confirm-no-btn"
+              onclick={handleCancelDelete}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+          </div>
+        {/if}
       </div>
 
       <div class="footer-right">
-        <FluentButton appearance="secondary" onclick={close} disabled={isSaving}>
+        <FluentButton appearance="secondary" onclick={closeDrawer} disabled={isSaving || isDeleting}>
           Cancel
         </FluentButton>
-        <FluentButton appearance="primary" onclick={handleSave} disabled={isSaving}>
+        <FluentButton appearance="primary" onclick={handleSave} disabled={isSaving || isDeleting}>
           {isSaving ? 'Saving Changes…' : 'Save Changes'}
         </FluentButton>
       </div>
@@ -1957,5 +1996,60 @@
   .delete-task-btn:hover {
     background: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.25);
+  }
+
+  .delete-confirm-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 4px 10px;
+    border-radius: 6px;
+    animation: fadeIn 0.15s ease-out;
+  }
+
+  .delete-confirm-prompt {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-danger, #EF4444);
+  }
+
+  .delete-confirm-yes-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--color-danger, #EF4444);
+    border: 1px solid transparent;
+    color: #FFFFFF;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .delete-confirm-yes-btn:hover:not(:disabled) {
+    background: #DC2626;
+  }
+  .delete-confirm-yes-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .delete-confirm-no-btn {
+    background: transparent;
+    border: 1px solid var(--surface-card-border);
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .delete-confirm-no-btn:hover:not(:disabled) {
+    background: var(--surface-card-subtle);
+    color: var(--text-primary);
   }
 </style>
