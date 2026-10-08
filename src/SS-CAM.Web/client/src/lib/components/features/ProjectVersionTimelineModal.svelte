@@ -13,6 +13,13 @@
     revision: number;
     status: string;
     note: string;
+    sourceFiles?: Array<{
+      name: string;
+      sizeBytes: number;
+      sizeFormatted: string;
+      ext: string;
+      modifiedAt?: string;
+    }>;
   }
 
   interface Props {
@@ -183,6 +190,24 @@
                       </span>
                       <span class="snap-id-tag">{snap.id}</span>
                     </div>
+
+                    {#if snap.sourceFiles && snap.sourceFiles.length > 0}
+                      <div class="source-files-box">
+                        <div class="source-files-header">
+                          <FluentIcons name="folder" size={12} color="#00CFFF" />
+                          <span>Snapshotted Design Assets ({snap.sourceFiles.length}):</span>
+                        </div>
+                        <div class="source-files-chips">
+                          {#each snap.sourceFiles as sf}
+                            <span class="source-file-chip" title="{sf.name} ({sf.sizeFormatted})">
+                              <span class="file-ext-badge ext-{sf.ext.replace('.', '')}">{sf.ext.toUpperCase()}</span>
+                              <span class="file-name">{sf.name}</span>
+                              <span class="file-size">{sf.sizeFormatted}</span>
+                            </span>
+                          {/each}
+                        </div>
+                      </div>
+                    {/if}
 
                     {#if index !== 0}
                       <div class="rollback-action-row">
@@ -392,6 +417,64 @@
     transition: all 0.15s;
   }
   .rollback-btn:hover { background: rgba(239, 68, 68, 0.2); }
+
+  /* Source Files Box & Chips */
+  .source-files-box {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+  }
+  .source-files-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #94A3B8;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .source-files-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .source-file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 11px;
+    color: #E2E8F0;
+  }
+  .file-ext-badge {
+    font-size: 8.5px;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: #043388;
+    color: #FFF;
+  }
+  .file-ext-badge.ext-psd { background: #31A8FF; color: #001E36; }
+  .file-ext-badge.ext-ai { background: #FF9A00; color: #331500; }
+  .file-ext-badge.ext-afdesign { background: #1B8EF2; color: #FFF; }
+  .file-name {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .file-size {
+    font-size: 10px;
+    color: #64748B;
+  }
 
   /* Footer */
   .timeline-footer {

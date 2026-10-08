@@ -162,6 +162,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Dialogs\ProjectSnapshotsDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Views\TranscoderBridgePage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -265,6 +269,7 @@
     <Compile Include="Services\TextDiffService.cs" />
     <Compile Include="Services\GeminiDesktopService.cs" />
     <Compile Include="Services\StudioTaskService.cs" />
+    <Compile Include="Services\SnapshotDesktopService.cs" />
     <Compile Include="Views\SplashWindow.xaml.cs">
       <DependentUpon>SplashWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -335,6 +340,10 @@
     </Compile>
     <Compile Include="Views\ArchiveVaultPage.xaml.cs">
       <DependentUpon>ArchiveVaultPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Dialogs\ProjectSnapshotsDialog.xaml.cs">
+      <DependentUpon>ProjectSnapshotsDialog.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Views\TranscoderBridgePage.xaml.cs">

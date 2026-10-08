@@ -4,6 +4,16 @@ const FrontmatterService = require('./FrontmatterService');
 const AuditService = require('./AuditService');
 const SseService = require('./SseService');
 
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+const DESIGN_EXTENSIONS = ['.afdesign', '.afphoto', '.afpub', '.psd', '.psb', '.ai', '.eps', '.pdf', '.svg', '.indd'];
+
 class SnapshotService {
   getSnapshotsDir(projectFullPath) {
     const dir = path.join(projectFullPath, '.snapshots');
@@ -15,7 +25,7 @@ class SnapshotService {
     return dir;
   }
 
-  createSnapshot(projectFullPath, trigger = 'MANUAL_BACKUP', actor = 'Designer', note = '') {
+  createSnapshot(projectFullPath, trigger = 'MANUAL_BACKUP', actor = 'Designer', note = '', options = {}) {
     if (!fs.existsSync(projectFullPath)) return null;
 
     const snapshotsDir = this.getSnapshotsDir(projectFullPath);
@@ -46,6 +56,36 @@ class SnapshotService {
       }
     }
 
+    // 3. Snapshot design source files from 02_SOURCE_FILES
+    const sourceFiles = [];
+    const sourceDir = path.join(projectFullPath, '02_SOURCE_FILES');
+    if (fs.existsSync(sourceDir) && options.includeSourceFiles !== false) {
+      try {
+        const files = fs.readdirSync(sourceDir);
+        const snapSourceDir = path.join(snapDir, '02_SOURCE_FILES');
+        for (const f of files) {
+          const ext = path.extname(f).toLowerCase();
+          if (DESIGN_EXTENSIONS.includes(ext)) {
+            const srcPath = path.join(sourceDir, f);
+            const stat = fs.statSync(srcPath);
+            if (stat.isFile()) {
+              if (!fs.existsSync(snapSourceDir)) fs.mkdirSync(snapSourceDir, { recursive: true });
+              fs.copyFileSync(srcPath, path.join(snapSourceDir, f));
+              sourceFiles.push({
+                name: f,
+                sizeBytes: stat.size,
+                sizeFormatted: formatBytes(stat.size),
+                ext,
+                modifiedAt: stat.mtime.toISOString()
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.debug('[SnapshotService] Copy 02_SOURCE_FILES error:', e.message);
+      }
+    }
+
     const meta = {
       id: snapId,
       timestamp: new Date().toISOString(),
@@ -53,7 +93,8 @@ class SnapshotService {
       actor,
       revision: currentRevision,
       status: currentStatus,
-      note: note || `Snapshot captured during ${trigger}`
+      note: note || `Snapshot captured during ${trigger}`,
+      sourceFiles
     };
 
     fs.writeFileSync(path.join(snapDir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf8');
@@ -88,6 +129,10 @@ class SnapshotService {
     return list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }
 
+  listSnapshots(projectFullPath) {
+    return this.getSnapshots(projectFullPath);
+  }
+
   rollback(projectFullPath, snapshotId, actor = 'Lead Designer') {
     if (!fs.existsSync(projectFullPath)) {
       throw new Error('Project folder does not exist.');
@@ -114,6 +159,23 @@ class SnapshotService {
     if (fs.existsSync(snapCopy)) {
       if (!fs.existsSync(targetCopyDir)) fs.mkdirSync(targetCopyDir, { recursive: true });
       fs.copyFileSync(snapCopy, path.join(targetCopyDir, 'COPY.md'));
+    }
+
+    // 4. Restore 02_SOURCE_FILES design binaries if snapshotted
+    let restoredSourceFilesCount = 0;
+    const snapSourceDir = path.join(targetSnapDir, '02_SOURCE_FILES');
+    const targetSourceDir = path.join(projectFullPath, '02_SOURCE_FILES');
+    if (fs.existsSync(snapSourceDir)) {
+      if (!fs.existsSync(targetSourceDir)) fs.mkdirSync(targetSourceDir, { recursive: true });
+      try {
+        const snapFiles = fs.readdirSync(snapSourceDir);
+        for (const sf of snapFiles) {
+          fs.copyFileSync(path.join(snapSourceDir, sf), path.join(targetSourceDir, sf));
+          restoredSourceFilesCount++;
+        }
+      } catch (e) {
+        console.debug('[SnapshotService] Restore 02_SOURCE_FILES error:', e.message);
+      }
     }
 
     // Read restored meta
@@ -150,7 +212,9 @@ class SnapshotService {
 
     return {
       success: true,
+      snapshotId,
       restoredSnapshot: targetMeta,
+      restoredSourceFilesCount,
       message: `Project successfully restored to snapshot ${snapshotId}`
     };
   }

@@ -492,6 +492,13 @@
                             </StackPanel>
                         </ui:Button>
 
+                        <ui:Button x:Name="BtnDetailSnapshots" Click="OnDetailSnapshotsClicked" Appearance="Secondary" Height="28" Padding="8,2" Margin="0,0,6,4" ToolTip="Version Timeline &amp; Rollback for source files and notes">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="History24" Margin="0,0,4,0" FontSize="12"/>
+                                <ui:TextBlock Text="Snapshots" FontSize="11"/>
+                            </StackPanel>
+                        </ui:Button>
+
                         <ui:Button x:Name="BtnDetailHandoverZip" Click="OnDetailHandoverZipClicked" Appearance="Danger" Height="28" Padding="8,2" Margin="0,0,6,4" ToolTip="Generate 1-click Handover ZIP package">
                             <StackPanel Orientation="Horizontal">
                                 <ui:SymbolIcon Symbol="ArrowDownload24" Margin="0,0,4,0" FontSize="12"/>

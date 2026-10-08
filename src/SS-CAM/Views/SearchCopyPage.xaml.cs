@@ -1092,6 +1092,30 @@ namespace SS_CAM.Views
             }
         }
 
+        private void OnVersionSnapshotsClicked(object sender, RoutedEventArgs e)
+        {
+            if (selectedItem == null || !Directory.Exists(selectedItem.FullPath))
+            {
+                MessageBox.Show("Please select a project folder first.", "No Project Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                ProjectSnapshotsDialog dlg = new ProjectSnapshotsDialog(selectedItem.FullPath, selectedItem.Project, selectedItem.Project);
+                dlg.Owner = Window.GetWindow(this);
+                bool? result = dlg.ShowDialog();
+                if (result == true)
+                {
+                    UpdateReadmeDisplay();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[SearchCopyPage] OnVersionSnapshotsClicked error: " + ex.Message);
+            }
+        }
+
         private async void OnAiBriefAuditClicked(object sender, RoutedEventArgs e)
         {
             if (selectedItem == null || !Directory.Exists(selectedItem.FullPath))

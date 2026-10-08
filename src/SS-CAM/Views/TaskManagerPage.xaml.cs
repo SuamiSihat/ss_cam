@@ -12,6 +12,7 @@ using Microsoft.Win32;
 using SS_CAM.Models;
 using SS_CAM.Services;
 using SS_CAM.Utilities;
+using SS_CAM.Dialogs;
 using Wpf.Ui.Controls;
 using MenuItem = System.Windows.Controls.MenuItem;
 
@@ -825,6 +826,13 @@ namespace SS_CAM.Views
             FrameworkElement el = sender as FrameworkElement;
             if (el == null) return;
             ProjectStatusItem item = el.DataContext as ProjectStatusItem;
+            if (item == null) return;
+
+            PopulateDetail(item);
+        }
+
+        private void PopulateDetail(ProjectStatusItem item)
+        {
             if (item == null) return;
 
             DetailPanel.Visibility = Visibility.Visible;
@@ -1650,6 +1658,25 @@ namespace SS_CAM.Views
                 {
                     System.Windows.MessageBox.Show("No working source file (.afdesign, .psd, .ai) found in 02_SOURCE_FILES.", "Source File Not Found", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 }
+            }
+        }
+
+        private void OnDetailSnapshotsClicked(object sender, RoutedEventArgs e)
+        {
+            if (_editingProject == null || !Directory.Exists(_editingProject.FullPath)) return;
+            try
+            {
+                ProjectSnapshotsDialog dlg = new ProjectSnapshotsDialog(_editingProject.FullPath, _editingProject.ProjectId, _editingProject.Project);
+                dlg.Owner = Window.GetWindow(this);
+                bool? result = dlg.ShowDialog();
+                if (result == true)
+                {
+                    PopulateDetail(_editingProject);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[TaskManagerPage] OnDetailSnapshotsClicked error: " + ex.Message);
             }
         }
 

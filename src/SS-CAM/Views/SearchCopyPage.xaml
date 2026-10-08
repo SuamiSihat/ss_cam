@@ -685,6 +685,13 @@
                                     <ui:TextBlock Text="Diff History" VerticalAlignment="Center" FontSize="11.5"/>
                                 </StackPanel>
                             </ui:Button>
+                            <ui:Button x:Name="BtnVersionSnapshots" Appearance="Secondary" Click="OnVersionSnapshotsClicked"
+                                       Height="32" Padding="12,0" Cursor="Hand" Margin="0,0,8,0" ToolTip="View revision snapshots and rollback source assets">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="History24" FontSize="13" Margin="0,0,5,0"/>
+                                    <ui:TextBlock Text="Snapshots" VerticalAlignment="Center" FontSize="11.5"/>
+                                </StackPanel>
+                            </ui:Button>
                             <ui:Button Appearance="Primary" Click="OnExportHandoverZipClicked"
                                        Height="32" Padding="14,0" FontWeight="Bold" Cursor="Hand" Margin="0,0,8,0" ToolTip="Export client-ready deliverables handover ZIP with HTML summary">
                                 <StackPanel Orientation="Horizontal">

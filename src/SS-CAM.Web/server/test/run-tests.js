@@ -2998,6 +2998,59 @@ This is the project brief content.
     assert.ok(dispatch.whatsappUrl.startsWith('https://wa.me/0123456789'), 'Must generate direct 1-click WhatsApp dispatch link');
   });
 
+  // ─── TEST 65: SnapshotService Asset Revision Snapshots & Rollback ────
+  test('SnapshotService creates design asset snapshots and non-destructive rollbacks', () => {
+    const SnapshotService = require('../services/SnapshotService');
+    const testProjectDir = path.join(__dirname, 'temp-test-snapshot-proj');
+    if (fs.existsSync(testProjectDir)) fs.rmSync(testProjectDir, { recursive: true, force: true });
+    fs.mkdirSync(testProjectDir, { recursive: true });
+
+    const sourceDir = path.join(testProjectDir, '02_SOURCE_FILES');
+    const copyDir = path.join(testProjectDir, '03_COPYWRITING');
+    fs.mkdirSync(sourceDir, { recursive: true });
+    fs.mkdirSync(copyDir, { recursive: true });
+
+    fs.writeFileSync(path.join(testProjectDir, 'README.md'), '---\nrevision: 2\nstatus: in-progress\n---\n# Test Snapshot Project');
+    fs.writeFileSync(path.join(copyDir, 'COPY.md'), '# V2 Copywriting Content');
+    fs.writeFileSync(path.join(sourceDir, 'poster_v2.afdesign'), 'BINARY_AFDESIGN_MOCK_CONTENT_V2');
+    fs.writeFileSync(path.join(sourceDir, 'hero_banner.psd'), 'BINARY_PSD_MOCK_CONTENT_V2');
+
+    // 1. Create snapshot
+    const snap = SnapshotService.createSnapshot(testProjectDir, 'REVISION_UPDATE', 'Lead Designer', 'V2 checkpoint before major redesign');
+    assert.ok(snap, 'Snapshot must be created successfully');
+    assert.strictEqual(snap.revision, 2);
+    assert.strictEqual(snap.trigger, 'REVISION_UPDATE');
+    assert.ok(Array.isArray(snap.sourceFiles), 'Snapshot must record sourceFiles list');
+    assert.strictEqual(snap.sourceFiles.length, 2, 'Must record 2 design source files');
+    assert.ok(snap.sourceFiles.some(f => f.name === 'poster_v2.afdesign' && f.ext === '.afdesign'));
+    assert.ok(snap.sourceFiles.some(f => f.name === 'hero_banner.psd' && f.ext === '.psd'));
+
+    // 2. Modify files (simulate WIP change)
+    fs.writeFileSync(path.join(testProjectDir, 'README.md'), '---\nrevision: 3\nstatus: review\n---\n# Test Snapshot Project V3 Corrupted');
+    fs.writeFileSync(path.join(sourceDir, 'poster_v2.afdesign'), 'WIP_UNWANTED_CORRUPTED_CHANGES');
+
+    // 3. Rollback
+    const rollbackRes = SnapshotService.rollback(testProjectDir, snap.id, 'Tester');
+    assert.ok(rollbackRes.success, 'Rollback must report success');
+    assert.strictEqual(rollbackRes.snapshotId, snap.id);
+
+    // 4. Verify restored content
+    const restoredReadme = fs.readFileSync(path.join(testProjectDir, 'README.md'), 'utf8');
+    assert.ok(restoredReadme.includes('revision: 2'));
+    assert.ok(!restoredReadme.includes('Corrupted'));
+
+    const restoredAfdesign = fs.readFileSync(path.join(sourceDir, 'poster_v2.afdesign'), 'utf8');
+    assert.strictEqual(restoredAfdesign, 'BINARY_AFDESIGN_MOCK_CONTENT_V2');
+
+    // 5. Verify safety backup was automatically created
+    const snapshotsList = SnapshotService.listSnapshots(testProjectDir);
+    assert.ok(snapshotsList.length >= 2, 'Pre-rollback safety snapshot must be present in snapshots list');
+    assert.ok(snapshotsList.some(s => s.trigger === 'PRE_ROLLBACK_BACKUP'), 'Must have PRE_ROLLBACK_BACKUP trigger');
+
+    // Cleanup
+    try { fs.rmSync(testProjectDir, { recursive: true, force: true }); } catch (e) {}
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {
