@@ -1234,3 +1234,26 @@
   - Fixed empty top/bottom whitespace by normalizing Fluent 2 card padding and wave container height.
 - **Dynamic 30-Day Heatmap**:
   - Standardized day coordinate math, day labels (`Mon`, `Wed`, `Fri`), and high-contrast theme-aware 0-minute day tiles.
+
+---
+
+## P1: Web Creative Portal Tasks & Deliverables View Overhaul (v4.14.1)
+
+- **Standardized SuamiSihat Clinical Color Identity (60:30:10 Rule)**:
+  - Replaced disjointed SaaS purple (`#8B5CF6`) with canonical SuamiSihat Clinical Amber (`#F59E0B` / `#D97706`) across all review, inspection, and sign-off statuses (KPI cards, SVG donut chart arcs, workstream badges, List row pills, Kanban Board columns, Table selectors, Gantt schedule bars).
+- **Fluent 2 2-Tier Command Ribbon**:
+  - **Tier 1 (Navigation)**: Separated high-level views navigation (`Overview`, `List`, `Board`, `Table`, `Timeline`) with active underline indicators, Studio A/B layout switcher, live sync, and primary `+ New Task` CTA. Added live bottleneck alert indicator dot on Overview tab.
+  - **Tier 2 (Refinement)**: Omni-search with desktop shortcut hint (`Ctrl+K`), dedicated filter dropdowns (Status, Workstream, Brand, Priority), quick `Assigned to Me` and `Hide Completed` toggles, and 1-click `Reset Filters` chip.
+- **Mandatory Anti-Clipping Standards Enforced**:
+  - Strictly enforced `min-height: 36px` / `height: 36px` and internal `padding: 0 12px` across all ComboBox filters and action buttons, eliminating baseline text clipping and font descender truncation (`g`, `y`, `p`, `q`, `j`).
+- **Variant A (1-Click Hover Micro-Action Rail & Continuous Entry)**:
+  - Added slide-in `.row-hover-actions` rail to List view task rows with 1-click status advancement (`Backlog ➔ In Progress ➔ Review ➔ Done ➔ Reopen`), 1-click user assignment (`+Me`), and 1-click due date bump (`+1d`).
+  - Added continuous inline task entry on `Enter` key with autofocus retention and `Esc` cancellation.
+- **Variant B (Executive Bottleneck Radar Banner & Telemetry)**:
+  - Added real-time Bottleneck Radar alert banner surfacing overdue, dependency-blocked, and urgent tasks with dynamic breakdown counts and 1-click `Triage Deliverables in List ➔` navigation.
+  - Standardized Team Bandwidth table with load indicators (`High Load`, `Optimal`, `Light`) and single-click owner filtering.
+- **Verification & Governance**:
+  - Svelte client bundle compiled in `13.29s` with zero errors.
+  - Test suite: `82/82` passed (69 unit/integration + 13 administration governance tests).
+  - Dual-track governance: `14/14` passed. Pushed to `origin SS-Master`.
+
