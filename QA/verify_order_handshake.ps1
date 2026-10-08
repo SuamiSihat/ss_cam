@@ -78,21 +78,21 @@ try {
 
     Assert-Condition "Project directory generated" (Test-Path $projectPath) "Path: $projectPath"
 
-    # Verify attachment handover into 01_Brief_and_Copy/Brief_Assets
-    $briefAssetsDir = Join-Path $projectPath "01_Brief_and_Copy\Brief_Assets"
-    Assert-Condition "Brief_Assets directory created" (Test-Path $briefAssetsDir)
+    # Verify attachment handover into 01_BRIEF_ASSETS
+    $briefAssetsDir = Join-Path $projectPath "01_BRIEF_ASSETS"
+    Assert-Condition "01_BRIEF_ASSETS directory created" (Test-Path $briefAssetsDir)
     Assert-Condition "Attachment 1 copied (product_hero.jpg)" (Test-Path (Join-Path $briefAssetsDir "product_hero.jpg"))
     Assert-Condition "Attachment 2 copied (brief_guidelines.pdf)" (Test-Path (Join-Path $briefAssetsDir "brief_guidelines.pdf"))
 
     # Verify COPY.md containing 4 dates & attachment markdown links
-    $copyFile = Join-Path $projectPath "01_Brief_and_Copy\COPY.md"
+    $copyFile = Join-Path $projectPath "03_COPYWRITING\COPY.md"
     Assert-Condition "COPY.md exists" (Test-Path $copyFile)
     $copyText = [System.IO.File]::ReadAllText($copyFile)
     Assert-Condition "COPY.md contains Created Date" ($copyText -match 'Created Date\*\*:\s*2026-09-26')
     Assert-Condition "COPY.md contains Start Date" ($copyText -match 'Start Date\*\*:\s*2026-09-28')
     Assert-Condition "COPY.md contains Deadline" ($copyText -match 'Deadline\*\*:\s*2026-10-05')
     Assert-Condition "COPY.md contains Duration" ($copyText.Contains($expectedDuration))
-    Assert-Condition "COPY.md contains attached asset markdown link" ($copyText -match 'Brief_Assets/product_hero\.jpg')
+    Assert-Condition "COPY.md contains attached asset markdown link" ($copyText -match '01_BRIEF_ASSETS/product_hero\.jpg')
 
     # ─── TEST 3: Validate README.md Frontmatter ──────────────────────────
     Write-Host "`n--- STEP 3: Verifying README.md Frontmatter ---" -ForegroundColor Yellow
