@@ -107,8 +107,9 @@
       });
       submittedResult = {
         decision,
-        reviewer: res.reviewer,
-        timestamp: new Date().toLocaleString()
+        reviewer: res.reviewer || reviewerName.trim(),
+        timestamp: new Date().toLocaleString(),
+        whatsappUrl: res.whatsappUrl || null
       };
     } catch (err: any) {
       alert(`Decision submission failed: ${err.message}`);
@@ -177,6 +178,24 @@
           <div class="receipt-row"><span>Recorded At:</span> <b>{submittedResult.timestamp}</b></div>
           <div class="receipt-row"><span>Project:</span> <b>{reviewData?.project?.title} ({reviewData?.project?.jobId})</b></div>
         </div>
+
+        {#if submittedResult.whatsappUrl}
+          <div class="wa-dispatch-box">
+            <p class="wa-dispatch-hint">Notify Lead Creative (Harussani) of your sign-off decision via WhatsApp:</p>
+            <a
+              href={submittedResult.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="wa-dispatch-btn"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.072-1.047-.063-.263-.087-.605-.205-1.028-.393-1.808-.802-2.986-2.616-3.076-2.736-.089-.12-0.73-0.971-.73-1.852 0-.882.463-1.316.627-1.492.164-.176.357-.22.477-.22.12 0 .24 0 .344.006.111.006.26-.042.406.31.15.362.513 1.25.558 1.341.045.091.075.197.015.317-.06.12-.09.196-.179.301-.089.106-.188.236-.269.317-.09.09-.184.188-.079.368.106.18.47 0.776 1.009 1.256.694.618 1.279.81 1.46.899.18.09.286.075.391-.045.105-.12.45-.525.57-.705.12-.18.24-.15.405-.09.165.06 1.05.495 1.23.585.18.09.3.135.345.21.045.075.045.435-.099.84z"/>
+              </svg>
+              <span>Notify Lead Creative via WhatsApp</span>
+            </a>
+          </div>
+        {/if}
+
         <button class="back-btn" onclick={() => submittedResult = null}>Return to Deliverables</button>
       </div>
 
@@ -201,17 +220,28 @@
             <h2 class="section-title">Creative Deliverables for Review ({sortedDeliverables.length})</h2>
             <span class="section-hint">Click any asset to inspect in full resolution, drop markup pins, or compare versions.</span>
           </div>
-          <div class="sort-control">
-            <span class="sort-label">Sort:</span>
-            <button
-              type="button"
-              class="sort-toggle-btn"
-              onclick={() => { sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; }}
-              title="Click to toggle ascending or descending"
+          <div class="header-actions-cluster">
+            <a
+              href={ApiClient.getPublicDownloadUrl(token)}
+              class="download-bundle-btn"
+              download
+              title="Download all deliverables in a single compressed .zip file"
             >
-              <span>Filename ({sortOrder === 'asc' ? 'ASC 1→9' : 'DESC 9→1'})</span>
-              <span class="sort-icon">{sortOrder === 'asc' ? '▲' : '▼'}</span>
-            </button>
+              <FluentIcons name="download" size={13} />
+              <span>Download All Deliverables (.zip)</span>
+            </a>
+            <div class="sort-control">
+              <span class="sort-label">Sort:</span>
+              <button
+                type="button"
+                class="sort-toggle-btn"
+                onclick={() => { sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; }}
+                title="Click to toggle ascending or descending"
+              >
+                <span>Filename ({sortOrder === 'asc' ? 'ASC 1→9' : 'DESC 9→1'})</span>
+                <span class="sort-icon">{sortOrder === 'asc' ? '▲' : '▼'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -326,6 +356,9 @@
       deliverable={selectedDeliverable}
       bind:open={lightboxOpen}
       onClose={() => lightboxOpen = false}
+      reviewToken={token}
+      reviewerName={reviewerName || 'Client Reviewer'}
+      reviewerOrg={reviewerOrg}
     />
   {/if}
 </div>
@@ -441,6 +474,28 @@
     gap: 12px;
   }
   .header-titles { display: flex; flex-direction: column; gap: 2px; }
+  .header-actions-cluster { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .download-bundle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(33, 161, 247, 0.12);
+    border: 1px solid rgba(33, 161, 247, 0.3);
+    border-radius: 6px;
+    color: #38BDF8;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .download-bundle-btn:hover {
+    background: #21A1F7;
+    border-color: #21A1F7;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(33, 161, 247, 0.35);
+  }
   .sort-control { display: flex; align-items: center; gap: 8px; }
   .sort-label { font-size: 12px; font-weight: 600; color: #94A3B8; }
   .sort-toggle-btn {
@@ -596,6 +651,45 @@
   }
   .receipt-row { display: flex; justify-content: space-between; margin-bottom: 4px; color: #94A3B8; }
   .receipt-row b { color: #FFF; }
+
+  .wa-dispatch-box {
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(37, 211, 102, 0.08);
+    border: 1px solid rgba(37, 211, 102, 0.25);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .wa-dispatch-hint {
+    font-size: 13px;
+    color: #94A3B8;
+    margin: 0;
+  }
+  .wa-dispatch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #25D366;
+    color: #072613;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.3);
+  }
+  .wa-dispatch-btn:hover {
+    background: #1EBE5D;
+    color: #000;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(37, 211, 102, 0.45);
+  }
 
   .back-btn {
     margin-top: 16px;

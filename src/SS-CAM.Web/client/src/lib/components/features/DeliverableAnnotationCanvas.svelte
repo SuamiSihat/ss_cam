@@ -34,6 +34,9 @@
     altText?: string;
     readOnly?: boolean;
     onAnnotationsCountChange?: (count: number) => void;
+    reviewToken?: string;
+    reviewerName?: string;
+    reviewerOrg?: string;
   }
 
   let {
@@ -43,7 +46,10 @@
     mediaType = 'image',
     altText = 'Deliverable Media',
     readOnly = false,
-    onAnnotationsCountChange
+    onAnnotationsCountChange,
+    reviewToken,
+    reviewerName,
+    reviewerOrg
   }: Props = $props();
 
   let annotations = $state<AnnotationItem[]>([]);
@@ -124,9 +130,11 @@
   });
 
   async function loadAnnotations() {
-    if (!projectId) return;
+    if (!projectId && !reviewToken) return;
     try {
-      const res = await ApiClient.getComments(projectId);
+      const res = reviewToken 
+        ? await ApiClient.getPublicComments(reviewToken)
+        : await ApiClient.getComments(projectId);
       if (res && res.comments) {
         // Filter strictly to comments for this deliverable that have annotation coordinates
         annotations = res.comments.filter(
@@ -185,21 +193,40 @@
   }
 
   async function savePendingPin() {
-    if (!pendingPin || !newPinContent.trim() || !projectId) return;
+    if (!pendingPin || !newPinContent.trim() || (!projectId && !reviewToken)) return;
     isSavingPin = true;
     try {
-      const res = await ApiClient.addComment(projectId, {
-        content: newPinContent.trim(),
-        deliverableId,
-        annotation: {
-          x: pendingPin.x,
-          y: pendingPin.y,
-          pinNumber: pendingPin.pinNumber,
-          priority: newPinPriority,
-          timestampSeconds: pendingPin.timestampSeconds,
-          timeFormatted: pendingPin.timeFormatted
-        }
-      });
+      let res;
+      if (reviewToken) {
+        res = await ApiClient.submitPublicComment(reviewToken, {
+          content: newPinContent.trim(),
+          deliverableId,
+          reviewerName: reviewerName || 'Client Reviewer',
+          author: reviewerName || 'Client Reviewer',
+          authorOrg: reviewerOrg || '',
+          annotation: {
+            x: pendingPin.x,
+            y: pendingPin.y,
+            pinNumber: pendingPin.pinNumber,
+            priority: newPinPriority,
+            timestampSeconds: pendingPin.timestampSeconds,
+            timeFormatted: pendingPin.timeFormatted
+          }
+        });
+      } else {
+        res = await ApiClient.addComment(projectId, {
+          content: newPinContent.trim(),
+          deliverableId,
+          annotation: {
+            x: pendingPin.x,
+            y: pendingPin.y,
+            pinNumber: pendingPin.pinNumber,
+            priority: newPinPriority,
+            timestampSeconds: pendingPin.timestampSeconds,
+            timeFormatted: pendingPin.timeFormatted
+          }
+        });
+      }
 
       if (res && res.comment) {
         annotations = [...annotations, res.comment];
@@ -224,6 +251,7 @@
 
   async function toggleResolvePin(pin: AnnotationItem, e: MouseEvent) {
     e.stopPropagation();
+    if (reviewToken || !projectId) return;
     try {
       const newStatus = !pin.resolved;
       await ApiClient.resolveComment(projectId, pin.id, newStatus);
@@ -236,6 +264,7 @@
 
   async function deletePin(pinId: string, e: MouseEvent) {
     e.stopPropagation();
+    if (reviewToken || !projectId) return;
     try {
       await ApiClient.deleteComment(projectId, pinId);
       annotations = annotations.filter(a => a.id !== pinId);
@@ -392,26 +421,28 @@
                 <p class="pin-content-text">{pin.content}</p>
               </div>
 
-              <div class="popover-actions">
-                <button
-                  type="button"
-                  class="resolve-action-btn"
-                  class:is-resolved={pin.resolved}
-                  onclick={(e) => toggleResolvePin(pin, e)}
-                >
-                  <FluentIcons name={pin.resolved ? 'history' : 'checkCircle'} size={12} />
-                  <span style="margin-left: 4px;">{pin.resolved ? 'Reopen' : 'Mark Resolved'}</span>
-                </button>
+              {#if !reviewToken}
+                <div class="popover-actions">
+                  <button
+                    type="button"
+                    class="resolve-action-btn"
+                    class:is-resolved={pin.resolved}
+                    onclick={(e) => toggleResolvePin(pin, e)}
+                  >
+                    <FluentIcons name={pin.resolved ? 'history' : 'checkCircle'} size={12} />
+                    <span style="margin-left: 4px;">{pin.resolved ? 'Reopen' : 'Mark Resolved'}</span>
+                  </button>
 
-                <button
-                  type="button"
-                  class="delete-action-btn"
-                  onclick={(e) => deletePin(pin.id, e)}
-                  title="Delete this pin"
-                >
-                  <FluentIcons name="delete" size={13} />
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    class="delete-action-btn"
+                    onclick={(e) => deletePin(pin.id, e)}
+                    title="Delete this pin"
+                  >
+                    <FluentIcons name="delete" size={13} />
+                  </button>
+                </div>
+              {/if}
             </div>
           {/if}
         </div>

@@ -126,6 +126,9 @@ class ShareService {
     }
     deliverables.sort((a, b) => (a.filename || '').localeCompare(b.filename || '', undefined, { numeric: true, sensitivity: 'base' }));
 
+    const CommentService = require('./CommentService');
+    const comments = CommentService.getComments(project.fullPath, project.jobId || project.id);
+
     return {
       shareInfo: {
         token: record.token,
@@ -146,7 +149,8 @@ class ShareService {
         creative_direction: project.creative_direction || {},
         copywriting: project.copywriting || {}
       },
-      deliverables
+      deliverables,
+      comments
     };
   }
 

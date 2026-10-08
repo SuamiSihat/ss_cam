@@ -13,6 +13,9 @@
     onClose?: () => void;
     onApprove?: (d: DeliverableItem) => Promise<void> | void;
     onRevision?: (d: DeliverableItem) => Promise<void> | void;
+    reviewToken?: string;
+    reviewerName?: string;
+    reviewerOrg?: string;
   }
 
   let {
@@ -20,7 +23,10 @@
     open = $bindable(false),
     onClose,
     onApprove,
-    onRevision
+    onRevision,
+    reviewToken,
+    reviewerName,
+    reviewerOrg
   }: Props = $props();
 
   let isSubmitting = $state<boolean>(false);
@@ -117,6 +123,9 @@
               deliverableId={deliverable.id || deliverable.filename}
               mediaUrl={deliverable.previewUrl}
               altText={deliverable.filename}
+              {reviewToken}
+              {reviewerName}
+              {reviewerOrg}
             />
           </div>
         {:else if deliverable.isVideo || deliverable.previewType === 'video'}
@@ -127,6 +136,9 @@
               mediaUrl={deliverable.streamUrl || deliverable.previewUrl}
               mediaType="video"
               altText={deliverable.filename}
+              {reviewToken}
+              {reviewerName}
+              {reviewerOrg}
             />
           </div>
         {:else if deliverable.isPdf || deliverable.previewType === 'pdf'}

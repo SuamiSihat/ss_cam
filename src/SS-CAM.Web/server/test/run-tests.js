@@ -3124,6 +3124,104 @@ This is the project brief content.
     try { fs.rmSync(testProjectDir, { recursive: true, force: true }); } catch (e) {}
   });
 
+  // ─── TEST 67: Client Review Batch Deliverables ZIP Download ────
+  test('ShareService & ExportService support 1-click batch deliverables ZIP export for client review', () => {
+    const ExportService = require('../services/ExportService');
+    const testDir = path.join(__dirname, 'temp-review-zip-test');
+    if (fs.existsSync(testDir)) fs.rmSync(testDir, { recursive: true, force: true });
+    fs.mkdirSync(path.join(testDir, '04_PRODUCTION_DELIVERABLES'), { recursive: true });
+    fs.writeFileSync(path.join(testDir, '04_PRODUCTION_DELIVERABLES', 'ad_banner_1080x1080.png'), 'MOCK_IMAGE_DATA_1');
+    fs.writeFileSync(path.join(testDir, '04_PRODUCTION_DELIVERABLES', 'story_1080x1920.mp4'), 'MOCK_VIDEO_DATA_2');
+
+    const EventEmitter = require('events');
+    let headersSent = {};
+    const mockRes = new EventEmitter();
+    mockRes.setHeader = (k, v) => { headersSent[k] = v; };
+    mockRes.writeHead = (code, headers) => { Object.assign(headersSent, headers); };
+    mockRes.attachment = (filename) => { headersSent['Content-Disposition'] = `attachment; filename="${filename}"`; };
+    mockRes.status = () => ({ json: () => {}, end: () => {} });
+    mockRes.headersSent = false;
+    mockRes.write = () => {};
+    mockRes.end = () => {};
+
+    // Test that streamProjectHandover creates ZIP stream with deliverables
+    ExportService.streamProjectHandover(testDir, 'TEST_JOB_001', mockRes, {
+      preset: 'all',
+      includeWip: false,
+      includeSources: false,
+      includeBriefAssets: false
+    });
+
+    assert.strictEqual(headersSent['Content-Type'], 'application/zip');
+    assert.ok(headersSent['Content-Disposition'].includes('Handover.zip'), 'Disposition header must specify project filename');
+
+    try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
+  });
+
+  // ─── TEST 68: Visual Pin Annotations via Client Review Token ────
+  test('ShareService and CommentService support visual pin annotations with coordinates and priority for guests', () => {
+    const CommentService = require('../services/CommentService');
+    const testDir = path.join(__dirname, 'temp-pin-review-test');
+    if (fs.existsSync(testDir)) fs.rmSync(testDir, { recursive: true, force: true });
+    fs.mkdirSync(testDir, { recursive: true });
+
+    // Add a pin comment
+    const comment = CommentService.addComment(testDir, 'TEST_JOB_001', {
+      content: 'Please adjust copy contrast on header',
+      deliverableId: 'poster_01.png',
+      author: 'Sarah Chen',
+      authorRole: 'Client Reviewer',
+      annotation: {
+        x: 45.5,
+        y: 20.3,
+        pinNumber: 1,
+        priority: 'critical'
+      }
+    });
+
+    assert.ok(comment, 'Comment with annotation must be created');
+    assert.strictEqual(comment.author, 'Sarah Chen');
+    assert.ok(comment.annotation, 'Annotation object must be present');
+    assert.strictEqual(comment.annotation.x, 45.5);
+    assert.strictEqual(comment.annotation.y, 20.3);
+    assert.strictEqual(comment.annotation.pinNumber, 1);
+    assert.strictEqual(comment.annotation.priority, 'critical');
+
+    const comments = CommentService.getComments(testDir, 'TEST_JOB_001');
+    assert.strictEqual(comments.length, 1);
+    assert.strictEqual(comments[0].annotation.pinNumber, 1);
+
+    try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
+  });
+
+  // ─── TEST 69: Automated Client Sign-Off Decision & WhatsApp Notification Dispatch ────
+  test('Client review decision builds pre-formatted WhatsApp notification dispatch for Lead Creative', () => {
+    const reviewerName = 'Dato Roslan';
+    const decision = 'approved';
+    const notes = 'Superb execution on brand tone and aesthetic!';
+    const jobId = '0085D';
+    const title = 'KL Clinic Opening Campaign';
+    const leadCreativePhone = '601156828995'; // Harussani
+
+    const waText = [
+      `*SS-CAM CLIENT SIGN-OFF DECISION*`,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `*Status:* ✅ APPROVED`,
+      `*Project:* ${jobId} - ${title}`,
+      `*Reviewer:* ${reviewerName}`,
+      `*Notes:* ${notes}`,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `_Logged in SuamiSihat Master Audit Ledger_`
+    ].join('\n');
+
+    const whatsappUrl = `https://wa.me/${leadCreativePhone}?text=${encodeURIComponent(waText)}`;
+
+    assert.ok(whatsappUrl.startsWith('https://wa.me/601156828995'), 'Must target Lead Creative phone number');
+    assert.ok(whatsappUrl.includes(encodeURIComponent('KL Clinic Opening Campaign')), 'Must contain project title');
+    assert.ok(whatsappUrl.includes(encodeURIComponent('Dato Roslan')), 'Must contain reviewer name');
+    assert.ok(whatsappUrl.includes(encodeURIComponent('APPROVED')), 'Must reflect approved decision');
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {

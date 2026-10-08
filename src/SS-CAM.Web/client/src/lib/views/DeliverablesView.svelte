@@ -361,7 +361,7 @@
                 </button>
 
                 <a 
-                  href="/api/projects/{encodeURIComponent(group.projectId)}/export/zip" 
+                  href={ApiClient.getProjectExportUrl(group.projectId, 'all')} 
                   download="{group.jobId}_deliverables.zip"
                   class="group-action-btn"
                   title="Download Project Handover ZIP"

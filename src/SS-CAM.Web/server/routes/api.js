@@ -1113,7 +1113,7 @@ router.get('/projects/:id', authenticateToken, (req, res) => {
   }
 });
 
-router.get('/projects/:id/export', authenticateToken, (req, res) => {
+router.get(['/projects/:id/export', '/projects/:id/export/zip'], authenticateToken, (req, res) => {
   try {
     const project = WorkspaceService.getProjectById(req.params.id);
     if (!project) {
@@ -1526,7 +1526,70 @@ router.post('/public/review/:token/decision', (req, res) => {
       status: decision
     });
 
-    res.json({ success: true, message: `Decision recorded: ${decision}`, reviewer });
+    // Generate pre-formatted WhatsApp notification URL for Lead Creative
+    const statusEmoji = decision === 'approved' ? '✅ *APPROVED*' : (decision === 'revision_requested' ? '⚠️ *REVISION REQUESTED*' : '❌ *REJECTED*');
+    const waText = [
+      `🎨 *SS-CAM Creative Review Decision*`,
+      ``,
+      `*Project:* ${data.project.jobId || data.project.id} - ${data.project.title || 'Creative Campaign'}`,
+      `*Status:* ${statusEmoji}`,
+      `*Reviewer:* ${reviewer}`,
+      comment.trim() ? `*Notes:* "${comment.trim()}"` : '',
+      `*Portal Link:* https://creative.suamisihat.myds.me/#review?token=${encodeURIComponent(req.params.token)}`
+    ].filter(Boolean).join('\n');
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`;
+
+    res.json({ success: true, message: `Decision recorded: ${decision}`, reviewer, whatsappUrl, waText });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/public/review/:token/download', (req, res) => {
+  try {
+    const data = ShareService.validateToken(req.params.token);
+    if (!data) {
+      return res.status(404).json({ error: 'Review link is invalid or has expired.' });
+    }
+
+    const project = WorkspaceService.getProjectById(data.project.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project folder not found.' });
+    }
+
+    const folderName = path.basename(project.fullPath);
+    const preset = (req.query.preset || 'all').toLowerCase();
+
+    WebhookService.dispatch('HANDOVER_EXPORTED', {
+      title: `Client Handover Download: ${project.title || folderName} (${preset.toUpperCase()})`,
+      description: `Client downloaded creative deliverables for ${project.jobId || data.project.id}.`,
+      actor: 'Client Reviewer',
+      brand: project.brand || 'SS',
+      jobId: project.jobId || data.project.id
+    });
+
+    ExportService.streamProjectHandover(project.fullPath, data.project.id, res, {
+      preset,
+      includeWip: false,
+      includeSources: false,
+      includeBriefAssets: false
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/public/review/:token/comments', (req, res) => {
+  try {
+    const data = ShareService.validateToken(req.params.token);
+    if (!data) {
+      return res.status(404).json({ error: 'Review link is invalid or has expired.' });
+    }
+
+    const project = WorkspaceService.getProjectById(data.project.id);
+    const comments = CommentService.getComments(project ? project.fullPath : null, data.project.id);
+    res.json({ comments });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1540,11 +1603,15 @@ router.post('/public/review/:token/comments', (req, res) => {
     }
 
     const project = WorkspaceService.getProjectById(data.project.id);
-    const { content, reviewerName, reviewerOrg, deliverableId, pinX, pinY } = req.body;
+    const { content, reviewerName, reviewerOrg, deliverableId, pinX, pinY, annotation } = req.body;
 
     const author = (reviewerName && reviewerName.trim()) 
       ? `${reviewerName.trim()}${reviewerOrg ? ` (${reviewerOrg.trim()})` : ''}` 
       : 'Guest Reviewer';
+
+    // Support both flattened pinX/pinY and structured annotation object
+    const finalPinX = (annotation && typeof annotation.x === 'number') ? annotation.x : pinX;
+    const finalPinY = (annotation && typeof annotation.y === 'number') ? annotation.y : pinY;
 
     const comment = CommentService.addComment(project ? project.fullPath : null, data.project.id, {
       author,
@@ -1552,8 +1619,9 @@ router.post('/public/review/:token/comments', (req, res) => {
       authorAvatar: '#10B981',
       content,
       deliverableId,
-      pinX,
-      pinY
+      pinX: finalPinX,
+      pinY: finalPinY,
+      annotation: annotation || (finalPinX != null ? { x: finalPinX, y: finalPinY } : undefined)
     });
 
     SseService.broadcast('comment:added', { projectId: data.project.id, comment });

@@ -414,6 +414,19 @@ export class ApiClient {
     return this.request(`/public/review/${encodeURIComponent(token)}`);
   }
 
+  static getPublicComments(token: string): Promise<{ comments: any[] }> {
+    return this.request(`/public/review/${encodeURIComponent(token)}/comments`);
+  }
+
+  static getPublicDownloadUrl(token: string, preset = 'all'): string {
+    return `/api/public/review/${encodeURIComponent(token)}/download?preset=${encodeURIComponent(preset)}`;
+  }
+
+  static getProjectExportUrl(projectId: string, preset = 'all'): string {
+    const token = this.getToken();
+    return `/api/projects/${encodeURIComponent(projectId)}/export?preset=${encodeURIComponent(preset)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+  }
+
   static submitPublicDecision(token: string, payload: { decision: string; reviewerName: string; reviewerOrg?: string; comment?: string; deliverableId?: string | null }): Promise<any> {
     return this.request(`/public/review/${encodeURIComponent(token)}/decision`, {
       method: 'POST',
@@ -421,7 +434,7 @@ export class ApiClient {
     });
   }
 
-  static submitPublicComment(token: string, payload: { content: string; reviewerName: string; reviewerOrg?: string; deliverableId?: string | null; pinX?: number; pinY?: number }): Promise<any> {
+  static submitPublicComment(token: string, payload: { content: string; reviewerName?: string; author?: string; authorOrg?: string; reviewerOrg?: string; deliverableId?: string | null; pinX?: number; pinY?: number; annotation?: any }): Promise<any> {
     return this.request(`/public/review/${encodeURIComponent(token)}/comments`, {
       method: 'POST',
       body: JSON.stringify(payload)
