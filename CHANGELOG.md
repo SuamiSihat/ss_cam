@@ -2,6 +2,43 @@
 
 All notable SS-CAM changes are documented here.
 
+## [5.1.0] - 2026-10-08 (Clinic Operations & PERNAS Franchise Standardization)
+
+### Healthcare & Clinical Governance
+
+- **KKM Regulatory Compliance Gateway & Clinical Preflight Validator**:
+  - Implemented regulatory audit engine under Malaysia Medicines (Advertisement & Sale) Act 1956 prohibiting unverified therapeutic guarantees (`sembuh serta-merta`, `100% pulih`, `bebas kencing manis`).
+  - **Desktop C# WPF**: Added `RegulatoryComplianceService.cs` (C# 5 syntax) and integrated as Check 8 in `PreflightValidatorService.cs` with 1-click AutoFix injection of mandatory medical disclaimers (`Nasihat Pakar Diperlukan`, `Hasil Rawatan Berbeza`).
+  - **Web Portal**: Added `RegulatoryService.js` with endpoints (`/api/regulatory/rules`, `/api/regulatory/verify`, `/api/regulatory/claims`, `/api/regulatory/disclaimer`), validating KKLIU/MAL advertisement approval numbers and serving approved clinical claims.
+  - **Franchise Clinical SOP Manuals**: Automated zero-latency scaffolding of 4 core clinical manuals under NAS vault `_Clinic/SOP_Manuals` (SOP-01 Consultation Protocol, SOP-02 ESWT Shockwave Safety, SOP-03 TRT Hormonal Monitoring, SOP-04 Medical Emergency Response).
+
+### Franchise Clinic & Branch Management
+
+- **Branch Marketing & Patient Intake Kit**:
+  - **Desktop C# WPF**: Upgraded `QrCodeEncoderService.cs`, `QrCodePage.xaml`, and `QrCodePage.xaml.cs` with dedicated "Clinic Intake" suite supporting 4 canonical branch presets (Bangsar HQ, Kota Damansara, Johor Bahru, Penang) across WhatsApp Doctor Consultation, Touchless Waiting Lounge Check-in, and Google Review channels.
+  - **Web Portal**: Added `BranchService.js` and endpoints (`/api/clinic/branches`, `/api/clinic/branches/:code`, `/api/clinic/branches/:code/intake`, `/api/clinic/branch-inject`) with automated branch contact, address, and operating hours template injection.
+
+### Patient Aftercare & Clinical Engagement
+
+- **Post-Treatment Digital Care Dispatcher**:
+  - **Desktop C# WPF**: Added clinical recovery copy presets in `CopywritingDesktopService.cs` (`clinic_eswt_aftercare`, `clinic_trt_aftercare`) with 48h protocol guidance, anti-inflammatory precautions, and doctor follow-up reminders.
+  - **Web Portal**: Added `CareDispatcherService.js` with endpoints (`/api/clinic/care-protocols`, `/api/clinic/care-dispatch`), generating formatted bilingual recovery instructions and 1-click `wa.me/` patient dispatch links for ESWT, TRT, PE/ED, and Minor Procedures.
+
+### Waiting Lounge & Consultation Suites
+
+- **Waiting Lounge TV Signage Engine**:
+  - Implemented `SignageView.svelte` for 16:9 fullscreen smart TV displays in clinic waiting lounges.
+  - Features real-time clock, doctor-on-duty spotlight, live queue caller (`A-1028 -> Bilik 1`), rotating health literacy slides, touchless check-in QR code, and bottom news/ticker alerts.
+  - Direct `#signage` / `#kiosk` hash routing in `App.svelte` bypasses sidebar navigation and renders pure full-bleed TV interface.
+- **In-Clinic Patient Consultation Suite**:
+  - Implemented `ConsultationSuiteView.svelte` for doctors and clinical consultants.
+  - Features interactive 4-phase clinical recovery timeline slider (Week 1–12+), SVG anatomical vascular bed simulation, and 1-click WhatsApp care dispatcher modal.
+
+### Ecosystem Synchronization
+
+- **Cross-Platform Version Parity (`v5.1.0`)**:
+  - Synchronized SSoT version `5.1.0` across Desktop WPF (`MainWindow.xaml`, `AssemblyInfo.cs` 5.1.0.0), Web Portal (`package.json`, `package-lock.json`, `App.svelte`), Linux Avalonia (`SS-CAM.Linux.csproj`), Android Native Companion (`build.gradle.kts` versionCode 5100), installer (`installer/version.json`), and automated QA smoke test suites (77/77 Web tests, 10/10 Desktop STA smoke, 30/30 Order handshake, 73/73 Linux coverage, 14/14 Dual-track gatekeeper).
+
 ## [5.0.0] - 2026-10-08 (Multi-Platform Ecosystem Expansion — Multi-Workspace NAS Switching & Corporate Holding Switcher)
 
 ### Multi-Platform Ecosystem & Infrastructure

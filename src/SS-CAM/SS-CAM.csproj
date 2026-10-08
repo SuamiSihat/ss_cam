@@ -254,6 +254,7 @@
     <Compile Include="Services\DashboardLayoutService.cs" />
     <Compile Include="Services\AssetNamingService.cs" />
     <Compile Include="Services\PreflightValidatorService.cs" />
+    <Compile Include="Services\RegulatoryComplianceService.cs" />
     <Compile Include="Services\WorkloadSlaService.cs" />
     <Compile Include="Services\MalaysiaHolidayService.cs" />
     <Compile Include="Services\VisualDiffService.cs" />

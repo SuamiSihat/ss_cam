@@ -23,6 +23,9 @@ const WebhookService = require('../services/WebhookService');
 const OrderService = require('../services/OrderService');
 const TaskService = require('../services/TaskService');
 const EmailService = require('../services/EmailService');
+const RegulatoryService = require('../services/RegulatoryService');
+const BranchService = require('../services/BranchService');
+const CareDispatcherService = require('../services/CareDispatcherService');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 
@@ -3061,6 +3064,111 @@ router.post('/admin/restart', authenticateToken, requireRole('admin'), (req, res
       console.log('[Server] Graceful restart requested by', req.user?.name);
       process.exit(0);
     }, 300);
+  }
+});
+
+// ─── CLINICAL OPERATIONS & PERNAS STANDARDIZATION ROUTES (v5.1.0) ───
+
+// GET /api/regulatory/rules — Regulatory rules and prohibited claims
+router.get('/regulatory/rules', (req, res) => {
+  res.json({
+    success: true,
+    prohibitedTerms: RegulatoryService.verifyCopy('').infractions,
+    disclaimerMs: RegulatoryService.getMedicalDisclaimer('ms'),
+    disclaimerEn: RegulatoryService.getMedicalDisclaimer('en')
+  });
+});
+
+// POST /api/regulatory/verify — Verify copy against KKM / LIU guidelines
+router.post('/regulatory/verify', (req, res) => {
+  try {
+    const { text } = req.body;
+    const audit = RegulatoryService.verifyCopy(text || '');
+    res.json({ success: true, ...audit });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/regulatory/claims — Pre-approved clinical claims catalog
+router.get('/regulatory/claims', (req, res) => {
+  const { category } = req.query;
+  const claims = RegulatoryService.getApprovedClaims(category);
+  res.json({ success: true, claims });
+});
+
+// GET /api/regulatory/disclaimer — Standard medical disclaimer
+router.get('/regulatory/disclaimer', (req, res) => {
+  const { lang } = req.query;
+  const disclaimer = RegulatoryService.getMedicalDisclaimer(lang === 'en' ? 'en' : 'ms');
+  res.json({ success: true, disclaimer });
+});
+
+// GET /api/clinic/sops — List of Standard Operating Procedure manuals
+router.get('/clinic/sops', (req, res) => {
+  try {
+    const sops = RegulatoryService.getSopManuals(WorkspaceService.workspaceRoot);
+    res.json({ success: true, sops });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/clinic/sops/:id — Get specific SOP manual markdown content
+router.get('/clinic/sops/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const content = RegulatoryService.getSopManualContent(WorkspaceService.workspaceRoot, id);
+    if (!content) return res.status(404).json({ error: 'SOP manual not found.' });
+    res.json({ success: true, id, content });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/clinic/branches — List of clinic branches
+router.get('/clinic/branches', (req, res) => {
+  res.json({ success: true, branches: BranchService.getBranches() });
+});
+
+// GET /api/clinic/branches/:code — Get branch profile
+router.get('/clinic/branches/:code', (req, res) => {
+  const branch = BranchService.getBranchByCode(req.params.code);
+  if (!branch) return res.status(404).json({ error: 'Branch not found.' });
+  res.json({ success: true, branch });
+});
+
+// GET /api/clinic/branches/:code/intake — Generate dynamic intake QR payload
+router.get('/clinic/branches/:code/intake', (req, res) => {
+  const { type, treatment } = req.query;
+  const payload = BranchService.generateIntakePayload(req.params.code, type || 'consult', treatment || 'Umum');
+  res.json({ success: true, ...payload });
+});
+
+// POST /api/clinic/branch-inject — Inject branch variables into template copy
+router.post('/clinic/branch-inject', (req, res) => {
+  try {
+    const { templateText, branchCode, doctorName } = req.body;
+    if (!templateText) return res.status(400).json({ error: 'templateText is required.' });
+    const rendered = BranchService.injectBranchDetails(templateText, branchCode, doctorName);
+    res.json({ success: true, rendered });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/clinic/care-protocols — Post-treatment care recovery protocols
+router.get('/clinic/care-protocols', (req, res) => {
+  res.json({ success: true, protocols: CareDispatcherService.getProtocols() });
+});
+
+// POST /api/clinic/care-dispatch — Generate 1-click WhatsApp recovery leaflet
+router.post('/clinic/care-dispatch', (req, res) => {
+  try {
+    const result = CareDispatcherService.generateDispatchMessage(req.body || {});
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

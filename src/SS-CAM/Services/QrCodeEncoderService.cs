@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Media.Imaging;
 using SS_CAM.Models;
 
@@ -94,6 +95,24 @@ namespace SS_CAM.Services
         }
     }
 
+    public class ClinicBranchPreset
+    {
+        public string Code { get; set; }
+        public string Name { get; set; }
+        public string WhatsAppNumber { get; set; }
+        public string CheckInUrl { get; set; }
+        public string GoogleReviewUrl { get; set; }
+
+        public ClinicBranchPreset(string code, string name, string whatsapp, string checkin, string review)
+        {
+            Code = code;
+            Name = name;
+            WhatsAppNumber = whatsapp;
+            CheckInUrl = checkin;
+            GoogleReviewUrl = review;
+        }
+    }
+
     public class QrCodeEncoderService
     {
         private static QrCodeEncoderService _instance;
@@ -122,6 +141,34 @@ namespace SS_CAM.Services
                 if (_instance == null) _instance = new QrCodeEncoderService();
                 return _instance;
             }
+        }
+
+        public static List<ClinicBranchPreset> GetClinicBranches()
+        {
+            List<ClinicBranchPreset> list = new List<ClinicBranchPreset>();
+            list.Add(new ClinicBranchPreset("SSC-BSR", "SuamiSihat Clinic Bangsar (HQ)", "+60123456789", "https://suamisihat.clinic/checkin/bangsar", "https://g.page/r/suamisihat-bangsar/review"));
+            list.Add(new ClinicBranchPreset("SSC-KD", "SuamiSihat Clinic Kota Damansara", "+60123456780", "https://suamisihat.clinic/checkin/kotadamansara", "https://g.page/r/suamisihat-kd/review"));
+            list.Add(new ClinicBranchPreset("SSC-JB", "SuamiSihat Clinic Johor Bahru", "+60123456781", "https://suamisihat.clinic/checkin/jb", "https://g.page/r/suamisihat-jb/review"));
+            list.Add(new ClinicBranchPreset("SSC-PNG", "SuamiSihat Clinic Penang", "+60123456782", "https://suamisihat.clinic/checkin/penang", "https://g.page/r/suamisihat-penang/review"));
+            return list;
+        }
+
+        public static string GenerateBranchWhatsAppConsultUrl(string branchCode, string treatmentName)
+        {
+            List<ClinicBranchPreset> branches = GetClinicBranches();
+            ClinicBranchPreset target = branches[0];
+            foreach (ClinicBranchPreset b in branches)
+            {
+                if (string.Equals(b.Code, branchCode, StringComparison.OrdinalIgnoreCase))
+                {
+                    target = b;
+                    break;
+                }
+            }
+
+            string digits = Regex.Replace(target.WhatsAppNumber, @"[^0-9]", "");
+            string text = Uri.EscapeDataString(string.Format("Salam sejahtera {0}. Saya ingin membuat pertanyaan sulit mengenai konsultasi {1}.", target.Name, !string.IsNullOrWhiteSpace(treatmentName) ? treatmentName : "Umum"));
+            return string.Format("https://wa.me/{0}?text={1}", digits, text);
         }
 
         public static string GetDefaultUrl()

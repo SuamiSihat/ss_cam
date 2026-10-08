@@ -1,6 +1,6 @@
 # SS-CAM Project Roadmap
 
-> **Living document.** Updated with every release. Last updated: 2026-10-06.
+> **Living document.** Updated with every release. Last updated: 2026-10-08.
 
 ---
 
@@ -63,32 +63,27 @@
 | **v4.14.0** | 2026-10-08 | **Cloud Collaboration, Destructive Storage Pruning & Deep Print Preflights**: Automated bi-directional Discord/Slack webhook alert pipeline for deliverable approvals, revisions, and handover exports (`WebhookService`); destructive Move-to-Archive with storage reclamation tracking in `ArchiveVaultService` and Web `ExportService`; deep print preflight checks (`PreflightValidatorService`) inspecting CMYK vs RGB color profiles on PSD/PDF assets, vector packaging dielines, and 3mm bleed tolerances; and canonical 5-folder hierarchy standard (`01_BRIEF_ASSETS` through `05_DELIVERABLES`) |
 | **v4.15.0** | 2026-10-08 | **In-App Video Proxy Streamer & Proofing Overlays, Multi-Format Packaging Presets & Automated NAS Quota Telemetry**: Integrated canvas markup overlays directly on video streams with second-accurate timestamped review pins and interactive timeline scrubber markers (`DeliverableAnnotationCanvas`); dynamic multi-format packaging presets (`print`, `web`, `archive`, `all`) with selective file filtering and manifest summary sheets (`ExportService`); automated Synology NAS volume quota telemetry, capacity threshold alerts, and cold storage archive recommendation triggers (`WorkspaceService.getNasStorageTelemetry`, `UserProfileService.GetSystemSpecs`, `/api/system/status`) |
 | **v5.0.0** | 2026-10-08 | **Multi-Platform Ecosystem Expansion & Corporate Governance**: Cross-platform multi-workspace NAS switching across canonical business unit shares (`Creative-Team`, `Video-Production`, `Marketing-Assets`) with dynamic mount discovery, volume quota telemetry, and departmental attribution; Web Portal Corporate Holding Switcher (`SSH`, `SSC`, `SSW`, `SSE`, `SST`) with brand token integration and instant subsidiary focus in `AdminView.svelte`; Linux Avalonia UI 12.1 business unit switcher and 73-point QA coverage parity; and synchronized SSoT release across Windows WPF, Linux Avalonia, Web Portal, and Android Companion. |
+| **v5.1.0** | 2026-10-08 | **Clinic Operations & PERNAS Franchise Standardization**: Full strategic alignment with PERNAS Franchise Development Grant application; KKM Regulatory Compliance Gateway & Clinical Preflight Validator (Medicines Advertisement Act 1956, KKLIU/MAL code verification, disclaimer autofix); Waiting Lounge TV Signage Engine (`SignageView.svelte`, `#signage` full-bleed kiosk route, live queue caller); In-Clinic Patient Consultation Suite (`ConsultationSuiteView.svelte`, 4-phase recovery timeline, vascular simulation); Branch Marketing & Patient Intake Kit (Bangsar HQ, KD, JB, Penang branch presets across Desktop & Web); Post-Treatment Digital Care Dispatcher (automated bilingual recovery leaflets & 1-click WhatsApp dispatch); and 4 versioned clinical SOP manuals in NAS vault `_Clinic/SOP_Manuals`. |
 
 ---
 
-## 🎯 Active Milestone — v5.1.0: Clinic Operations & PERNAS Franchise Standardization (Target: Q1–Q2 2027)
-
-> **Strategic Alignment**: Directly aligns with the **PERNAS (Perbadanan Nasional Berhad)** Franchise Development Grant application for SuamiSihat Clinic (SSC).  
-> **Official Proposal Reference**: [`docs/KERTAS_CADANGAN_GERAN_PERNAS_SSCAM.md`](./docs/KERTAS_CADANGAN_GERAN_PERNAS_SSCAM.md) · [PDF Version](./docs/KERTAS_CADANGAN_GERAN_PERNAS_SSCAM.pdf)
+## 🎯 Active Milestone — v5.2.0: Enterprise Intelligence & Asset Versioning (Target: Q3 2027)
 
 | Feature / Module | Target Platform | Description & Operational Impact |
 |---|---|---|
-| **In-Clinic Patient Consultation Suite** | Android Tablet (`SS-CAM.Android`) & Web (`SS-CAM.Web`) | Interactive 3D medical anatomy diagrams, treatment procedure simulations (ESWT Shockwave Therapy, TRT hormonal therapy, PE/ED treatment roadmaps), and recovery timelines used by doctors in consultation rooms. |
-| **Waiting Lounge TV Signage Engine** | Android TV (`SS-CAM.Android`) / Web Kiosk | Automated on-device digital signage player: dynamic doctor-on-duty schedules, queue announcements, and KKM-approved health literacy video loops running without internet buffering. |
-| **KKM Regulatory Compliance Gateway** | WPF Desktop (`SS-CAM`) & Web Admin | Single source of truth for Ministry of Health (KKM) / Medical Advertising Board (LIU/MAB) pre-approved claims, audit logs, and locked templates preventing unauthorized branch claims. |
-| **Branch Marketing & Patient Intake Kit** | Web Portal & Desktop (`QrCodePage`) | Dynamic branch QR code generator (touchless patient check-in, WhatsApp consult, Google reviews) and automated branch address/contact injection into HQ campaign templates. |
-| **Post-Treatment Digital Care Dispatcher** | Web Portal & Mobile Companion | 1-click WhatsApp/SMS aftercare guide generator delivering bilingual recovery leaflets, dosage precautions, and follow-up appointment reminders directly to patient smartphones. |
-| **Franchise SOP Knowledge Base** | Synology NAS Vault (`_Clinic/SOP_Manuals`) | Version-controlled clinical and operational Standard Operating Procedure (SOP) manuals ensuring uniform service delivery across all franchise clinic branches. |
+| **Asset Revision Snapshots** | WPF Desktop & Web Portal | Visual diff timeline, thumbnail caching, and rollback engine for `.afdesign`, `.psd`, and `.ai` binary files stored across NAS vaults. |
+| **AI Creative Assistant** | Cross-Platform (Desktop, Web, Android) | Local/Offline LLM integration for generating compliant ad hooks, drafting campaign briefs, translating Malay/English copy, and suggesting clinical analogies. |
+| **Real-time Live Sync Hub** | High-Throughput Service | Zero-latency bi-directional synchronization bridge between native clients (Windows, Linux, Android) and Synology NAS storage clusters. |
 
 ---
 
-## 🔮 Future Exploration — v5.2.0: Enterprise Intelligence & Asset Versioning (Target: Q3 2027)
+## 🔮 Future Exploration — v5.3.0: Autonomous Campaign Orchestration & Multi-Region Sync (Target: Q4 2027)
 
 | Area | Idea |
 |------|------|
-| **Asset Revision Snapshots** | Visual diff timeline and rollback engine for `.afdesign` and `.psd` binaries |
-| **AI Creative Assistant** | Local/Offline LLM integration for generating ad hooks, drafting campaign briefs, and translating copy |
-| **Real-time Live Sync Hub** | High-throughput bi-directional synchronization bridge between native clients and NAS storage |
+| **Multi-Region Cluster Federation** | Synchronize brand vaults and clinical assets across international branch hubs (Malaysia, Singapore, Indonesia) |
+| **Automated Omnichannel Publisher** | 1-click direct publishing to Meta Ads Manager, TikTok Creative Center, and Google Marketing Platform |
+| **Predictive Creative Analytics** | Machine-learning CTR and ROAS forecasting engine analyzing past campaign assets |
 
 ---
 

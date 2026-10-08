@@ -249,7 +249,7 @@ class WorkspaceService {
 
     try {
       this.watcher = chokidar.watch(this.workspaceRoot, {
-        ignored: /(^|[\/\\])(\..|node_modules|@eaDir|#recycle|\$RECYCLE\.BIN|_Team|_Orders|_Audit|~|\.tmp$)/,
+        ignored: /(^|[\/\\])(\..|node_modules|@eaDir|#recycle|\$RECYCLE\.BIN|_Team|_Orders|_Audit|_Clinic|~|\.tmp$)/,
         persistent: true,
         ignoreInitial: true,
         depth: 5
@@ -285,7 +285,7 @@ class WorkspaceService {
         }
 
         // Ignore temporary/system files that shouldn't trigger project scan
-        if (filePath.includes('@eaDir') || filePath.includes('#recycle') || filePath.includes('_Orders') || filePath.includes('_Audit') || filePath.endsWith('.tmp')) {
+        if (filePath.includes('@eaDir') || filePath.includes('#recycle') || filePath.includes('_Orders') || filePath.includes('_Audit') || filePath.includes('_Clinic') || filePath.endsWith('.tmp')) {
           return;
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
@@ -234,10 +235,67 @@ namespace SS_CAM.Views
                     string mailTo = TxtEmailTo != null ? TxtEmailTo.Text : "";
                     string mailSub = Uri.EscapeDataString(TxtEmailSubject != null ? TxtEmailSubject.Text : "");
                     return string.Format("mailto:{0}?subject={1}", mailTo, mailSub);
+                case "CLINIC":
+                    string branchCode = "SSC-BSR";
+                    if (CmbClinicBranch != null && CmbClinicBranch.SelectedItem != null)
+                    {
+                        ComboBoxItem bi = CmbClinicBranch.SelectedItem as ComboBoxItem;
+                        if (bi != null && bi.Tag != null) branchCode = bi.Tag.ToString();
+                    }
+
+                    string intakeType = "CONSULT";
+                    if (CmbClinicIntakeType != null && CmbClinicIntakeType.SelectedItem != null)
+                    {
+                        ComboBoxItem ii = CmbClinicIntakeType.SelectedItem as ComboBoxItem;
+                        if (ii != null && ii.Tag != null) intakeType = ii.Tag.ToString();
+                    }
+
+                    string treatment = "Umum";
+                    if (CmbClinicTreatment != null && CmbClinicTreatment.SelectedItem != null)
+                    {
+                        ComboBoxItem ti = CmbClinicTreatment.SelectedItem as ComboBoxItem;
+                        if (ti != null && ti.Content != null) treatment = ti.Content.ToString();
+                    }
+
+                    List<ClinicBranchPreset> branches = QrCodeEncoderService.GetClinicBranches();
+                    ClinicBranchPreset selectedBranch = branches[0];
+                    foreach (ClinicBranchPreset b in branches)
+                    {
+                        if (string.Equals(b.Code, branchCode, StringComparison.OrdinalIgnoreCase))
+                        {
+                            selectedBranch = b;
+                            break;
+                        }
+                    }
+
+                    string payload = string.Empty;
+                    if (intakeType == "CHECKIN")
+                    {
+                        payload = selectedBranch.CheckInUrl;
+                    }
+                    else if (intakeType == "REVIEW")
+                    {
+                        payload = selectedBranch.GoogleReviewUrl;
+                    }
+                    else
+                    {
+                        payload = QrCodeEncoderService.GenerateBranchWhatsAppConsultUrl(branchCode, treatment);
+                    }
+
+                    if (TxtClinicPayload != null)
+                    {
+                        TxtClinicPayload.Text = payload;
+                    }
+                    return payload;
                 case "URL":
                 default:
                     return TxtUrl != null ? TxtUrl.Text : QrCodeEncoderService.GetDefaultUrl();
             }
+        }
+
+        private void OnClinicOptionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ScheduleRebuild();
         }
 
         private void OnContentTypeClicked(object sender, RoutedEventArgs e)
@@ -260,6 +318,7 @@ namespace SS_CAM.Views
             if (BtnTabVCard != null) BtnTabVCard.Appearance = _activeContentType == "VCARD" ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
             if (BtnTabWhatsApp != null) BtnTabWhatsApp.Appearance = _activeContentType == "WHATSAPP" ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
             if (BtnTabEmail != null) BtnTabEmail.Appearance = _activeContentType == "EMAIL" ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+            if (BtnTabClinic != null) BtnTabClinic.Appearance = _activeContentType == "CLINIC" ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
 
             // Toggle Input Visibility
             if (PanelUrlInput != null) PanelUrlInput.Visibility = _activeContentType == "URL" ? Visibility.Visible : Visibility.Collapsed;
@@ -268,6 +327,7 @@ namespace SS_CAM.Views
             if (PanelVCardInput != null) PanelVCardInput.Visibility = _activeContentType == "VCARD" ? Visibility.Visible : Visibility.Collapsed;
             if (PanelWhatsAppInput != null) PanelWhatsAppInput.Visibility = _activeContentType == "WHATSAPP" ? Visibility.Visible : Visibility.Collapsed;
             if (PanelEmailInput != null) PanelEmailInput.Visibility = _activeContentType == "EMAIL" ? Visibility.Visible : Visibility.Collapsed;
+            if (PanelClinicInput != null) PanelClinicInput.Visibility = _activeContentType == "CLINIC" ? Visibility.Visible : Visibility.Collapsed;
 
             ScheduleRebuild();
         }
@@ -541,6 +601,7 @@ namespace SS_CAM.Views
             if (BtnTabVCard != null) BtnTabVCard.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
             if (BtnTabWhatsApp != null) BtnTabWhatsApp.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
             if (BtnTabEmail != null) BtnTabEmail.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
+            if (BtnTabClinic != null) BtnTabClinic.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
 
             if (PanelUrlInput != null) PanelUrlInput.Visibility = Visibility.Visible;
             if (PanelTextInput != null) PanelTextInput.Visibility = Visibility.Collapsed;
@@ -548,6 +609,7 @@ namespace SS_CAM.Views
             if (PanelVCardInput != null) PanelVCardInput.Visibility = Visibility.Collapsed;
             if (PanelWhatsAppInput != null) PanelWhatsAppInput.Visibility = Visibility.Collapsed;
             if (PanelEmailInput != null) PanelEmailInput.Visibility = Visibility.Collapsed;
+            if (PanelClinicInput != null) PanelClinicInput.Visibility = Visibility.Collapsed;
 
             if (BtnBackdropLight != null) BtnBackdropLight.Appearance = Wpf.Ui.Controls.ControlAppearance.Primary;
             if (BtnBackdropDark != null) BtnBackdropDark.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;

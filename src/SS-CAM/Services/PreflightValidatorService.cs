@@ -375,6 +375,62 @@ namespace SS_CAM.Services
                     System.Diagnostics.Debug.WriteLine("[Preflight] Packaging inspection error: " + pkgEx.Message);
                 }
 
+                // 8. KKM / LIU Regulatory Compliance Audit - v5.1.0
+                try
+                {
+                    string copyFile = Path.Combine(projectFullPath, "03_COPYWRITING", "COPY.md");
+                    string copyText = File.Exists(copyFile) ? File.ReadAllText(copyFile, Encoding.UTF8) : string.Empty;
+                    string briefFile = Path.Combine(projectFullPath, "README.md");
+                    string briefText = File.Exists(briefFile) ? File.ReadAllText(briefFile, Encoding.UTF8) : string.Empty;
+                    string combinedText = copyText + "\n" + briefText;
+
+                    bool isHealthOrMedical = combinedText.IndexOf("rawatan", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                             combinedText.IndexOf("klinik", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                             combinedText.IndexOf("terapi", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                             combinedText.IndexOf("eswt", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                             combinedText.IndexOf("trt", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                             combinedText.IndexOf("ubat", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                             combinedText.IndexOf("stamina", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                             combinedText.IndexOf("herba", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                    if (isHealthOrMedical)
+                    {
+                        RegulatoryAuditResult regResult = RegulatoryComplianceService.AuditContent(combinedText);
+                        if (!regResult.IsCompliant)
+                        {
+                            report.Checks.Add(new PreflightCheckItem(
+                                "KKM Compliance",
+                                "Medical Advertising Board (LIU)",
+                                string.Format("Melanggar Akta Iklan Ubat 1956: {0} frasa dilarang ditemui ({1}).",
+                                    regResult.Infractions.Count, regResult.Infractions[0].Term),
+                                PreflightStatus.Fail,
+                                false));
+                        }
+                        else if (!regResult.HasDisclaimer)
+                        {
+                            report.Checks.Add(new PreflightCheckItem(
+                                "KKM Compliance",
+                                "Medical Disclaimer",
+                                "Kandungan klinikal/kesihatan dikesan tanpa penafian perubatan (Medical Disclaimer) wajib.",
+                                PreflightStatus.Warn,
+                                true));
+                        }
+                        else
+                        {
+                            string codeInfo = regResult.HasApprovalCode ? string.Format(" (Kelulusan: {0})", regResult.ApprovalCode) : string.Empty;
+                            report.Checks.Add(new PreflightCheckItem(
+                                "KKM Compliance",
+                                "Medical Advertising Board (LIU)",
+                                string.Format("Pematuhan KKM/LIU disahkan dengan penafian perubatan{0}.", codeInfo),
+                                PreflightStatus.Pass));
+                        }
+                    }
+                }
+                catch (Exception regEx)
+                {
+                    System.Diagnostics.Debug.WriteLine("[Preflight] Regulatory audit error: " + regEx.Message);
+                }
+
                 // Calculate summary counts
                 foreach (PreflightCheckItem item in report.Checks)
                 {
@@ -463,6 +519,17 @@ namespace SS_CAM.Services
                         sbCopy.AppendLine("4. **Offer & CTA**: 1-Click WhatsApp consultation order.");
 
                         File.WriteAllText(copyPath, sbCopy.ToString(), Encoding.UTF8);
+                    }
+                    else
+                    {
+                        // 4. Inject Medical Disclaimer into COPY.md if clinical content lacks disclaimer
+                        string currentCopy = File.ReadAllText(copyPath, Encoding.UTF8);
+                        RegulatoryAuditResult regAudit = RegulatoryComplianceService.AuditContent(currentCopy);
+                        if (!regAudit.HasDisclaimer)
+                        {
+                            string disclaimer = "\n\n---\n> **Penafian KKM**: " + RegulatoryComplianceService.GetStandardMedicalDisclaimer(false) + "\n";
+                            File.AppendAllText(copyPath, disclaimer, Encoding.UTF8);
+                        }
                     }
 
                     return true;

@@ -521,6 +521,56 @@ namespace SS_CAM.Services
                 sb.AppendLine("- [x] Cara Pengambilan: 1 paket setiap pagi selepas sarapan");
                 return sb.ToString();
             }
+            else if (presetKey == "clinic_eswt_aftercare")
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("## 🏥 SuamiSihat Clinic — Panduan Penjagaan Selepas Terapi ESWT");
+                sb.AppendLine();
+                sb.AppendLine("Salam sejahtera Tuan [Nama Pesakit],");
+                sb.AppendLine("Terima kasih kerana menjalani sesi Terapi Gelombang Kejutan (ESWT) di cawangan kami hari ini.");
+                sb.AppendLine();
+                sb.AppendLine("### 📋 Panduan 48 Jam Pertama:");
+                sb.AppendLine("1. **Rehat Mencukupi**: Elakkan aktiviti fizikal berat atau senaman berimpak tinggi dalam tempoh 48 jam.");
+                sb.AppendLine("2. **Kekal Terhidrasi**: Minum sekurang-kurangnya 2.5 liter air kosong sehari untuk merangsang detoksifikasi dan peredaran mikro tisu.");
+                sb.AppendLine("3. **ELAKKAN Ubat Anti-Radang (NSAIDs)**: Jangan ambil ubat seperti Ibuprofen, Voltaren, atau Ponstan kerana ia menghalang proses pembaikan semulajadi tisu badan.");
+                sb.AppendLine();
+                sb.AppendLine("### ℹ️ Sensasi Normal:");
+                sb.AppendLine("- Sedikit rasa lenguh atau kebas ringan adalah tindak balas fisiologi normal dan reda dalam 24–48 jam.");
+                sb.AppendLine();
+                sb.AppendLine("### ⚠️ Tanda Amaran (Hubungi Klinik Serta-Merta):");
+                sb.AppendLine("- Kesakitan melampau berterusan atau bengkak luar biasa.");
+                sb.AppendLine();
+                sb.AppendLine("📅 **Sesi Rawatan Seterusnya**: [Tarikh Temujanji]");
+                sb.AppendLine("👨‍⚕️ **Doktor Bertugas**: [Nama Doktor]");
+                sb.AppendLine("📞 **Talian Cawangan**: [Nombor Telefon / WhatsApp]");
+                sb.AppendLine();
+                sb.AppendLine("---");
+                sb.AppendLine("> **Penafian KKM**: " + RegulatoryComplianceService.GetStandardMedicalDisclaimer(false));
+                return sb.ToString();
+            }
+            else if (presetKey == "clinic_trt_aftercare")
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("## 🏥 SuamiSihat Clinic — Panduan Selepas Terapi Penggantian Testosteron (TRT)");
+                sb.AppendLine();
+                sb.AppendLine("Salam sejahtera Tuan [Nama Pesakit],");
+                sb.AppendLine();
+                sb.AppendLine("### 📋 Arahan Penjagaan Tapak Suntikan:");
+                sb.AppendLine("1. **Kebersihan**: Pastikan kawasan suntikan bersih dan kering.");
+                sb.AppendLine("2. **Jangan Urut**: Elakkan menggosok atau mengurut otot di kawasan suntikan.");
+                sb.AppendLine("3. **Log Kesejahteraan**: Catatkan pola tenaga, tidur, dan mood dalam buku catatan harian.");
+                sb.AppendLine();
+                sb.AppendLine("### 🩸 Pemantauan Profil Darah Wajib:");
+                sb.AppendLine("- Ujian susulan Total Testosterone & Hematokrit dijadualkan pada **Minggu ke-12**.");
+                sb.AppendLine();
+                sb.AppendLine("📅 **Tarikh Temujanji Darah Seterusnya**: [Tarikh Temujanji]");
+                sb.AppendLine("👨‍⚕️ **Doktor Bertugas**: [Nama Doktor]");
+                sb.AppendLine("📞 **Talian Cawangan**: [Nombor Telefon / WhatsApp]");
+                sb.AppendLine();
+                sb.AppendLine("---");
+                sb.AppendLine("> **Penafian KKM**: " + RegulatoryComplianceService.GetStandardMedicalDisclaimer(false));
+                return sb.ToString();
+            }
 
             return GetDefaultTemplate(projectTitle);
         }

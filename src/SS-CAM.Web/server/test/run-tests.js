@@ -2918,6 +2918,86 @@ This is the project brief content.
     assert.deepStrictEqual(available.map(u => u.code), ['CT', 'VP', 'MA']);
   });
 
+  // ─── TEST 62: RegulatoryService KKM Compliance & Clinical SOP Manuals ──
+  test('RegulatoryService audits prohibited medical claims, approval codes, and ensures SOP manuals', () => {
+    const RegulatoryService = require('../services/RegulatoryService');
+
+    // 1. Prohibited claims detection
+    const badCopy = 'Ubat kuat ajaib ini pasti berkesan dan 100% sembuh tanpa kesan sampingan.';
+    const badAudit = RegulatoryService.verifyCopy(badCopy);
+    assert.strictEqual(badAudit.isCompliant, false, 'Copy with prohibited claims must fail audit');
+    assert.ok(badAudit.infractions.length >= 3, 'Must catch multiple prohibited claims');
+
+    // 2. Compliant clinical copy with approval code and disclaimer
+    const goodCopy = 'Terapi Gelombang Kejutan (ESWT) merangsang neovaskularisasi. KKLIU 0812/2026. Sila rujuk nasihat doktor bertauliah kami.';
+    const goodAudit = RegulatoryService.verifyCopy(goodCopy);
+    assert.strictEqual(goodAudit.isCompliant, true, 'Approved objective copy must pass audit');
+    assert.strictEqual(goodAudit.hasApprovalCode, true, 'Must detect valid approval code');
+    assert.strictEqual(goodAudit.hasDisclaimer, true, 'Must detect disclaimer');
+
+    // 3. Approved claims catalog
+    const claims = RegulatoryService.getApprovedClaims('ESWT');
+    assert.ok(claims.length > 0, 'Must have pre-approved claims for ESWT');
+    assert.ok(claims[0].referenceCode.startsWith('KKM/LIU'), 'Must include official reference code');
+
+    // 4. Clinical SOP manuals
+    const sops = RegulatoryService.getSopManuals();
+    assert.ok(sops.length >= 4, 'Must provide at least 4 default clinical SOP manuals');
+    const sop01 = RegulatoryService.getSopManualContent(undefined, 'SOP-01_Patient_Consultation_Protocol');
+    assert.ok(sop01 && sop01.includes('SOP-01'), 'SOP-01 content must be readable');
+  });
+
+  // ─── TEST 63: BranchService Profiles, Intake Payloads & Template Injection ──
+  test('BranchService manages franchise clinic profiles, dynamic intake, and variable injection', () => {
+    const BranchService = require('../services/BranchService');
+
+    const branches = BranchService.getBranches();
+    assert.ok(branches.length >= 4, 'Must manage at least 4 clinic branches');
+
+    const bsr = BranchService.getBranchByCode('SSC-BSR');
+    assert.ok(bsr, 'Must resolve Bangsar HQ branch');
+    assert.strictEqual(bsr.shortName, 'Bangsar HQ');
+
+    // Intake payload generation
+    const consultPayload = BranchService.generateIntakePayload('SSC-BSR', 'consult', 'ESWT');
+    assert.strictEqual(consultPayload.type, 'consult');
+    assert.ok(consultPayload.url.includes('wa.me'), 'Consult payload must generate WhatsApp URL');
+    assert.ok(consultPayload.url.includes('ESWT'), 'URL must encode treatment focus');
+
+    const checkinPayload = BranchService.generateIntakePayload('SSC-KD', 'checkin');
+    assert.strictEqual(checkinPayload.type, 'checkin');
+    assert.ok(checkinPayload.url.includes('checkin'), 'Must generate touchless check-in URL');
+
+    // Smart template variable injection
+    const rawTemplate = 'Rawatan di {BRANCH_NAME} ({BRANCH_SHORT}) dikendalikan oleh {DOCTOR_NAME}. Hubungi {BRANCH_PHONE} atau WhatsApp {BRANCH_WHATSAPP}. Lesen: {KKM_LICENSE}.';
+    const rendered = BranchService.injectBranchDetails(rawTemplate, 'SSC-BSR');
+    assert.ok(!rendered.includes('{BRANCH_NAME}'), 'All template variables must be replaced');
+    assert.ok(rendered.includes('Bangsar (HQ Induk)'), 'Must inject branch name');
+    assert.ok(rendered.includes('KKM/JPS/KL'), 'Must inject KKM license number');
+  });
+
+  // ─── TEST 64: CareDispatcherService Bilingual Protocols & WhatsApp Leaflets ──
+  test('CareDispatcherService generates formatted recovery leaflets and 1-click WhatsApp dispatch links', () => {
+    const CareDispatcherService = require('../services/CareDispatcherService');
+
+    const protocols = CareDispatcherService.getProtocols();
+    assert.ok(protocols.length >= 4, 'Must provide at least 4 clinical aftercare recovery protocols');
+
+    const dispatch = CareDispatcherService.generateDispatchMessage({
+      patientName: 'En. Razak',
+      patientPhone: '0123456789',
+      protocolId: 'eswt',
+      branchCode: 'SSC-BSR',
+      followUpDate: '20 Oktober 2026'
+    });
+
+    assert.strictEqual(dispatch.patientName, 'En. Razak');
+    assert.ok(dispatch.messageText.includes('PANDUAN PENJAGAAN DIGITAL'), 'Must contain official clinical header');
+    assert.ok(dispatch.messageText.includes('ELAKKAN Pengambilan Ubat Tahan Sakit Anti-Radang (NSAIDs)'.toUpperCase()) || dispatch.messageText.includes('ELAKKAN'), 'Must include NSAID avoidance guidance');
+    assert.ok(dispatch.messageText.includes('20 Oktober 2026'), 'Must include follow-up date');
+    assert.ok(dispatch.whatsappUrl.startsWith('https://wa.me/0123456789'), 'Must generate direct 1-click WhatsApp dispatch link');
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {

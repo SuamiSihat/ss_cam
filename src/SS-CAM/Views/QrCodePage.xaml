@@ -86,6 +86,12 @@
                                         <ui:TextBlock Text="Email" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </ui:Button>
+                                <ui:Button x:Name="BtnTabClinic" Tag="CLINIC" Click="OnContentTypeClicked" Appearance="Secondary" Padding="12,6" Margin="0,0,6,6" FontSize="11">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:TextBlock Text="&#xE95E;" FontFamily="Segoe Fluent Icons" FontSize="11" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                        <ui:TextBlock Text="Clinic Intake" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </ui:Button>
                             </WrapPanel>
 
                             <!-- Dynamic Input Container -->
@@ -165,6 +171,42 @@
                                 <TextBox x:Name="TxtEmailTo" Text="contact@suamisihat.com.my" Padding="10,8" FontSize="12" Margin="0,0,0,8" TextChanged="OnInputTextChanged"/>
                                 <ui:TextBlock Text="Email Subject" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBox x:Name="TxtEmailSubject" Text="Creative Asset Request" Padding="10,8" FontSize="12" TextChanged="OnInputTextChanged"/>
+                            </StackPanel>
+
+                            <StackPanel x:Name="PanelClinicInput" Visibility="Collapsed">
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <ui:TextBlock Text="Clinic Branch" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                        <ComboBox x:Name="CmbClinicBranch" SelectedIndex="0" MinHeight="36" Padding="10,0" VerticalContentAlignment="Center" SelectionChanged="OnClinicOptionChanged">
+                                            <ComboBoxItem Content="[SSC-BSR] Bangsar HQ Induk" Tag="SSC-BSR"/>
+                                            <ComboBoxItem Content="[SSC-KD] Kota Damansara" Tag="SSC-KD"/>
+                                            <ComboBoxItem Content="[SSC-JB] Johor Bahru" Tag="SSC-JB"/>
+                                            <ComboBoxItem Content="[SSC-PNG] Georgetown Penang" Tag="SSC-PNG"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <ui:TextBlock Text="Intake Objective" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                        <ComboBox x:Name="CmbClinicIntakeType" SelectedIndex="0" MinHeight="36" Padding="10,0" VerticalContentAlignment="Center" SelectionChanged="OnClinicOptionChanged">
+                                            <ComboBoxItem Content="WhatsApp Consult (Doktor)" Tag="CONSULT"/>
+                                            <ComboBoxItem Content="Touchless Patient Check-In" Tag="CHECKIN"/>
+                                            <ComboBoxItem Content="Google Review &amp; Feedback" Tag="REVIEW"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+                                <ui:TextBlock Text="Clinical Treatment Focus" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <ComboBox x:Name="CmbClinicTreatment" SelectedIndex="0" MinHeight="36" Padding="10,0" VerticalContentAlignment="Center" Margin="0,0,0,8" SelectionChanged="OnClinicOptionChanged">
+                                    <ComboBoxItem Content="Konsultasi Kesihatan Umum"/>
+                                    <ComboBoxItem Content="Terapi Gelombang Kejutan (ESWT)"/>
+                                    <ComboBoxItem Content="Terapi Penggantian Testosteron (TRT)"/>
+                                    <ComboBoxItem Content="Rehabilitasi Prestasi Lelaki (ED/PE)"/>
+                                    <ComboBoxItem Content="Sirkumsisi &amp; Prosedur Minor"/>
+                                </ComboBox>
+                                <ui:TextBlock Text="Generated Intake Payload / Destination" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBox x:Name="TxtClinicPayload" IsReadOnly="True" Padding="10,8" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
 
                         </StackPanel>
