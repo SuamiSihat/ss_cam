@@ -60,22 +60,23 @@
 | **v4.12.0** | 2026-09-29 | **Advanced Batch Operations & Studio Archive Vault**: Batch project archival into cold-storage ZIPs on Synology NAS (`ArchiveVaultService`, `ArchiveVaultPage`, `_archive_catalog.jsonl`); Multi-Format Asset Transcoder Bridge with multi-tier FFmpeg discovery, background queue GUI (`TranscoderBridgePage`), and deliverable gallery quick-actions; 3 new live radio stations (Chillhop, SomaFM Secret Agent, SomaFM Drone Zone); and 3 new rhythm particle visualizer modes (GalaxyDrift, FrequencyBars, PulseRing) |
 | **v4.12.2** | 2026-10-01 | **Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow**: Vertical 4-tier comment layout preventing clipping/collisions, equal-width segmented filter buttons (All/Open/Resolved), Reviewer select anti-overflow with tooltips and custom SVG chevrons, deliverable file-name links and markdown image rendering |
 | **v4.13.0** | 2026-10-06 | **Split-View WhatsApp Simulator & Customizable Dashboard KPI Grid**: Real-time WhatsApp conversational simulator with message bubble splitting and markdown formatting, customizable dashboard layout engine with persistent widget ordering and pinning, real-time in-flight production spotlight, active transcoder live queue integration |
+| **v4.14.0** | 2026-10-08 | **Cloud Collaboration, Destructive Storage Pruning & Deep Print Preflights**: Automated bi-directional Discord/Slack webhook alert pipeline for deliverable approvals, revisions, and handover exports (`WebhookService`); destructive Move-to-Archive with storage reclamation tracking in `ArchiveVaultService` and Web `ExportService`; deep print preflight checks (`PreflightValidatorService`) inspecting CMYK vs RGB color profiles on PSD/PDF assets, vector packaging dielines, and 3mm bleed tolerances; and canonical 5-folder hierarchy standard (`01_BRIEF_ASSETS` through `05_DELIVERABLES`) |
 
 ---
 
-## 🎯 Active Milestone — v4.14.0: Cloud Collaboration & Automated Production Delivery (Target: Q4 2026)
+## 🎯 Active Milestone — v4.15.0: Automated Production Ingestion & Cloud Bridge (Target: Q4 2026)
 
-### 1. Cloud Webhook Pipeline & Production Alerts
+### 1. In-App Video Proxy Streamer & Proofing Overlays
 
-* Bi-directional webhooks and Discord/Slack notification triggers on deliverable approval and handover export.
+* Integrated canvas markup overlays directly on video streams with second-accurate timestamped review pins.
 
-### 2. Destructive Move-to-Archive & Automated NAS Pruning
+### 2. Multi-Format Asset Packaging Presets
 
-* Safe project pruning with multi-factor admin confirmation and dry-run storage quota analytics.
+* Dynamic client export bundle configurations (print-ready CMYK + web-ready WebP + source archive).
 
-### 3. Deep Preflight Vector Dieline & Print Validator
+### 3. Automated NAS Quota Telemetry & Health Radar
 
-* Advanced color space CMYK/RGB inspection, bleed/slug dieline verification, and vector asset rasterization preflights.
+* Synology volume capacity thresholds, automated cold storage archive triggers, and real-time disk health telemetry.
 
 ---
 

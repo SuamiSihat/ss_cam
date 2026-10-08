@@ -36,6 +36,12 @@ namespace SS_CAM.Models
         /// </summary>
         public bool CopyOnly { get; set; }
 
+        /// <summary>Total uncompressed bytes reclaimed from active workspace by moving projects to archive.</summary>
+        public long ReclaimedBytes { get; set; }
+
+        /// <summary>Number of source project folders pruned from active storage.</summary>
+        public int PrunedCount { get; set; }
+
         /// <summary>Overall result of the operation.</summary>
         public bool Success { get; set; }
 

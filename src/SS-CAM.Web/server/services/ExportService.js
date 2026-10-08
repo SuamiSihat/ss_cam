@@ -237,6 +237,37 @@ class ExportService {
       fs.mkdirSync(catalogDir, { recursive: true });
     }
 
+    let reclaimedBytes = 0;
+    let prunedCount = 0;
+
+    // Destructive Move-to-Archive & Storage Pruning (v4.14.0):
+    if (options.copyOnly === false && stat.size > 0) {
+      for (const p of projectFullPaths) {
+        if (fs.existsSync(p)) {
+          try {
+            const getDirSize = (dir) => {
+              let sz = 0;
+              const items = fs.readdirSync(dir, { withFileTypes: true });
+              for (const item of items) {
+                const sub = path.join(dir, item.name);
+                if (item.isDirectory()) sz += getDirSize(sub);
+                else {
+                  try { sz += fs.statSync(sub).size; } catch (e) {}
+                }
+              }
+              return sz;
+            };
+            const pSize = getDirSize(p);
+            fs.rmSync(p, { recursive: true, force: true });
+            reclaimedBytes += pSize;
+            prunedCount++;
+          } catch (delErr) {
+            console.warn('[ExportService] Source project prune error:', delErr.message);
+          }
+        }
+      }
+    }
+
     const entry = {
       id: Math.random().toString(36).substring(2, 10),
       timestamp: now.toISOString(),
@@ -246,6 +277,8 @@ class ExportService {
       zipFilePath: zipPath,
       zipSizeBytes: stat.size,
       copyOnly: options.copyOnly !== false,
+      reclaimedBytes,
+      prunedCount,
       success: true,
       errorMessage: null
     };
@@ -261,9 +294,26 @@ class ExportService {
       details: {
         projectCount: archivedProjects.length,
         zipPath,
-        zipSizeBytes: stat.size
+        zipSizeBytes: stat.size,
+        copyOnly: options.copyOnly !== false,
+        reclaimedBytes,
+        prunedCount
       }
     });
+
+    try {
+      const WebhookService = require('./WebhookService');
+      WebhookService.dispatch('PROJECT_ARCHIVED', {
+        title: `Cold Storage Archive Created (${archivedProjects.length} Projects)`,
+        description: `Archive package saved to ${zipName}. ${options.copyOnly === false ? `Pruned ${prunedCount} projects, reclaiming ${(reclaimedBytes / 1048576).toFixed(1)} MB active NAS storage.` : 'Preserved active source copies (Copy-Only mode).'}`,
+        actor: operator,
+        brand: 'SS',
+        fileCount: archivedProjects.length,
+        sizeFormatted: `${(stat.size / 1048576).toFixed(1)} MB`
+      });
+    } catch (whErr) {
+      console.debug('[ExportService] Webhook dispatch skip:', whErr.message);
+    }
 
     return entry;
   }

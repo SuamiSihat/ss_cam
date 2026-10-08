@@ -18,6 +18,8 @@ namespace SS_CAM.Services
         public int ArchivedCount { get; set; }
         public int FailedCount { get; set; }
         public long TotalZipBytes { get; set; }
+        public long ReclaimedBytes { get; set; }
+        public int PrunedCount { get; set; }
         public string CatalogPath { get; set; }
         public string ErrorMessage { get; set; }
         public List<string> FailedProjects { get; set; }
@@ -210,6 +212,29 @@ namespace SS_CAM.Services
                         catalogEntry.ArchivedProjects.Add(projectName);
                         catalogEntry.ProjectCount++;
 
+                        // Destructive Move-to-Archive & Storage Pruning (v4.14.0):
+                        if (!options.CopyOnly)
+                        {
+                            if (File.Exists(zipPath) && new FileInfo(zipPath).Length > 0)
+                            {
+                                try
+                                {
+                                    long projectSize = GetDirectorySize(projectPath);
+                                    Directory.Delete(projectPath, true);
+                                    result.PrunedCount++;
+                                    result.ReclaimedBytes += projectSize;
+                                    catalogEntry.PrunedCount++;
+                                    catalogEntry.ReclaimedBytes += projectSize;
+                                    System.Diagnostics.Debug.WriteLine(string.Format(
+                                        "[ArchiveVaultService] Source pruned: {0} ({1} bytes reclaimed)", projectName, projectSize));
+                                }
+                                catch (Exception delEx)
+                                {
+                                    System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] Source prune error: " + delEx.Message);
+                                }
+                            }
+                        }
+
                         System.Diagnostics.Debug.WriteLine(string.Format(
                             "[ArchiveVaultService] Archived '{0}' → {1} ({2} files, {3} bytes)",
                             projectName, zipPath, packResult.FileCount, packResult.TotalSizeBytes));
@@ -321,6 +346,33 @@ namespace SS_CAM.Services
             }
             string safe = sb.ToString().Trim('_', ' ');
             return string.IsNullOrWhiteSpace(safe) ? "Project" : safe;
+        }
+
+        private static long GetDirectorySize(string dirPath)
+        {
+            try
+            {
+                if (!Directory.Exists(dirPath)) return 0;
+                long total = 0;
+                foreach (string f in Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        var fi = new FileInfo(f);
+                        total += fi.Length;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] GetDirectorySize file error: " + ex.Message);
+                    }
+                }
+                return total;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] GetDirectorySize error: " + ex.Message);
+                return 0;
+            }
         }
     }
 }

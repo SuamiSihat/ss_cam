@@ -2,6 +2,38 @@
 
 All notable SS-CAM changes are documented here.
 
+## [4.14.0] - 2026-10-08 (Cloud Webhooks, Destructive Storage Pruning & Deep Print Preflights)
+
+### Cloud Collaboration & Webhooks
+
+- **Cloud Webhooks & Production Alerts**:
+  - Automated bi-directional Discord/Slack webhook alert pipeline for deliverable reviews, decisions, and handover exports (`WebhookService`).
+  - Rich event-driven embed color palettes (`0x10B981` Approved, `0xD97706` Revision, `0x0284C7` Export, `0x64748B` Archive) and contextual metadata tags (`Job ID`, `Deliverable`, `Revision Round`, `Package Size`, `Files Packaged`).
+  - Wired into public client review decisions (`/public/review/:token/decision`), studio review decisions (`/projects/:id/decision`), deliverable export packaging (`/projects/:id/export`), and project archiving (`PROJECT_ARCHIVED`).
+
+### Vault Management & Storage Optimization
+
+- **Destructive Move-to-Archive & Storage Pruning**:
+  - Upgraded Desktop `ArchiveVaultService.cs` and Web `ExportService.js` with safe destructive source directory pruning when `CopyOnly == false`.
+  - Zero-data-loss validation: source directories are only pruned after cryptographically verifying that the target archive ZIP exists and byte length $> 0$.
+  - Real-time disk storage reclamation telemetry tracking via `ReclaimedBytes` and `PrunedCount` logged into `ArchiveCatalogEntry.cs` and web server audit logs.
+
+### Quality Assurance & Preflight
+
+- **Deep Preflight Vector Dieline & Print Validator**:
+  - Modernized `PreflightValidatorService.cs` with deep print inspection checks for packaging and vector deliverables.
+  - **Check 6: Print Color Space & Profile Audit (CMYK vs RGB)**: Inspects binary PSD headers (byte offset 24) and PDF `/DeviceCMYK` streams to alert designers when print packaging assets are mistakenly saved in RGB.
+  - **Check 7: Packaging Dieline & Bleed Specification Audit**: Inspects technical dielines, 3mm bleed margins, and minimum 300 DPI resolution for `pkg_*` deliverable formats.
+- **Canonical 5-Folder Hierarchy SSoT**:
+  - Enforced canonical 5-folder vault hierarchy (`01_BRIEF_ASSETS`, `02_SOURCE_FILES`, `03_COPYWRITING`, `04_WORK_IN_PROGRESS`, `05_DELIVERABLES`).
+  - Updated preflight validator auto-repair and verified seamless compatibility across `verify_order_handshake.ps1`.
+
+### Ecosystem Synchronization
+
+- **Cross-Platform Version Parity**:
+  - Synchronized version `4.14.0` across Desktop WPF (`MainWindow.xaml`, `AssemblyInfo.cs`), Web Portal (`package.json`, `package-lock.json`, `App.svelte`), Linux Avalonia (`SS-CAM.Linux.csproj`), Android Native Companion (`build.gradle.kts` versionCode 4140), and installer metadata (`installer/version.json`).
+  - Maintained strict C# 5 MSBuild compatibility and UTF-8 BOM encoding.
+
 ## [4.13.0] - 2026-10-06 (Split-View WhatsApp Simulator & Customizable Dashboard KPI Grid)
 
 ### Copywriting Studio

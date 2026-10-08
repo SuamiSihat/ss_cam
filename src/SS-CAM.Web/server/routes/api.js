@@ -1116,6 +1116,15 @@ router.get('/projects/:id/export', authenticateToken, (req, res) => {
       return res.status(404).json({ error: 'Project not found.' });
     }
 
+    const folderName = path.basename(project.fullPath);
+    WebhookService.dispatch('HANDOVER_EXPORTED', {
+      title: `Handover Export: ${project.title || folderName}`,
+      description: `Production handover package generated for ${project.jobId || req.params.id}.`,
+      actor: (req.user && req.user.name) || 'Studio Designer',
+      brand: project.brand || 'SS',
+      jobId: project.jobId || req.params.id
+    });
+
     ExportService.streamProjectHandover(project.fullPath, req.params.id, res, {
       includeWip: req.query.wip === 'true'
     });
@@ -1494,6 +1503,19 @@ router.post('/public/review/:token/decision', (req, res) => {
       decision,
       reviewer,
       timestamp: new Date().toISOString()
+    });
+
+    // Cloud Webhook Alert
+    const webhookEvent = decision === 'approved' ? 'DELIVERABLE_APPROVED' : (decision === 'revision_requested' ? 'REVISION_REQUESTED' : 'DELIVERABLE_REJECTED');
+    WebhookService.dispatch(webhookEvent, {
+      title: `${(data.project && data.project.title) || data.project.id} - ${decision.replace(/_/g, ' ').toUpperCase()}`,
+      description: comment.trim() || `Client decision recorded: ${decision}`,
+      actor: reviewer,
+      reviewer,
+      brand: (data.project && data.project.brand) || 'SS',
+      jobId: (data.project && data.project.jobId) || data.project.id,
+      deliverableId,
+      status: decision
     });
 
     res.json({ success: true, message: `Decision recorded: ${decision}`, reviewer });
@@ -1992,6 +2014,20 @@ router.post('/projects/:id/decision', authenticateToken, requirePermission('deli
       deliverableId,
       reviewer: req.user.name,
       comment
+    });
+
+    // Cloud Webhook Alert
+    const webhookEvent = decision === 'approved' ? 'DELIVERABLE_APPROVED' : (decision === 'revision_requested' ? 'REVISION_REQUESTED' : 'DELIVERABLE_REJECTED');
+    const proj = WorkspaceService.getProjectById(req.params.id);
+    WebhookService.dispatch(webhookEvent, {
+      title: `${(proj && proj.title) || req.params.id} - ${decision.replace(/_/g, ' ').toUpperCase()}`,
+      description: comment || `Internal review decision: ${decision}`,
+      actor: req.user.name,
+      reviewer: req.user.name,
+      brand: (proj && proj.brand) || 'SS',
+      jobId: (proj && proj.jobId) || req.params.id,
+      deliverableId,
+      status: decision
     });
 
     res.json(result);

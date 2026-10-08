@@ -1,6 +1,6 @@
 {
-  "version": "4.13.0",
-  "releaseNotes": "SS-CAM v4.13.0 Release — Split-View WhatsApp Simulator in Copywriting Studio & Customizable Dashboard KPI Grid.",
-  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.13.0/SS-CAM-v4.13.0.exe",
-  "publishedAt": "2026-10-06"
+  "version": "4.14.0",
+  "releaseNotes": "SS-CAM v4.14.0 Release — Cloud Webhooks & Production Alerts, Destructive Storage Pruning & Deep Print Preflights.",
+  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.14.0/SS-CAM-v4.14.0.exe",
+  "publishedAt": "2026-10-08"
 }

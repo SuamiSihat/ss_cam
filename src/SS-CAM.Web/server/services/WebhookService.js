@@ -98,6 +98,25 @@ class WebhookService {
     const desc = payload.description || payload.message || payload.comment || 'A creative studio update has occurred.';
 
     if (hook.serviceType === 'discord') {
+      let embedColor = 0x043388; // Default Royal Blue
+      if (eventName.includes('APPROVED')) embedColor = 0x10B981; // Emerald Green
+      else if (eventName.includes('REVISION')) embedColor = 0xD97706; // Amber Orange
+      else if (eventName.includes('REJECTED')) embedColor = 0xEF4444; // Critical Red
+      else if (eventName.includes('EXPORT')) embedColor = 0x0284C7; // Sky Blue
+      else if (eventName.includes('ARCHIVE')) embedColor = 0x64748B; // Slate Neutral
+
+      const fields = [
+        { name: 'Brand', value: payload.brand || 'SS', inline: true },
+        { name: 'Actor', value: payload.actor || payload.reviewer || 'Studio Lead', inline: true }
+      ];
+
+      if (payload.jobId) fields.push({ name: 'Job ID', value: String(payload.jobId), inline: true });
+      if (payload.deliverableId) fields.push({ name: 'Deliverable', value: String(payload.deliverableId), inline: true });
+      if (payload.revision !== undefined) fields.push({ name: 'Revision Round', value: `v${payload.revision}`, inline: true });
+      if (payload.fileCount !== undefined) fields.push({ name: 'Files Packaged', value: `${payload.fileCount} file(s)`, inline: true });
+      if (payload.sizeFormatted) fields.push({ name: 'Package Size', value: String(payload.sizeFormatted), inline: true });
+      if (payload.downloadUrl) fields.push({ name: 'Vault Link', value: `[Direct Access](${payload.downloadUrl})`, inline: false });
+
       body = {
         username: 'SuamiSihat Creative Studio Bot',
         avatar_url: 'https://creative.suamisihat.myds.me/brand/suamisihat-logo-on-dark.svg',
@@ -105,19 +124,16 @@ class WebhookService {
           {
             title: `🎨 [${eventName}] ${title}`,
             description: desc,
-            color: 0x043388,
+            color: embedColor,
             timestamp: new Date().toISOString(),
-            fields: [
-              { name: 'Brand', value: payload.brand || 'SS', inline: true },
-              { name: 'Actor', value: payload.actor || payload.reviewer || 'Studio Lead', inline: true },
-              ...(payload.jobId ? [{ name: 'Job ID', value: payload.jobId, inline: true }] : [])
-            ]
+            fields
           }
         ]
       };
     } else if (hook.serviceType === 'slack') {
+      const statusIcon = eventName.includes('APPROVED') ? '✅' : (eventName.includes('REVISION') ? '⚠️' : '🎨');
       body = {
-        text: `*🎨 SuamiSihat CAM [${eventName}]:* ${title}\n>${desc}\n_By: ${payload.actor || 'Studio Lead'}_`
+        text: `*${statusIcon} SuamiSihat CAM [${eventName}]:* ${title}\n>${desc}\n_By: ${payload.actor || payload.reviewer || 'Studio Lead'}_`
       };
     } else {
       // Generic / WhatsApp Webhook Gateway
