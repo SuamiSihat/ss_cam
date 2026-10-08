@@ -120,9 +120,14 @@
             />
           </div>
         {:else if deliverable.isVideo || deliverable.previewType === 'video'}
-          <div class="video-wrapper">
-            <!-- svelte-ignore a11y_media_has_caption -->
-            <video src={deliverable.streamUrl || deliverable.previewUrl} controls autoplay playsinline></video>
+          <div class="video-container-pane">
+            <DeliverableAnnotationCanvas
+              projectId={deliverable.project?.id || deliverable.projectId || deliverable.project?.jobId || deliverable.projectJobId || ''}
+              deliverableId={deliverable.id || deliverable.filename}
+              mediaUrl={deliverable.streamUrl || deliverable.previewUrl}
+              mediaType="video"
+              altText={deliverable.filename}
+            />
           </div>
         {:else if deliverable.isPdf || deliverable.previewType === 'pdf'}
           <div class="pdf-wrapper">
@@ -363,6 +368,14 @@
   .zoom-toggle-btn:hover {
     background: rgba(0, 0, 0, 0.95);
     border-color: #FFFFFF;
+  }
+
+  .video-container-pane {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   .video-wrapper {

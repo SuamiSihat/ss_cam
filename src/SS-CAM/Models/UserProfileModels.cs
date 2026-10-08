@@ -125,6 +125,13 @@ namespace SS_CAM.Models
         public double StorageUsedPercent { get; set; }
         public string DisplayResolution { get; set; }
 
+        public string NasVolumeStorage { get; set; }
+        public string NasFreeText { get; set; }
+        public string NasUsedText { get; set; }
+        public double NasUsedPercent { get; set; }
+        public bool NasArchiveRecommended { get; set; }
+        public string NasHealthStatus { get; set; }
+
         public SystemSpecs()
         {
             OSVersion = "Windows 11 (64-bit)";
@@ -137,6 +144,12 @@ namespace SS_CAM.Models
             StorageUsedText = "427.1 GB Used (83%)";
             StorageUsedPercent = 83.0;
             DisplayResolution = "1920 x 1080";
+            NasVolumeStorage = "Synology NAS Volume Active";
+            NasFreeText = "Healthy";
+            NasUsedText = "Monitored";
+            NasUsedPercent = 50.0;
+            NasArchiveRecommended = false;
+            NasHealthStatus = "Healthy";
         }
     }
 

@@ -2808,6 +2808,95 @@ This is the project brief content.
     }
   });
 
+  // ─── TEST 59: Multi-Format Packaging Presets (Print, Web, Archive) ────
+  testAsync('ExportService supports multi-format packaging presets (print, web, archive)', async () => {
+    const ExportService = require('../services/ExportService');
+    const testProj = path.join(__dirname, 'temp-preset-test-proj');
+    const delivDir = path.join(testProj, '05_DELIVERABLES');
+    const srcDir = path.join(testProj, '02_SOURCE_FILES');
+    const copyDir = path.join(testProj, '03_COPYWRITING');
+
+    try {
+      fs.mkdirSync(delivDir, { recursive: true });
+      fs.mkdirSync(srcDir, { recursive: true });
+      fs.mkdirSync(copyDir, { recursive: true });
+
+      // Create test deliverables
+      fs.writeFileSync(path.join(delivDir, 'box_packaging.pdf'), 'PDF DATA');
+      fs.writeFileSync(path.join(delivDir, 'master_label.psd'), 'PSD DATA');
+      fs.writeFileSync(path.join(delivDir, 'promo_teaser.mp4'), 'MP4 DATA');
+      fs.writeFileSync(path.join(delivDir, 'social_feed.webp'), 'WEBP DATA');
+      fs.writeFileSync(path.join(srcDir, 'raw_layers.ai'), 'AI DATA');
+      fs.writeFileSync(path.join(copyDir, 'COPY.md'), '# Marketing Copy');
+      fs.writeFileSync(path.join(testProj, 'README.md'), '---\nstatus: approved\n---');
+
+      // Helper mock archive
+      const makeMockArchive = () => {
+        const added = [];
+        return {
+          file: (f, opts) => added.push(opts.name),
+          append: (c, opts) => added.push(opts.name),
+          pipe: () => {},
+          on: () => {},
+          finalize: () => {},
+          added
+        };
+      };
+
+      // Mock response
+      const makeMockRes = () => {
+        const headers = {};
+        return {
+          setHeader: (k, v) => { headers[k] = v; },
+          status: () => ({ json: () => {} }),
+          headers
+        };
+      };
+
+      // 1. Test Print Preset
+      const mockArchivePrint = makeMockArchive();
+      const mockResPrint = makeMockRes();
+      const origArchiver = require('archiver');
+      // Temporarily override require in ExportService or test directory adding directly:
+      const printFiles = [];
+      const printExts = new Set(['.pdf', '.psd', '.ai', '.eps', '.tiff', '.tif', '.png', '.indd']);
+      ExportService.addDirectoryToArchive(mockArchivePrint, delivDir, 'Deliverables', printFiles, (name) => printExts.has(path.extname(name).toLowerCase()));
+      assert.ok(printFiles.includes('Deliverables/box_packaging.pdf'), 'Print preset must include PDF');
+      assert.ok(printFiles.includes('Deliverables/master_label.psd'), 'Print preset must include PSD');
+      assert.ok(!printFiles.includes('Deliverables/promo_teaser.mp4'), 'Print preset must exclude MP4');
+      assert.ok(!printFiles.includes('Deliverables/social_feed.webp'), 'Print preset must exclude WEBP');
+
+      // 2. Test Web Preset
+      const mockArchiveWeb = makeMockArchive();
+      const webFiles = [];
+      const webExts = new Set(['.webp', '.mp4', '.png', '.jpg', '.jpeg', '.svg', '.gif', '.webm']);
+      ExportService.addDirectoryToArchive(mockArchiveWeb, delivDir, 'Deliverables', webFiles, (name) => webExts.has(path.extname(name).toLowerCase()));
+      assert.ok(webFiles.includes('Deliverables/promo_teaser.mp4'), 'Web preset must include MP4');
+      assert.ok(webFiles.includes('Deliverables/social_feed.webp'), 'Web preset must include WEBP');
+      assert.ok(!webFiles.includes('Deliverables/box_packaging.pdf'), 'Web preset must exclude PDF');
+      assert.ok(!webFiles.includes('Deliverables/master_label.psd'), 'Web preset must exclude PSD');
+
+      // 3. Test HTML Summary includes preset badge
+      const summaryHtml = ExportService.generateHtmlSummary('TestProject', { status: 'approved' }, ['file1'], 'print');
+      assert.ok(summaryHtml.includes('Packaging Preset'), 'Summary sheet must show Packaging Preset row');
+      assert.ok(summaryHtml.includes('PRINT'), 'Summary sheet must reflect PRINT preset');
+    } finally {
+      try { fs.rmSync(testProj, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
+  // ─── TEST 60: Automated NAS Quota Telemetry & Health Radar ──────────
+  test('WorkspaceService.getNasStorageTelemetry calculates volume capacity and quota thresholds', () => {
+    const telemetry = WorkspaceService.getNasStorageTelemetry(sandboxWorkspace);
+    assert.strictEqual(telemetry.available, true, 'Telemetry must be available for valid workspace directory');
+    assert.ok(typeof telemetry.totalGB === 'number' && telemetry.totalGB > 0, 'Total storage must be > 0 GB');
+    assert.ok(typeof telemetry.freeGB === 'number' && telemetry.freeGB > 0, 'Free storage must be > 0 GB');
+    assert.ok(typeof telemetry.usedPercent === 'number' && telemetry.usedPercent >= 0 && telemetry.usedPercent <= 100, 'Used percent must be between 0 and 100');
+    assert.ok(['healthy', 'warning', 'critical'].includes(telemetry.status), 'Status must be healthy, warning, or critical');
+    assert.strictEqual(telemetry.thresholdPercent, 85, 'Quota threshold must default to 85%');
+    assert.strictEqual(typeof telemetry.archiveRecommended, 'boolean', 'archiveRecommended must be boolean');
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {

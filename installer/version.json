@@ -1,6 +1,6 @@
 {
-  "version": "4.14.0",
-  "releaseNotes": "SS-CAM v4.14.0 Release — Cloud Webhooks & Production Alerts, Destructive Storage Pruning & Deep Print Preflights.",
-  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.14.0/SS-CAM-v4.14.0.exe",
+  "version": "4.15.0",
+  "releaseNotes": "SS-CAM v4.15.0 Release — In-App Video Proofing Overlays, Packaging Presets & Automated NAS Quota Telemetry.",
+  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.15.0/SS-CAM-v4.15.0.exe",
   "publishedAt": "2026-10-08"
 }

@@ -1117,16 +1117,20 @@ router.get('/projects/:id/export', authenticateToken, (req, res) => {
     }
 
     const folderName = path.basename(project.fullPath);
+    const preset = (req.query.preset || 'all').toLowerCase();
     WebhookService.dispatch('HANDOVER_EXPORTED', {
-      title: `Handover Export: ${project.title || folderName}`,
-      description: `Production handover package generated for ${project.jobId || req.params.id}.`,
+      title: `Handover Export: ${project.title || folderName} (${preset.toUpperCase()})`,
+      description: `Production handover package (${preset.toUpperCase()}) generated for ${project.jobId || req.params.id}.`,
       actor: (req.user && req.user.name) || 'Studio Designer',
       brand: project.brand || 'SS',
       jobId: project.jobId || req.params.id
     });
 
     ExportService.streamProjectHandover(project.fullPath, req.params.id, res, {
-      includeWip: req.query.wip === 'true'
+      preset,
+      includeWip: req.query.wip === 'true' || preset === 'archive' || preset === 'full',
+      includeSources: req.query.sources === 'true' || preset === 'archive' || preset === 'full',
+      includeBriefAssets: req.query.briefAssets === 'true' || preset === 'archive' || preset === 'full'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2475,6 +2479,7 @@ router.get('/system/status', authenticateToken, (req, res) => {
     workspaceExists: exists,
     synologyEngine: exists ? 'Mounted & Active' : 'Disconnected / Unreachable',
     synologyPath: config.WORKSPACE_ROOT,
+    storage: WorkspaceService.getNasStorageTelemetry(config.WORKSPACE_ROOT),
     cachedProjects: WorkspaceService.projectsCache.length,
     lastScan: WorkspaceService.lastScanTime,
     uptimeSeconds: Math.floor(process.uptime()),

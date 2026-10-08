@@ -288,6 +288,35 @@ namespace SS_CAM.Services
                     }
                 }
                 catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[UserProfileService] DriveInfo error: " + ex.Message); }
+
+                // Synology NAS Volume Quota Telemetry & Health Radar
+                try
+                {
+                    string wsRoot = NasConfigSyncService.DiscoverWorkspaceRoot();
+                    if (!string.IsNullOrWhiteSpace(wsRoot) && Directory.Exists(wsRoot))
+                    {
+                        string driveRoot = Path.GetPathRoot(wsRoot);
+                        if (!string.IsNullOrEmpty(driveRoot))
+                        {
+                            var nasDrive = new DriveInfo(driveRoot);
+                            if (nasDrive.IsReady)
+                            {
+                                double nasFreeGB = nasDrive.AvailableFreeSpace / (1024.0 * 1024 * 1024);
+                                double nasTotalGB = nasDrive.TotalSize / (1024.0 * 1024 * 1024);
+                                double nasUsedGB = Math.Max(0, nasTotalGB - nasFreeGB);
+                                double nasUsedPercent = nasTotalGB > 0 ? (nasUsedGB / nasTotalGB) * 100.0 : 0;
+
+                                specs.NasVolumeStorage = string.Format("{0} ({1:F1} GB free / {2:F1} GB total)", driveRoot.TrimEnd('\\'), nasFreeGB, nasTotalGB);
+                                specs.NasFreeText = string.Format("{0:F1} GB Free", nasFreeGB);
+                                specs.NasUsedText = string.Format("{0:F1} GB Used ({1:F0}%)", nasUsedGB, nasUsedPercent);
+                                specs.NasUsedPercent = Math.Round(nasUsedPercent, 1);
+                                specs.NasArchiveRecommended = nasUsedPercent >= 85.0;
+                                specs.NasHealthStatus = nasUsedPercent >= 90.0 ? "Critical" : (nasUsedPercent >= 80.0 ? "Warning" : "Healthy");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[UserProfileService] NasDriveInfo error: " + ex.Message); }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[UserProfileService] GetSystemSpecs error: " + ex.Message); }
             return specs;

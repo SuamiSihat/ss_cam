@@ -21,6 +21,8 @@
       y: number;
       pinNumber?: number;
       priority?: 'normal' | 'critical';
+      timestampSeconds?: number;
+      timeFormatted?: string;
     };
   }
 
@@ -49,8 +51,59 @@
   let isZoomed = $state<boolean>(false);
   let selectedPinId = $state<string | null>(null);
 
+  // Video Stream & Proofing states
+  let videoElement = $state<HTMLVideoElement | null>(null);
+  let isPlaying = $state<boolean>(false);
+  let currentTime = $state<number>(0);
+  let duration = $state<number>(0);
+  let isMuted = $state<boolean>(false);
+
+  function formatVideoTime(seconds: number): string {
+    if (isNaN(seconds) || seconds < 0) return '00:00.0';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const tenths = Math.floor((seconds % 1) * 10);
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${tenths}`;
+  }
+
+  function togglePlay() {
+    if (!videoElement) return;
+    if (videoElement.paused) {
+      videoElement.play();
+      isPlaying = true;
+    } else {
+      videoElement.pause();
+      isPlaying = false;
+    }
+  }
+
+  function handleScrubberClick(e: MouseEvent) {
+    if (!videoElement || duration <= 0) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+    videoElement.currentTime = ratio * duration;
+    currentTime = videoElement.currentTime;
+  }
+
+  function seekToPin(pin: AnnotationItem) {
+    selectedPinId = pin.id;
+    if (videoElement && typeof pin.annotation?.timestampSeconds === 'number') {
+      videoElement.currentTime = pin.annotation.timestampSeconds;
+      videoElement.pause();
+      isPlaying = false;
+      currentTime = pin.annotation.timestampSeconds;
+    }
+  }
+
   // New Pin Composer Draft
-  let pendingPin = $state<{ x: number; y: number; pinNumber: number } | null>(null);
+  let pendingPin = $state<{
+    x: number;
+    y: number;
+    pinNumber: number;
+    timestampSeconds?: number;
+    timeFormatted?: string;
+  } | null>(null);
   let newPinContent = $state<string>('');
   let newPinPriority = $state<'normal' | 'critical'>('normal');
   let isSavingPin = $state<boolean>(false);
@@ -104,6 +157,12 @@
     if (!isAnnotateMode || readOnly) return;
     if (!imageContainer) return;
 
+    // Pause video on frame click so author pins exact moment
+    if (mediaType === 'video' && videoElement) {
+      videoElement.pause();
+      isPlaying = false;
+    }
+
     const rect = imageContainer.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
@@ -112,10 +171,14 @@
     const yPercent = Math.max(0, Math.min(100, (clickY / rect.height) * 100));
 
     const nextPinNumber = annotations.length + 1;
+    const currentVideoTime = videoElement ? videoElement.currentTime : undefined;
+
     pendingPin = {
       x: parseFloat(xPercent.toFixed(1)),
       y: parseFloat(yPercent.toFixed(1)),
-      pinNumber: nextPinNumber
+      pinNumber: nextPinNumber,
+      timestampSeconds: currentVideoTime != null ? parseFloat(currentVideoTime.toFixed(1)) : undefined,
+      timeFormatted: currentVideoTime != null ? formatVideoTime(currentVideoTime) : undefined
     };
     newPinContent = '';
     newPinPriority = 'normal';
@@ -132,7 +195,9 @@
           x: pendingPin.x,
           y: pendingPin.y,
           pinNumber: pendingPin.pinNumber,
-          priority: newPinPriority
+          priority: newPinPriority,
+          timestampSeconds: pendingPin.timestampSeconds,
+          timeFormatted: pendingPin.timeFormatted
         }
       });
 
@@ -246,7 +311,22 @@
     onclick={handleMediaClick}
   >
     <div class="media-container" bind:this={imageContainer}>
-      <img src={mediaUrl} alt={altText} class="base-image" />
+      {#if mediaType === 'video'}
+        <!-- svelte-ignore a11y_media_has_caption -->
+        <video
+          bind:this={videoElement}
+          src={mediaUrl}
+          class="base-image base-video"
+          playsinline
+          ontimeupdate={() => { if (videoElement) currentTime = videoElement.currentTime; }}
+          onloadedmetadata={() => { if (videoElement) duration = videoElement.duration; }}
+          onplay={() => isPlaying = true}
+          onpause={() => isPlaying = false}
+          onended={() => isPlaying = false}
+        ></video>
+      {:else}
+        <img src={mediaUrl} alt={altText} class="base-image" />
+      {/if}
 
       <!-- Render Existing Feedback Pins -->
       {#each annotations as pin, idx}
@@ -262,7 +342,7 @@
           class:is-resolved={pin.resolved}
           class:is-selected={isSelected}
           style="left: {pin.annotation?.x}%; top: {pin.annotation?.y}%;"
-          onclick={(e) => { e.stopPropagation(); selectedPinId = isSelected ? null : pin.id; }}
+          onclick={(e) => { e.stopPropagation(); seekToPin(pin); }}
         >
           <div class="pin-badge">
             {#if pin.resolved}
@@ -286,9 +366,22 @@
                   </span>
                   <div>
                     <div class="author-name">{pin.author}</div>
-                    <div class="pin-time">{new Date(pin.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div class="pin-time">
+                      {new Date(pin.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
                 </div>
+
+                {#if pin.annotation?.timestampSeconds != null}
+                  <button
+                    type="button"
+                    class="pin-timecode-badge"
+                    onclick={() => seekToPin(pin)}
+                    title="Jump to frame"
+                  >
+                    ⏱️ {pin.annotation.timeFormatted || formatVideoTime(pin.annotation.timestampSeconds)}
+                  </button>
+                {/if}
 
                 {#if isCritical}
                   <span class="critical-badge">CRITICAL</span>
@@ -338,6 +431,11 @@
           <div class="pin-composer-card">
             <div class="composer-header">
               <span class="composer-title">Add Feedback Pin #{pendingPin.pinNumber}</span>
+              {#if pendingPin.timestampSeconds != null}
+                <span class="composer-timecode-badge">
+                  ⏱️ {pendingPin.timeFormatted || formatVideoTime(pendingPin.timestampSeconds)}
+                </span>
+              {/if}
               <button type="button" class="close-composer-btn" onclick={cancelPendingPin} title="Cancel">
                 <FluentIcons name="close" size={14} />
               </button>
@@ -348,7 +446,6 @@
               placeholder="e.g. Adjust headline alignment by 12px, fix logo contrast..."
               class="composer-textarea"
               rows="3"
-              autofocus
             ></textarea>
 
             <div class="composer-footer">
@@ -381,6 +478,67 @@
       {/if}
     </div>
   </div>
+
+  <!-- In-App Video Proxy Streamer & Timeline Proofing Bar -->
+  {#if mediaType === 'video'}
+    <div class="video-proofing-bar">
+      <button
+        type="button"
+        class="video-ctrl-btn play-btn"
+        onclick={togglePlay}
+        title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+      >
+        <FluentIcons name={isPlaying ? 'pause' : 'play'} size={14} />
+      </button>
+
+      <span class="video-timecode">
+        {formatVideoTime(currentTime)} <span class="time-dim">/</span> {formatVideoTime(duration)}
+      </span>
+
+      <!-- Interactive Scrubber with Overlaid Review Pins -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="video-timeline-scrubber" onclick={handleScrubberClick}>
+        <div class="timeline-track">
+          <div
+            class="timeline-progress"
+            style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%;"
+          ></div>
+
+          <!-- Video Timestamp Review Pins on Timeline -->
+          {#each annotations as pin}
+            {#if typeof pin.annotation?.timestampSeconds === 'number' && duration > 0}
+              {@const pinPos = Math.max(0, Math.min(100, (pin.annotation.timestampSeconds / duration) * 100))}
+              <div
+                class="timeline-pin-tick"
+                class:is-critical={pin.annotation.priority === 'critical'}
+                class:is-resolved={pin.resolved}
+                style="left: {pinPos}%;"
+                title="Pin #{pin.annotation.pinNumber} at {pin.annotation.timeFormatted || formatVideoTime(pin.annotation.timestampSeconds)}: {pin.content.slice(0, 30)}"
+                onclick={(e) => { e.stopPropagation(); seekToPin(pin); }}
+              >
+                <span class="tick-number">{pin.annotation.pinNumber}</span>
+              </div>
+            {/if}
+          {/each}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="video-ctrl-btn"
+        onclick={() => {
+          if (videoElement) {
+            videoElement.muted = !videoElement.muted;
+            isMuted = videoElement.muted;
+          }
+        }}
+        title={isMuted ? 'Unmute' : 'Mute'}
+      >
+        <FluentIcons name={isMuted ? 'volumeMute' : 'volume'} size={14} />
+      </button>
+    </div>
+  {/if}
 
   {#if isAnnotateMode && !pendingPin}
     <div class="annotate-hint-bar">
@@ -778,5 +936,147 @@
     z-index: 10;
     pointer-events: none;
     animation: fadeIn 0.2s ease;
+  }
+
+  /* Video Stream & Proofing Overlays */
+  .base-video {
+    background: #000000;
+    outline: none;
+  }
+
+  .video-proofing-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(15, 23, 42, 0.92);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    z-index: 25;
+  }
+
+  .video-ctrl-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: #F1F5F9;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .video-ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  .video-ctrl-btn.play-btn {
+    background: #0284C7;
+    border-color: #38BDF8;
+    color: #FFFFFF;
+  }
+  .video-ctrl-btn.play-btn:hover {
+    background: #0369A1;
+  }
+
+  .video-timecode {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: #E2E8F0;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+  .time-dim {
+    color: #64748B;
+    margin: 0 2px;
+  }
+
+  .video-timeline-scrubber {
+    flex: 1;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+  }
+  .timeline-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    position: relative;
+    transition: height 0.15s ease;
+  }
+  .video-timeline-scrubber:hover .timeline-track {
+    height: 8px;
+  }
+  .timeline-progress {
+    height: 100%;
+    background: #0284C7;
+    border-radius: 3px;
+    position: relative;
+  }
+
+  .timeline-pin-tick {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0284C7;
+    border: 2px solid #FFFFFF;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 800;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  .timeline-pin-tick:hover {
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+  .timeline-pin-tick.is-critical {
+    background: #DC2626;
+  }
+  .timeline-pin-tick.is-resolved {
+    background: #10B981;
+  }
+  .tick-number {
+    line-height: 1;
+  }
+
+  .pin-timecode-badge {
+    background: rgba(2, 132, 199, 0.15);
+    border: 1px solid rgba(2, 132, 199, 0.4);
+    color: #38BDF8;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  .pin-timecode-badge:hover {
+    background: rgba(2, 132, 199, 0.3);
+  }
+
+  .composer-timecode-badge {
+    background: rgba(2, 132, 199, 0.15);
+    border: 1px solid rgba(2, 132, 199, 0.4);
+    color: #38BDF8;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-variant-numeric: tabular-nums;
+    margin-left: 6px;
   }
 </style>

@@ -1424,6 +1424,71 @@ class WorkspaceService {
       relPath: path.relative(this.workspaceRoot, targetFilePath).replace(/\\/g, '/')
     };
   }
+
+  /**
+   * Retrieves Synology volume / disk storage telemetry and quota thresholds.
+   * @param {string} [workspacePath]
+   * @returns {object}
+   */
+  getNasStorageTelemetry(workspacePath) {
+    const targetPath = workspacePath || this.workspaceRoot || config.WORKSPACE_ROOT;
+    try {
+      if (fs.existsSync(targetPath)) {
+        if (typeof fs.statfsSync === 'function') {
+          const stats = fs.statfsSync(targetPath);
+          const totalBytes = Number(stats.blocks) * Number(stats.bsize);
+          const freeBytes = Number(stats.bavail) * Number(stats.bsize);
+          const usedBytes = Math.max(0, totalBytes - freeBytes);
+          const usedPercent = totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 1000) / 10 : 0;
+
+          let status = 'healthy';
+          if (usedPercent >= 90) {
+            status = 'critical';
+          } else if (usedPercent >= 80) {
+            status = 'warning';
+          }
+
+          const archiveRecommended = usedPercent >= 85;
+
+          return {
+            available: true,
+            path: targetPath,
+            totalBytes,
+            freeBytes,
+            usedBytes,
+            totalGB: Math.round((totalBytes / (1024 ** 3)) * 10) / 10,
+            freeGB: Math.round((freeBytes / (1024 ** 3)) * 10) / 10,
+            usedGB: Math.round((usedBytes / (1024 ** 3)) * 10) / 10,
+            usedPercent,
+            status,
+            thresholdPercent: 85,
+            archiveRecommended,
+            archiveTriggerReason: archiveRecommended
+              ? `Volume storage utilization (${usedPercent}%) exceeds 85% quota threshold. Cold-storage archival recommended.`
+              : null
+          };
+        }
+      }
+    } catch (e) {
+      console.debug('[WorkspaceService] getNasStorageTelemetry error:', e.message);
+    }
+
+    return {
+      available: false,
+      path: targetPath,
+      totalBytes: 0,
+      freeBytes: 0,
+      usedBytes: 0,
+      totalGB: 0,
+      freeGB: 0,
+      usedGB: 0,
+      usedPercent: 0,
+      status: 'unknown',
+      thresholdPercent: 85,
+      archiveRecommended: false,
+      archiveTriggerReason: null
+    };
+  }
 }
 
 module.exports = new WorkspaceService();

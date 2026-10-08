@@ -2,6 +2,37 @@
 
 All notable SS-CAM changes are documented here.
 
+## [4.15.0] - 2026-10-08 (In-App Video Proofing Overlays, Packaging Presets & Automated NAS Quota Telemetry)
+
+### Video Studio & Asset Proofing
+
+- **In-App Video Proxy Streamer & Proofing Overlays**:
+  - Upgraded `DeliverableAnnotationCanvas.svelte` with native HTML5 video streaming, custom playback controls, and second-accurate timestamped review pins.
+  - Video pause-on-click interaction: clicking any frame to drop a pin automatically pauses playback and records the exact timecode (`00:14.2`) into the annotation payload.
+  - Interactive timeline scrubber with embedded review pin markers: visually indicates reviewer feedback ticks on the video progress bar with 1-click seeking to corresponding video frames.
+  - Integrated into `DeliverableLightbox.svelte` video views, giving reviewers and art directors unified proofing capabilities across both images and video deliverables.
+
+### Handover & Distribution
+
+- **Multi-Format Asset Packaging Presets**:
+  - Upgraded `ExportService.js` and `/projects/:id/export` with dynamic packaging presets (`print`, `web`, `archive`, `all`).
+  - **Print Preset**: Packages production print deliverables (`.pdf`, `.psd`, `.ai`, `.eps`, `.tiff`, `.tif`, `.png`, `.indd`), dielines, brief documentation, and copywriting.
+  - **Web Preset**: Packages optimized digital assets (`.webp`, `.mp4`, `.png`, `.jpg`, `.jpeg`, `.svg`), marketing hooks, and social previews while stripping heavy source binaries.
+  - **Archive Preset**: Packages complete project vault including raw source files (`02_SOURCE_FILES`), brief assets, and WIP iterations.
+  - Generated HTML handover summary manifest (`HANDOVER_SUMMARY.html`) displaying the selected packaging preset tier.
+
+### Storage Infrastructure & Telemetry
+
+- **Automated NAS Quota Telemetry & Health Radar**:
+  - Implemented `WorkspaceService.getNasStorageTelemetry` using Node.js `fs.statfsSync` to measure active Synology volume capacity, free space, and storage utilization.
+  - Threshold alerts: monitors storage health (`healthy` $< 80\%$, `warning` $80\%-90\%$, `critical` $\ge 90\%$) with automated cold-storage archive recommendations when volume usage exceeds $85\%$.
+  - Integrated into Web `/api/system/status` and Desktop `UserProfileService.GetSystemSpecs` (`NasVolumeStorage`, `NasUsedPercent`, `NasArchiveRecommended`, `NasHealthStatus`).
+
+### Ecosystem Synchronization
+
+- **Cross-Platform Version Parity**:
+  - Synchronized version `4.15.0` across Desktop WPF (`MainWindow.xaml`, `AssemblyInfo.cs`), Web Portal (`package.json`, `package-lock.json`, `App.svelte`), Linux Avalonia (`SS-CAM.Linux.csproj`), Android Native Companion (`build.gradle.kts` versionCode 4150), and installer metadata (`installer/version.json`).
+
 ## [4.14.0] - 2026-10-08 (Cloud Webhooks, Destructive Storage Pruning & Deep Print Preflights)
 
 ### Cloud Collaboration & Webhooks

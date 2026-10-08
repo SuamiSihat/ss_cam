@@ -18,7 +18,9 @@ class ExportService {
     }
 
     const folderName = path.basename(projectFullPath);
-    const zipFileName = `${folderName}_Handover.zip`;
+    const preset = (options.preset || 'all').toLowerCase();
+    const presetSuffix = (preset && preset !== 'all') ? `_${preset.toUpperCase()}` : '';
+    const zipFileName = `${folderName}${presetSuffix}_Handover.zip`;
 
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${zipFileName}"`);
@@ -39,13 +41,23 @@ class ExportService {
     const { frontmatter } = FrontmatterService.readProjectReadme(projectFullPath);
     const addedFiles = [];
 
+    // Packaging Preset Filter Configuration
+    let deliverableFilter = null;
+    if (preset === 'print') {
+      const printExtensions = new Set(['.pdf', '.psd', '.ai', '.eps', '.tiff', '.tif', '.png', '.indd']);
+      deliverableFilter = (name) => printExtensions.has(path.extname(name).toLowerCase());
+    } else if (preset === 'web') {
+      const webExtensions = new Set(['.webp', '.mp4', '.png', '.jpg', '.jpeg', '.svg', '.gif', '.webm']);
+      deliverableFilter = (name) => webExtensions.has(path.extname(name).toLowerCase());
+    }
+
     // 1. Deliverables & Production Exports
     const delivDirs = ['05_DELIVERABLES', '05_Deliverables', '04_Production', '04_Export_Packages', 'Production', '04_Final_Exports', 'Export', 'Exports', 'Final_Exports', 'Export_Packages'];
     const addedDelivPaths = new Set();
     for (const dir of delivDirs) {
       const p = path.join(projectFullPath, dir);
       if (fs.existsSync(p) && !addedDelivPaths.has(p)) {
-        this.addDirectoryToArchive(archive, p, 'Deliverables', addedFiles);
+        this.addDirectoryToArchive(archive, p, 'Deliverables', addedFiles, deliverableFilter);
         addedDelivPaths.add(p);
       }
     }
@@ -59,7 +71,7 @@ class ExportService {
             if (lower.includes('export') || lower.includes('production') || lower.includes('deliverable')) {
               const p = path.join(projectFullPath, s.name);
               if (!addedDelivPaths.has(p)) {
-                this.addDirectoryToArchive(archive, p, 'Deliverables', addedFiles);
+                this.addDirectoryToArchive(archive, p, 'Deliverables', addedFiles, deliverableFilter);
                 addedDelivPaths.add(p);
               }
             }
@@ -70,8 +82,8 @@ class ExportService {
       }
     }
 
-    // 2. Mockups (optional)
-    if (options.includeWip) {
+    // 2. Mockups (optional or included in archive/full)
+    if (options.includeWip || preset === 'archive' || preset === 'full') {
       const wipDirs = ['04_WORK_IN_PROGRESS', '04_WIP', '02_Artwork_Mockup', 'Artwork Mockup', 'Mockup'];
       for (const dir of wipDirs) {
         const p = path.join(projectFullPath, dir);
@@ -82,28 +94,52 @@ class ExportService {
       }
     }
 
-    // 3. Copywriting
+    // 3. Source Files (included for archive / full preset or when explicitly requested)
+    if (preset === 'archive' || preset === 'full' || options.includeSources) {
+      const srcDirs = ['02_SOURCE_FILES', '02_Source_Files', '01_RAW', 'Raw_Sources', 'Source_Files'];
+      for (const dir of srcDirs) {
+        const p = path.join(projectFullPath, dir);
+        if (fs.existsSync(p)) {
+          this.addDirectoryToArchive(archive, p, 'Source_Files', addedFiles);
+          break;
+        }
+      }
+    }
+
+    // 4. Brief Assets (included for archive / full preset or when explicitly requested)
+    if (preset === 'archive' || preset === 'full' || options.includeBriefAssets) {
+      const briefDirs = ['01_BRIEF_ASSETS', '01_Brief_Assets', 'Brief_Assets'];
+      for (const dir of briefDirs) {
+        const p = path.join(projectFullPath, dir);
+        if (fs.existsSync(p)) {
+          this.addDirectoryToArchive(archive, p, 'Brief_Assets', addedFiles);
+          break;
+        }
+      }
+    }
+
+    // 5. Copywriting
     const copyFile = path.join(projectFullPath, '03_COPYWRITING', 'COPY.md');
     if (fs.existsSync(copyFile)) {
       archive.file(copyFile, { name: 'Copywriting/COPY.md' });
       addedFiles.push('Copywriting/COPY.md');
     }
 
-    // 4. Project Brief
+    // 6. Project Brief
     const readmeFile = path.join(projectFullPath, 'README.md');
     if (fs.existsSync(readmeFile)) {
       archive.file(readmeFile, { name: 'Project_Brief_README.md' });
       addedFiles.push('Project_Brief_README.md');
     }
 
-    // 5. HTML Handover Summary Sheet
-    const htmlSummary = this.generateHtmlSummary(folderName, frontmatter, addedFiles);
+    // 7. HTML Handover Summary Sheet
+    const htmlSummary = this.generateHtmlSummary(folderName, frontmatter, addedFiles, preset);
     archive.append(htmlSummary, { name: 'HANDOVER_SUMMARY.html' });
 
     archive.finalize();
   }
 
-  static addDirectoryToArchive(archive, dirPath, prefix, addedFiles) {
+  static addDirectoryToArchive(archive, dirPath, prefix, addedFiles, filterFn = null) {
     const walk = (current, relPrefix) => {
       const entries = fs.readdirSync(current, { withFileTypes: true });
       for (const entry of entries) {
@@ -120,6 +156,7 @@ class ExportService {
         if (entry.isDirectory()) {
           walk(full, rel);
         } else {
+          if (filterFn && !filterFn(entry.name, full)) continue;
           archive.file(full, { name: rel });
           addedFiles.push(rel);
         }
@@ -129,7 +166,7 @@ class ExportService {
     walk(dirPath, prefix);
   }
 
-  static generateHtmlSummary(projectName, frontmatter, files) {
+  static generateHtmlSummary(projectName, frontmatter, files, preset = 'all') {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -160,6 +197,7 @@ class ExportService {
 
     <div class="meta-grid">
       <div class="meta-item"><span>Status</span><strong>${(frontmatter.status || 'UNKNOWN').toUpperCase()}</strong></div>
+      <div class="meta-item"><span>Packaging Preset</span><strong>${(preset || 'ALL').toUpperCase()}</strong></div>
       <div class="meta-item"><span>Priority</span><strong>${(frontmatter.priority || 'NORMAL').toUpperCase()}</strong></div>
       <div class="meta-item"><span>Designer</span><strong>${frontmatter.designer || 'Unassigned'}</strong></div>
       <div class="meta-item"><span>Revision Round</span><strong>Rev ${frontmatter.revision || 0}</strong></div>

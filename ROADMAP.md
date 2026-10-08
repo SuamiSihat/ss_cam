@@ -61,22 +61,11 @@
 | **v4.12.2** | 2026-10-01 | **Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow**: Vertical 4-tier comment layout preventing clipping/collisions, equal-width segmented filter buttons (All/Open/Resolved), Reviewer select anti-overflow with tooltips and custom SVG chevrons, deliverable file-name links and markdown image rendering |
 | **v4.13.0** | 2026-10-06 | **Split-View WhatsApp Simulator & Customizable Dashboard KPI Grid**: Real-time WhatsApp conversational simulator with message bubble splitting and markdown formatting, customizable dashboard layout engine with persistent widget ordering and pinning, real-time in-flight production spotlight, active transcoder live queue integration |
 | **v4.14.0** | 2026-10-08 | **Cloud Collaboration, Destructive Storage Pruning & Deep Print Preflights**: Automated bi-directional Discord/Slack webhook alert pipeline for deliverable approvals, revisions, and handover exports (`WebhookService`); destructive Move-to-Archive with storage reclamation tracking in `ArchiveVaultService` and Web `ExportService`; deep print preflight checks (`PreflightValidatorService`) inspecting CMYK vs RGB color profiles on PSD/PDF assets, vector packaging dielines, and 3mm bleed tolerances; and canonical 5-folder hierarchy standard (`01_BRIEF_ASSETS` through `05_DELIVERABLES`) |
+| **v4.15.0** | 2026-10-08 | **In-App Video Proxy Streamer & Proofing Overlays, Multi-Format Packaging Presets & Automated NAS Quota Telemetry**: Integrated canvas markup overlays directly on video streams with second-accurate timestamped review pins and interactive timeline scrubber markers (`DeliverableAnnotationCanvas`); dynamic multi-format packaging presets (`print`, `web`, `archive`, `all`) with selective file filtering and manifest summary sheets (`ExportService`); automated Synology NAS volume quota telemetry, capacity threshold alerts, and cold storage archive recommendation triggers (`WorkspaceService.getNasStorageTelemetry`, `UserProfileService.GetSystemSpecs`, `/api/system/status`) |
 
 ---
 
-## 🎯 Active Milestone — v4.15.0: Automated Production Ingestion & Cloud Bridge (Target: Q4 2026)
-
-### 1. In-App Video Proxy Streamer & Proofing Overlays
-
-* Integrated canvas markup overlays directly on video streams with second-accurate timestamped review pins.
-
-### 2. Multi-Format Asset Packaging Presets
-
-* Dynamic client export bundle configurations (print-ready CMYK + web-ready WebP + source archive).
-
-### 3. Automated NAS Quota Telemetry & Health Radar
-
-* Synology volume capacity thresholds, automated cold storage archive triggers, and real-time disk health telemetry.
+## 🎯 Active Milestone — v5.0.0: Multi-Platform Ecosystem Expansion (Target: Q1 2027)
 
 ---
 
