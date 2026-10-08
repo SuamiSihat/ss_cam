@@ -26,6 +26,7 @@ const EmailService = require('../services/EmailService');
 const RegulatoryService = require('../services/RegulatoryService');
 const BranchService = require('../services/BranchService');
 const CareDispatcherService = require('../services/CareDispatcherService');
+const CollisionGuardService = require('../services/CollisionGuardService');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 
@@ -1697,6 +1698,70 @@ router.post('/projects/:id/rollback', authenticateToken, requirePermission('proj
   }
 });
 
+// ─── REAL-TIME FILE COLLISION GUARD & LEASING ────────────────────────────
+
+router.get('/projects/:id/lock', authenticateToken, (req, res) => {
+  try {
+    const project = WorkspaceService.getProjectById(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const userIdentifier = req.user ? (req.user.username || req.user.name || req.user.id) : null;
+    const result = CollisionGuardService.checkLock(project.fullPath, userIdentifier);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/projects/:id/lock', authenticateToken, (req, res) => {
+  try {
+    const project = WorkspaceService.getProjectById(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const { force, action } = req.body || {};
+    const user = req.user || { name: 'Web User' };
+
+    let result;
+    if (action === 'renew') {
+      result = CollisionGuardService.renewHeartbeat(project.fullPath, user);
+    } else if (action === 'takeover' || force) {
+      result = CollisionGuardService.takeoverLock(project.fullPath, user, { projectId: project.id });
+    } else {
+      result = CollisionGuardService.acquireLock(project.fullPath, user, { projectId: project.id });
+    }
+
+    if (!result.success && result.conflict) {
+      return res.status(409).json(result);
+    }
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/projects/:id/lock', authenticateToken, (req, res) => {
+  try {
+    const project = WorkspaceService.getProjectById(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const force = Boolean(req.query.force || (req.body && req.body.force));
+    const user = req.user || { name: 'Web User' };
+    const result = CollisionGuardService.releaseLock(project.fullPath, user, force);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── 1-CLICK PROJECT REASSIGNMENT (RADAR WORKLOAD) ───────────────────
 
 router.post('/projects/:id/reassign', authenticateToken, (req, res) => {
@@ -1810,6 +1875,20 @@ router.put('/projects/:id', authenticateToken, requirePermission('project:edit')
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    // Pre-save Collision Guard Check
+    const forceOverwrite = req.headers['x-force-overwrite'] === 'true' || (req.body && req.body.forceOverwrite === true);
+    if (!forceOverwrite) {
+      const userIdentifier = req.user ? (req.user.username || req.user.name || req.user.id) : null;
+      const lockCheck = CollisionGuardService.checkLock(project.fullPath, userIdentifier);
+      if (lockCheck.isConflict) {
+        return res.status(409).json({
+          error: 'Collision Conflict: Project is currently locked by another active editor.',
+          conflict: true,
+          lock: lockCheck.lock
+        });
+      }
+    }
+
     const { frontmatter, status, priority, manager, designer, department, brand, deadline, subtasks, creative_direction, copywriting, body, expectedHash } = req.body;
     const { frontmatter: existingFm, body: existingBody } = FrontmatterService.readProjectReadme(project.fullPath);
 
@@ -1885,6 +1964,20 @@ router.put('/projects/:id/brief', authenticateToken, requirePermission('brief:ed
   try {
     const project = WorkspaceService.getProjectById(req.params.id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    // Pre-save Collision Guard Check
+    const forceOverwrite = req.headers['x-force-overwrite'] === 'true' || (req.body && req.body.forceOverwrite === true);
+    if (!forceOverwrite) {
+      const userIdentifier = req.user ? (req.user.username || req.user.name || req.user.id) : null;
+      const lockCheck = CollisionGuardService.checkLock(project.fullPath, userIdentifier);
+      if (lockCheck.isConflict) {
+        return res.status(409).json({
+          error: 'Collision Conflict: Project is currently locked by another active editor.',
+          conflict: true,
+          lock: lockCheck.lock
+        });
+      }
+    }
 
     const briefMarkdown = req.body.briefMarkdown !== undefined ? req.body.briefMarkdown : (req.body.readmeBody !== undefined ? req.body.readmeBody : (req.body.body || ''));
     const expectedHash = req.body.expectedHash || null;

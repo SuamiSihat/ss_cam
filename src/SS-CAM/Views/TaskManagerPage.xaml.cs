@@ -57,6 +57,10 @@ namespace SS_CAM.Views
         {
             try
             {
+                if (_editingProject != null && !string.IsNullOrWhiteSpace(_editingProject.FullPath))
+                {
+                    FileCollisionGuardService.Instance.ReleaseLock(_editingProject.FullPath);
+                }
                 WorkspaceWatcherService.Instance.WorkspaceChanged -= OnWorkspaceChanged;
             }
             catch (Exception ex)
@@ -93,7 +97,21 @@ namespace SS_CAM.Views
             {
                 try
                 {
+                    if (e != null && e.ChangeType == WorkspaceChangeType.ProjectEditorLock)
+                    {
+                        if (_editingProject != null && string.Equals(e.ProjectPath, _editingProject.FullPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            UpdateCollisionStatus(_editingProject.FullPath);
+                        }
+                        return;
+                    }
+
                     LoadProjects();
+
+                    if (_editingProject != null && e != null && string.Equals(e.ProjectPath, _editingProject.FullPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        UpdateCollisionStatus(_editingProject.FullPath);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -906,8 +924,101 @@ namespace SS_CAM.Views
             // Default to Preview Mode
             SwitchToReadmePreviewMode();
 
+            // Check collision status & acquire lease if not in conflict
+            UpdateCollisionStatus(item.FullPath);
+            LockCheckResult lockCheck = FileCollisionGuardService.Instance.CheckLock(item.FullPath);
+            if (lockCheck == null || !lockCheck.IsConflict)
+            {
+                FileCollisionGuardService.Instance.AcquireLock(
+                    item.FullPath,
+                    item.ProjectId,
+                    Environment.UserName,
+                    Environment.UserName);
+            }
+
             DetailSaveStatus.Text = "";
             _isPopulatingDetail = false;
+        }
+
+        private void UpdateCollisionStatus(string projectPath)
+        {
+            if (string.IsNullOrWhiteSpace(projectPath) || CollisionAlertCard == null) return;
+
+            try
+            {
+                LockCheckResult check = FileCollisionGuardService.Instance.CheckLock(projectPath);
+                if (check != null && check.IsConflict && check.LockInfo != null)
+                {
+                    CollisionAlertCard.Visibility = Visibility.Visible;
+                    if (TxtCollisionHeadline != null)
+                    {
+                        TxtCollisionHeadline.Text = string.Format("Active Editor: {0} ({1})", check.LockInfo.EditorName, check.LockInfo.Machine);
+                    }
+                    if (TxtCollisionDetails != null)
+                    {
+                        TxtCollisionDetails.Text = string.Format("Locked {0} via {1}. Any saves may overwrite concurrent changes.", check.LockInfo.FormattedDuration, check.LockInfo.Platform);
+                    }
+                }
+                else
+                {
+                    CollisionAlertCard.Visibility = Visibility.Collapsed;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[TaskManagerPage] UpdateCollisionStatus error: " + ex.Message);
+            }
+        }
+
+        private void OnReloadConflictClicked(object sender, RoutedEventArgs e)
+        {
+            if (_editingProject == null || string.IsNullOrWhiteSpace(_editingProject.FullPath)) return;
+            try
+            {
+                ProjectStatusItem refreshed = FrontmatterService.ReadStatus(_editingProject.FullPath);
+                if (refreshed != null)
+                {
+                    _editingProject = refreshed;
+                    PopulateDetail(_editingProject);
+                    NotificationService.ShowInfo("Project Reloaded", "Latest project state loaded from storage.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[TaskManagerPage] OnReloadConflictClicked error: " + ex.Message);
+            }
+        }
+
+        private void OnTakeoverLockClicked(object sender, RoutedEventArgs e)
+        {
+            if (_editingProject == null || string.IsNullOrWhiteSpace(_editingProject.FullPath)) return;
+            try
+            {
+                System.Windows.MessageBoxResult confirm = System.Windows.MessageBox.Show(
+                    "Are you sure you want to take over this editing lock?\n\nThe previous designer's lock lease will be superseded for this project.",
+                    "Confirm Take Over Lock",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Warning);
+
+                if (confirm == System.Windows.MessageBoxResult.Yes)
+                {
+                    bool ok = FileCollisionGuardService.Instance.TakeoverLock(
+                        _editingProject.FullPath,
+                        _editingProject.ProjectId,
+                        Environment.UserName,
+                        Environment.UserName);
+
+                    if (ok)
+                    {
+                        if (CollisionAlertCard != null) CollisionAlertCard.Visibility = Visibility.Collapsed;
+                        NotificationService.ShowSuccess("Lock Acquired", "You now hold the active editing lease for this project.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[TaskManagerPage] OnTakeoverLockClicked error: " + ex.Message);
+            }
         }
 
         private void OnDateChanged(object sender, SelectionChangedEventArgs e)
@@ -1090,6 +1201,14 @@ namespace SS_CAM.Views
 
         private void OnDetailClose(object sender, RoutedEventArgs e)
         {
+            if (_editingProject != null && !string.IsNullOrWhiteSpace(_editingProject.FullPath))
+            {
+                FileCollisionGuardService.Instance.ReleaseLock(_editingProject.FullPath);
+            }
+            if (CollisionAlertCard != null)
+            {
+                CollisionAlertCard.Visibility = Visibility.Collapsed;
+            }
             DetailPanel.Visibility = Visibility.Collapsed;
             _editingProject = null;
         }
@@ -1122,6 +1241,27 @@ namespace SS_CAM.Views
         private void OnDetailSave(object sender, RoutedEventArgs e)
         {
             if (_editingProject == null) return;
+
+            // Check collision guard before saving
+            LockCheckResult lockCheck = FileCollisionGuardService.Instance.CheckLock(_editingProject.FullPath);
+            if (lockCheck != null && lockCheck.IsConflict && lockCheck.LockInfo != null)
+            {
+                string warn = string.Format(
+                    "CONCURRENT COLLISION WARNING:\n\n" +
+                    "{0} on machine '{1}' is actively editing this project ({2})!\n\n" +
+                    "Saving now may overwrite their concurrent modifications.\n\n" +
+                    "Do you still want to force save and overwrite?",
+                    lockCheck.LockInfo.EditorName,
+                    lockCheck.LockInfo.Machine,
+                    lockCheck.LockInfo.FormattedDuration);
+
+                System.Windows.MessageBoxResult res = System.Windows.MessageBox.Show(warn, "Concurrent Collision Warning", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+                if (res != System.Windows.MessageBoxResult.Yes)
+                {
+                    DetailSaveStatus.Text = "Save canceled (Collision avoided)";
+                    return;
+                }
+            }
 
             if (DetailStatus.SelectedItem is ComboBoxItem)
                 _editingProject.Status = ((ComboBoxItem)DetailStatus.SelectedItem).Content.ToString();

@@ -518,6 +518,50 @@
                     </WrapPanel>
                 </StackPanel>
 
+                <!-- ACTIVE EDITOR COLLISION ALERT BANNER -->
+                <ui:Card x:Name="CollisionAlertCard" Visibility="Collapsed"
+                         Background="#FFFBEB" BorderBrush="#F59E0B" BorderThickness="1.5"
+                         Padding="12,10" Margin="0,0,0,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ui:SymbolIcon Grid.Column="0" Symbol="Warning24" FontSize="20"
+                                       Foreground="#D97706" Margin="0,0,10,0" VerticalAlignment="Center"/>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <ui:TextBlock x:Name="TxtCollisionHeadline" Text="Concurrent Editor Active"
+                                          FontSize="12" FontWeight="Bold" Foreground="#92400E"/>
+                            <ui:TextBlock x:Name="TxtCollisionDetails"
+                                          Text="Project is actively being edited by another designer. Direct saves may overwrite concurrent changes."
+                                          FontSize="11" Foreground="#B45309" TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:Button x:Name="BtnReloadConflict" Click="OnReloadConflictClicked"
+                                       Appearance="Secondary" Height="28" Padding="10,0" Margin="0,0,6,0"
+                                       ToolTip="Reload latest project state from NAS">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="ArrowCounterclockwise24" FontSize="11" Margin="0,0,4,0"/>
+                                    <ui:TextBlock Text="Reload Latest" FontSize="11"/>
+                                </StackPanel>
+                            </ui:Button>
+
+                            <ui:Button x:Name="BtnTakeoverLock" Click="OnTakeoverLockClicked"
+                                       Appearance="Danger" Height="28" Padding="10,0"
+                                       ToolTip="Take over editing lock for this workstation">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="LockShield24" FontSize="11" Margin="0,0,4,0"/>
+                                    <ui:TextBlock Text="Take Over Lock" FontSize="11"/>
+                                </StackPanel>
+                            </ui:Button>
+                        </StackPanel>
+                    </Grid>
+                </ui:Card>
+
                 <!-- 2-COLUMN WORKSPACE AREA -->
                 <Grid VerticalAlignment="Stretch">
                     <Grid.ColumnDefinitions>

@@ -253,6 +253,27 @@
                                               Text="Select a project from the top tray to inspect its brief."
                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                               FontSize="11" TextTrimming="CharacterEllipsis"/>
+
+                                <!-- COLLISION GUARD ALERT BANNER -->
+                                <Border x:Name="CollisionAlertBanner" Visibility="Collapsed"
+                                        Background="#FFFBEB" BorderBrush="#F59E0B" BorderThickness="1"
+                                        CornerRadius="6" Padding="10,6" Margin="0,8,0,0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SymbolIcon Grid.Column="0" Symbol="Warning24" FontSize="14" Foreground="#D97706" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <ui:TextBlock x:Name="TxtCollisionStatus" Grid.Column="1" Text="Concurrent Editor Active" FontSize="11" Foreground="#92400E" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        <ui:Button x:Name="BtnTakeoverLock" Grid.Column="2" Appearance="Danger" Height="24" Padding="8,0" Click="OnTakeoverLockClicked" ToolTip="Take over editing lock for this project">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon Symbol="LockShield24" FontSize="10" Margin="0,0,3,0"/>
+                                                <ui:TextBlock Text="Take Over Lock" FontSize="10"/>
+                                            </StackPanel>
+                                        </ui:Button>
+                                    </Grid>
+                                </Border>
                             </StackPanel>
 
                             <!-- Mode Toggle Tab Strip -->

@@ -249,7 +249,7 @@ class WorkspaceService {
 
     try {
       this.watcher = chokidar.watch(this.workspaceRoot, {
-        ignored: /(^|[\/\\])(\..|node_modules|@eaDir|#recycle|\$RECYCLE\.BIN|_Team|_Orders|_Audit|_Clinic|~|\.tmp$)/,
+        ignored: /(^|[\/\\])(\.(?!editor_lock\.json)[^\\\/]+|node_modules|@eaDir|#recycle|\$RECYCLE\.BIN|_Team|_Orders|_Audit|_Clinic|~|\.tmp$)/,
         persistent: true,
         ignoreInitial: true,
         depth: 5
@@ -265,6 +265,26 @@ class WorkspaceService {
 
       const handleFileChange = (filePath) => {
         if (!filePath) return;
+
+        // Real-time project lock lease updates via SSE (bypasses full rescan)
+        if (filePath.endsWith('.editor_lock.json')) {
+          try {
+            const CollisionGuardService = require('./CollisionGuardService');
+            const SseService = require('./SseService');
+            const projectDir = path.dirname(filePath);
+            const lockInfo = CollisionGuardService.getLock(projectDir);
+            SseService.broadcast('project:lock_changed', {
+              projectPath: projectDir,
+              projectId: lockInfo ? lockInfo.ProjectId : path.basename(projectDir),
+              action: lockInfo ? 'updated' : 'released',
+              lock: lockInfo,
+              timestamp: new Date().toISOString()
+            });
+          } catch (e) {
+            console.debug('[WorkspaceService] Lock event broadcast error:', e.message);
+          }
+          return;
+        }
 
         // Telemetry & user accounts in _Team should only broadcast live_tasks:updated, NEVER trigger full project rescan
         if (filePath.endsWith('live_tasks.json') || filePath.includes('_Team')) {

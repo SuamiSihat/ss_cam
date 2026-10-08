@@ -270,6 +270,7 @@
     <Compile Include="Services\GeminiDesktopService.cs" />
     <Compile Include="Services\StudioTaskService.cs" />
     <Compile Include="Services\SnapshotDesktopService.cs" />
+    <Compile Include="Services\FileCollisionGuardService.cs" />
     <Compile Include="Views\SplashWindow.xaml.cs">
       <DependentUpon>SplashWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

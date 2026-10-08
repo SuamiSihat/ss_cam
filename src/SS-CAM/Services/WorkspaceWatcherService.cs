@@ -12,7 +12,8 @@ namespace SS_CAM.Services
         ProjectMetadata,
         ProjectComments,
         ProjectCopywriting,
-        ProjectFolderStructure
+        ProjectFolderStructure,
+        ProjectEditorLock
     }
 
     public class WorkspaceChangedEventArgs : EventArgs
@@ -170,6 +171,11 @@ namespace SS_CAM.Services
             else if (string.Equals(fileName, "COPY.md", StringComparison.OrdinalIgnoreCase))
             {
                 changeType = WorkspaceChangeType.ProjectCopywriting;
+                isRelevant = true;
+            }
+            else if (string.Equals(fileName, ".editor_lock.json", StringComparison.OrdinalIgnoreCase))
+            {
+                changeType = WorkspaceChangeType.ProjectEditorLock;
                 isRelevant = true;
             }
             else if (fullPath.IndexOf("_Config", StringComparison.OrdinalIgnoreCase) >= 0 ||

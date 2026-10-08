@@ -3051,6 +3051,79 @@ This is the project brief content.
     try { fs.rmSync(testProjectDir, { recursive: true, force: true }); } catch (e) {}
   });
 
+  // ─── TEST 66: CollisionGuardService Real-Time Project Lock Leasing & Conflict Prevention ────
+  test('CollisionGuardService leases locks, detects concurrent conflicts, expires stale leases, and allows takeover', () => {
+    const CollisionGuardService = require('../services/CollisionGuardService');
+    const testProjectDir = path.join(__dirname, 'temp-test-lock-proj');
+    if (fs.existsSync(testProjectDir)) fs.rmSync(testProjectDir, { recursive: true, force: true });
+    fs.mkdirSync(testProjectDir, { recursive: true });
+
+    // 1. Initial state: no lock
+    const initialLock = CollisionGuardService.getLock(testProjectDir);
+    assert.strictEqual(initialLock, null, 'Must have no initial lock');
+    const check1 = CollisionGuardService.checkLock(testProjectDir, 'haikal');
+    assert.strictEqual(check1.isLocked, false);
+    assert.strictEqual(check1.isConflict, false);
+
+    // 2. Designer A acquires lock
+    const acquireA = CollisionGuardService.acquireLock(testProjectDir, { username: 'haikal', displayName: 'Haikal' }, { projectId: '202610_0099D_TEST' });
+    assert.ok(acquireA.success, 'Designer A lock acquisition must succeed');
+    assert.strictEqual(acquireA.lock.Editor, 'haikal');
+    assert.strictEqual(acquireA.lock.EditorName, 'Haikal');
+
+    // 3. Verify .editor_lock.json written
+    const lockPath = CollisionGuardService.getLockFilePath(testProjectDir);
+    assert.ok(fs.existsSync(lockPath), '.editor_lock.json file must exist');
+
+    // 4. Designer A check: locked, no conflict
+    const checkA = CollisionGuardService.checkLock(testProjectDir, 'haikal');
+    assert.strictEqual(checkA.isLocked, true);
+    assert.strictEqual(checkA.isConflict, false);
+
+    // 5. Designer B check: locked, conflict detected
+    const checkB = CollisionGuardService.checkLock(testProjectDir, 'harussani');
+    assert.strictEqual(checkB.isLocked, true);
+    assert.strictEqual(checkB.isConflict, true, 'Concurrent designer check must flag isConflict=true');
+    assert.ok(checkB.message.includes('Haikal'));
+
+    // 6. Designer B attempts non-forced acquisition: blocked
+    const acquireB = CollisionGuardService.acquireLock(testProjectDir, { username: 'harussani', displayName: 'Harussani' });
+    assert.strictEqual(acquireB.success, false);
+    assert.strictEqual(acquireB.conflict, true);
+
+    // 7. Designer A renews heartbeat
+    const renewA = CollisionGuardService.renewHeartbeat(testProjectDir, { username: 'haikal' });
+    assert.ok(renewA.success, 'Heartbeat renewal by lock owner must succeed');
+
+    // 8. Designer B attempts unauthorized release: blocked
+    const releaseUnauthorized = CollisionGuardService.releaseLock(testProjectDir, { username: 'harussani' }, false);
+    assert.strictEqual(releaseUnauthorized.success, false, 'Non-owner cannot release lock without force');
+
+    // 9. Designer B takes over lock
+    const takeoverB = CollisionGuardService.takeoverLock(testProjectDir, { username: 'harussani', displayName: 'Harussani' });
+    assert.ok(takeoverB.success, 'Takeover must succeed');
+    assert.strictEqual(takeoverB.lock.Editor, 'harussani');
+
+    // 10. Check lock now owned by Harussani
+    const checkAfterTakeover = CollisionGuardService.checkLock(testProjectDir, 'harussani');
+    assert.strictEqual(checkAfterTakeover.isConflict, false);
+    const checkHaikalAfterTakeover = CollisionGuardService.checkLock(testProjectDir, 'haikal');
+    assert.strictEqual(checkHaikalAfterTakeover.isConflict, true);
+
+    // 11. Expiration test: artificially backdate HeartbeatAt past TTL
+    const rawLock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+    rawLock.HeartbeatAt = new Date(Date.now() - 400 * 1000).toISOString(); // 400s ago (> 300s TTL)
+    fs.writeFileSync(lockPath, JSON.stringify(rawLock), 'utf8');
+
+    // getLock should auto-purge expired lock
+    const expiredLock = CollisionGuardService.getLock(testProjectDir);
+    assert.strictEqual(expiredLock, null, 'Expired lock must return null and be purged');
+    assert.strictEqual(fs.existsSync(lockPath), false, 'Expired lock file must be cleaned up from filesystem');
+
+    // Cleanup
+    try { fs.rmSync(testProjectDir, { recursive: true, force: true }); } catch (e) {}
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {

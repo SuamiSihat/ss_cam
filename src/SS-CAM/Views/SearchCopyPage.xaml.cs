@@ -28,6 +28,7 @@ namespace SS_CAM.Views
         private string cleanedReadmeText = "";
         private ProjectStatusItem currentStatusItem = null;
         private bool isInternalInspectorUpdate = false;
+        private string _lockedProjectPath = null;
 
         public SearchCopyPage()
         {
@@ -104,6 +105,11 @@ namespace SS_CAM.Views
         {
             try
             {
+                if (!string.IsNullOrWhiteSpace(_lockedProjectPath))
+                {
+                    FileCollisionGuardService.Instance.ReleaseLock(_lockedProjectPath);
+                    _lockedProjectPath = null;
+                }
                 WorkspaceWatcherService.Instance.WorkspaceChanged -= OnWorkspaceChanged;
             }
             catch (Exception ex)
@@ -123,6 +129,13 @@ namespace SS_CAM.Views
                         if (selectedItem != null && string.Equals(e.ProjectPath, selectedItem.FullPath, StringComparison.OrdinalIgnoreCase))
                         {
                             UpdateReadmeDisplay();
+                        }
+                    }
+                    else if (e.ChangeType == WorkspaceChangeType.ProjectEditorLock)
+                    {
+                        if (selectedItem != null && string.Equals(e.ProjectPath, selectedItem.FullPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            UpdateCollisionStatus(selectedItem.FullPath);
                         }
                     }
                     else if (e.ChangeType == WorkspaceChangeType.ProjectFolderStructure)
@@ -168,6 +181,27 @@ namespace SS_CAM.Views
         private void OnSaveBriefClicked(object sender, RoutedEventArgs e)
         {
             if (selectedItem == null) return;
+
+            // Check collision guard before saving
+            LockCheckResult lockCheck = FileCollisionGuardService.Instance.CheckLock(selectedItem.FullPath);
+            if (lockCheck != null && lockCheck.IsConflict && lockCheck.LockInfo != null)
+            {
+                string warn = string.Format(
+                    "CONCURRENT COLLISION WARNING:\n\n" +
+                    "{0} on machine '{1}' is actively editing this project ({2})!\n\n" +
+                    "Saving now may overwrite their concurrent modifications.\n\n" +
+                    "Do you still want to force save and overwrite?",
+                    lockCheck.LockInfo.EditorName,
+                    lockCheck.LockInfo.Machine,
+                    lockCheck.LockInfo.FormattedDuration);
+
+                MessageBoxResult res = MessageBox.Show(warn, "Concurrent Collision Warning", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (res != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+
             string readmePath = Path.Combine(selectedItem.FullPath, "README.md");
             try
             {
@@ -331,6 +365,11 @@ namespace SS_CAM.Views
         {
             if (ResultsListBox.SelectedItems.Count > 1)
             {
+                if (!string.IsNullOrWhiteSpace(_lockedProjectPath))
+                {
+                    FileCollisionGuardService.Instance.ReleaseLock(_lockedProjectPath);
+                    _lockedProjectPath = null;
+                }
                 BatchActionBar.Visibility = Visibility.Visible;
                 TxtBatchCount.Text = string.Format("{0} selected", ResultsListBox.SelectedItems.Count);
                 isInternalInspectorUpdate = true;
@@ -423,6 +462,27 @@ namespace SS_CAM.Views
                 currentStatusItem = FrontmatterService.ReadStatus(selectedItem.FullPath);
                 UpdateInspectorUI();
 
+                // Switch project editor lease
+                if (!string.IsNullOrWhiteSpace(_lockedProjectPath) &&
+                    !string.Equals(_lockedProjectPath, selectedItem.FullPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    FileCollisionGuardService.Instance.ReleaseLock(_lockedProjectPath);
+                    _lockedProjectPath = null;
+                }
+
+                // Check collision status and acquire lease if not in conflict
+                UpdateCollisionStatus(selectedItem.FullPath);
+                LockCheckResult lockCheck = FileCollisionGuardService.Instance.CheckLock(selectedItem.FullPath);
+                if (lockCheck == null || !lockCheck.IsConflict)
+                {
+                    FileCollisionGuardService.Instance.AcquireLock(
+                        selectedItem.FullPath,
+                        selectedItem.Project,
+                        Environment.UserName,
+                        Environment.UserName);
+                    _lockedProjectPath = selectedItem.FullPath;
+                }
+
                 // Load comments
                 LoadComments();
 
@@ -449,6 +509,13 @@ namespace SS_CAM.Views
             }
             else
             {
+                if (!string.IsNullOrWhiteSpace(_lockedProjectPath))
+                {
+                    FileCollisionGuardService.Instance.ReleaseLock(_lockedProjectPath);
+                    _lockedProjectPath = null;
+                }
+                if (CollisionAlertBanner != null) CollisionAlertBanner.Visibility = Visibility.Collapsed;
+
                 SelectedProjectTitle.Text = "None Selected";
                 SelectedProjectPath.Text = "Select a folder in the table to inspect.";
                 rawReadmeText = "";
@@ -461,6 +528,70 @@ namespace SS_CAM.Views
 
             RawMarkdownBox.Text = rawReadmeText;
             RenderFormattedMarkdown(cleanedReadmeText);
+        }
+
+        private void UpdateCollisionStatus(string projectPath)
+        {
+            if (string.IsNullOrWhiteSpace(projectPath) || CollisionAlertBanner == null) return;
+
+            try
+            {
+                LockCheckResult check = FileCollisionGuardService.Instance.CheckLock(projectPath);
+                if (check != null && check.IsConflict && check.LockInfo != null)
+                {
+                    CollisionAlertBanner.Visibility = Visibility.Visible;
+                    if (TxtCollisionStatus != null)
+                    {
+                        TxtCollisionStatus.Text = string.Format("Active Editor: {0} ({1}) - {2}",
+                            check.LockInfo.EditorName, check.LockInfo.Machine, check.LockInfo.FormattedDuration);
+                    }
+                }
+                else
+                {
+                    CollisionAlertBanner.Visibility = Visibility.Collapsed;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[SearchCopyPage] UpdateCollisionStatus error: " + ex.Message);
+            }
+        }
+
+        private void OnTakeoverLockClicked(object sender, RoutedEventArgs e)
+        {
+            if (selectedItem == null || string.IsNullOrWhiteSpace(selectedItem.FullPath)) return;
+            try
+            {
+                MessageBoxResult confirm = MessageBox.Show(
+                    "Are you sure you want to take over this editing lock?\n\nThe previous designer's lock lease will be superseded for this project.",
+                    "Confirm Take Over Lock",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (confirm == MessageBoxResult.Yes)
+                {
+                    bool ok = FileCollisionGuardService.Instance.TakeoverLock(
+                        selectedItem.FullPath,
+                        selectedItem.Project,
+                        Environment.UserName,
+                        Environment.UserName);
+
+                    if (ok)
+                    {
+                        _lockedProjectPath = selectedItem.FullPath;
+                        if (CollisionAlertBanner != null) CollisionAlertBanner.Visibility = Visibility.Collapsed;
+                        NotificationService.ShowSuccess("Lock Acquired", "You now hold the active editing lease for this project.");
+                    }
+                    else
+                    {
+                        NotificationService.ShowError("Lock Failed", "Could not take over active editing lease.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[SearchCopyPage] OnTakeoverLockClicked error: " + ex.Message);
+            }
         }
 
         private void UpdateInspectorUI()
