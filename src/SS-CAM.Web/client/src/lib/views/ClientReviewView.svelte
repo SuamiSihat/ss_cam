@@ -63,7 +63,8 @@
     selectedDeliverable = {
       ...d,
       project: {
-        jobId: reviewData?.project?.jobId || '',
+        id: reviewData?.project?.id || reviewData?.project?.jobId || '',
+        jobId: reviewData?.project?.jobId || reviewData?.project?.id || '',
         title: reviewData?.project?.title || '',
         brand: reviewData?.project?.brand || 'SS',
         designer: reviewData?.project?.designer || '',
@@ -192,9 +193,28 @@
             <div class="deliverable-card" onclick={() => openLightbox(d)}>
               <div class="media-thumb-box">
                 {#if d.isImage}
-                  <img src={d.url} alt={d.filename} class="thumb-img" />
+                  <img
+                    src={d.previewUrl || d.url}
+                    alt={d.filename}
+                    class="thumb-img"
+                    loading="lazy"
+                    onerror={(e) => {
+                      const target = e.currentTarget as HTMLImageElement;
+                      if (reviewData?.project?.id && !target.dataset.fallback) {
+                        target.dataset.fallback = 'true';
+                        const rel = d.relativePath ? d.relativePath.split('/').slice(-2).join('/') : d.filename;
+                        target.src = `/api/projects/${encodeURIComponent(reviewData.project.id)}/asset?file=${encodeURIComponent(rel)}`;
+                      }
+                    }}
+                  />
                 {:else if d.isVideo}
-                  <video src={d.url} class="thumb-video" preload="metadata" muted></video>
+                  <video
+                    src={d.streamUrl || d.previewUrl || d.url}
+                    class="thumb-video"
+                    preload="metadata"
+                    muted
+                    playsinline
+                  ></video>
                   <span class="play-badge">
                     <FluentIcons name="video" size={11} />
                     <span style="margin-left: 3px;">VIDEO</span>

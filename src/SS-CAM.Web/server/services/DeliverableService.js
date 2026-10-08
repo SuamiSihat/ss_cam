@@ -201,6 +201,11 @@ class DeliverableService {
               modified: stats.mtime.toISOString(),
               version,
               relativePath,
+              url: (previewType === 'video' || previewType === 'audio')
+                ? `/api/deliverables/stream?id=${encodedId}`
+                : (previewType === 'image' || previewType === 'pdf')
+                  ? `/api/deliverables/preview?id=${encodedId}`
+                  : `/api/deliverables/download?id=${encodedId}`,
               downloadUrl: `/api/deliverables/download?id=${encodedId}`,
               streamUrl: (previewType === 'video' || previewType === 'audio')
                 ? `/api/deliverables/stream?id=${encodedId}`
