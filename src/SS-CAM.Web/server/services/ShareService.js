@@ -124,6 +124,7 @@ class ShareService {
     if (record.deliverableId) {
       deliverables = deliverables.filter(d => d.id === record.deliverableId || d.filename === record.deliverableId);
     }
+    deliverables.sort((a, b) => (a.filename || '').localeCompare(b.filename || '', undefined, { numeric: true, sensitivity: 'base' }));
 
     return {
       shareInfo: {

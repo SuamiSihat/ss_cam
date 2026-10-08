@@ -225,6 +225,9 @@ class DeliverableService {
       scanDirectoryForMedia(foundDir);
     }
 
+    // Natural ascending sort by filename (e.g. 1.png, 2.png, ..., 9.png, 10.png, 11.png)
+    results.sort((a, b) => (a.filename || '').localeCompare(b.filename || '', undefined, { numeric: true, sensitivity: 'base' }));
+
     return results;
   }
 

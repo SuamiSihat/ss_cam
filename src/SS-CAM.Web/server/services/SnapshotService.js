@@ -81,6 +81,7 @@ class SnapshotService {
             }
           }
         }
+        sourceFiles.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
       } catch (e) {
         console.debug('[SnapshotService] Copy 02_SOURCE_FILES error:', e.message);
       }

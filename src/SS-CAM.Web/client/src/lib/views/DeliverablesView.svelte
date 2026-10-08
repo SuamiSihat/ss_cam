@@ -150,7 +150,11 @@
       group.deliverables.push(d);
       group.totalSizeBytes += (d.sizeBytes || 0);
     }
-    return Array.from(map.values());
+    const groups = Array.from(map.values());
+    for (const g of groups) {
+      g.deliverables.sort((a, b) => (a.filename || '').localeCompare(b.filename || '', undefined, { numeric: true, sensitivity: 'base' }));
+    }
+    return groups;
   });
 
   const pendingCount = $derived(projectStore.deliverables.filter(d => (d.status || 'pending') === 'pending').length);

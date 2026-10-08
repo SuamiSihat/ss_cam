@@ -252,6 +252,7 @@ namespace SS_CAM.Services
                     {
                         Debug.WriteLine("[SnapshotDesktopService] Enumerate source files error: " + ex.Message);
                     }
+                    sourceFiles.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
                 }
             }
 

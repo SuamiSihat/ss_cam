@@ -10,6 +10,16 @@
   let isLoading = $state<boolean>(true);
   let errorMsg = $state<string>('');
   let reviewData = $state<any>(null);
+  let sortOrder = $state<'asc' | 'desc'>('asc');
+
+  const sortedDeliverables = $derived.by<DeliverableItem[]>(() => {
+    if (!reviewData?.deliverables || !Array.isArray(reviewData.deliverables)) return [];
+    const items = [...reviewData.deliverables];
+    return items.sort((a, b) => {
+      const cmp = (a.filename || '').localeCompare(b.filename || '', undefined, { numeric: true, sensitivity: 'base' });
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+  });
 
   // Lightbox & Inspection State
   let selectedDeliverable = $state<DeliverableItem | null>(null);
@@ -51,6 +61,11 @@
     errorMsg = '';
     try {
       const data = await ApiClient.getPublicReview(token);
+      if (data && Array.isArray(data.deliverables)) {
+        data.deliverables.sort((a: any, b: any) =>
+          (a.filename || '').localeCompare(b.filename || '', undefined, { numeric: true, sensitivity: 'base' })
+        );
+      }
       reviewData = data;
     } catch (err: any) {
       errorMsg = err.message || 'Review link is invalid or has expired.';
@@ -182,12 +197,26 @@
       <!-- Deliverables Review Matrix -->
       <section class="deliverables-section">
         <div class="section-header-row">
-          <h2 class="section-title">Creative Deliverables for Review ({reviewData.deliverables.length})</h2>
-          <span class="section-hint">Click any asset to inspect in full resolution, drop markup pins, or compare versions.</span>
+          <div class="header-titles">
+            <h2 class="section-title">Creative Deliverables for Review ({sortedDeliverables.length})</h2>
+            <span class="section-hint">Click any asset to inspect in full resolution, drop markup pins, or compare versions.</span>
+          </div>
+          <div class="sort-control">
+            <span class="sort-label">Sort:</span>
+            <button
+              type="button"
+              class="sort-toggle-btn"
+              onclick={() => { sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; }}
+              title="Click to toggle ascending or descending"
+            >
+              <span>Filename ({sortOrder === 'asc' ? 'ASC 1→9' : 'DESC 9→1'})</span>
+              <span class="sort-icon">{sortOrder === 'asc' ? '▲' : '▼'}</span>
+            </button>
+          </div>
         </div>
 
         <div class="deliverables-grid">
-          {#each reviewData.deliverables as d}
+          {#each sortedDeliverables as d}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="deliverable-card" onclick={() => openLightbox(d)}>
@@ -378,7 +407,37 @@
 
   /* Deliverables Grid */
   .deliverables-section { display: flex; flex-direction: column; gap: 14px; }
-  .section-header-row { display: flex; flex-direction: column; gap: 2px; }
+  .section-header-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-titles { display: flex; flex-direction: column; gap: 2px; }
+  .sort-control { display: flex; align-items: center; gap: 8px; }
+  .sort-label { font-size: 12px; font-weight: 600; color: #94A3B8; }
+  .sort-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: #E2E8F0;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .sort-toggle-btn:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.4);
+    color: #38BDF8;
+  }
+  .sort-icon { font-size: 10px; color: #38BDF8; }
   .section-title { font-size: 16px; font-weight: 800; color: #F8FAFC; }
   .section-hint { font-size: 12px; color: #64748B; }
 
