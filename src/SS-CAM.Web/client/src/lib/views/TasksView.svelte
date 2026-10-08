@@ -101,7 +101,7 @@
   const columns: { id: StudioTaskStatus; label: string; icon: string; color: string }[] = [
     { id: 'backlog', label: 'Backlog', icon: 'circleDashed', color: '#64748B' },
     { id: 'in-progress', label: 'In Progress', icon: 'bolt', color: '#0284C7' },
-    { id: 'review', label: 'Review', icon: 'search', color: '#8B5CF6' },
+    { id: 'review', label: 'Review', icon: 'search', color: '#F59E0B' },
     { id: 'done', label: 'Done', icon: 'checkCircle', color: '#10B981' }
   ];
 
@@ -161,6 +161,18 @@
     window.addEventListener('studio-task:deleted', onTasksChanged);
     window.addEventListener('workspace:updated', onTasksChanged);
 
+    const onKeydown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>('.clickup-search-input');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeydown);
+
     return () => {
       window.removeEventListener('task:created', onTasksChanged);
       window.removeEventListener('task:updated', onTasksChanged);
@@ -169,6 +181,7 @@
       window.removeEventListener('studio-task:updated', onTasksChanged);
       window.removeEventListener('studio-task:deleted', onTasksChanged);
       window.removeEventListener('workspace:updated', onTasksChanged);
+      window.removeEventListener('keydown', onKeydown);
     };
   });
 
@@ -247,7 +260,7 @@
       const statusGroups = [
         { status: 'backlog' as StudioTaskStatus, label: 'BACKLOG', color: '#64748B', tasks: wsTasks.filter(t => t.status === 'backlog') },
         { status: 'in-progress' as StudioTaskStatus, label: 'IN PROGRESS', color: '#0284C7', tasks: wsTasks.filter(t => t.status === 'in-progress') },
-        { status: 'review' as StudioTaskStatus, label: 'REVIEW', color: '#8B5CF6', tasks: wsTasks.filter(t => t.status === 'review') },
+        { status: 'review' as StudioTaskStatus, label: 'REVIEW', color: '#F59E0B', tasks: wsTasks.filter(t => t.status === 'review') },
         { status: 'done' as StudioTaskStatus, label: 'DONE', color: '#10B981', tasks: wsTasks.filter(t => t.status === 'done' || t.status === 'converted') }
       ];
 
@@ -347,14 +360,16 @@
   }
 
   // Quick inline task creation directly from List view with mandatory assignee
-  async function handleQuickInlineCreate(workstream: string, status: StudioTaskStatus = 'backlog') {
+  async function handleQuickInlineCreate(workstream: string, status: StudioTaskStatus = 'backlog', keepActive: boolean = false) {
     const t = inlineTaskTitle.trim();
     if (!t) {
       inlineCreateParent = null;
       return;
     }
     inlineTaskTitle = '';
-    inlineCreateParent = null;
+    if (!keepActive) {
+      inlineCreateParent = null;
+    }
     try {
       const owner = currentUsername || 'harussani';
       const ownerName = appState.currentUser?.name || 'Harussani (Me)';
@@ -387,6 +402,111 @@
       task.status = old;
       appState.addToast(`Failed to update status: ${err.message}`, 'error');
     }
+  }
+
+  // 1-Click Hover Micro-Action: Advance status to next sequential stage
+  async function handleAdvanceStatus(e: MouseEvent, task: StudioTask) {
+    e.stopPropagation();
+    const transitions: Record<StudioTaskStatus, StudioTaskStatus> = {
+      'backlog': 'in-progress',
+      'in-progress': 'review',
+      'review': 'done',
+      'done': 'backlog'
+    };
+    const nextStatus = transitions[task.status] || 'in-progress';
+    await handleInlineStatusChange(task, nextStatus);
+    appState.addToast(`Moved "${task.title}" to ${nextStatus.toUpperCase()}`, 'info');
+  }
+
+  // 1-Click Hover Micro-Action: Assign to current user
+  async function handleQuickAssignToMe(e: MouseEvent, task: StudioTask) {
+    e.stopPropagation();
+    const username = currentUsername || 'harussani';
+    const fullName = appState.currentUser?.name || 'Harussani (Me)';
+    if (task.assignee === username) return;
+    try {
+      const res = await ApiClient.updateStudioTask(task.id, {
+        assignee: username,
+        assigneeName: fullName,
+        assigneeAvatarColor: '#0284C7'
+      });
+      handleTaskUpdated(res.task);
+      appState.addToast(`Assigned to ${fullName}`, 'success');
+    } catch (err: any) {
+      appState.addToast(`Failed to assign: ${err.message}`, 'error');
+    }
+  }
+
+  // 1-Click Hover Micro-Action: Bump due date (+1 day)
+  async function handleQuickBumpDueDate(e: MouseEvent, task: StudioTask, days: number = 1) {
+    e.stopPropagation();
+    const base = task.dueDate ? new Date(task.dueDate) : new Date();
+    base.setDate(base.getDate() + days);
+    const iso = base.toISOString().split('T')[0];
+    try {
+      const res = await ApiClient.updateStudioTask(task.id, { dueDate: iso });
+      handleTaskUpdated(res.task);
+      appState.addToast(`Due date bumped to ${formatDateShort(iso)}`, 'info');
+    } catch (err: any) {
+      appState.addToast(`Failed to set due date: ${err.message}`, 'error');
+    }
+  }
+
+  // Active filters tracker & quick reset
+  const hasActiveFilters = $derived(
+    statusFilter !== 'all' ||
+    workstreamFilter !== 'all' ||
+    brandFilter !== 'all' ||
+    priorityFilter !== 'all' ||
+    myTasksOnly ||
+    hideCompleted ||
+    searchQuery.trim().length > 0
+  );
+
+  function resetAllFilters() {
+    statusFilter = 'all';
+    workstreamFilter = 'all';
+    brandFilter = 'all';
+    priorityFilter = 'all';
+    myTasksOnly = false;
+    hideCompleted = false;
+    searchQuery = '';
+  }
+
+  // Executive Bottleneck Radar: Detect overdue, blocked, or urgent deliverables
+  const bottleneckTasks = $derived.by(() => {
+    return tasks.filter(t => {
+      if (t.status === 'done' || t.status === 'converted') return false;
+      const overdue = isOverdue(t.dueDate, t.status);
+      const isBlocked = (t.blockedBy || []).some(bId => {
+        const blk = tasks.find(x => x.id === bId);
+        return blk && blk.status !== 'done' && blk.status !== 'converted';
+      });
+      const isUrgent = t.priority === 'urgent';
+      return overdue || isBlocked || isUrgent;
+    });
+  });
+
+  const bottleneckBreakdown = $derived.by(() => {
+    let overdueCount = 0;
+    let blockedCount = 0;
+    let urgentCount = 0;
+    bottleneckTasks.forEach(t => {
+      if (isOverdue(t.dueDate, t.status)) overdueCount++;
+      if ((t.blockedBy || []).some(bId => {
+        const blk = tasks.find(x => x.id === bId);
+        return blk && blk.status !== 'done' && blk.status !== 'converted';
+      })) blockedCount++;
+      if (t.priority === 'urgent') urgentCount++;
+    });
+    return { overdueCount, blockedCount, urgentCount };
+  });
+
+  function triageBottlenecksInList() {
+    priorityFilter = 'urgent';
+    hideCompleted = true;
+    viewMode = 'list';
+    appState.addToast(`Filtered to high-priority deliverables`, 'info');
   }
 
   // Inline Subtask Toggle
@@ -719,6 +839,7 @@
       <div class="space-title-dropdown">
         <span class="space-icon-dot"></span>
         <h1 class="space-name">Workspace Tasks &amp; Deliverables</h1>
+        <span class="task-count-pill">{filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}</span>
       </div>
     </div>
 
@@ -773,7 +894,7 @@
     </div>
   </header>
 
-  <!-- ═══ VIEWS NAVIGATION STRIP ════════════════════════════════════ -->
+  <!-- ═══ 2-TIER TOOLBAR: TIER 1 (VIEW NAVIGATION & CORE TOGGLES) ═══ -->
   <div class="clickup-views-nav">
     <div class="views-tabs-list">
       {#if layoutMode === 'executive'}
@@ -785,6 +906,9 @@
         >
           <FluentIcons name="overview" size={14} />
           <span>Overview</span>
+          {#if bottleneckTasks.length > 0}
+            <span class="view-tab-alert-dot" title="{bottleneckTasks.length} Bottlenecks Requiring Attention"></span>
+          {/if}
         </button>
       {/if}
 
@@ -829,8 +953,53 @@
       </button>
     </div>
 
-    <!-- Right Controls: Status Pill, Filter, Hide Completed, Me Mode, Search -->
-    <div class="views-sub-controls">
+    <!-- Right Controls: Me Mode & Hide Completed Toggles -->
+    <div class="tier1-right-toggles">
+      <!-- Me Mode Toggle Button -->
+      <button
+        type="button"
+        class="me-mode-btn"
+        class:active={myTasksOnly}
+        onclick={() => (myTasksOnly = !myTasksOnly)}
+        title="Toggle Me Mode (Show only assigned to me)"
+      >
+        <FluentIcons name="user" size={13} />
+        <span>Assigned to Me</span>
+      </button>
+
+      <!-- Hide Completed Tasks Toggle Button -->
+      <button
+        type="button"
+        class="filter-icon-toggle-btn"
+        class:active={hideCompleted}
+        onclick={() => (hideCompleted = !hideCompleted)}
+        title="Toggle visibility of completed tasks"
+      >
+        <FluentIcons name={hideCompleted ? 'eyeSlash' : 'eye'} size={13} />
+        <span>{hideCompleted ? 'Completed: Hidden' : 'Completed: Shown'}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ 2-TIER TOOLBAR: TIER 2 (OPERATIONAL REFINEMENT RAIL) ════════ -->
+  <div class="clickup-refinement-toolbar">
+    <div class="refinement-left-group">
+      <!-- Search Input with Ctrl+K Hint -->
+      <div class="clickup-search-box">
+        <FluentIcons name="search" size={13} color="var(--text-secondary)" />
+        <input
+          type="text"
+          placeholder="Search deliverables, owners, tags... (Ctrl+K)"
+          bind:value={searchQuery}
+          class="clickup-search-input"
+        />
+        {#if searchQuery}
+          <button type="button" class="clear-btn" onclick={() => (searchQuery = '')}>✕</button>
+        {:else}
+          <kbd class="search-kbd-hint">Ctrl+K</kbd>
+        {/if}
+      </div>
+
       <!-- Status Filter Pill -->
       <select class="clickup-filter-pill" bind:value={statusFilter}>
         <option value="all">Status: All</option>
@@ -847,42 +1016,35 @@
         {/each}
       </select>
 
-      <!-- Hide Completed Tasks Toggle Button -->
-      <button
-        type="button"
-        class="filter-icon-toggle-btn"
-        class:active={hideCompleted}
-        onclick={() => (hideCompleted = !hideCompleted)}
-        title="Toggle visibility of completed tasks"
-      >
-        <FluentIcons name={hideCompleted ? 'eyeSlash' : 'eye'} size={13} />
-        <span>{hideCompleted ? 'Completed: Hidden' : 'Completed: Shown'}</span>
-      </button>
+      <!-- Brand Filter Pill -->
+      <select class="clickup-filter-pill" bind:value={brandFilter}>
+        <option value="all">Brand: All</option>
+        {#each brandChips.filter(b => b !== 'all') as b}
+          <option value={b}>Brand: {b}</option>
+        {/each}
+      </select>
 
-      <!-- Me Mode Toggle -->
-      <button
-        type="button"
-        class="me-mode-btn"
-        class:active={myTasksOnly}
-        onclick={() => (myTasksOnly = !myTasksOnly)}
-        title="Toggle Me Mode (Show only assigned to me)"
-      >
-        <FluentIcons name="user" size={14} />
-      </button>
+      <!-- Priority Filter Pill -->
+      <select class="clickup-filter-pill" bind:value={priorityFilter}>
+        <option value="all">Priority: All</option>
+        {#each priorityChips.filter(p => p !== 'all') as p}
+          <option value={p}>Priority: {p.charAt(0).toUpperCase() + p.slice(1)}</option>
+        {/each}
+      </select>
+    </div>
 
-      <!-- Search Box -->
-      <div class="clickup-search-box">
-        <FluentIcons name="search" size={13} color="var(--text-secondary)" />
-        <input
-          type="text"
-          placeholder="Search tasks, deliverables, team... (Ctrl+K)"
-          bind:value={searchQuery}
-          class="clickup-search-input"
-        />
-        {#if searchQuery}
-          <button type="button" class="clear-btn" onclick={() => (searchQuery = '')}>✕</button>
-        {/if}
-      </div>
+    <div class="refinement-right-group">
+      {#if hasActiveFilters}
+        <button
+          type="button"
+          class="reset-filters-btn"
+          onclick={resetAllFilters}
+          title="Reset all active filters"
+        >
+          <FluentIcons name="arrowCounterclockwise" size={12} />
+          <span>Reset Filters</span>
+        </button>
+      {/if}
     </div>
   </div>
 
@@ -898,6 +1060,29 @@
        ═══════════════════════════════════════════════════════════════ -->
   {:else if viewMode === 'overview'}
     <div class="overview-view-container">
+
+      <!-- EXECUTIVE BOTTLENECK RADAR BANNER (Phase 4) -->
+      {#if bottleneckTasks.length > 0}
+        <div class="executive-bottleneck-radar-banner">
+          <div class="radar-left">
+            <span class="radar-pulsing-dot"></span>
+            <div class="radar-text-block">
+              <span class="radar-title">Executive Bottleneck Radar: {bottleneckTasks.length} Deliverable{bottleneckTasks.length !== 1 ? 's' : ''} Require Attention</span>
+              <span class="radar-desc">
+                {#if bottleneckBreakdown.overdueCount > 0}<strong>{bottleneckBreakdown.overdueCount}</strong> overdue{/if}
+                {#if bottleneckBreakdown.blockedCount > 0}{bottleneckBreakdown.overdueCount > 0 ? ' • ' : ''}<strong>{bottleneckBreakdown.blockedCount}</strong> blocked by dependencies{/if}
+                {#if bottleneckBreakdown.urgentCount > 0}{(bottleneckBreakdown.overdueCount > 0 || bottleneckBreakdown.blockedCount > 0) ? ' • ' : ''}<strong>{bottleneckBreakdown.urgentCount}</strong> urgent priority{/if}
+              </span>
+            </div>
+          </div>
+          <div class="radar-right">
+            <button type="button" class="radar-action-btn" onclick={triageBottlenecksInList}>
+              <span>Triage Deliverables in List</span>
+              <FluentIcons name="arrowRight" size={13} />
+            </button>
+          </div>
+        </div>
+      {/if}
 
       <!-- TOP 4 EXECUTIVE KPI SUMMARY CARDS -->
       <div class="overview-kpi-grid">
@@ -948,7 +1133,7 @@
             <span class="kpi-badge review">IN REVIEW</span>
           </div>
           <div class="kpi-number-row">
-            <span class="kpi-number" style="color: #8B5CF6;">{overviewStats.inReview}</span>
+            <span class="kpi-number" style="color: #F59E0B;">{overviewStats.inReview}</span>
             <span class="kpi-subtext">Awaiting Sign-Off</span>
           </div>
           <div class="kpi-footer-hint">Explore Review Queue ➔</div>
@@ -1109,7 +1294,7 @@
                         <span class="mini-status-chip" style="border-color: #0284C7; color: #0284C7;">{tw.inProgress}</span>
                       </td>
                       <td style="text-align: center;">
-                        <span class="mini-status-chip" style="border-color: #8B5CF6; color: #8B5CF6;">{tw.review}</span>
+                        <span class="mini-status-chip" style="border-color: #F59E0B; color: #F59E0B;">{tw.review}</span>
                       </td>
                       <td style="text-align: center;">
                         <span class="tb-status-badge {statusTier}">{statusLabel}</span>
@@ -1186,7 +1371,7 @@
                   cy="60"
                   r="48"
                   fill="none"
-                  stroke="#8B5CF6"
+                  stroke="#F59E0B"
                   stroke-width="12"
                   stroke-linecap="round"
                   stroke-dasharray={overviewStats.dashes.review}
@@ -1384,8 +1569,43 @@
                             </span>
                           </div>
 
-                          <!-- Action Adder -->
+                          <!-- Action Adder & Hover Micro-Actions Rail (Phase 3) -->
                           <div class="row-cell-add">
+                            <div class="row-hover-actions" onclick={(e) => e.stopPropagation()} role="none">
+                              <button
+                                type="button"
+                                class="micro-action-btn advance"
+                                onclick={(e) => handleAdvanceStatus(e, task)}
+                                title="Advance status to next stage"
+                              >
+                                <FluentIcons name={task.status === 'done' ? 'arrowCounterclockwise' : (task.status === 'review' ? 'checkmark' : (task.status === 'in-progress' ? 'search' : 'bolt'))} size={11} />
+                                <span class="micro-btn-label">
+                                  {task.status === 'done' ? 'Reopen' : (task.status === 'review' ? 'Done' : (task.status === 'in-progress' ? 'Review' : 'Advance'))}
+                                </span>
+                              </button>
+
+                              {#if (task.assignee || '').toLowerCase() !== currentUsername}
+                                <button
+                                  type="button"
+                                  class="micro-action-btn assign"
+                                  onclick={(e) => handleQuickAssignToMe(e, task)}
+                                  title="Assign to me ({currentUsername || 'me'})"
+                                >
+                                  <FluentIcons name="user" size={11} />
+                                  <span class="micro-btn-label">+Me</span>
+                                </button>
+                              {/if}
+
+                              <button
+                                type="button"
+                                class="micro-action-btn due"
+                                onclick={(e) => handleQuickBumpDueDate(e, task, 1)}
+                                title="Bump due date +1 day"
+                              >
+                                <FluentIcons name="calendar" size={11} />
+                                <span class="micro-btn-label">+1d</span>
+                              </button>
+                            </div>
                             <span class="row-more-dots">•••</span>
                           </div>
                         </div>
@@ -1437,15 +1657,15 @@
                         <input
                           type="text"
                           class="inline-task-input"
-                          placeholder="Task Name... (press Enter to create)"
+                          placeholder="Task Name... (press Enter to create and continue, Esc to close)"
                           bind:value={inlineTaskTitle}
                           onkeydown={(e) => {
-                            if (e.key === 'Enter') handleQuickInlineCreate(group.workstream, sGroup.status);
+                            if (e.key === 'Enter') handleQuickInlineCreate(group.workstream, sGroup.status, true);
                             if (e.key === 'Escape') inlineCreateParent = null;
                           }}
                           autofocus
                         />
-                        <button type="button" class="btn-save-inline" onclick={() => handleQuickInlineCreate(group.workstream, sGroup.status)}>
+                        <button type="button" class="btn-save-inline" onclick={() => handleQuickInlineCreate(group.workstream, sGroup.status, true)}>
                           Save
                         </button>
                         <button type="button" class="btn-cancel-inline" onclick={() => (inlineCreateParent = null)}>
@@ -2131,7 +2351,17 @@
     background: #0284C7;
   }
 
-  /* ═══ 2. VIEWS NAVIGATION STRIP ═════════════════════════════════ */
+  /* ═══ 2. VIEWS NAVIGATION STRIP (2-TIER ARCHITECTURE) ═══════════ */
+  .task-count-pill {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
+    padding: 2px 8px;
+    border-radius: 12px;
+  }
+
   .clickup-views-nav {
     display: flex;
     align-items: center;
@@ -2139,6 +2369,7 @@
     padding: 0 20px;
     border-bottom: 1px solid var(--surface-card-border);
     background: var(--surface-card);
+    min-height: 44px;
   }
 
   .views-tabs-list {
@@ -2176,58 +2407,152 @@
     height: 2px;
     background: var(--brand-accent, #0078D4);
   }
-  .view-tab.gantt-tab.active {
+  .view-tab.timeline-tab.active {
     color: #EF4444;
   }
-  .view-tab.gantt-tab.active::after {
+  .view-tab.timeline-tab.active::after {
     background: #EF4444;
   }
+  .view-tab-alert-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #EF4444;
+    display: inline-block;
+    margin-left: 2px;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  }
 
-  .views-sub-controls {
+  .tier1-right-toggles {
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
-  .clickup-filter-pill {
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--surface-card-border);
+  /* ═══ TIER 2: REFINEMENT TOOLBAR ═════════════════════════════════ */
+  .clickup-refinement-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
     background: var(--surface-card-subtle);
+    border-bottom: 1px solid var(--surface-card-border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .refinement-left-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .refinement-right-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .clickup-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 6px;
+    padding: 0 10px;
+    height: 36px;
+    width: 280px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .clickup-search-box:focus-within {
+    border-color: #0078D4;
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.15);
+  }
+  .clickup-search-input {
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    color: var(--text-primary);
+    width: 100%;
+    outline: none;
+  }
+  .search-kbd-hint {
+    font-size: 10px;
+    font-family: inherit;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    white-space: nowrap;
+  }
+  .clear-btn { background: transparent; border: none; font-size: 10px; cursor: pointer; color: var(--text-secondary); }
+
+  /* Mandatory Anti-Clipping ComboBox / Filter Select Standard */
+  .clickup-filter-pill {
+    height: 36px;
+    line-height: 36px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid var(--surface-card-border);
+    background: var(--surface-card);
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
+    vertical-align: middle;
+    transition: all 0.15s ease;
+  }
+  .clickup-filter-pill:hover {
+    border-color: #0078D4;
+    color: var(--text-primary);
+  }
+  .clickup-filter-pill:focus {
+    outline: none;
+    border-color: #0078D4;
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.15);
   }
 
   .me-mode-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 6px;
     border: 1px solid var(--surface-card-border);
-    background: var(--surface-card-subtle);
-    display: flex;
+    background: var(--surface-card);
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
     color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .me-mode-btn:hover {
+    border-color: #0078D4;
+    color: var(--text-primary);
   }
   .me-mode-btn.active {
-    background: rgba(0, 120, 212, 0.12);
+    background: rgba(0, 120, 212, 0.1);
     border-color: #0078D4;
     color: #0078D4;
+    font-weight: 600;
   }
 
   .filter-icon-toggle-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: 28px;
-    padding: 0 10px;
+    height: 36px;
+    padding: 0 12px;
     background: var(--surface-card);
     border: 1px solid var(--surface-card-border);
-    border-radius: 4px;
-    font-size: 11px;
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
@@ -2238,31 +2563,32 @@
     color: var(--text-primary);
   }
   .filter-icon-toggle-btn.active {
-    background: rgba(16, 185, 129, 0.12);
+    background: rgba(16, 185, 129, 0.1);
     border-color: #10B981;
     color: #047857;
     font-weight: 600;
   }
 
-  .clickup-search-box {
-    display: flex;
+  .reset-filters-btn {
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px dashed var(--surface-card-border);
+    background: transparent;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: var(--surface-card-subtle);
-    border: 1px solid var(--surface-card-border);
-    border-radius: 4px;
-    padding: 3px 8px;
-    width: 170px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
   }
-  .clickup-search-input {
-    border: none;
-    background: transparent;
-    font-size: 11px;
-    color: var(--text-primary);
-    width: 100%;
+  .reset-filters-btn:hover {
+    background: var(--surface-card);
+    border-color: #EF4444;
+    color: #EF4444;
   }
-  .clickup-search-input:focus { outline: none; }
-  .clear-btn { background: transparent; border: none; font-size: 10px; cursor: pointer; color: var(--text-secondary); }
 
   /* ═══ 3. OVERVIEW VIEW (EXECUTIVE DASHBOARD UI) ═════════════════ */
   .overview-view-container {
@@ -2270,6 +2596,78 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
+  }
+
+  /* Executive Bottleneck Radar Alert Banner */
+  .executive-bottleneck-radar-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 8px;
+    padding: 12px 18px;
+    gap: 16px;
+  }
+  .radar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .radar-pulsing-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #EF4444;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    animation: radarPulse 1.8s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes radarPulse {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+  }
+  .radar-text-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .radar-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #B91C1C;
+  }
+  .radar-desc {
+    font-size: 12px;
+    color: #7F1D1D;
+  }
+  .radar-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #EF4444;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    white-space: nowrap;
+  }
+  .radar-action-btn:hover {
+    background: #DC2626;
   }
 
   /* Top 4 KPI Metrics */
@@ -2317,7 +2715,7 @@
   }
   .kpi-badge.neutral { background: var(--surface-card-subtle); color: var(--text-secondary); }
   .kpi-badge.in-progress { background: rgba(2, 132, 199, 0.12); color: #0284C7; }
-  .kpi-badge.review { background: rgba(139, 92, 246, 0.12); color: #8B5CF6; }
+  .kpi-badge.review { background: rgba(245, 158, 11, 0.12); color: #D97706; }
   .kpi-badge.urgent { background: rgba(239, 68, 68, 0.12); color: #EF4444; }
 
   .kpi-number-row {
@@ -2936,9 +3334,62 @@
   }
 
   .row-cell-add {
-    width: 30px;
-    text-align: center;
+    width: auto;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    position: relative;
     color: var(--text-secondary);
+  }
+
+  .row-hover-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    transform: translateX(4px);
+    margin-right: 4px;
+  }
+  .clickup-task-row:hover .row-hover-actions {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+  .clickup-task-row:hover .row-more-dots {
+    display: none;
+  }
+
+  .micro-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 4px;
+    border: 1px solid var(--surface-card-border);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .micro-action-btn:hover {
+    border-color: #0078D4;
+    color: #0078D4;
+    background: rgba(0, 120, 212, 0.08);
+  }
+  .micro-action-btn.advance:hover {
+    border-color: #10B981;
+    color: #10B981;
+    background: rgba(16, 185, 129, 0.08);
+  }
+  .micro-btn-label {
+    font-size: 10px;
+    font-weight: 600;
   }
 
   .nested-subtasks-tree {
@@ -3439,7 +3890,7 @@
   .bar-handle-left { font-size: 10px; margin-right: 4px; opacity: 0.8; }
   .gantt-schedule-bar.status-backlog { background: #64748B; }
   .gantt-schedule-bar.status-in-progress { background: #0284C7; }
-  .gantt-schedule-bar.status-review { background: #8B5CF6; }
+  .gantt-schedule-bar.status-review { background: #F59E0B; }
   .gantt-schedule-bar.status-done { background: #10B981; }
 
   .gantt-milestone-point {
@@ -3560,9 +4011,9 @@
     border-color: #0284C7;
   }
   .clickup-status-pill.status-review {
-    background: #8B5CF6;
+    background: #F59E0B;
     color: #FFF;
-    border-color: #8B5CF6;
+    border-color: #F59E0B;
   }
   .clickup-status-pill.status-done {
     background: #10B981;
