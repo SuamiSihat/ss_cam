@@ -1360,7 +1360,8 @@ class WorkspaceService {
       success: true,
       workspaceRoot: this.workspaceRoot,
       cachedProjects: this.projectsCache.length,
-      lastScan: this.lastScanTime
+      lastScan: this.lastScanTime,
+      businessUnit: this.getBusinessUnit()
     };
   }
 
@@ -1488,6 +1489,65 @@ class WorkspaceService {
       archiveRecommended: false,
       archiveTriggerReason: null
     };
+  }
+
+  getBusinessUnit(targetPath = null) {
+    const root = targetPath || this.workspaceRoot || '';
+    const folderName = path.basename(root);
+    if (folderName.toLowerCase().includes('video-production')) {
+      return {
+        code: 'VP',
+        name: 'Video & Motion Production',
+        share: 'Video-Production',
+        department: 'Video Production',
+        badgeColor: '#8764B8'
+      };
+    }
+    if (folderName.toLowerCase().includes('marketing-assets')) {
+      return {
+        code: 'MA',
+        name: 'Marketing & Performance Growth',
+        share: 'Marketing-Assets',
+        department: 'Performance Marketing',
+        badgeColor: '#107C41'
+      };
+    }
+    return {
+      code: 'CT',
+      name: 'Creative & Brand Assets',
+      share: 'Creative-Team',
+      department: 'Creative & Brand',
+      badgeColor: '#0078D4'
+    };
+  }
+
+  getAvailableBusinessUnits() {
+    return [
+      {
+        code: 'CT',
+        name: 'Creative & Brand Assets',
+        share: 'Creative-Team',
+        department: 'Creative & Brand',
+        badgeColor: '#0078D4',
+        description: 'Design layouts, packaging dielines, master brand assets and ad graphics'
+      },
+      {
+        code: 'VP',
+        name: 'Video & Motion Production',
+        share: 'Video-Production',
+        department: 'Video Production',
+        badgeColor: '#8764B8',
+        description: 'Video master cuts, proxies, reels, motion graphics, and audio stems'
+      },
+      {
+        code: 'MA',
+        name: 'Marketing & Performance Growth',
+        share: 'Marketing-Assets',
+        department: 'Performance Marketing',
+        badgeColor: '#107C41',
+        description: 'E-commerce media, promotion collaterals, landing assets, and marketing kits'
+      }
+    ];
   }
 }
 

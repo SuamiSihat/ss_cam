@@ -2,6 +2,28 @@
 
 All notable SS-CAM changes are documented here.
 
+## [5.0.0] - 2026-10-08 (Multi-Platform Ecosystem Expansion — Multi-Workspace NAS Switching & Corporate Holding Switcher)
+
+### Multi-Platform Ecosystem & Infrastructure
+
+- **Multi-Workspace NAS Switching (Cross-Platform)**:
+  - Fast switching between canonical business unit shares (`Creative-Team`, `Video-Production`, `Marketing-Assets`) across all supported platforms.
+  - **Web Portal**: Dynamic detection and classification of candidate business unit shares in `/system/workspace-candidates`, 1-click preset switching in mount modal (`AdminView.svelte`), and department telemetry in `WorkspaceService.getBusinessUnit()`.
+  - **Windows Desktop WPF**: Quick-Switch Business Unit Share button ribbon in `SettingsPage.xaml` / `SettingsPage.xaml.cs` backed by `NasConfigSyncService.SwitchBusinessUnitPath` and `DiscoverBusinessUnitWorkspace`.
+  - **Linux Avalonia UI**: 1-click Business Unit Share switcher in `SettingsView.axaml` and `MainViewModel.cs` (`SwitchBusinessUnitCommand`) managing `~/SynologyDrive/` shares.
+  - **Business Unit Telemetry**: Live volume quota and department mapping (`CT` Creative & Brand, `VP` Video & Motion, `MA` Marketing & Performance) reported across system status endpoints and desktop dashboards.
+
+### Administration & Governance
+
+- **Corporate Holding & Subsidiary Quick Focus Switcher**:
+  - Segmented entity filter bar in Web Portal `AdminView.svelte` for corporate subsidiaries: Holding Group (`SSH`), Healthcare & Clinic (`SSC`), Wellness (`SSW`), E-Commerce (`SSE`), and Technology (`SST`).
+  - Filters corporate directory, displays official brand identity tokens, SSM registrations, and headquarters locations with 1-click focus.
+
+### Ecosystem Synchronization
+
+- **Cross-Platform Version Parity (`v5.0.0`)**:
+  - Synchronized SSoT version `5.0.0` across Desktop WPF (`MainWindow.xaml`, `AssemblyInfo.cs` 5.0.0.0), Web Portal (`package.json`, `package-lock.json`, `App.svelte`), Linux Avalonia (`SS-CAM.Linux.csproj`), Android Native Companion (`build.gradle.kts` versionCode 5000), installer (`installer/version.json`), and automated QA smoke test suites.
+
 ## [4.15.0] - 2026-10-08 (In-App Video Proofing Overlays, Packaging Presets & Automated NAS Quota Telemetry)
 
 ### Video Studio & Asset Proofing

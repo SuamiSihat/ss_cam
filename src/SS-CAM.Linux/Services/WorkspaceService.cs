@@ -17,12 +17,32 @@ public class WorkspaceService
         WorkspaceRoot = Directory.Exists(defaultPath) ? defaultPath : Path.Combine(userHome, "SynologyDrive");
     }
 
+    public static readonly string[] BusinessUnits = new[]
+    {
+        "Creative-Team",
+        "Video-Production",
+        "Marketing-Assets"
+    };
+
     public void SetWorkspaceRoot(string path)
     {
         if (!string.IsNullOrWhiteSpace(path))
         {
             WorkspaceRoot = path;
         }
+    }
+
+    public string SwitchBusinessUnit(string unit)
+    {
+        if (string.IsNullOrWhiteSpace(unit)) unit = "Creative-Team";
+        string userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string defaultPath = Path.Combine(userHome, "SynologyDrive", unit);
+        if (!Directory.Exists(defaultPath))
+        {
+            try { Directory.CreateDirectory(defaultPath); } catch { }
+        }
+        WorkspaceRoot = defaultPath;
+        return defaultPath;
     }
 
     public List<ProjectStatusItem> ScanProjects()

@@ -1160,6 +1160,17 @@ priority: medium
             StatusMessage = exists ? "✔ Synology Drive workspace reachable." : "[-] Synology Drive workspace offline.";
         }
 
+        [RelayCommand]
+        public void SwitchBusinessUnit(string unit)
+        {
+            if (string.IsNullOrWhiteSpace(unit)) unit = "Creative-Team";
+            string userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string targetPath = Path.Combine(userHome, "SynologyDrive", unit);
+            SynologyDrivePath = targetPath;
+            CheckNasStatus();
+            StatusMessage = $"Switched to business unit share: {unit}";
+        }
+
         // ══════════════════════════════════════════════════════════════════════
         // LIVE CLOCK LOOP
         // ══════════════════════════════════════════════════════════════════════

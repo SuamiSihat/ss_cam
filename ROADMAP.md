@@ -62,25 +62,11 @@
 | **v4.13.0** | 2026-10-06 | **Split-View WhatsApp Simulator & Customizable Dashboard KPI Grid**: Real-time WhatsApp conversational simulator with message bubble splitting and markdown formatting, customizable dashboard layout engine with persistent widget ordering and pinning, real-time in-flight production spotlight, active transcoder live queue integration |
 | **v4.14.0** | 2026-10-08 | **Cloud Collaboration, Destructive Storage Pruning & Deep Print Preflights**: Automated bi-directional Discord/Slack webhook alert pipeline for deliverable approvals, revisions, and handover exports (`WebhookService`); destructive Move-to-Archive with storage reclamation tracking in `ArchiveVaultService` and Web `ExportService`; deep print preflight checks (`PreflightValidatorService`) inspecting CMYK vs RGB color profiles on PSD/PDF assets, vector packaging dielines, and 3mm bleed tolerances; and canonical 5-folder hierarchy standard (`01_BRIEF_ASSETS` through `05_DELIVERABLES`) |
 | **v4.15.0** | 2026-10-08 | **In-App Video Proxy Streamer & Proofing Overlays, Multi-Format Packaging Presets & Automated NAS Quota Telemetry**: Integrated canvas markup overlays directly on video streams with second-accurate timestamped review pins and interactive timeline scrubber markers (`DeliverableAnnotationCanvas`); dynamic multi-format packaging presets (`print`, `web`, `archive`, `all`) with selective file filtering and manifest summary sheets (`ExportService`); automated Synology NAS volume quota telemetry, capacity threshold alerts, and cold storage archive recommendation triggers (`WorkspaceService.getNasStorageTelemetry`, `UserProfileService.GetSystemSpecs`, `/api/system/status`) |
+| **v5.0.0** | 2026-10-08 | **Multi-Platform Ecosystem Expansion & Corporate Governance**: Cross-platform multi-workspace NAS switching across canonical business unit shares (`Creative-Team`, `Video-Production`, `Marketing-Assets`) with dynamic mount discovery, volume quota telemetry, and departmental attribution; Web Portal Corporate Holding Switcher (`SSH`, `SSC`, `SSW`, `SSE`, `SST`) with brand token integration and instant subsidiary focus in `AdminView.svelte`; Linux Avalonia UI 12.1 business unit switcher and 73-point QA coverage parity; and synchronized SSoT release across Windows WPF, Linux Avalonia, Web Portal, and Android Companion. |
 
 ---
 
-## 🎯 Active Milestone — v5.0.0: Multi-Platform Ecosystem Expansion (Target: Q1 2027)
-
----
-
-## 📱 & 🐧 Planned — v5.0.0: Multi-Platform Ecosystem Expansion (Target: Q1 2027)
-
-| Feature / Component | Target Stack | Description |
-|---|---|---|
-| **Linux Fedora Native Client (`src/SS-CAM.Linux`)** | C# / Avalonia UI 12.1 (.NET 8/10 LTS) | Complete feature parity for Fedora/Ubuntu workstations with Fluent 2 styling, local `~/SynologyDrive/` workspace integration, and native Skia desktop rendering. |
-| **Android Native Client (`src/SS-CAM.Android`)** | Kotlin + Jetpack Compose | Native mobile companion for creative leads & reviewers: instant deliverable review, 1-tap approvals/revisions, push notifications, task tracking, and brand color palette picker. |
-| **Web Portal Admin & Control Console (`src/SS-CAM.Web`)** | Svelte 5 + Node.js Express (Docker) | Central administration hub: corporate holding switcher (SSH, SSC, SSW, SSE, SST), user provisioning, immutable audit log explorer, webhook dispatch, and remote API gateway. |
-| **Multi-Workspace NAS Switching** | Cross-Platform | Fast switching between business unit shares (`Creative-Team`, `Video-Production`, `Marketing-Assets`). |
-
----
-
-## 🏥 Planned — v5.1.0: Clinic Operations & PERNAS Franchise Standardization (Target: Q1–Q2 2027)
+## 🎯 Active Milestone — v5.1.0: Clinic Operations & PERNAS Franchise Standardization (Target: Q1–Q2 2027)
 
 > **Strategic Alignment**: Directly aligns with the **PERNAS (Perbadanan Nasional Berhad)** Franchise Development Grant application for SuamiSihat Clinic (SSC).  
 > **Official Proposal Reference**: [`docs/KERTAS_CADANGAN_GERAN_PERNAS_SSCAM.md`](./docs/KERTAS_CADANGAN_GERAN_PERNAS_SSCAM.md) · [PDF Version](./docs/KERTAS_CADANGAN_GERAN_PERNAS_SSCAM.pdf)

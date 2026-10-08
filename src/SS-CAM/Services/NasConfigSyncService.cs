@@ -277,6 +277,80 @@ namespace SS_CAM.Services
             }
         }
 
+        public static readonly string[] CanonicalBusinessUnits = new[]
+        {
+            "Creative-Team",
+            "Video-Production",
+            "Marketing-Assets"
+        };
+
+        public static string DiscoverBusinessUnitWorkspace(string businessUnit)
+        {
+            if (string.IsNullOrWhiteSpace(businessUnit)) businessUnit = "Creative-Team";
+            try
+            {
+                string[] driveRoots = new[]
+                {
+                    @"E:\SynologyDrive",
+                    @"D:\SynologyDrive",
+                    @"C:\SynologyDrive",
+                    @"E:\",
+                    @"D:\",
+                    @"C:\",
+                    @"Z:\"
+                };
+
+                foreach (string root in driveRoots)
+                {
+                    string candidate = Path.Combine(root, businessUnit);
+                    if (Directory.Exists(candidate))
+                    {
+                        return candidate;
+                    }
+                }
+
+                DriveInfo[] drives = DriveInfo.GetDrives();
+                foreach (DriveInfo drive in drives)
+                {
+                    if (drive.IsReady && (drive.DriveType == DriveType.Fixed || drive.DriveType == DriveType.Network))
+                    {
+                        string candidate1 = Path.Combine(drive.RootDirectory.FullName, "SynologyDrive", businessUnit);
+                        if (Directory.Exists(candidate1)) return candidate1;
+
+                        string candidate2 = Path.Combine(drive.RootDirectory.FullName, businessUnit);
+                        if (Directory.Exists(candidate2)) return candidate2;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[NasConfigSyncService] DiscoverBusinessUnitWorkspace error: " + ex.Message);
+            }
+            return null;
+        }
+
+        public static string SwitchBusinessUnitPath(string currentWorkspaceRoot, string targetBusinessUnit)
+        {
+            if (string.IsNullOrWhiteSpace(targetBusinessUnit)) targetBusinessUnit = "Creative-Team";
+            if (!string.IsNullOrWhiteSpace(currentWorkspaceRoot))
+            {
+                string parent = Path.GetDirectoryName(currentWorkspaceRoot);
+                if (!string.IsNullOrWhiteSpace(parent) && Directory.Exists(parent))
+                {
+                    string candidate = Path.Combine(parent, targetBusinessUnit);
+                    return candidate;
+                }
+            }
+
+            string discovered = DiscoverBusinessUnitWorkspace(targetBusinessUnit);
+            if (!string.IsNullOrWhiteSpace(discovered))
+            {
+                return discovered;
+            }
+
+            return Path.Combine(@"E:\SynologyDrive", targetBusinessUnit);
+        }
+
         /// <summary>
         /// Automatically discovers potential Creative-Team workspace root directories on local mapped drives or Synology Drive sync paths.
         /// </summary>

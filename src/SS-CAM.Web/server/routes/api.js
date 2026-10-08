@@ -2480,6 +2480,8 @@ router.get('/system/status', authenticateToken, (req, res) => {
     synologyEngine: exists ? 'Mounted & Active' : 'Disconnected / Unreachable',
     synologyPath: config.WORKSPACE_ROOT,
     storage: WorkspaceService.getNasStorageTelemetry(config.WORKSPACE_ROOT),
+    businessUnit: WorkspaceService.getBusinessUnit(),
+    availableBusinessUnits: WorkspaceService.getAvailableBusinessUnits(),
     cachedProjects: WorkspaceService.projectsCache.length,
     lastScan: WorkspaceService.lastScanTime,
     uptimeSeconds: Math.floor(process.uptime()),
@@ -2495,39 +2497,88 @@ router.get('/system/status', authenticateToken, (req, res) => {
 });
 
 router.get('/system/workspace-candidates', authenticateToken, (req, res) => {
-  const candidates = [
-    'D:\\SynologyDrive\\Creative-Team',
-    'C:\\SynologyDrive\\Creative-Team',
-    'E:\\SynologyDrive\\Creative-Team',
-    path.join(process.env.USERPROFILE || '', 'SynologyDrive', 'Creative-Team'),
-    path.join(process.env.USERPROFILE || '', 'Synology Drive', 'Creative-Team'),
-    '\\\\SSNAS\\Creative-Team',
-    '/volume1/Creative-Team',
-    '/volume2/Creative-Team',
-    path.resolve(__dirname, '../sample-workspace')
+  const businessUnits = [
+    { code: 'CT', share: 'Creative-Team', name: 'Creative & Brand Assets', badgeColor: '#0078D4' },
+    { code: 'VP', share: 'Video-Production', name: 'Video & Motion Production', badgeColor: '#8764B8' },
+    { code: 'MA', share: 'Marketing-Assets', name: 'Marketing & Performance Growth', badgeColor: '#107C41' }
   ];
 
-  const results = candidates.map(p => {
-    let accessible = false;
-    let count = 0;
-    try {
-      if (fs.existsSync(p)) {
-        const items = fs.readdirSync(p);
-        accessible = true;
-        count = items.length;
-      }
-    } catch (e) {
-      accessible = false;
-    }
-    return {
-      path: p,
-      accessible,
-      itemCount: count,
-      isCurrent: path.resolve(p) === path.resolve(config.WORKSPACE_ROOT)
-    };
-  });
+  const basePaths = [
+    'E:\\SynologyDrive',
+    'D:\\SynologyDrive',
+    'C:\\SynologyDrive',
+    path.join(process.env.USERPROFILE || '', 'SynologyDrive'),
+    path.join(process.env.USERPROFILE || '', 'Synology Drive'),
+    '\\\\SSNAS',
+    '/volume1',
+    '/volume2'
+  ];
 
-  res.json({ success: true, candidates: results, current: config.WORKSPACE_ROOT });
+  const seenPaths = new Set();
+  const results = [];
+
+  // Sample workspace candidate
+  const samplePath = path.resolve(__dirname, '../sample-workspace');
+  let sampleAcc = false;
+  let sampleCount = 0;
+  try {
+    if (fs.existsSync(samplePath)) {
+      sampleAcc = true;
+      sampleCount = fs.readdirSync(samplePath).length;
+    }
+  } catch (e) {}
+
+  results.push({
+    path: samplePath,
+    businessUnit: 'Creative-Team',
+    unitCode: 'CT',
+    unitName: 'Creative & Brand Assets',
+    badgeColor: '#0078D4',
+    accessible: sampleAcc,
+    itemCount: sampleCount,
+    isCurrent: path.resolve(samplePath) === path.resolve(config.WORKSPACE_ROOT)
+  });
+  seenPaths.add(path.resolve(samplePath));
+
+  for (const bu of businessUnits) {
+    for (const base of basePaths) {
+      if (!base) continue;
+      const targetPath = path.join(base, bu.share);
+      const resolved = path.resolve(targetPath);
+      if (seenPaths.has(resolved)) continue;
+      seenPaths.add(resolved);
+
+      let accessible = false;
+      let count = 0;
+      try {
+        if (fs.existsSync(targetPath)) {
+          accessible = true;
+          count = fs.readdirSync(targetPath).length;
+        }
+      } catch (e) {
+        accessible = false;
+      }
+
+      results.push({
+        path: targetPath,
+        businessUnit: bu.share,
+        unitCode: bu.code,
+        unitName: bu.name,
+        badgeColor: bu.badgeColor,
+        accessible,
+        itemCount: count,
+        isCurrent: resolved === path.resolve(config.WORKSPACE_ROOT)
+      });
+    }
+  }
+
+  res.json({
+    success: true,
+    candidates: results,
+    current: config.WORKSPACE_ROOT,
+    activeBusinessUnit: WorkspaceService.getBusinessUnit(),
+    availableBusinessUnits: WorkspaceService.getAvailableBusinessUnits()
+  });
 });
 
 router.post('/system/workspace-root', authenticateToken, requireRole('admin'), (req, res) => {

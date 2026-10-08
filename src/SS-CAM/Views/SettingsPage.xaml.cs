@@ -315,6 +315,19 @@ namespace SS_CAM.Views
             }
         }
 
+        private void OnSwitchBusinessUnit(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as FrameworkElement;
+            if (btn == null || btn.Tag == null) return;
+            string unit = btn.Tag.ToString();
+            string current = WorkspaceRootInput != null ? WorkspaceRootInput.Text : "";
+            string newPath = NasConfigSyncService.SwitchBusinessUnitPath(current, unit);
+            if (!string.IsNullOrEmpty(newPath))
+            {
+                WorkspaceRootInput.Text = newPath;
+            }
+        }
+
         private void OnCreateDesktopShortcut(object sender, RoutedEventArgs e)
         {
             string result = PayloadInstallerService.CreateAppDesktopShortcut();

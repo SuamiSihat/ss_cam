@@ -244,8 +244,48 @@
                                 </ui:Button>
                             </Grid>
 
+                            <!-- Multi-Workspace Business Unit Switcher -->
+                            <StackPanel Margin="0,10,0,0">
+                                <ui:TextBlock Text="Quick-Switch Business Unit Share:"
+                                              FontSize="11" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              Margin="0,0,0,6"/>
+                                <WrapPanel Orientation="Horizontal">
+                                    <ui:Button Appearance="Secondary"
+                                               Tag="Creative-Team"
+                                               Click="OnSwitchBusinessUnit"
+                                               Height="32" Padding="10,0" Margin="0,0,6,6"
+                                               Cursor="Hand" ToolTip="Creative &amp; Brand Assets Share">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="Folder24" Margin="0,0,6,0"/>
+                                            <ui:TextBlock Text="[CT] Creative-Team" FontSize="11" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </ui:Button>
+                                    <ui:Button Appearance="Secondary"
+                                               Tag="Video-Production"
+                                               Click="OnSwitchBusinessUnit"
+                                               Height="32" Padding="10,0" Margin="0,0,6,6"
+                                               Cursor="Hand" ToolTip="Video &amp; Motion Production Share">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="Video24" Margin="0,0,6,0"/>
+                                            <ui:TextBlock Text="[VP] Video-Production" FontSize="11" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </ui:Button>
+                                    <ui:Button Appearance="Secondary"
+                                               Tag="Marketing-Assets"
+                                               Click="OnSwitchBusinessUnit"
+                                               Height="32" Padding="10,0" Margin="0,0,6,6"
+                                               Cursor="Hand" ToolTip="Marketing &amp; Performance Growth Share">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="Megaphone24" Margin="0,0,6,0"/>
+                                            <ui:TextBlock Text="[MA] Marketing-Assets" FontSize="11" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </ui:Button>
+                                </WrapPanel>
+                            </StackPanel>
+
                             <!-- Workspace path guidance note -->
-                            <Border Margin="0,10,0,0" Padding="10,8" CornerRadius="6"
+                            <Border Margin="0,6,0,0" Padding="10,8" CornerRadius="6"
                                     Background="{DynamicResource FluentBrandTint}"
                                     BorderBrush="{DynamicResource FluentBrand80}"
                                     BorderThickness="1">

@@ -117,6 +117,7 @@
 
   // Search Queries & Filters
   let companyQuery = $state<string>('');
+  let selectedHoldingFilter = $state<string>('all');
   let userQuery = $state<string>('');
   let userDeptFilter = $state<string>('all');
   let userRoleFilter = $state<string>('all');
@@ -140,9 +141,13 @@
 
   // ─── DERIVED FILTERED LISTS ─────────────────────────────────────────
   const filteredCompanies = $derived.by(() => {
-    if (!companyQuery.trim()) return companies;
+    let list = companies;
+    if (selectedHoldingFilter !== 'all') {
+      list = list.filter(c => c.code === selectedHoldingFilter);
+    }
+    if (!companyQuery.trim()) return list;
     const q = companyQuery.toLowerCase();
-    return companies.filter(c =>
+    return list.filter(c =>
       c.code.toLowerCase().includes(q) ||
       c.name.toLowerCase().includes(q) ||
       (c.shortName && c.shortName.toLowerCase().includes(q)) ||
@@ -308,11 +313,29 @@
   let showWorkspaceModal = $state<boolean>(false);
   let newWorkspacePath = $state<string>('');
   let isUpdatingWorkspace = $state<boolean>(false);
-  let workspaceCandidates = $state<Array<{ path: string; accessible: boolean; itemCount: number; isCurrent: boolean }>>([]);
+  let selectedWorkspaceUnit = $state<string>('all');
+  let workspaceCandidates = $state<Array<{
+    path: string;
+    accessible: boolean;
+    itemCount: number;
+    isCurrent: boolean;
+    businessUnit?: string;
+    unitCode?: string;
+    unitName?: string;
+    badgeColor?: string;
+  }>>([]);
   let isLoadingCandidates = $state<boolean>(false);
+
+  const filteredWorkspaceCandidates = $derived.by(() => {
+    if (selectedWorkspaceUnit === 'all') return workspaceCandidates;
+    return workspaceCandidates.filter(c =>
+      c.businessUnit === selectedWorkspaceUnit || (c.path && c.path.includes(selectedWorkspaceUnit))
+    );
+  });
 
   async function openWorkspaceModal() {
     newWorkspacePath = systemStatus?.workspaceRoot || '';
+    selectedWorkspaceUnit = 'all';
     showWorkspaceModal = true;
     isLoadingCandidates = true;
     try {
@@ -1041,6 +1064,31 @@
             <span>Add Subsidiary</span>
           </FluentButton>
         </div>
+      </div>
+
+      <!-- Corporate Holding & Subsidiary Quick Filter Deck -->
+      <div class="subsidiary-filter-deck" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center;">
+        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-right: 4px; letter-spacing: 0.5px;">Corporate Focus:</span>
+        <button
+          type="button"
+          class="seg-pill-btn"
+          class:active={selectedHoldingFilter === 'all'}
+          onclick={() => (selectedHoldingFilter = 'all')}
+        >
+          All Entities ({companies.length})
+        </button>
+        {#each companies as comp}
+          <button
+            type="button"
+            class="seg-pill-btn"
+            class:active={selectedHoldingFilter === comp.code}
+            onclick={() => (selectedHoldingFilter = comp.code)}
+            style="border-left: 3px solid {comp.color || '#0078D4'};"
+          >
+            <span style="font-weight: 700;">{comp.code}</span>
+            <span style="font-size: 11px; opacity: 0.85;">{comp.shortName || comp.name}</span>
+          </button>
+        {/each}
       </div>
 
       <!-- CARD VIEW -->
@@ -2173,18 +2221,58 @@
 >
   <div class="modal-form-body">
     <p style="margin: 0 0 14px 0; font-size: 13px; color: var(--text-secondary, #6B7280); line-height: 1.5;">
-      Specify the local or network share directory path to the active <b>Creative-Team</b> folder. The system will validate filesystem accessibility, bind real-time filesystem watchers, and rescan active production assets.
+      Specify the local or network share directory path to the active business unit share (<b>Creative-Team</b>, <b>Video-Production</b>, or <b>Marketing-Assets</b>). The system will validate filesystem accessibility, bind real-time filesystem watchers, and rescan active production assets.
     </p>
+
+    <!-- Multi-Workspace Business Unit Preset Selector -->
+    <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center;">
+      <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;">Business Unit Share:</span>
+      <button
+        type="button"
+        class="seg-pill-btn"
+        class:active={selectedWorkspaceUnit === 'all'}
+        onclick={() => (selectedWorkspaceUnit = 'all')}
+      >
+        All Shares ({workspaceCandidates.length})
+      </button>
+      <button
+        type="button"
+        class="seg-pill-btn"
+        class:active={selectedWorkspaceUnit === 'Creative-Team'}
+        onclick={() => (selectedWorkspaceUnit = 'Creative-Team')}
+        style="border-left: 3px solid #0078D4;"
+      >
+        [CT] Creative-Team
+      </button>
+      <button
+        type="button"
+        class="seg-pill-btn"
+        class:active={selectedWorkspaceUnit === 'Video-Production'}
+        onclick={() => (selectedWorkspaceUnit = 'Video-Production')}
+        style="border-left: 3px solid #8764B8;"
+      >
+        [VP] Video-Production
+      </button>
+      <button
+        type="button"
+        class="seg-pill-btn"
+        class:active={selectedWorkspaceUnit === 'Marketing-Assets'}
+        onclick={() => (selectedWorkspaceUnit = 'Marketing-Assets')}
+        style="border-left: 3px solid #107C41;"
+      >
+        [MA] Marketing-Assets
+      </button>
+    </div>
 
     {#if isLoadingCandidates}
       <div style="padding: 16px; font-size: 13px; color: #0284C7; text-align: center; background: rgba(2, 132, 199, 0.08); border-radius: 8px; margin-bottom: 14px;">
         🔍 Scanning local storage drives and candidate NAS mounts...
       </div>
-    {:else if workspaceCandidates.length > 0}
+    {:else if filteredWorkspaceCandidates.length > 0}
       <div class="form-group" style="margin-bottom: 16px;">
-        <label class="field-label">Detected / Suggested Mount Paths</label>
+        <label class="field-label">Detected / Suggested Mount Paths ({filteredWorkspaceCandidates.length})</label>
         <div class="candidates-list-scroll" style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
-          {#each workspaceCandidates as cand}
+          {#each filteredWorkspaceCandidates as cand}
             <button
               type="button"
               class="workspace-cand-card"
@@ -2195,6 +2283,14 @@
               <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
                 <span style="font-size: 16px;">{cand.accessible ? '📁' : '⚠️'}</span>
                 <div style="min-width: 0; text-align: left;">
+                  <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                    <span style="font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 4px; background: {cand.badgeColor || '#0078D4'}; color: #FFF;">
+                      {cand.unitCode || 'CT'}
+                    </span>
+                    <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">
+                      {cand.unitName || cand.businessUnit || 'Creative-Team'}
+                    </span>
+                  </div>
                   <div style="font-family: monospace; font-size: 12px; font-weight: 600; color: var(--text-primary, #111827); word-break: break-all;">
                     {cand.path}
                   </div>

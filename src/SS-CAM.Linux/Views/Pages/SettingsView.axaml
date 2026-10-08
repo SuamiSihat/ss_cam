@@ -32,6 +32,37 @@
                             </StackPanel>
                         </Button>
                     </Grid>
+
+                    <!-- Business Unit Quick-Switch Buttons -->
+                    <StackPanel Spacing="6" Margin="0,4,0,0">
+                        <TextBlock Text="Quick-Switch Business Unit Share:" FontSize="11" FontWeight="Bold" Foreground="#94A3B8"/>
+                        <WrapPanel Orientation="Horizontal">
+                            <Button Command="{Binding SwitchBusinessUnitCommand}" CommandParameter="Creative-Team"
+                                    Background="#1E293B" BorderBrush="#0078D4" BorderThickness="1" CornerRadius="6"
+                                    Padding="10,6" Margin="0,0,8,6">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="📁" FontSize="11"/>
+                                    <TextBlock Text="[CT] Creative-Team" FontSize="11" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding SwitchBusinessUnitCommand}" CommandParameter="Video-Production"
+                                    Background="#1E293B" BorderBrush="#8764B8" BorderThickness="1" CornerRadius="6"
+                                    Padding="10,6" Margin="0,0,8,6">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="🎬" FontSize="11"/>
+                                    <TextBlock Text="[VP] Video-Production" FontSize="11" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding SwitchBusinessUnitCommand}" CommandParameter="Marketing-Assets"
+                                    Background="#1E293B" BorderBrush="#107C41" BorderThickness="1" CornerRadius="6"
+                                    Padding="10,6" Margin="0,0,8,6">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="📢" FontSize="11"/>
+                                    <TextBlock Text="[MA] Marketing-Assets" FontSize="11" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </StackPanel>
                 </StackPanel>
             </Border>
 

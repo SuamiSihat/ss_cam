@@ -2897,6 +2897,27 @@ This is the project brief content.
     assert.strictEqual(typeof telemetry.archiveRecommended, 'boolean', 'archiveRecommended must be boolean');
   });
 
+  // ─── TEST 61: Multi-Workspace NAS Switching & Business Unit Telemetry ──
+  test('WorkspaceService accurately resolves business unit metadata and candidate shares', () => {
+    const defaultUnit = WorkspaceService.getBusinessUnit();
+    assert.ok(defaultUnit && defaultUnit.code, 'Default business unit must have code');
+    assert.ok(defaultUnit.share, 'Default business unit must have share name');
+    assert.strictEqual(defaultUnit.code, 'CT', 'Default business unit should resolve to CT (Creative-Team)');
+
+    // Test explicit paths
+    const vpUnit = WorkspaceService.getBusinessUnit('D:\\SynologyDrive\\Video-Production');
+    assert.strictEqual(vpUnit.code, 'VP', 'Path with Video-Production should resolve to VP');
+    assert.strictEqual(vpUnit.share, 'Video-Production');
+
+    const maUnit = WorkspaceService.getBusinessUnit('/volume1/Marketing-Assets');
+    assert.strictEqual(maUnit.code, 'MA', 'Path with Marketing-Assets should resolve to MA');
+    assert.strictEqual(maUnit.share, 'Marketing-Assets');
+
+    const available = WorkspaceService.getAvailableBusinessUnits();
+    assert.strictEqual(available.length, 3, 'Must have 3 canonical business units (CT, VP, MA)');
+    assert.deepStrictEqual(available.map(u => u.code), ['CT', 'VP', 'MA']);
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {

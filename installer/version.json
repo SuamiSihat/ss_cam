@@ -1,6 +1,6 @@
 {
-  "version": "4.15.0",
-  "releaseNotes": "SS-CAM v4.15.0 Release — In-App Video Proofing Overlays, Packaging Presets & Automated NAS Quota Telemetry.",
-  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v4.15.0/SS-CAM-v4.15.0.exe",
+  "version": "5.0.0",
+  "releaseNotes": "SS-CAM v5.0.0 Multi-Platform Ecosystem Expansion — Multi-Workspace NAS Switching, Corporate Holding Switcher & Linux Avalonia Parity.",
+  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v5.0.0/SS-CAM-v5.0.0.exe",
   "publishedAt": "2026-10-08"
 }
