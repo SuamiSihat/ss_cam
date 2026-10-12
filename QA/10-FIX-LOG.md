@@ -1,5 +1,26 @@
 # SS-CAM FIX LOG
 
+## Release: v5.2.0 — Enterprise Intelligence, Asset Versioning & Native Linux Build — 2026-10-12
+
+- **Cross-Platform Ecosystem Synchronization (`v5.2.0`)**:
+  - Synchronized canonical SSoT version `5.2.0` across Desktop WPF (`MainWindow.xaml`, `AssemblyInfo.cs` 5.2.0.0), Web Portal (`package.json`, `App.svelte`), Linux Avalonia (`SS-CAM.Linux.csproj`), Android Native Companion (`build.gradle.kts` versionCode 5200), and installer metadata (`installer/version.json`).
+- **Native Linux Desktop Modernization & Build Packaging**:
+  - Upgraded toolchain to .NET 10 SDK with zero compiler warnings and zero errors.
+  - Published self-contained single-file Linux binary (`dist/linux-x64/SS-CAM.Linux`, 95.91 MB) and distribution tarball (`dist/SS-CAM-v5.2.0-linux-x64.tar.gz`, 40.63 MB).
+  - Executed full QA smoke test suite (`QA/qa-linux-coverage.ps1`): **PASS — 76/76 Checks Passed (0 warnings, 0 failures)**.
+- **Asset Revision Snapshots & Rollback Engine**:
+  - Implemented automated design snapshots for `.afdesign`, `.psd`, `.ai`, `.pdf` master design files.
+  - Added desktop modal `ProjectSnapshotsDialog.xaml` and Web modal `ProjectVersionTimelineModal.svelte` with visual timeline playback and pre-rollback safety snapshots.
+- **Multi-Designer Collision Guard & Lock Leasing**:
+  - Real-time project lock leasing (`_lock.json`) with live status banners in Desktop Task Manager and Search & Copy views.
+- **Web Deliverables & Tasks Overhaul**:
+  - Production Vault Telemetry Ribbon with storage metrics and media format distribution ratios.
+  - 1-click fast sign-off actions and non-blocking inline delete confirmation pills.
+- **Verification & Dual-Track Governance**:
+  - Dual-Track Master Gatekeeper: **PASS — 14/14 Checks Passed (100%)**.
+  - Source Guardian: **PASS — 14 passed / 0 warned / 0 failed**.
+  - Public Documentation Audit: **PASS — 0 leaks across 5 files**.
+
 ## Feature: Deliverables & Production Vault UX / Art Direction Overhaul (`DeliverablesView.svelte`) — 2026-10-08
 
 - **Production Vault Telemetry Ribbon (`DeliverablesView.svelte`)**:

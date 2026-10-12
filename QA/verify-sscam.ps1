@@ -13,8 +13,8 @@ param([switch]$Fix, [switch]$Verbose)
 
 $ErrorActionPreference = "Continue"
 $root    = Split-Path $PSScriptRoot -Parent
-$srcRoot = Join-Path $root "src\SS-CAM"
-$webRoot = Join-Path $root "src\SS-CAM.Web"
+$srcRoot = Join-Path $root (Join-Path "src" "SS-CAM")
+$webRoot = Join-Path $root (Join-Path "src" "SS-CAM.Web")
 $PASS = 0; $WARN = 0; $FAIL = 0
 $issues = [System.Collections.Generic.List[string]]::new()
 
@@ -34,7 +34,7 @@ Write-Host ("=" * 60) -ForegroundColor DarkGray
 Write-Host "Source root: $srcRoot`n"
 
 $allSrc = Get-ChildItem $srcRoot -Recurse -Include "*.cs","*.xaml" |
-          Where-Object { $_.FullName -notmatch "\\(bin|obj|packages)\\" }
+          Where-Object { $_.FullName -notmatch "[\\/](bin|obj|packages)[\\/]" }
 
 # ── CHECK 1: UTF-8 BOM ────────────────────────────────────────────────────────
 Write-Host "[ ENCODING ]" -ForegroundColor Cyan
@@ -43,8 +43,11 @@ $noBomFiles = @()
 foreach ($file in $allSrc) {
     $bytes  = [System.IO.File]::ReadAllBytes($file.FullName)
     $hasBom = ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)
-    $highCnt = ($bytes | Where-Object { $_ -gt 0x7F }).Count
-    if (-not $hasBom -and $highCnt -gt 0) {
+    $hasHigh = $false
+    for ($i = 0; $i -lt $bytes.Length; $i++) {
+        if ($bytes[$i] -gt 0x7F) { $hasHigh = $true; break }
+    }
+    if (-not $hasBom -and $hasHigh) {
         $noBomFiles += $file
         if ($Fix) {
             $content = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
@@ -83,7 +86,7 @@ if ($rawUnicodeXaml.Count -eq 0) {
 
 # ── CHECK 3: Fluent 2 — ui:Button ─────────────────────────────────────────────
 Write-Host "`n[ FLUENT 2 DESIGN ]" -ForegroundColor Cyan
-$viewXamls = Get-ChildItem "$srcRoot\Views" -Filter "*.xaml" -ErrorAction SilentlyContinue
+$viewXamls = Get-ChildItem (Join-Path $srcRoot "Views") -Filter "*.xaml" -ErrorAction SilentlyContinue
 $nativeButtons = @()
 foreach ($xf in $viewXamls) {
     $text = Get-Content $xf.FullName -Raw -Encoding UTF8
@@ -191,7 +194,7 @@ if ($uiBlock.Count -eq 0) {
 
 # ── CHECK 11: Web Production JWT_SECRET Enforcement ────────────────────────────
 Write-Host "`n[ WEB SECURITY ]" -ForegroundColor Cyan
-$webConfig = Join-Path $webRoot "server\config.js"
+$webConfig = Join-Path $webRoot (Join-Path "server" "config.js")
 if (Test-Path $webConfig) {
     $cfgText = Get-Content $webConfig -Raw -Encoding UTF8
     if ($cfgText -match 'NODE_ENV' -and $cfgText -match 'production' -and $cfgText -match 'process\.exit\(1\)') {
@@ -200,11 +203,11 @@ if (Test-Path $webConfig) {
         Write-Check "Web JWT_SECRET enforcement in production" "FAIL" "config.js must halt in production if JWT_SECRET is missing/short"
     }
 } else {
-    Write-Check "Web JWT_SECRET enforcement in production" "WARN" "server\config.js not found"
+    Write-Check "Web JWT_SECRET enforcement in production" "WARN" "server/config.js not found"
 }
 
 # ── CHECK 12: Web RBAC Canonical Role Matching ────────────────────────────────
-$webRoutes = Join-Path $webRoot "server\routes\api.js"
+$webRoutes = Join-Path $webRoot (Join-Path "server" (Join-Path "routes" "api.js"))
 if (Test-Path $webRoutes) {
     $routesText = Get-Content $webRoutes -Raw -Encoding UTF8
     if ($routesText -match 'role\.includes\(\s*[\x27"]admin[\x27"]\s*\)') {
@@ -213,7 +216,7 @@ if (Test-Path $webRoutes) {
         Write-Check "Web API uses canonical RBAC (no fuzzy admin substring)" "PASS" ""
     }
 } else {
-    Write-Check "Web API uses canonical RBAC (no fuzzy admin substring)" "WARN" "server\routes\api.js not found"
+    Write-Check "Web API uses canonical RBAC (no fuzzy admin substring)" "WARN" "server/routes/api.js not found"
 }
 
 # ── CHECK 13: Web Rate Limiting on Login ──────────────────────────────────────

@@ -64,24 +64,24 @@
 | **v4.15.0** | 2026-10-08 | **In-App Video Proxy Streamer & Proofing Overlays, Multi-Format Packaging Presets & Automated NAS Quota Telemetry**: Integrated canvas markup overlays directly on video streams with second-accurate timestamped review pins and interactive timeline scrubber markers (`DeliverableAnnotationCanvas`); dynamic multi-format packaging presets (`print`, `web`, `archive`, `all`) with selective file filtering and manifest summary sheets (`ExportService`); automated Synology NAS volume quota telemetry, capacity threshold alerts, and cold storage archive recommendation triggers (`WorkspaceService.getNasStorageTelemetry`, `UserProfileService.GetSystemSpecs`, `/api/system/status`) |
 | **v5.0.0** | 2026-10-08 | **Multi-Platform Ecosystem Expansion & Corporate Governance**: Cross-platform multi-workspace NAS switching across canonical business unit shares (`Creative-Team`, `Video-Production`, `Marketing-Assets`) with dynamic mount discovery, volume quota telemetry, and departmental attribution; Web Portal Corporate Holding Switcher (`SSH`, `SSC`, `SSW`, `SSE`, `SST`) with brand token integration and instant subsidiary focus in `AdminView.svelte`; Linux Avalonia UI 12.1 business unit switcher and 73-point QA coverage parity; and synchronized SSoT release across Windows WPF, Linux Avalonia, Web Portal, and Android Companion. |
 | **v5.1.0** | 2026-10-08 | **Clinic Operations & PERNAS Franchise Standardization**: Full strategic alignment with PERNAS Franchise Development Grant application; KKM Regulatory Compliance Gateway & Clinical Preflight Validator (Medicines Advertisement Act 1956, KKLIU/MAL code verification, disclaimer autofix); Waiting Lounge TV Signage Engine (`SignageView.svelte`, `#signage` full-bleed kiosk route, live queue caller); In-Clinic Patient Consultation Suite (`ConsultationSuiteView.svelte`, 4-phase recovery timeline, vascular simulation); Branch Marketing & Patient Intake Kit (Bangsar HQ, KD, JB, Penang branch presets across Desktop & Web); Post-Treatment Digital Care Dispatcher (automated bilingual recovery leaflets & 1-click WhatsApp dispatch); and 4 versioned clinical SOP manuals in NAS vault `_Clinic/SOP_Manuals`. |
+| **v5.2.0** | 2026-10-12 | **Enterprise Intelligence, Asset Versioning & Collision Guard**: Automated non-destructive asset revision snapshot caching and rollback engine across WPF Desktop and Web Portal (`SnapshotDesktopService.cs`, `ProjectSnapshotsDialog.xaml`, `SnapshotService.js`); real-time project lock leasing and multi-designer collision guard (`FileCollisionGuardService.cs`, `_lock.json`); Web DeliverablesView overhaul with Production Vault Telemetry Ribbon, 1-click fast sign-off, and theme tokenization; TasksView 2-tier toolbar with executive bottleneck radar and inline non-blocking confirmations; Client Review Portal visual pin annotations, video proxy streaming, and 1-click batch ZIP download; and Native Linux Desktop Client updated to .NET 10 with 0 warnings, single-file packaging, and 76/76 smoke test passes. |
 
 ---
 
-## 🎯 Active Milestone — v5.2.0: Enterprise Intelligence & Asset Versioning (Target: Q3 2027)
+## 🎯 Active Milestone — v5.3.0: Autonomous Campaign Orchestration & Multi-Region Sync (Target: Q1 2027)
 
 | Feature / Module | Target Platform | Description & Operational Impact |
 |---|---|---|
-| **Asset Revision Snapshots** | WPF Desktop & Web Portal | Visual diff timeline, thumbnail caching, and rollback engine for `.afdesign`, `.psd`, and `.ai` binary files stored across NAS vaults. |
 | **AI Creative Assistant** | Cross-Platform (Desktop, Web, Android) | Local/Offline LLM integration for generating compliant ad hooks, drafting campaign briefs, translating Malay/English copy, and suggesting clinical analogies. |
 | **Real-time Live Sync Hub** | High-Throughput Service | Zero-latency bi-directional synchronization bridge between native clients (Windows, Linux, Android) and Synology NAS storage clusters. |
+| **Multi-Region Cluster Federation** | Synology NAS Infrastructure | Synchronize brand vaults and clinical assets across international branch hubs (Malaysia, Singapore, Indonesia). |
 
 ---
 
-## 🔮 Future Exploration — v5.3.0: Autonomous Campaign Orchestration & Multi-Region Sync (Target: Q4 2027)
+## 🔮 Future Exploration — v5.4.0: Predictive Analytics & Omnichannel Publishing (Target: Q2 2027)
 
 | Area | Idea |
 |------|------|
-| **Multi-Region Cluster Federation** | Synchronize brand vaults and clinical assets across international branch hubs (Malaysia, Singapore, Indonesia) |
 | **Automated Omnichannel Publisher** | 1-click direct publishing to Meta Ads Manager, TikTok Creative Center, and Google Marketing Platform |
 | **Predictive Creative Analytics** | Machine-learning CTR and ROAS forecasting engine analyzing past campaign assets |
 

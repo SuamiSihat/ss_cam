@@ -26,7 +26,7 @@
 
   let showDownloadModal = $state(false);
   let commandPaletteOpen = $state(false);
-  let serverVersion = $state('5.1.0');
+  let serverVersion = $state('5.2.0');
 
   function handleGlobalKeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {

@@ -4,12 +4,31 @@
 
 Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Brand Asset Inspector · Synology NAS Native · Multi-Platform
 
-[![Release](https://img.shields.io/badge/release-v4.13.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v4.13.0)
+[![Release](https://img.shields.io/badge/release-v5.2.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v5.2.0)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20Linux%20%7C%20Android%20%7C%20Docker-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam)
-[![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%208.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
+[![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%2010.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
 [![Web Stack](https://img.shields.io/badge/web-Svelte%205%20%2B%20Node.js%2020-ff3e00?style=flat-square)](https://svelte.dev)
 [![Design System](https://img.shields.io/badge/design-Fluent%202%20%2F%2060%3A30%3A10-0078D4?style=flat-square)](https://fluent2.microsoft.design)
 [![License](https://img.shields.io/badge/licence-Internal%20Use-orange?style=flat-square)](./installer/EULA.txt)
+
+---
+
+## 🚀 What's New in v5.2.0 ("Enterprise Intelligence, Asset Versioning & Collision Guard")
+
+* **📸 Asset Revision Snapshots & Rollback Engine (`SnapshotDesktopService.cs`, `SnapshotService.js`)**:
+  * **Point-in-Time Snapshots**: Automated non-destructive snapshots of master design files (`.afdesign`, `.psd`, `.ai`, `.pdf`) stored across Synology NAS vaults.
+  * **Interactive Snapshot Timeline Dialog**: In-app timeline dialog (`ProjectSnapshotsDialog.xaml`, `ProjectVersionTimelineModal.svelte`) for 1-click preview and rollback with pre-rollback safety snapshots.
+* **🛡️ Real-Time Project Lock Leasing & Collision Guard (`FileCollisionGuardService.cs`, `CollisionGuardService.js`)**:
+  * **Multi-Designer Collision Prevention**: Real-time project lock leasing engine preventing concurrent write collisions on shared NAS vaults (`_lock.json`).
+  * **Visual Occupancy Ribbons**: Live lock status banners and editor occupancy indicators in Desktop Task Manager, Search & Copy, and Web Portal views.
+* **💎 Web Deliverables & Production Vault UX / Art Direction Overhaul (`DeliverablesView.svelte`)**:
+  * **Production Vault Telemetry Ribbon**: Real-time deliverable counts, storage footprints, and media format ratio charts (Raster vs Video vs Print).
+  * **1-Click Fast Sign-Off**: Direct Quick Approve (`✓`) and Quick Revision (`✕`) buttons on grid cards and DAM table rows without lightbox friction.
+* **⚡ TasksView 2-Tier Toolbar & Executive Bottleneck Radar (`TasksView.svelte`, `TaskDetailDrawer.svelte`)**:
+  * **Executive Bottleneck Radar**: Real-time radar highlighting overdue deliverables, unassigned tasks, and revision bottlenecks.
+  * **Non-Blocking Inline Confirmation**: Replaced blocking native browser dialogs with non-destructive inline action confirmation pills.
+* **🐧 Native Linux Desktop Client (.NET 10 / Avalonia UI 12.1)**:
+  * **Full .NET 10 Compatibility**: Clean build with 0 warnings, single-file native distribution tarball (`dist/SS-CAM-v5.2.0-linux-x64.tar.gz`), and 76/76 automated smoke test verification.
 
 ---
 

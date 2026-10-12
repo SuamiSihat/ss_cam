@@ -2,6 +2,48 @@
 
 All notable SS-CAM changes are documented here.
 
+## [5.2.0] - 2026-10-12 (Enterprise Intelligence, Asset Versioning & Collision Guard)
+
+### Asset Versioning & Snapshots Engine
+
+- **Point-in-Time Asset Revision Snapshots**:
+  - Implemented automated non-destructive design snapshot caching for master design files (`.afdesign`, `.psd`, `.ai`, `.pdf`) stored across Synology NAS vaults.
+  - **Desktop C# WPF**: Added `SnapshotDesktopService.cs` and interactive `ProjectSnapshotsDialog.xaml` modal dialog with 1-click preview and rollback, featuring automated pre-rollback safety snapshots.
+  - **Web Portal**: Integrated `SnapshotService.js` and `ProjectVersionTimelineModal.svelte` with visual timeline playback.
+
+### Multi-Designer Governance & Collision Prevention
+
+- **Real-Time Project Lock Leasing & Collision Guard**:
+  - Implemented lightweight heartbeat lock leasing (`_lock.json`) on shared NAS project folders to prevent concurrent edit overwrites between designers.
+  - **Desktop C# WPF**: Added `FileCollisionGuardService.cs` with live visual lock status banners and editor occupancy indicators across `TaskManagerPage.xaml` and `SearchCopyPage.xaml`.
+  - **Web Portal**: Added `CollisionGuardService.js` and `/api/projects/:id/lock` endpoints with automatic session lease expiration.
+
+### Production Vault & Art Direction Overhaul
+
+- **Production Vault Telemetry Ribbon (`DeliverablesView.svelte`)**:
+  - Replaced legacy KPI widgets with an executive telemetry ribbon showing master deliverable counts, storage footprints, and real-time media format ratios (Raster vs Video vs Print).
+  - Implemented 1-click fast sign-off (`Quick Approve` / `Quick Revision`) on grouped cards, flat cards, and DAM metadata table rows.
+  - Added `Ctrl+K` keyboard shortcut listener and reactive filter reset pill.
+- **TasksView 2-Tier Toolbar & Executive Bottleneck Radar (`TasksView.svelte`, `TaskDetailDrawer.svelte`)**:
+  - Added 2-tier toolbar with search shortcut and capacity radar highlighting overdue items and unassigned deliverables.
+  - Replaced blocking native browser alerts with non-destructive inline action confirmation pills in `TaskDetailDrawer.svelte`.
+- **Client Review Portal Handover Upgrades**:
+  - Added 1-click batch ZIP download of approved master deliverables.
+  - Supported second-accurate visual pin review annotations on images and streaming video proxies.
+  - Integrated 1-click automated WhatsApp notification dispatch (`wa.me/`).
+
+### Cross-Platform Linux Desktop Modernization
+
+- **Native Linux Desktop Client (.NET 10 / Avalonia UI 12.1)**:
+  - Updated to .NET 10 SDK with 0 compiler warnings and 0 errors.
+  - Packaged self-contained single-file native distribution tarball (`dist/SS-CAM-v5.2.0-linux-x64.tar.gz` and `publish/ss-cam-linux-x64.tar.gz`).
+  - Verified 100% pass across all 76 functional and build artifact smoke tests (`QA/qa-linux-coverage.ps1`).
+
+### Ecosystem Synchronization
+
+- **Cross-Platform Version Parity (`v5.2.0`)**:
+  - Synchronized SSoT version `5.2.0` across Desktop WPF (`MainWindow.xaml`, `AssemblyInfo.cs` 5.2.0.0), Web Portal (`package.json`, `App.svelte`), Linux Avalonia (`SS-CAM.Linux.csproj`), Android Native Companion (`build.gradle.kts` versionCode 5200), and installer metadata (`installer/version.json`).
+
 ## [5.1.0] - 2026-10-08 (Clinic Operations & PERNAS Franchise Standardization)
 
 ### Healthcare & Clinical Governance

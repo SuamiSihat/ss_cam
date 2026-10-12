@@ -3,14 +3,15 @@
 
 [CmdletBinding()]
 param(
-    [string]$Version = "4.10.1"
+    [string]$Version = "5.2.0"
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$linuxProj = Join-Path $repoRoot 'src\SS-CAM.Linux\SS-CAM.Linux.csproj'
+$linuxProj = Join-Path $repoRoot (Join-Path 'src' (Join-Path 'SS-CAM.Linux' 'SS-CAM.Linux.csproj'))
 $distDir   = Join-Path $repoRoot 'dist'
-$tempOut   = Join-Path $repoRoot 'dist\linux-x64'
+$tempOut   = Join-Path $distDir 'linux-x64'
+$pubDir    = Join-Path $repoRoot 'publish'
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host " Building SS-CAM Linux Native Desktop Package v$Version" -ForegroundColor Cyan
@@ -18,6 +19,9 @@ Write-Host "==========================================================" -Foregro
 
 if (-not (Test-Path $distDir)) {
     New-Item -ItemType Directory -Path $distDir -Force | Out-Null
+}
+if (-not (Test-Path $pubDir)) {
+    New-Item -ItemType Directory -Path $pubDir -Force | Out-Null
 }
 
 if (Test-Path $tempOut) {
@@ -40,7 +44,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Copy brand icon into package
-$iconPath = Join-Path $repoRoot 'installer\assets\ss-cam.svg'
+$iconPath = Join-Path $repoRoot (Join-Path 'installer' (Join-Path 'assets' 'ss-cam.svg'))
 if (Test-Path $iconPath) {
     Copy-Item $iconPath (Join-Path $tempOut 'ss-cam.svg') -Force
 }
@@ -61,6 +65,13 @@ if (Get-Command tar -ErrorAction SilentlyContinue) {
     try {
         tar -czf $tarPathVersion *
         Copy-Item $tarPathVersion $tarPathGeneric -Force
+
+        # Mirror to publish folder for QA & installer parity
+        $pubLinux = Join-Path $pubDir 'linux-x64'
+        if (-not (Test-Path $pubLinux)) { New-Item -ItemType Directory -Path $pubLinux -Force | Out-Null }
+        Copy-Item (Join-Path $tempOut 'SS-CAM.Linux') (Join-Path $pubLinux 'SS-CAM.Linux') -Force
+        Copy-Item $tarPathGeneric (Join-Path $pubDir $tarNameGeneric) -Force
+        Copy-Item $tarPathVersion (Join-Path $pubDir $tarNameVersion) -Force
     } finally {
         Pop-Location
     }

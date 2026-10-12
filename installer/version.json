@@ -1,6 +1,6 @@
 {
-  "version": "5.1.0",
-  "releaseNotes": "SS-CAM v5.1.0 Clinic Operations & PERNAS Franchise Standardization — KKM Regulatory Compliance Gateway, Waiting Lounge TV Signage, In-Clinic Consultation Suite, Branch Marketing Kit & Post-Treatment Digital Care Dispatcher.",
-  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v5.1.0/SS-CAM-v5.1.0.exe",
-  "publishedAt": "2026-10-08"
+  "version": "5.2.0",
+  "releaseNotes": "SS-CAM v5.2.0 Enterprise Intelligence & Asset Versioning — Asset Revision Snapshots & Rollback Engine, Real-Time File Collision Guard, Production Vault Telemetry Ribbon, 1-Click Fast Sign-Off, Client Review Portal Annotations, Native Linux .NET 10 Build & Cross-Platform Parity.",
+  "downloadUrl": "https://github.com/SuamiSihat/ss_cam/releases/download/v5.2.0/SS-CAM-v5.2.0.exe",
+  "publishedAt": "2026-10-12"
 }

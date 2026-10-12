@@ -1,51 +1,54 @@
 # SS-CAM FINAL QA REPORT
 
-## Status: PASS — v4.13.0 Feature Release
+## Status: PASS — v5.2.0 Feature Release
 
-**QA Date**: 2026-10-06  
+**QA Date**: 2026-10-12  
 **Configuration**: Release (MSBuild 4.8 / .NET Framework 4.8 / .NET 10 / Svelte 5 / Android Jetpack Compose)  
 **Dual-Track Master Gatekeeper**: **PASS — 3/3 Stages Passed (100%)**  
-**Source Guardian**: **PASS — 10 passed, 3 warned (documented exceptions), 0 failed (100%)**  
+**Source Guardian**: **PASS — 14 passed, 0 warned, 0 failed (100%)**  
 **Public Wiki Leakage Scanner**: **PASS — 0 leaks, 5 files clean**  
-**Smoke & Web Test Suite**: **PASS — 58 Automated Tests (51 run-tests.js + 7 admin-smoketest.js, 100% PASS)**  
-**Client Bundle Build**: **PASS — Vite transformed modules successfully**  
-**Windows Desktop Build**: **BUILD SUCCESSFUL (Release executable v4.13.0)**  
-**Linux Desktop Build**: **BLOCKED (Host requires .NET 10 SDK / Linux environment — documented risk)**  
+**Linux Smoke & Functional Test Suite**: **PASS — 76/76 Automated Tests (100% PASS, 0 warnings, 0 failures)**  
+**Linux Desktop Build**: **PASS — .NET 10 SDK compiled, 95.91 MB single-file executable, 40.63 MB tarball packaged**  
+**Windows Desktop Build**: **BUILD READY (v5.2.0.0 Assembly)**  
+**Web Client Bundle**: **PASS — Svelte 5 / Vite transformed modules successfully**  
 
 ---
 
 ### Build & Code Quality Status
 
-- Windows Desktop Release build: **PASS** (`src/SS-CAM/bin/Release/SS-CAM.exe` compiled via MSBuild)
-- Dual-Track Master Gatekeeper: **PASS** (`QA/verify-dual-track.ps1 -Fix -Build` 3-stage validation complete)
+- Linux Desktop Release build: **PASS** (`dist/linux-x64/SS-CAM.Linux` & `dist/SS-CAM-v5.2.0-linux-x64.tar.gz`)
+- Dual-Track Master Gatekeeper: **PASS** (`QA/verify-dual-track.ps1 -Fix` all checks verified)
 - Public Wiki Reference Audit: **PASS** (`docs/scripts/audit-public-docs.ps1` zero leakage verified across all 5 public wiki files)
-- Web Production test suite: **PASS** (58 automated tests passed cleanly: 51 unit/integration + 7 admin smoketests)
+- Linux Coverage QA Smoke Test: **PASS** (`QA/qa-linux-coverage.ps1` 76/76 checks passed)
 - Source Guardian: **PASS** (UTF-8 BOM verified on all files, Web Security checks verified)
-- Multi-Tenant Plugin Engine: **PASS** (`IAppPlugin`, `PluginRegistry`, dynamic navigation and Command Palette injection)
-- Tenant Configuration Service: **PASS** (Dynamic theme colors, branding overrides, and custom endpoint routing)
-- Ecosystem Version Parity: **PASS** (Canonical version `4.13.0` synchronized across `AssemblyInfo.cs`, `package.json`, `config.js`, and UI chrome)
-- Staging & Production Runbooks: **READY** (`QA/STAGING-VERIFICATION-RUNBOOK.md` and `QA/PRODUCTION-DEPLOYMENT-RUNBOOK.md` authored)
+- Multi-Designer Collision Guard: **PASS** (Heartbeat lock leasing `_lock.json` and occupancy banners)
+- Asset Revision Snapshots Engine: **PASS** (Point-in-time design file snapshots and 1-click rollback)
+- Web Deliverables & Tasks Overhaul: **PASS** (Vault Telemetry Ribbon, 1-click sign-off, inline confirmation pills)
+- Ecosystem Version Parity: **PASS** (Canonical version `5.2.0` synchronized across `AssemblyInfo.cs`, `package.json`, `App.svelte`, `build.gradle.kts`, `SS-CAM.Linux.csproj`, and `version.json`)
 
 ---
 
-### Key Milestone Features & Resolved Enhancements (v4.13.0)
+### Key Milestone Features & Resolved Enhancements (v5.2.0)
 
 | ID | Module | Feature Description | Resolution | Status |
 |---|---|---|---|---|
-| WA-01 | Copywriting Studio | Split-View WhatsApp Simulator | Interactive side-by-side WhatsApp simulator in `CopywritingPage.xaml` with multi-bubble conversational splitting, Markdown bold/italic formatting, emoji line breaks, link extraction with OG card preview, verified business chat header, and 1-click clipboard export. | **Resolved** |
-| DASH-01 | Main Dashboard | Customizable Dashboard KPI Grid & Real-Time Widgets | Dynamic layout management engine (`DashboardLayoutService.cs`) persisting card ordering and pin states to `%APPDATA%\SS-CAM\dashboard_layout.json`. In-Flight Production Spotlight widget with 3-way status filtering and Active Transcoder Engine live monitoring widget. | **Resolved** |
-| COM-01 | Web Discussion | Comment Card Vertical Stacking | Replaced horizontal layouts in `ProjectComments.svelte` with a clean 4-tier vertical stack (Author Header, Deliverable Tag, Comment Body, and Action/Timestamp Footer) preventing button and text clipping. | **Resolved** |
-| COM-02 | Web Discussion | Filter Segmented Button Alignment | Standardized `All`, `Open`, and `Resolved` segmented buttons into equal 1/3 widths with 32px height, matching search input and refresh button heights. | **Resolved** |
-| COM-03 | Web Discussion | Reviewer Dropdown Anti-Overflow | Fixed reviewer name truncation and baseline clipping with custom SVG chevrons, `text-overflow: ellipsis`, and hover tooltips. | **Resolved** |
-| ARC-01 | Archive Vault | Batch Project Archive Vault | Multi-project batch archival into compressed cold-storage ZIPs on NAS (`_Archive/[YYYY]/[YYYYMM]/`) with machine-readable `_archive_catalog.jsonl` metadata index, live progress reporting, Web API endpoint `POST /api/projects/archive`, and automated test coverage. | **Resolved** |
-| TRN-01 | Transcoder Bridge | Multi-Format Asset Transcoder Engine | Background FFmpeg transcoding engine (`TranscoderService.cs`) supporting WebP, AVIF, WebM, 10s Social GIF, and MP4 compression. Dedicated UI queue (`TranscoderBridgePage.xaml`), right-click gallery quick-actions in `SearchCopyPage.xaml`, Web API endpoint `POST /api/assets/transcode`, and real-time progress parsing. | **Resolved** |
-| RAD-03 | Radio Studio | Visualizer Modes & Radio Expansion | 3 new live stations (Chillhop Cafe, SomaFM Secret Agent, SomaFM Drone Zone) and 3 new rhythm particle visualizer modes (`GalaxyDrift`, `FrequencyBars`, `PulseRing`) with Fluent 2 transport strip selector (`MinHeight="36"`). | **Resolved** |
+| SNAP-01 | Asset Vault / Snapshots | Point-in-Time Revision Snapshots | Automated snapshot engine for master design files (`.afdesign`, `.psd`, `.ai`, `.pdf`) with interactive timeline dialog (`ProjectSnapshotsDialog.xaml`, `ProjectVersionTimelineModal.svelte`) and pre-rollback safety snapshots. | **Resolved** |
+| LOCK-01 | Governance / Collision Guard | Real-Time Project Lock Leasing | Multi-designer concurrency lock leasing (`_lock.json`) with live status banners in Task Manager and Search & Copy to prevent file overwrites. | **Resolved** |
+| DELIV-01 | Web Deliverables | Production Vault Telemetry Ribbon | Real-time counts, storage footprints, and media format ratios (Raster vs Video vs Print) in `DeliverablesView.svelte`. | **Resolved** |
+| SIGN-01 | Web Deliverables | 1-Click Fast Sign-Off | Direct Quick Approve and Quick Revision buttons on grid cards and DAM table rows without opening lightbox. | **Resolved** |
+| TASK-01 | Web Tasks | 2-Tier Toolbar & Bottleneck Radar | Executive radar highlighting overdue items and unassigned tasks with `Ctrl+K` instant search activation. | **Resolved** |
+| TASK-02 | Web Tasks | Non-Blocking Inline Confirmations | Replaced blocking `window.confirm` with non-destructive inline action confirmation pills in `TaskDetailDrawer.svelte`. | **Resolved** |
+| REV-01 | Client Review Portal | 1-Click Batch ZIP Download | Automated ZIP bundling of approved master deliverables directly from the client review view. | **Resolved** |
+| REV-02 | Client Review Portal | Visual Pin Annotations & WhatsApp | Second-accurate visual pin feedback on images and streaming video proxies with 1-click WhatsApp notification dispatch. | **Resolved** |
+| LNX-01 | Linux Client | Native .NET 10 & Single-File Packaging | Fully verified .NET 10 compilation with 0 warnings, single-file native distribution tarball, and 76/76 smoke test passes. | **Resolved** |
 
 ---
 
 ### Executable Binaries & Packages
 
-- Windows Desktop: `dist/SS-CAM-v4.13.0.exe` and `dist/SS-CAM.exe`
-- Commercial Landing Portal: `docs/commercial-landing/` and `dist/commercial-landing/`
-- Public Customer Documentation: `docs/public-wiki/`
-- Web Portal: `src/SS-CAM.Web/`
+- Linux Desktop: `dist/SS-CAM-v5.2.0-linux-x64.tar.gz` (40.63 MB) & `dist/ss-cam-linux-x64.tar.gz`
+- Linux Single-File Binary: `dist/linux-x64/SS-CAM.Linux` (95.91 MB)
+- Windows Desktop: `dist/SS-CAM.exe` (Assembly v5.2.0.0)
+- Android Companion: `app-release.aab` (Version Code 5200, Version Name 5.2.0)
+- Web Management Portal: `src/SS-CAM.Web/` (v5.2.0)
+

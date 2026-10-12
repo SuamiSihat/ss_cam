@@ -34,7 +34,9 @@ if (-not (Test-Path $SourceGuardianScript)) {
 $SgArgs = @()
 if ($Fix) { $SgArgs += "-Fix" }
 
-& powershell -ExecutionPolicy Bypass -File $SourceGuardianScript @SgArgs
+$psCmd = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } elseif (Get-Command powershell -ErrorAction SilentlyContinue) { "powershell" } else { (Get-Process -Id $PID).Path }
+
+& $psCmd -ExecutionPolicy Bypass -File $SourceGuardianScript @SgArgs
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`n[FAIL] Source Guardian checks failed. Review and fix issues above." -ForegroundColor Red
     exit 1
@@ -48,7 +50,7 @@ if (-not (Test-Path $AuditScript)) {
     exit 1
 }
 
-& powershell -ExecutionPolicy Bypass -File $AuditScript
+& $psCmd -ExecutionPolicy Bypass -File $AuditScript
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`n[FAIL] Public documentation contains blacklisted internal references!" -ForegroundColor Red
     exit 1
@@ -59,7 +61,7 @@ if ($Build) {
     Write-Host "`n[STEP 3/3] Compiling Release Build..." -ForegroundColor Yellow
     $QaRunner = Join-Path $RepoRoot ".agents\skills\sscam-qa\scripts\run-sscam-qa.ps1"
     if (Test-Path $QaRunner) {
-        & powershell -ExecutionPolicy Bypass -File $QaRunner -Build -Configuration Release
+        & $psCmd -ExecutionPolicy Bypass -File $QaRunner -Build -Configuration Release
         if ($LASTEXITCODE -ne 0) {
             Write-Host "`n[FAIL] Release build verification failed!" -ForegroundColor Red
             exit 1
