@@ -23,6 +23,7 @@
   import ConsultationSuiteView from '$lib/views/ConsultationSuiteView.svelte';
   import NotificationDrawer from '$lib/components/features/NotificationDrawer.svelte';
   import CommandPaletteModal from '$lib/components/features/CommandPaletteModal.svelte';
+  import { ROUTES, PAGE_CONFIG, getNavGroups, getMobileDockRoutes, isRouteAllowed, getRouteById, getRouteByHash, type RouteDefinition } from '$lib/config/routes';
 
   let showDownloadModal = $state(false);
   let commandPaletteOpen = $state(false);
@@ -50,11 +51,35 @@
         appState.currentRoute = 'signage';
         return;
       }
-      if (!hash) { appState.currentRoute = 'dashboard'; return; }
+      if (!hash) {
+        appState.currentRoute = 'dashboard';
+        appState.routeParams = {};
+        return;
+      }
       const parts = hash.split('/');
       const route = parts[0];
       const id = parts[1] ? decodeURIComponent(parts[1]) : undefined;
-      appState.currentRoute = route || 'dashboard';
+
+      if (route === 'login') {
+        appState.currentRoute = 'login';
+        appState.routeParams = {};
+        return;
+      }
+
+      const matchedRoute = getRouteByHash(route) || getRouteById(route);
+      if (!matchedRoute) {
+        appState.currentRoute = 'not-found';
+        appState.routeParams = {};
+        return;
+      }
+
+      if (appState.currentUser && !isRouteAllowed(matchedRoute, appState.currentUser)) {
+        appState.navigate('dashboard');
+        appState.addToast("You don't have access to that page.", 'error');
+        return;
+      }
+
+      appState.currentRoute = matchedRoute.id;
       appState.routeParams = id ? { id } : {};
     }
 
@@ -64,6 +89,11 @@
     if (appState.currentRoute !== 'review' && appState.currentRoute !== 'reset-password') {
       appState.loadCurrentUser().then(() => {
         appState.loadLiveTasks();
+        const matched = getRouteById(appState.currentRoute);
+        if (matched && appState.currentUser && !isRouteAllowed(matched, appState.currentUser)) {
+          appState.navigate('dashboard');
+          appState.addToast("You don't have access to that page.", 'error');
+        }
       });
     }
     window.addEventListener('auth:required', () => appState.navigate('login'));
@@ -179,22 +209,7 @@
     };
   });
 
-  const pageConfig: Record<string, { title: string; layout: string; parent?: string }> = {
-    dashboard:        { title: 'Dashboard',             layout: 'layout-full' },
-    tasks:            { title: 'Task Manager',           layout: 'layout-full' },
-    projects:         { title: 'Project Catalog',       layout: 'layout-fluid' },
-    'project-detail': { title: 'Project Workspace',     layout: 'layout-full', parent: 'projects' },
-    deliverables:     { title: 'Deliverables', layout: 'layout-page' },
-    team:             { title: 'Team',                   layout: 'layout-page' },
-    'copy-studio':    { title: 'Copywriting Studio',     layout: 'layout-page' },
-    'order-form':     { title: 'Order Requests',         layout: 'layout-page' },
-    consultation:     { title: 'Consultation Suite',     layout: 'layout-full' },
-    signage:          { title: 'Lounge TV Signage',      layout: 'layout-full' },
-    admin:            { title: 'Administration',         layout: 'layout-full' },
-    profile:          { title: 'My Profile',             layout: 'layout-full' },
-  };
-
-  const currentConfig = $derived(pageConfig[appState.currentRoute] ?? { title: 'SS-CAM', layout: 'layout-page' });
+  const currentConfig = $derived(PAGE_CONFIG[appState.currentRoute] ?? { title: 'SS-CAM', layout: 'layout-page' });
   const currentTitle  = $derived(
     appState.currentRoute === 'project-detail' && appState.routeParams.id
       ? appState.routeParams.id
@@ -203,69 +218,27 @@
 
   const breadcrumbs = $derived.by(() => {
     const crumbs: { label: string; route?: string }[] = [{ label: 'SS-CAM Portal' }];
-    const cfg = pageConfig[appState.currentRoute];
+    const cfg = PAGE_CONFIG[appState.currentRoute];
     if (!cfg) return crumbs;
     if (cfg.parent) {
-      const p = pageConfig[cfg.parent];
+      const p = PAGE_CONFIG[cfg.parent];
       crumbs.push({ label: p?.title ?? cfg.parent, route: cfg.parent });
     }
     crumbs.push({ label: currentTitle });
     return crumbs;
   });
 
-  const dashIcon   = `<path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>`;
-  const taskIcon   = `<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>`;
-  const folderIcon = `<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>`;
-  const reviewIcon = `<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>`;
-  const teamIcon   = `<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>`;
-  const pencilIcon = `<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>`;
-  const adminIcon  = `<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/>`;
-  const orderIcon  = `<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>`;
-  const consultIcon = `<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/>`;
-  const tvIcon     = `<path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>`;
-
-  const navGroups = [
-    { section: 'Production', items: [
-      { route: 'dashboard',    label: 'Dashboard',              icon: dashIcon },
-      { route: 'tasks',        label: 'Task Manager',           icon: taskIcon },
-      { route: 'projects',     label: 'Project Catalog',        icon: folderIcon, matchRoutes: ['projects','project-detail'] },
-      { route: 'deliverables', label: 'Deliverables', icon: reviewIcon, badge: true },
-    ]},
-    { section: 'Operations', items: [
-      { route: 'consultation', label: 'Consultation Suite',     icon: consultIcon },
-      { route: 'order-form',   label: 'Order Requests',         icon: orderIcon },
-      { route: 'team',         label: 'Team',                   icon: teamIcon },
-      { route: 'copy-studio',  label: 'Copywriting Studio',     icon: pencilIcon },
-      { route: 'signage',      label: 'Lounge TV Signage',      icon: tvIcon },
-    ]},
-    { section: 'Admin', items: [
-      { route: 'admin',        label: 'Administration',         icon: adminIcon },
-    ]},
-  ];
-
-  function isActive(item: any) {
-    return item.matchRoutes ? item.matchRoutes.includes(appState.currentRoute) : appState.currentRoute === item.route;
-  }
-
   const userInitial = $derived((appState.currentUser?.name ?? 'U').charAt(0).toUpperCase());
   const isRail = $derived(appState.sidebarRail && appState.sidebarExpanded);
 
-  // Client-side UX gating (UX only; backend API strictly enforces security)
-  const isAdmin = $derived.by(() => {
-    if (!appState.currentUser) return false;
-    const roles = Array.isArray(appState.currentUser.roles) && appState.currentUser.roles.length > 0
-      ? appState.currentUser.roles
-      : (typeof appState.currentUser.role === 'string' ? appState.currentUser.role.split(/[,/]/) : []);
-    const normalized = roles.map((r: string) => r.trim().toLowerCase());
-    return normalized.includes('admin') || normalized.includes('administrator') || appState.hasPermission('admin:users');
-  });
+  // Gated Navigation and Dock derived from routes config and server capabilities
+  const visibleNavGroups = $derived(getNavGroups(appState.currentUser));
+  const mobileDockRoutes = $derived(getMobileDockRoutes(appState.currentUser));
 
-  const visibleNavGroups = $derived.by(() => {
-    return navGroups.filter(g => {
-      if (g.section === 'Admin' && !isAdmin) return false;
-      return true;
-    });
-  });
+  function isActive(item: RouteDefinition) {
+    if (item.newTab) return false;
+    return item.matchRoutes ? item.matchRoutes.includes(appState.currentRoute) : appState.currentRoute === item.id;
+  }
 </script>
 
 <svelte:window onkeydown={handleGlobalKeydown} />
@@ -309,12 +282,14 @@
             {@const active = isActive(item)}
             {@const count  = item.badge ? projectStore.pendingReviewCount : 0}
             <a
-              href="#{item.route}"
+              href="#{item.hash}"
               class="nav-link"
               class:active
               class:rail-link={isRail}
               title={isRail ? item.label : undefined}
               aria-current={active ? 'page' : undefined}
+              target={item.newTab ? '_blank' : undefined}
+              rel={item.newTab ? 'noopener noreferrer' : undefined}
             >
               <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 {@html item.icon}
@@ -623,73 +598,50 @@
           {:else if appState.currentRoute === 'profile'}
             <ProfileView />
           {:else}
-            <DashboardView />
+            <div class="not-found-pane">
+              <div class="not-found-card">
+                <div class="not-found-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                  </svg>
+                </div>
+                <h2>Page not found</h2>
+                <p>The page you are looking for does not exist or may have moved.</p>
+                <button type="button" class="fluent-btn btn-primary btn-md" onclick={() => appState.navigate('dashboard')}>
+                  Home
+                </button>
+              </div>
+            </div>
           {/if}
         </section>
       </div>
 
       <!-- ═══ MOBILE BOTTOM NAVIGATION DOCK (<768px) ═════════════════ -->
       <nav class="mobile-bottom-dock" aria-label="Mobile Navigation">
-        <a
-          href="#dashboard"
-          class="dock-link"
-          class:active={appState.currentRoute === 'dashboard'}
-          aria-label="Dashboard"
-        >
-          <svg class="dock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            {@html dashIcon}
-          </svg>
-          <span class="dock-text">Deck</span>
-        </a>
-        <a
-          href="#tasks"
-          class="dock-link"
-          class:active={appState.currentRoute === 'tasks'}
-          aria-label="Task Manager"
-        >
-          <svg class="dock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            {@html taskIcon}
-          </svg>
-          <span class="dock-text">Tasks</span>
-        </a>
-        <a
-          href="#projects"
-          class="dock-link"
-          class:active={appState.currentRoute === 'projects' || appState.currentRoute === 'project-detail'}
-          aria-label="Projects"
-        >
-          <svg class="dock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            {@html folderIcon}
-          </svg>
-          <span class="dock-text">Projects</span>
-        </a>
-        <a
-          href="#deliverables"
-          class="dock-link"
-          class:active={appState.currentRoute === 'deliverables'}
-          aria-label="Review Queue"
-        >
-          <div class="dock-icon-wrap">
-            <svg class="dock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              {@html reviewIcon}
-            </svg>
-            {#if projectStore.pendingReviewCount > 0}
-              <span class="dock-badge">{projectStore.pendingReviewCount}</span>
+        {#each mobileDockRoutes as item}
+          {@const active = item.matchRoutes ? item.matchRoutes.includes(appState.currentRoute) : appState.currentRoute === item.id}
+          {@const count = item.badge ? projectStore.pendingReviewCount : 0}
+          <a
+            href="#{item.hash}"
+            class="dock-link"
+            class:active
+            aria-label={item.label}
+          >
+            {#if count > 0}
+              <div class="dock-icon-wrap">
+                <svg class="dock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  {@html item.icon}
+                </svg>
+                <span class="dock-badge">{count}</span>
+              </div>
+            {:else}
+              <svg class="dock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                {@html item.icon}
+              </svg>
             {/if}
-          </div>
-          <span class="dock-text">Review</span>
-        </a>
-        <a
-          href="#team"
-          class="dock-link"
-          class:active={appState.currentRoute === 'team'}
-          aria-label="Team Workload"
-        >
-          <svg class="dock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            {@html teamIcon}
-          </svg>
-          <span class="dock-text">Team</span>
-        </a>
+            <span class="dock-text">{item.dockLabel || item.shortLabel}</span>
+          </a>
+        {/each}
         <button
           type="button"
           class="dock-link dock-btn"
@@ -699,7 +651,7 @@
           <svg class="dock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
           </svg>
-          <span class="dock-text">Menu</span>
+          <span class="dock-text">More</span>
         </button>
       </nav>
     </div>
@@ -1854,5 +1806,41 @@
   }
   .copy-cmd-btn:hover {
     background: #334155;
+  }
+
+  .not-found-pane {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 55vh;
+    padding: 32px 16px;
+  }
+  .not-found-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 440px;
+    padding: 36px 28px;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: var(--radius-lg, 12px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  }
+  .not-found-icon {
+    color: var(--ss-azure, #21A1F7);
+    margin-bottom: 16px;
+  }
+  .not-found-card h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+  }
+  .not-found-card p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin: 0 0 24px 0;
+    line-height: 1.5;
   }
 </style>

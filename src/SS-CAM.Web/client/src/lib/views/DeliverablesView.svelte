@@ -597,15 +597,17 @@
                             </button>
 
                             <div class="action-icons-right">
-                              {#if (d.status || 'pending') !== 'approved'}
-                                <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                </button>
-                              {/if}
-                              {#if (d.status || 'pending') !== 'revision'}
-                                <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                </button>
+                              {#if appState.canApprove()}
+                                {#if (d.status || 'pending') !== 'approved'}
+                                  <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                  </button>
+                                {/if}
+                                {#if (d.status || 'pending') !== 'revision'}
+                                  <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                  </button>
+                                {/if}
                               {/if}
                               {#if d.isImage || d.previewType === 'image'}
                                 <button class="tool-icon-btn" title="Smart Social Resizer" onclick={() => openResizer(d)}>
@@ -615,9 +617,11 @@
                                   <FluentIcons name="printer" size={13} />
                                 </button>
                               {/if}
-                              <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
-                                <FluentIcons name="link" size={13} />
-                              </button>
+                              {#if appState.currentUser?.capabilities?.canManageShareLinks || appState.currentUser?.roleKey === 'admin'}
+                                <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
+                                  <FluentIcons name="link" size={13} />
+                                </button>
+                              {/if}
                               {#if d.downloadUrl}
                                 <a href={d.downloadUrl} download={d.filename} class="tool-icon-btn" title="Download Master File">
                                   <FluentIcons name="download" size={13} />
@@ -729,15 +733,17 @@
                   </button>
 
                   <div class="action-icons-right">
-                    {#if (d.status || 'pending') !== 'approved'}
-                      <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                      </button>
-                    {/if}
-                    {#if (d.status || 'pending') !== 'revision'}
-                      <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                      </button>
+                    {#if appState.canApprove()}
+                      {#if (d.status || 'pending') !== 'approved'}
+                        <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </button>
+                      {/if}
+                      {#if (d.status || 'pending') !== 'revision'}
+                        <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                      {/if}
                     {/if}
                     {#if d.isImage || d.previewType === 'image'}
                       <button class="tool-icon-btn" title="Smart Social Resizer" onclick={() => openResizer(d)}>
@@ -747,9 +753,11 @@
                         <FluentIcons name="printer" size={13} />
                       </button>
                     {/if}
-                    <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
-                      <FluentIcons name="link" size={13} />
-                    </button>
+                    {#if appState.currentUser?.capabilities?.canManageShareLinks || appState.currentUser?.roleKey === 'admin'}
+                      <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
+                        <FluentIcons name="link" size={13} />
+                      </button>
+                    {/if}
                     {#if d.downloadUrl}
                       <a href={d.downloadUrl} download={d.filename} class="tool-icon-btn" title="Download Master File">
                         <FluentIcons name="download" size={13} />
@@ -815,15 +823,17 @@
               <td><span class="status-badge status-{(d.status || 'pending')}">{(d.status || 'pending').toUpperCase()}</span></td>
               <td style="text-align:right;" onclick={(e) => e.stopPropagation()}>
                 <div class="table-actions">
-                  {#if (d.status || 'pending') !== 'approved'}
-                    <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    </button>
-                  {/if}
-                  {#if (d.status || 'pending') !== 'revision'}
-                    <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
+                  {#if appState.canApprove()}
+                    {#if (d.status || 'pending') !== 'approved'}
+                      <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      </button>
+                    {/if}
+                    {#if (d.status || 'pending') !== 'revision'}
+                      <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      </button>
+                    {/if}
                   {/if}
                   {#if d.isImage || d.previewType === 'image'}
                     <button class="tool-icon-btn" title="Social Resizer" onclick={() => openResizer(d)}>
@@ -833,9 +843,11 @@
                       <FluentIcons name="printer" size={13} />
                     </button>
                   {/if}
-                  <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
-                    <FluentIcons name="link" size={13} />
-                  </button>
+                  {#if appState.currentUser?.capabilities?.canManageShareLinks || appState.currentUser?.roleKey === 'admin'}
+                    <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
+                      <FluentIcons name="link" size={13} />
+                    </button>
+                  {/if}
                   {#if d.downloadUrl}
                     <a href={d.downloadUrl} download={d.filename} class="tool-icon-btn" title="Download Master File">
                       <FluentIcons name="download" size={13} />

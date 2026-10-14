@@ -128,6 +128,8 @@ module.exports = {
   DEFAULT_NAS_PATH: process.platform === 'win32' ? uncNasPath : linuxNasPath,
   FALLBACK_LOCAL_WORKSPACE: fallbackLocalWorkspace,
   APP_TITLE: 'SuamiSihat Creative Team Portal',
+  // Canonical RBAC role keys (Phase 2)
+  VALID_ROLES: ['admin', 'ceo', 'manager', 'designer', 'copywriter', 'clinic', 'viewer'],
   // Default password for new accounts and Admin "Reset to default" (min. 10 characters).
   // Signing in with it forces a password change. Override per tenant in .env.
   DEFAULT_STAFF_PASSWORD: process.env.DEFAULT_STAFF_PASSWORD || 'SuamiSihat123',

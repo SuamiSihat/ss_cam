@@ -26,7 +26,8 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
 const {
-  SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserPermissions, hasCanonicalRole,
+  SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserRoleKeys, getUserPermissions,
+  deriveUserCapabilities, hasCanonicalRole,
   verifyUserPassword, updateUserPassword, generateTemporaryPassword, isMustChangePassword,
   setMustChangePassword, revokeUserSessions, revokeTokenId,
   createPasswordResetToken, verifyPasswordResetToken, resetPasswordWithToken,
@@ -213,8 +214,10 @@ function isDefaultPassword(password) {
 /** Session token + user profile returned by sign-in and by a successful password change. */
 function buildSignInResponse(user, mustChangePassword) {
   const token = generateToken(user, { mustChangePassword });
-  const roles = getUserRoles(user);
+  const roleKeys = getUserRoleKeys(user);
+  const primaryRoleKey = user.roleKey || roleKeys[0] || 'designer';
   const permissions = getUserPermissions(user);
+  const capabilities = deriveUserCapabilities(user);
   return {
     success: true,
     token,
@@ -223,9 +226,10 @@ function buildSignInResponse(user, mustChangePassword) {
       id: user.staffId || user.id,
       username: user.username,
       name: user.name,
-      role: Array.isArray(user.role) ? user.role.join(', ') : (user.role || roles.join(', ')),
-      officialTitle: user.officialTitle || (typeof user.role === 'string' ? user.role : 'Head of Creative'),
-      roles,
+      role: Array.isArray(user.role) ? user.role.join(', ') : (user.role || roleKeys.join(', ')),
+      roleKey: primaryRoleKey,
+      officialTitle: user.officialTitle || (typeof user.role === 'string' ? user.role : 'Designer'),
+      roles: roleKeys,
       staffId: user.staffId,
       department: user.department,
       email: user.email || '',
@@ -233,8 +237,10 @@ function buildSignInResponse(user, mustChangePassword) {
       avatarUrl: user.avatarUrl || user.avatar || '',
       avatarColor: user.avatarColor || '#0078D4',
       defaultBrand: user.defaultBrand || 'SS',
-      permissions
-    }
+      permissions,
+      capabilities
+    },
+    capabilities
   };
 }
 
@@ -403,35 +409,42 @@ function findRosterMember(sessionUser) {
 }
 
 router.get('/auth/me', authenticateToken, (req, res) => {
-  const liveStaff = findRosterMember(req.user);
+  const liveStaff = findRosterMember(req.user) || req.user;
+  const roleKeys = getUserRoleKeys(liveStaff);
+  const primaryRoleKey = liveStaff.roleKey || roleKeys[0] || 'designer';
+  const permissions = getUserPermissions(liveStaff);
+  const capabilities = deriveUserCapabilities(liveStaff);
 
-  if (liveStaff) {
-    const canonicalRoles = Array.isArray(liveStaff.roles) && liveStaff.roles.length > 0
-      ? liveStaff.roles
-      : (liveStaff.role ? liveStaff.role.split(',').map(r => r.trim()).filter(Boolean) : ['Designer']);
-    const canonicalTitle = liveStaff.officialTitle || liveStaff.role || 'Head of Creative';
-    const canonicalRoleStr = liveStaff.role || canonicalRoles.join(', ');
+  const canonicalRoles = Array.isArray(liveStaff.roles) && liveStaff.roles.length > 0
+    ? liveStaff.roles
+    : roleKeys;
+  const canonicalTitle = liveStaff.officialTitle || liveStaff.role || 'Designer';
+  const canonicalRoleStr = liveStaff.role || canonicalRoles.join(', ');
 
-    res.json({
-      user: {
-        ...req.user,
-        staffId: liveStaff.staffId,
-        username: liveStaff.username || req.user.username,
-        name: liveStaff.name || req.user.name,
-        officialTitle: canonicalTitle,
-        role: canonicalRoleStr,
-        roles: canonicalRoles,
-        department: liveStaff.department || req.user.department,
-        email: liveStaff.email || req.user.email,
-        avatar: liveStaff.avatarUrl || liveStaff.avatar || '',
-        avatarUrl: liveStaff.avatarUrl || liveStaff.avatar || '',
-        avatarColor: liveStaff.avatarColor || req.user.avatarColor || '#0078D4',
-        defaultBrand: liveStaff.defaultBrand || req.user.defaultBrand || 'SS'
-      }
-    });
-  } else {
-    res.json({ user: req.user });
-  }
+  const userData = {
+    ...req.user,
+    id: liveStaff.staffId || liveStaff.id || req.user.id,
+    staffId: liveStaff.staffId || req.user.staffId,
+    username: liveStaff.username || req.user.username,
+    name: liveStaff.name || req.user.name,
+    officialTitle: canonicalTitle,
+    role: canonicalRoleStr,
+    roleKey: primaryRoleKey,
+    roles: canonicalRoles,
+    department: liveStaff.department || req.user.department,
+    email: liveStaff.email || req.user.email,
+    avatar: liveStaff.avatarUrl || liveStaff.avatar || '',
+    avatarUrl: liveStaff.avatarUrl || liveStaff.avatar || '',
+    avatarColor: liveStaff.avatarColor || req.user.avatarColor || '#0078D4',
+    defaultBrand: liveStaff.defaultBrand || req.user.defaultBrand || 'SS',
+    permissions,
+    capabilities
+  };
+
+  res.json({
+    user: userData,
+    capabilities
+  });
 });
 
 /** Issues the media cookie used by images, downloads and live updates. Called after sign-in and on a timer. */

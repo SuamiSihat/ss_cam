@@ -4,11 +4,27 @@
 
 export type ThemeName = 'falconia' | 'metamorphosis' | 'catppuccin';
 
+export type RoleKey = 'admin' | 'ceo' | 'manager' | 'designer' | 'copywriter' | 'clinic' | 'viewer';
+
+export interface UserCapabilities {
+  canApproveDeliverables: boolean;
+  canDeleteProject: boolean;
+  canManageTeam: boolean;
+  canReassign: boolean;
+  canEditCopy: boolean;
+  canViewConsultation: boolean;
+  canViewAdmin: boolean;
+  canViewAuditLog: boolean;
+  canManageShareLinks: boolean;
+  allowedRoutes: string[];
+}
+
 export interface User {
   id: string;
   username: string;
   name: string;
   role: string;
+  roleKey?: RoleKey;
   officialTitle?: string;
   roles?: string[];
   staffId: string;
@@ -19,6 +35,7 @@ export interface User {
   avatarColor?: string;
   defaultBrand?: string;
   permissions: string[];
+  capabilities?: UserCapabilities;
 }
 
 export type ProjectStatus = 'backlog' | 'in-progress' | 'review' | 'revision' | 'approved' | 'on-hold';

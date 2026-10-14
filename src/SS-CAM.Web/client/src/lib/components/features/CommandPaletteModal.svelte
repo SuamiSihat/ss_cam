@@ -4,6 +4,7 @@
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import { ApiClient } from '$lib/services/api';
   import FluentIcons, { type IconName } from '$lib/components/ui/FluentIcons.svelte';
+  import { ROUTES, isRouteAllowed } from '$lib/config/routes';
 
   interface Props {
     open?: boolean;
@@ -134,23 +135,52 @@
     icon: IconName;
     category: string;
     execute: () => void;
+    keywords?: string[];
   }
 
-  // Quick Action Commands
-  const QUICK_ACTIONS: QuickAction[] = [
-    { type: 'action', id: 'nav-ai', label: 'Open Creative AI Studio (Gemini Assistant)', icon: 'sparkles', category: 'AI Tools', execute: () => appState.navigate('copy-studio') },
-    { type: 'action', id: 'nav-dashboard', label: 'Go to Dashboard', icon: 'dashboard', category: 'Navigation', execute: () => appState.navigate('dashboard') },
-    { type: 'action', id: 'nav-tasks', label: 'Open Studio Tasks (Pre-Production Kanban)', icon: 'kanban', category: 'Studio Pre-Production', execute: () => appState.navigate('tasks') },
-    { type: 'action', id: 'nav-projects', label: 'Open Project Manager', icon: 'folder', category: 'Navigation', execute: () => appState.navigate('projects') },
-    { type: 'action', id: 'nav-review', label: 'Go to Review Queue', icon: 'checkCircle', category: 'Navigation', execute: () => appState.navigate('deliverables') },
-    { type: 'action', id: 'nav-orders', label: 'Open Creative Requests Queue', icon: 'edit', category: 'Navigation', execute: () => appState.navigate('order-form') },
-    { type: 'action', id: 'nav-team', label: 'View Team & Workload', icon: 'users', category: 'Navigation', execute: () => appState.navigate('team') },
-    { type: 'action', id: 'nav-copy', label: 'Open Copywriting Studio', icon: 'edit', category: 'Navigation', execute: () => appState.navigate('copy-studio') },
-    { type: 'action', id: 'nav-admin', label: 'Open Studio Administration', icon: 'settings', category: 'Governance', execute: () => appState.navigate('admin') },
+  function getPaletteIcon(routeId: string): IconName {
+    switch (routeId) {
+      case 'dashboard': return 'dashboard';
+      case 'tasks': return 'kanban';
+      case 'projects': return 'folder';
+      case 'order-form': return 'edit';
+      case 'copy-studio': return 'sparkles';
+      case 'deliverables': return 'checkCircle';
+      case 'consultation': return 'box';
+      case 'team': return 'users';
+      case 'signage': return 'externalLink';
+      case 'admin': return 'settings';
+      default: return 'folder';
+    }
+  }
+
+  const navActions = $derived.by<QuickAction[]>(() => {
+    return ROUTES
+      .filter(r => !r.parent && r.id !== 'profile' && isRouteAllowed(r, appState.currentUser))
+      .map(r => ({
+        type: 'action' as const,
+        id: `nav-${r.id}`,
+        label: r.label === 'Home' ? 'Go to Home' : `Open ${r.label}`,
+        icon: getPaletteIcon(r.id),
+        category: r.group,
+        execute: () => {
+          if (r.newTab) {
+            window.open(`#${r.hash}`, '_blank');
+          } else {
+            appState.navigate(r.id);
+          }
+        },
+        keywords: r.paletteKeywords
+      }));
+  });
+
+  const SYSTEM_ACTIONS: QuickAction[] = [
     { type: 'action', id: 'act-theme', label: 'Toggle Theme (Falconia / Metamorphosis)', icon: 'colorPalette', category: 'System', execute: () => toggleTheme() },
     { type: 'action', id: 'act-rescan', label: 'Refresh projects', icon: 'history', category: 'System', execute: () => rescanVault() },
     { type: 'action', id: 'act-download', label: 'Download SS-CAM desktop app', icon: 'download', category: 'Ecosystem', execute: () => window.open('https://suamisihat.github.io/ss_cam/', '_blank') },
   ];
+
+  const allQuickActions = $derived<QuickAction[]>([...navActions, ...SYSTEM_ACTIONS]);
 
   function toggleTheme() {
     const current = document.documentElement.getAttribute('data-theme') || 'falconia';
@@ -222,9 +252,11 @@
 
   const allFilteredActions = $derived.by(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return QUICK_ACTIONS;
-    return QUICK_ACTIONS.filter(a => {
-      return a.label.toLowerCase().includes(q) || a.category.toLowerCase().includes(q);
+    if (!q) return allQuickActions;
+    return allQuickActions.filter(a => {
+      return a.label.toLowerCase().includes(q) ||
+             a.category.toLowerCase().includes(q) ||
+             (a.keywords && a.keywords.some(k => k.toLowerCase().includes(q)));
     });
   });
 

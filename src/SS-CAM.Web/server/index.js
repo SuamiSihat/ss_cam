@@ -131,12 +131,13 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: err.expose || err.status ? (err.message || 'Bad request.') : 'Bad request.' });
 });
 
-// One-time clean-up of credentials left in readable form by earlier versions.
+// One-time clean-up of credentials and roster roleKey migration.
 try {
   require('./middleware/auth').migratePlaintextPasswords();
   require('./services/TeamService').scrubStoredCredentials();
+  require('./services/TeamService').migrateRosterRoleKeys();
 } catch (e) {
-  console.error('[Startup] Credential clean-up did not complete:', e.message);
+  console.error('[Startup] Credential clean-up or roleKey migration did not complete:', e.message);
 }
 
 app.listen(config.PORT, config.HOST, () => {

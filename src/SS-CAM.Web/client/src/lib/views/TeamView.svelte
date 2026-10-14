@@ -298,7 +298,7 @@
         {isRefreshing ? 'Syncing...' : 'Refresh'}
       </FluentButton>
 
-      {#if appState.hasPermission('admin:manage_users') || appState.currentUser?.role?.toLowerCase().includes('admin') || appState.currentUser?.role?.toLowerCase().includes('director')}
+      {#if appState.currentUser?.capabilities?.canManageTeam}
         <FluentButton
           appearance="primary"
           onclick={() => appState.navigate('admin')}
@@ -721,14 +721,16 @@
                       </div>
                       <div class="project-actions-group">
                         <span class="chip-status status-{proj.status}">{proj.status}</span>
-                        <button
-                          type="button"
-                          class="rebalance-chip-btn"
-                          title="Reassign / Rebalance this project to another designer"
-                          onclick={() => openReassignDialog(proj, member.name)}
-                        >
-                          <FluentIcons name="sparkles" size={11} color="#D4AF37" />
-                        </button>
+                        {#if appState.currentUser?.capabilities?.canReassign || appState.currentUser?.roleKey === 'admin'}
+                          <button
+                            type="button"
+                            class="rebalance-chip-btn"
+                            title="Reassign / Rebalance this project to another designer"
+                            onclick={() => openReassignDialog(proj, member.name)}
+                          >
+                            <FluentIcons name="sparkles" size={11} color="#D4AF37" />
+                          </button>
+                        {/if}
                       </div>
                     </div>
 

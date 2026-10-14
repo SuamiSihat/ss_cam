@@ -2,6 +2,17 @@
 
 All notable SS-CAM changes are documented here.
 
+## [Unreleased] - Web portal role model, capabilities & navigation hardening (Phase 2)
+
+Details, evidence and open items: `QA/ROLE-WALKTHROUGH.md` and `QA/ROUTE-AUTHZ-MATRIX.md`.
+
+- **Explicit 7-Role Architecture:** Eliminated substring title matching ("Lead", "Manager", etc.). Permissions are driven by stored `roleKey` (`admin`, `ceo`, `manager`, `designer`, `copywriter`, `clinic`, `viewer`). Roster members without `roleKey` are automatically and idempotently migrated on start-up.
+- **Dynamic Capabilities Derivation:** The server returns explicit `capabilities` booleans at `/api/auth/me` and `/api/auth/login` (`canApproveDeliverables`, `canDeleteProject`, `canManageTeam`, `canReassign`, `canEditCopy`, `canViewConsultation`, `canViewAdmin`, `canViewSignage`, `canManageShareLinks`, `allowedRoutes`).
+- **Unified Route Configuration (`routes.ts`):** Single source of truth defines all 12 portal routes, navigation groups (`Work`, `Create`, `Review`, `Clinic`, `Manage`, `Admin`, `Account`), mobile dock routes, and command palette actions.
+- **Client Route Guard & 404 Recovery:** Unauthorized route access immediately redirects to `#dashboard` with a plain toast message. Unknown routes display a dedicated "Page not found" screen with a Home button.
+- **Control Stripping & Zero 403 Traps:** Interactive controls for server-rejected actions (deliverable approval, project deletion, batch task deletion, team reassign, share link management, and administration) are hidden or cleanly disabled for disallowed roles.
+- **Regression Verification:** Added automated test suite in `server/test/security-tests.js` testing 403 responses across all 7 roles; comprehensive walkthrough matrix published to `QA/ROLE-WALKTHROUGH.md`.
+
 ## [Unreleased] - Web portal security hardening (Phase 1)
 
 Details, evidence and open items: `QA/PHASE1-SECURITY-REPORT.md` and `QA/ROUTE-AUTHZ-MATRIX.md`.

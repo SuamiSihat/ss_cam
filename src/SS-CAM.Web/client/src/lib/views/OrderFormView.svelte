@@ -286,12 +286,12 @@
 
   const isDesigner = $derived(
     (() => {
-      const r = (appState.currentUser?.role || '').toLowerCase();
-      const roles: string[] = ((appState.currentUser as any)?.roles || []).map((x: string) => x.toLowerCase());
-      return r.includes('admin') ||
-             r.includes('director') ||
-             r.includes('designer') ||
-             roles.some(x => x.includes('admin') || x.includes('designer') || x.includes('director'));
+      // Capabilities-driven
+
+      return Boolean(appState.currentUser?.capabilities?.canManageShareLinks || appState.currentUser?.capabilities?.canEditCopy || appState.currentUser?.capabilities?.canDeleteProject);
+
+
+
     })()
   );
 

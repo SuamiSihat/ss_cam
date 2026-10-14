@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { appState } from '$lib/stores/appState.svelte';
 
   interface BranchData {
     name: string;
@@ -107,6 +108,11 @@
     </div>
 
     <div class="header-right">
+      {#if appState.currentUser}
+        <a href="#dashboard" class="exit-portal-link" title="Return to SS-CAM Portal">
+          ← Return to Portal
+        </a>
+      {/if}
       <div class="license-pill">LESEN KKM: {branch.kkmLicense}</div>
       <div class="clock-display">
         <span class="clock-time">{currentTime}</span>
@@ -319,6 +325,24 @@
     display: flex;
     align-items: center;
     gap: 28px;
+  }
+
+  .exit-portal-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .exit-portal-link:hover {
+    background: rgba(255, 255, 255, 0.22);
+    transform: translateY(-1px);
   }
 
   .license-pill {

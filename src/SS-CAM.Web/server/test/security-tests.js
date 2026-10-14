@@ -657,6 +657,248 @@ test('M5: the AI key is only ever shown by its last four characters', () => {
   }
 });
 
+// ─── Phase 2 (T2.1): Explicit Role Model & RBAC Enforcement ──────────────────
+
+test('T2.1: a title containing "Lead" does not grant manager rights without roleKey', async () => {
+  // Provision a staff member with a free-text title containing "Lead", but no roleKey
+  const leadUser = TeamService.addStaffMember({
+    staffId: 'SS9070',
+    name: 'Liam Lead',
+    username: 'liamlead',
+    email: 'liamlead@example.test',
+    role: 'Lead Visual Designer',
+    department: 'Creative Production'
+  });
+  // Explicitly ensure roleKey is stripped/absent to simulate legacy/unmigrated or raw record
+  delete leadUser.roleKey;
+  auth.updateUserPassword('liamlead', STRONG);
+
+  // Verification 1: roleKeys does not contain 'manager'
+  const roleKeys = auth.getUserRoleKeys(leadUser);
+  assert.strictEqual(roleKeys.includes('manager'), false, 'Lead title without roleKey must not map to manager roleKey');
+  assert.strictEqual(auth.hasCanonicalRole(leadUser, 'manager'), false, 'hasCanonicalRole must be false for manager');
+
+  // Verification 2: permissions do not include manager-only permissions
+  const perms = auth.getUserPermissions(leadUser);
+  assert.strictEqual(perms.includes('project:edit'), false, 'Must not hold project:edit permission');
+  assert.strictEqual(perms.includes('project:assign'), false, 'Must not hold project:assign permission');
+  assert.strictEqual(perms.includes('deliverable:approve'), false, 'Must not hold deliverable:approve permission');
+
+  // Verification 3: HTTP API refuses manager-only endpoints with 403
+  const { json } = await signIn('liamlead', STRONG);
+  const token = json.token;
+
+  // Reassign project requires project:assign
+  const reassignRes = await request('POST', '/api/projects/202607_0079P_SSW_Wellness_Centre_Signage/reassign', {
+    token,
+    body: { newDesigner: 'Liam Lead' }
+  });
+  assert.strictEqual(reassignRes.status, 403, 'Lead title without manager roleKey must receive 403 on reassign');
+
+  // Task delete requires project:edit
+  const taskDelRes = await request('DELETE', '/api/tasks/202607_0079P_SSW_Wellness_Centre_Signage/task_123', {
+    token
+  });
+  assert.strictEqual(taskDelRes.status, 403, 'Lead title without manager roleKey must receive 403 on task delete');
+
+  TeamService.deleteStaffMember('SS9070');
+});
+
+test('T2.1: roster roleKey startup migration is idempotent and derives expected roles', () => {
+  // Test sample roster members with missing roleKey
+  const sampleRoster = [
+    { staffId: 'SS8001', name: 'M1', role: 'Lead UI Designer' },
+    { staffId: 'SS8002', name: 'M2', role: 'Senior Copywriter' },
+    { staffId: 'SS8003', name: 'M3', role: 'Creative Director' },
+    { staffId: 'SS8004', name: 'M4', role: 'Clinic Specialist' },
+    { staffId: 'SS8005', name: 'M5', role: 'External Guest Viewer' },
+    { staffId: 'SS8006', name: 'M6', role: 'Administrator' }
+  ];
+
+  // Derive legacy roleKeys
+  assert.strictEqual(TeamService.deriveLegacyRoleKey(sampleRoster[0]), 'manager'); // "Lead" under old rules was manager
+  assert.strictEqual(TeamService.deriveLegacyRoleKey(sampleRoster[1]), 'copywriter');
+  assert.strictEqual(TeamService.deriveLegacyRoleKey(sampleRoster[2]), 'manager'); // "Director" was manager
+  assert.strictEqual(TeamService.deriveLegacyRoleKey(sampleRoster[3]), 'clinic');
+  assert.strictEqual(TeamService.deriveLegacyRoleKey(sampleRoster[4]), 'viewer');
+  assert.strictEqual(TeamService.deriveLegacyRoleKey(sampleRoster[5]), 'admin');
+
+  // Run migration on active roster (which already has roleKeys or seeds)
+  const firstRun = TeamService.migrateRosterRoleKeys();
+  // Second run must be completely idempotent: 0 migrations performed
+  const secondRun = TeamService.migrateRosterRoleKeys();
+  assert.strictEqual(secondRun, 0, 'Subsequent migration runs must be idempotent and migrate 0 records');
+
+  // Verify all members in the roster have valid roleKey
+  const currentRoster = TeamService.getStaffRoster();
+  for (const member of currentRoster) {
+    assert.ok(member.roleKey, `Roster member ${member.staffId} must have explicit roleKey`);
+    assert.ok(config.VALID_ROLES.includes(member.roleKey), `roleKey '${member.roleKey}' must be in config.VALID_ROLES`);
+  }
+});
+
+test('T2.1: each role permission set matches the specification in QA/ROUTE-AUTHZ-MATRIX.md', () => {
+  const expectedRoles = ['admin', 'ceo', 'manager', 'designer', 'copywriter', 'clinic', 'viewer'];
+  assert.deepStrictEqual(config.VALID_ROLES, expectedRoles, 'VALID_ROLES in config must match canonical 7 roles');
+  assert.deepStrictEqual(auth.VALID_ROLE_KEYS, expectedRoles, 'VALID_ROLE_KEYS in auth must match canonical 7 roles');
+
+  // 1. admin: full permissions across project, deliverables, team, clinic, audit, and admin:*
+  const adminPerms = auth.getUserPermissions({ roleKey: 'admin' });
+  assert.ok(adminPerms.includes('admin:users'), 'admin must have admin:users');
+  assert.ok(adminPerms.includes('admin:system_audit'), 'admin must have admin:system_audit');
+  assert.ok(adminPerms.includes('project:edit'), 'admin must have project:edit');
+  assert.ok(adminPerms.includes('project:archive'), 'admin must have project:archive');
+  assert.ok(adminPerms.includes('deliverable:approve'), 'admin must have deliverable:approve');
+  assert.ok(adminPerms.includes('copy:draft') && adminPerms.includes('copy:edit'), 'admin must have copy editing');
+  assert.ok(adminPerms.includes('clinic:view'), 'admin must have clinic:view');
+
+  // 2. ceo: executive approvals & audit, but not technical system/user administration
+  const ceoPerms = auth.getUserPermissions({ roleKey: 'ceo' });
+  assert.ok(ceoPerms.includes('admin:system_audit'), 'ceo must have admin:system_audit');
+  assert.ok(ceoPerms.includes('project:edit') && ceoPerms.includes('project:archive'), 'ceo can manage and archive projects');
+  assert.ok(ceoPerms.includes('deliverable:approve'), 'ceo can approve deliverables');
+  assert.ok(ceoPerms.includes('clinic:view'), 'ceo can view clinic suite');
+  assert.strictEqual(ceoPerms.includes('admin:users'), false, 'ceo must not have admin:users');
+  assert.strictEqual(ceoPerms.includes('admin:system'), false, 'ceo must not have admin:system');
+
+  // 3. manager: creative & team management, approvals, copy editing, but no admin:*
+  const mgrPerms = auth.getUserPermissions({ roleKey: 'manager' });
+  assert.ok(mgrPerms.includes('project:edit') && mgrPerms.includes('project:assign'), 'manager has project management');
+  assert.ok(mgrPerms.includes('deliverable:approve') && mgrPerms.includes('deliverable:revision'), 'manager can approve');
+  assert.ok(mgrPerms.includes('copy:draft') && mgrPerms.includes('copy:edit'), 'manager has copy editing (D5)');
+  assert.ok(mgrPerms.includes('team:manage_workload'), 'manager has workload management');
+  assert.strictEqual(mgrPerms.includes('admin:users'), false, 'manager must not have admin:users');
+  assert.strictEqual(mgrPerms.includes('admin:system_audit'), false, 'manager must not have admin:system_audit');
+
+  // 4. designer: upload, comment, create project, draft copy (D5), but no project:edit or deliverable:approve
+  const desPerms = auth.getUserPermissions({ roleKey: 'designer' });
+  assert.ok(desPerms.includes('project:create'), 'designer can create project');
+  assert.ok(desPerms.includes('deliverable:upload'), 'designer can upload deliverables');
+  assert.ok(desPerms.includes('copy:draft') && desPerms.includes('copy:edit'), 'designer has copy editing (D5)');
+  assert.strictEqual(desPerms.includes('project:edit'), false, 'designer must not have project:edit');
+  assert.strictEqual(desPerms.includes('deliverable:approve'), false, 'designer must not have deliverable:approve');
+  assert.strictEqual(desPerms.includes('team:manage_workload'), false, 'designer must not have team:manage_workload');
+
+  // 5. copywriter: draft, submit, edit copy, view deliverables, but cannot upload/approve deliverables
+  const copyPerms = auth.getUserPermissions({ roleKey: 'copywriter' });
+  assert.ok(copyPerms.includes('copy:draft') && copyPerms.includes('copy:edit') && copyPerms.includes('copy:submit'), 'copywriter has full copy rights');
+  assert.ok(copyPerms.includes('deliverable:comment'), 'copywriter can comment');
+  assert.strictEqual(copyPerms.includes('deliverable:upload'), false, 'copywriter cannot upload deliverables');
+  assert.strictEqual(copyPerms.includes('deliverable:approve'), false, 'copywriter cannot approve deliverables');
+  assert.strictEqual(copyPerms.includes('project:edit'), false, 'copywriter cannot edit projects');
+
+  // 6. clinic: clinic suite access, base view, but cannot edit copy or approve
+  const clinicPerms = auth.getUserPermissions({ roleKey: 'clinic' });
+  assert.ok(clinicPerms.includes('clinic:view'), 'clinic has clinic:view');
+  assert.ok(clinicPerms.includes('project:view'), 'clinic has project:view');
+  assert.strictEqual(clinicPerms.includes('project:create'), false, 'clinic cannot create projects');
+  assert.strictEqual(clinicPerms.includes('deliverable:upload'), false, 'clinic cannot upload deliverables');
+  assert.strictEqual(clinicPerms.includes('deliverable:approve'), false, 'clinic cannot approve deliverables');
+  assert.strictEqual(clinicPerms.includes('copy:draft'), false, 'clinic cannot draft copy');
+
+  // 7. viewer: strictly read-only view access across projects and deliverables
+  const viewerPerms = auth.getUserPermissions({ roleKey: 'viewer' });
+  assert.ok(viewerPerms.includes('project:view') && viewerPerms.includes('deliverable:view') && viewerPerms.includes('copy:view'), 'viewer has read-only view');
+  assert.strictEqual(viewerPerms.includes('project:create'), false, 'viewer cannot create projects');
+  assert.strictEqual(viewerPerms.includes('deliverable:upload'), false, 'viewer cannot upload deliverables');
+  assert.strictEqual(viewerPerms.includes('deliverable:comment'), false, 'viewer cannot comment on deliverables');
+  assert.strictEqual(viewerPerms.includes('deliverable:approve'), false, 'viewer cannot approve deliverables');
+  assert.strictEqual(viewerPerms.includes('clinic:view'), false, 'viewer cannot view clinic suite');
+});
+
+test('T2.2: /api/auth/me returns capabilities matching each of the 7 roles', async () => {
+  const rolesToTest = [
+    { roleKey: 'admin', staffId: 'SS9901', name: 'Admin Test User', check: (c) => c.canViewAdmin && c.canDeleteProject && c.canManageTeam && c.canApproveDeliverables && c.allowedRoutes.includes('admin') },
+    { roleKey: 'ceo', staffId: 'SS9902', name: 'CEO Test User', check: (c) => !c.canViewAdmin && !c.canDeleteProject && c.canApproveDeliverables && c.allowedRoutes.includes('signage') && !c.allowedRoutes.includes('admin') },
+    { roleKey: 'manager', staffId: 'SS9903', name: 'Manager Test User', check: (c) => !c.canViewAdmin && c.canReassign && c.canEditCopy && c.canApproveDeliverables && c.allowedRoutes.includes('signage') },
+    { roleKey: 'designer', staffId: 'SS9904', name: 'Designer Test User', check: (c) => !c.canViewAdmin && !c.canApproveDeliverables && c.canEditCopy && c.canManageShareLinks && c.allowedRoutes.includes('copy-studio') },
+    { roleKey: 'copywriter', staffId: 'SS9905', name: 'Copywriter Test User', check: (c) => !c.canViewAdmin && !c.canApproveDeliverables && c.canEditCopy && !c.canManageShareLinks && c.allowedRoutes.includes('copy-studio') },
+    { roleKey: 'clinic', staffId: 'SS9906', name: 'Clinic Test User', check: (c) => !c.canViewAdmin && !c.canApproveDeliverables && !c.canEditCopy && c.canViewConsultation && c.allowedRoutes.includes('consultation') },
+    { roleKey: 'viewer', staffId: 'SS9907', name: 'Viewer Test User', check: (c) => !c.canViewAdmin && !c.canApproveDeliverables && !c.canEditCopy && !c.canViewConsultation && !c.allowedRoutes.includes('copy-studio') && !c.allowedRoutes.includes('admin') }
+  ];
+
+  for (const item of rolesToTest) {
+    const member = TeamService.addStaffMember({ staffId: item.staffId, name: item.name, role: item.roleKey, roleKey: item.roleKey });
+    auth.updateUserPassword(member.username, STRONG);
+    const loginRes = await signIn(member.username, STRONG);
+    assert.strictEqual(loginRes.status, 200, `Sign-in succeeded for ${item.roleKey}`);
+    assert.ok(loginRes.json.capabilities, `Login response contains capabilities for ${item.roleKey}`);
+
+    const meRes = await request('GET', '/api/auth/me', { token: loginRes.json.token });
+    assert.strictEqual(meRes.status, 200, `/auth/me succeeded for ${item.roleKey}`);
+    assert.ok(meRes.json.capabilities, `capabilities returned on /auth/me for ${item.roleKey}`);
+    assert.strictEqual(meRes.json.user.roleKey, item.roleKey, `user.roleKey matches ${item.roleKey}`);
+    assert.ok(item.check(meRes.json.capabilities), `Capabilities match expected rules for ${item.roleKey}`);
+  }
+});
+
+test('T2.5: server returns 403 on rejected endpoints for disallowed roles', async () => {
+  const project = WorkspaceService.getAllProjects({})[0];
+  assert.ok(project, 'A test project exists in workspace');
+
+  async function getTokenForRole(roleKey, staffId, name) {
+    let member = TeamService.getStaffRoster().find(m => m.staffId === staffId);
+    if (!member) {
+      member = TeamService.addStaffMember({ staffId, name, role: roleKey, roleKey });
+    }
+    auth.updateUserPassword(member.username, STRONG);
+    const res = await signIn(member.username, STRONG);
+    assert.strictEqual(res.status, 200, `Sign-in succeeded for ${roleKey}`);
+    return res.json.token;
+  }
+
+  const tokens = {
+    designer: await getTokenForRole('designer', 'SS9904', 'Designer Test User'),
+    copywriter: await getTokenForRole('copywriter', 'SS9905', 'Copywriter Test User'),
+    clinic: await getTokenForRole('clinic', 'SS9906', 'Clinic Test User'),
+    viewer: await getTokenForRole('viewer', 'SS9907', 'Viewer Test User'),
+    manager: await getTokenForRole('manager', 'SS9903', 'Manager Test User'),
+  };
+
+  // 1. POST /api/projects/:id/decision returns 403 for designer, copywriter, clinic, viewer
+  for (const role of ['designer', 'copywriter', 'clinic', 'viewer']) {
+    const res = await request('POST', `/api/projects/${project.id}/decision`, {
+      token: tokens[role],
+      body: { action: 'approve', reason: 'Attempted approval' }
+    });
+    assert.strictEqual(res.status, 403, `POST /api/projects/:id/decision must return 403 for ${role}`);
+  }
+
+  // 2. DELETE /api/projects/:id returns 403 for manager, designer, copywriter, clinic, viewer
+  for (const role of ['manager', 'designer', 'copywriter', 'clinic', 'viewer']) {
+    const res = await request('DELETE', `/api/projects/${project.id}`, {
+      token: tokens[role]
+    });
+    assert.strictEqual(res.status, 403, `DELETE /api/projects/:id must return 403 for ${role}`);
+  }
+
+  // 3. POST /api/projects/:id/reassign returns 403 for designer, copywriter, clinic, viewer
+  for (const role of ['designer', 'copywriter', 'clinic', 'viewer']) {
+    const res = await request('POST', `/api/projects/${project.id}/reassign`, {
+      token: tokens[role],
+      body: { newDesigner: 'Mallory' }
+    });
+    assert.strictEqual(res.status, 403, `POST /api/projects/:id/reassign must return 403 for ${role}`);
+  }
+
+  // 4. POST /api/share/generate returns 403 for copywriter, clinic, viewer
+  for (const role of ['copywriter', 'clinic', 'viewer']) {
+    const res = await request('POST', '/api/share/generate', {
+      token: tokens[role],
+      body: { projectId: project.id, permissions: 'review_approve' }
+    });
+    assert.strictEqual(res.status, 403, `POST /api/share/generate must return 403 for ${role}`);
+  }
+
+  // 5. DELETE /api/tasks/:id returns 403 for copywriter, clinic, viewer
+  for (const role of ['copywriter', 'clinic', 'viewer']) {
+    const res = await request('DELETE', '/api/tasks/fake-task-id', {
+      token: tokens[role]
+    });
+    assert.strictEqual(res.status, 403, `DELETE /api/tasks/:id must return 403 for ${role}`);
+  }
+});
+
 // ─── Runner ────────────────────────────────────────────────────────────────────
 
 (async () => {

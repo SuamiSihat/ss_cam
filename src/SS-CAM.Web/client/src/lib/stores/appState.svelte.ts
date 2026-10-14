@@ -88,7 +88,12 @@ class AppStateStore {
   }
 
   canApprove(): boolean {
-    return this.hasPermission('review:sign_off') || this.currentUser?.role === 'admin' || this.currentUser?.role === 'manager';
+    return this.currentUser?.capabilities?.canApproveDeliverables ?? false;
+  }
+
+  can(action: keyof import('$lib/types').UserCapabilities): boolean {
+    const val = this.currentUser?.capabilities?.[action];
+    return typeof val === 'boolean' ? val : false;
   }
 
   async loadCurrentUser() {
@@ -99,7 +104,8 @@ class AppStateStore {
     }
     try {
       const res = await ApiClient.getMe();
-      this.currentUser = res.user;
+      const capabilities = (res as any).capabilities || res.user?.capabilities;
+      this.currentUser = res.user ? { ...res.user, capabilities } : null;
       ApiClient.startMediaKeepAlive();
       this.loadNotificationCount();
     } catch {

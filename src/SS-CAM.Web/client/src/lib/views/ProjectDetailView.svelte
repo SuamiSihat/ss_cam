@@ -44,8 +44,8 @@
   let isEditingDirection = $state<boolean>(false);
 
   const isAdminUser = $derived.by(() => {
-    const role = (appState.currentUser?.role || '').toLowerCase();
-    return role.includes('admin') || role.includes('director') || role.includes('lead') || role.includes('manager') || role.includes('executive');
+
+    return appState.currentUser?.capabilities?.canDeleteProject ?? false;
   });
 
   async function handleDeleteProject() {
@@ -127,16 +127,10 @@
   // Filter to strictly managerial and leadership roles
   const managerList = $derived.by(() => {
     return staffList.filter(staff => {
-      const roleStr = (staff.role || '').toLowerCase();
-      return (
-        roleStr.includes('manager') ||
-        roleStr.includes('director') ||
-        roleStr.includes('admin') ||
-        roleStr.includes('head') ||
-        roleStr.includes('lead') ||
-        roleStr.includes('ceo') ||
-        roleStr.includes('executive')
-      );
+      const k = ((staff as any).roleKey || '').toLowerCase();
+      if (k === 'manager' || k === 'admin' || k === 'ceo') return true;
+      const roles: string[] = ((staff.roles || []) as string[]).map(r => r.toLowerCase());
+      return roles.includes('manager') || roles.includes('admin') || roles.includes('ceo');
     });
   });
 
@@ -787,14 +781,16 @@
               <span>Ingest</span>
             </button>
 
-            <button
-              class="action-btn-clean"
-              onclick={() => (showShareModal = true)}
-              title="Generate Client Review Link"
-            >
-              <FluentIcons name="link" size={13} />
-              <span>Share</span>
-            </button>
+            {#if appState.currentUser?.capabilities?.canManageShareLinks || appState.currentUser?.roleKey === 'admin'}
+              <button
+                class="action-btn-clean"
+                onclick={() => (showShareModal = true)}
+                title="Generate Client Review Link"
+              >
+                <FluentIcons name="link" size={13} />
+                <span>Share</span>
+              </button>
+            {/if}
 
             <a
               href={`/api/projects/${encodeURIComponent(p.id)}/export`}

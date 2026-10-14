@@ -2185,7 +2185,7 @@
               <button type="button" class="batch-btn success" onclick={() => handleBatchStatusChange('done')}>
                 Mark Done
               </button>
-              {#if appState.hasPermission('project:edit')}
+              {#if appState.hasPermission('project:edit') || appState.currentUser?.capabilities?.canDeleteProject || appState.currentUser?.roleKey === 'admin'}
                 <button type="button" class="batch-btn danger" onclick={handleBatchDelete}>
                   Delete
                 </button>

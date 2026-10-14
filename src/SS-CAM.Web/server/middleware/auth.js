@@ -6,13 +6,44 @@ const path = require('path');
 const config = require('../config');
 const AuditService = require('../services/AuditService');
 
-// Granular RBAC Permissions Map (Canonical Roles: Designer, Copywriter, Manager, Admin)
+// Granular RBAC Canonical Roles (Phase 2): admin, ceo, manager, designer, copywriter, clinic, viewer
+const VALID_ROLE_KEYS = ['admin', 'ceo', 'manager', 'designer', 'copywriter', 'clinic', 'viewer'];
+
 const ROLE_PERMISSIONS = {
+  admin: [
+    'project:view', 'project:create', 'project:edit', 'project:assign', 'project:archive',
+    'brief:view', 'brief:edit',
+    'direction:view', 'direction:edit',
+    'copy:view', 'copy:draft', 'copy:submit', 'copy:edit', 'copy:review', 'copy:approve',
+    'deliverable:view', 'deliverable:upload', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
+    'team:view', 'team:manage_workload', 'report:view',
+    'clinic:view',
+    'admin:users', 'admin:roles', 'admin:companies', 'admin:system', 'admin:projects', 'admin:system_audit'
+  ],
+  ceo: [
+    'project:view', 'project:create', 'project:edit', 'project:assign', 'project:archive',
+    'brief:view', 'brief:edit',
+    'direction:view', 'direction:edit',
+    'copy:view', 'copy:draft', 'copy:submit', 'copy:edit', 'copy:review', 'copy:approve',
+    'deliverable:view', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
+    'team:view', 'team:manage_workload', 'report:view',
+    'clinic:view',
+    'admin:system_audit'
+  ],
+  manager: [
+    'project:view', 'project:create', 'project:edit', 'project:assign',
+    'brief:view', 'brief:edit',
+    'direction:view', 'direction:edit',
+    'copy:view', 'copy:draft', 'copy:submit', 'copy:edit', 'copy:review', 'copy:approve',
+    'deliverable:view', 'deliverable:upload', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
+    'team:view', 'team:manage_workload', 'report:view',
+    'clinic:view'
+  ],
   designer: [
     'project:view', 'project:create',
     'brief:view',
     'direction:view',
-    'copy:view',
+    'copy:view', 'copy:draft', 'copy:submit', 'copy:edit',
     'deliverable:view', 'deliverable:upload', 'deliverable:comment',
     'team:view'
   ],
@@ -20,156 +51,131 @@ const ROLE_PERMISSIONS = {
     'project:view', 'project:create',
     'brief:view',
     'direction:view',
-    'copy:view', 'copy:draft', 'copy:submit',
+    'copy:view', 'copy:draft', 'copy:submit', 'copy:edit',
     'deliverable:view', 'deliverable:comment',
     'team:view'
   ],
-  manager: [
-    'project:view', 'project:create', 'project:edit', 'project:assign',
-    'brief:view', 'brief:edit',
-    'direction:view', 'direction:edit',
-    'copy:view', 'copy:review', 'copy:approve',
-    'deliverable:view', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
-    'team:view', 'team:manage_workload', 'report:view'
-  ],
-  admin: [
-    'project:view', 'project:create', 'project:edit', 'project:assign', 'project:archive',
-    'brief:view', 'brief:edit',
-    'direction:view', 'direction:edit',
-    'copy:view', 'copy:draft', 'copy:review', 'copy:approve',
-    'deliverable:view', 'deliverable:upload', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
-    'team:view', 'team:manage_workload', 'report:view',
-    'admin:users', 'admin:roles', 'admin:companies', 'admin:system', 'admin:projects', 'admin:system_audit'
-  ],
-  // Legacy / Title Aliases
-  user: [
-    'project:view', 'project:create',
+  clinic: [
+    'project:view',
     'brief:view',
     'direction:view',
     'copy:view',
-    'deliverable:view', 'deliverable:upload', 'deliverable:comment',
-    'team:view'
-  ],
-  Designer: [
-    'project:view', 'project:create',
-    'brief:view',
-    'direction:view',
-    'copy:view',
-    'deliverable:view', 'deliverable:upload', 'deliverable:comment',
-    'team:view'
-  ],
-  Copywriter: [
-    'project:view', 'project:create',
-    'brief:view',
-    'direction:view',
-    'copy:view', 'copy:draft', 'copy:submit',
     'deliverable:view', 'deliverable:comment',
-    'team:view'
+    'team:view',
+    'clinic:view'
   ],
-  Manager: [
-    'project:view', 'project:create', 'project:edit', 'project:assign',
-    'brief:view', 'brief:edit',
-    'direction:view', 'direction:edit',
-    'copy:view', 'copy:review', 'copy:approve',
-    'deliverable:view', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
-    'team:view', 'team:manage_workload', 'report:view'
-  ],
-  Admin: [
-    'project:view', 'project:create', 'project:edit', 'project:assign', 'project:archive',
-    'brief:view', 'brief:edit',
-    'direction:view', 'direction:edit',
-    'copy:view', 'copy:draft', 'copy:review', 'copy:approve',
-    'deliverable:view', 'deliverable:upload', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
-    'team:view', 'team:manage_workload', 'report:view',
-    'admin:users', 'admin:roles', 'admin:companies', 'admin:system', 'admin:projects', 'admin:system_audit'
-  ],
-  Administrator: [
-    'project:view', 'project:create', 'project:edit', 'project:assign', 'project:archive',
-    'brief:view', 'brief:edit',
-    'direction:view', 'direction:edit',
-    'copy:view', 'copy:draft', 'copy:review', 'copy:approve',
-    'deliverable:view', 'deliverable:upload', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
-    'team:view', 'team:manage_workload', 'report:view',
-    'admin:users', 'admin:roles', 'admin:companies', 'admin:system', 'admin:projects', 'admin:system_audit'
-  ],
-  CEO: [
-    'project:view', 'project:create', 'project:edit', 'project:assign', 'project:archive',
-    'brief:view', 'brief:edit',
-    'direction:view', 'direction:edit',
-    'copy:view', 'copy:review', 'copy:approve',
-    'deliverable:view', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
-    'team:view', 'team:manage_workload', 'report:view',
-    'admin:system_audit'
-  ],
-  CreativeManager: [
-    'project:view', 'project:create', 'project:edit', 'project:assign',
-    'brief:view', 'brief:edit',
-    'direction:view', 'direction:edit',
-    'copy:view', 'copy:review', 'copy:approve',
-    'deliverable:view', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
-    'team:view', 'team:manage_workload', 'report:view'
-  ],
-  SalesManager: [
-    'project:view', 'project:create',
+  viewer: [
+    'project:view',
     'brief:view',
-    'deliverable:view', 'deliverable:comment', 'deliverable:approve', 'deliverable:revision',
-    'report:view'
+    'direction:view',
+    'copy:view',
+    'deliverable:view',
+    'team:view'
   ]
 };
 
-function getUserRoles(user) {
-  if (!user) return ['Designer'];
-  if (Array.isArray(user.roles) && user.roles.length > 0) return user.roles;
-  if (Array.isArray(user.role) && user.role.length > 0) return user.role;
-  if (typeof user.role === 'string' && user.role.trim()) {
-    const split = user.role.split(/[,/]/).map(r => r.trim()).filter(Boolean);
-    if (split.length > 0) return split;
+function normalizeRoleKey(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  const low = raw.trim().toLowerCase();
+  if (VALID_ROLE_KEYS.includes(low)) return low;
+  if (low === 'administrator') return 'admin';
+  return null;
+}
+
+function getUserRoleKeys(user) {
+  if (!user) return ['designer'];
+  const keys = new Set();
+
+  // 1. Stored roleKey takes primary precedence
+  if (user.roleKey) {
+    const k = normalizeRoleKey(user.roleKey);
+    if (k) keys.add(k);
   }
-  return ['Designer'];
+
+  // 2. roles array (exact matches only)
+  const rolesArr = Array.isArray(user.roles) ? user.roles : (Array.isArray(user.role) ? user.role : []);
+  for (const r of rolesArr) {
+    const k = normalizeRoleKey(r);
+    if (k) keys.add(k);
+  }
+
+  // 3. String role (comma/slash split, exact matches only)
+  if (typeof user.role === 'string' && keys.size === 0) {
+    const parts = user.role.split(/[,/]/).map(s => s.trim()).filter(Boolean);
+    for (const p of parts) {
+      const k = normalizeRoleKey(p);
+      if (k) keys.add(k);
+    }
+  }
+
+  // Default fallback if no recognized role key
+  if (keys.size === 0) {
+    keys.add('designer');
+  }
+
+  return Array.from(keys);
+}
+
+function getUserRoles(user) {
+  return getUserRoleKeys(user);
 }
 
 function getUserPermissions(user) {
-  const roles = getUserRoles(user);
+  const roleKeys = getUserRoleKeys(user);
   const permSet = new Set();
-  
-  // Base default view permissions for all staff
-  ['project:view', 'brief:view', 'direction:view', 'copy:view', 'deliverable:view', 'team:view'].forEach(p => permSet.add(p));
 
-  roles.forEach(r => {
-    const raw = r.trim();
-    const low = raw.toLowerCase();
-    
-    // Direct match
-    const perms = ROLE_PERMISSIONS[raw] || ROLE_PERMISSIONS[low] || [];
+  roleKeys.forEach(roleKey => {
+    const perms = ROLE_PERMISSIONS[roleKey] || [];
     perms.forEach(p => permSet.add(p));
-    
-    // Canonical role matching for admin
-    if (low === 'admin' || low === 'administrator') {
-      (ROLE_PERMISSIONS.admin || []).forEach(p => permSet.add(p));
-    }
-    if (low.includes('director') || low.includes('manager') || low.includes('lead') || low.includes('head') || low.includes('ceo') || low.includes('executive')) {
-      (ROLE_PERMISSIONS.manager || []).forEach(p => permSet.add(p));
-    }
-    if (low.includes('designer')) {
-      (ROLE_PERMISSIONS.designer || []).forEach(p => permSet.add(p));
-    }
-    if (low.includes('copywriter') || low.includes('writer')) {
-      (ROLE_PERMISSIONS.copywriter || []).forEach(p => permSet.add(p));
-    }
   });
 
   return Array.from(permSet);
 }
 
+function deriveUserCapabilities(user) {
+  const roleKeys = getUserRoleKeys(user);
+  const permissions = getUserPermissions(user);
+  const isAdmin = hasCanonicalRole(user, 'admin');
+
+  const canApproveDeliverables = isAdmin || permissions.includes('deliverable:approve');
+  const canDeleteProject = isAdmin;
+  const canManageTeam = isAdmin;
+  const canReassign = isAdmin || permissions.includes('project:assign');
+  const canEditCopy = isAdmin || permissions.includes('copy:draft') || permissions.includes('copy:edit');
+  const canViewConsultation = isAdmin || permissions.includes('clinic:view');
+  const canViewAdmin = isAdmin;
+  const canViewAuditLog = isAdmin || permissions.includes('admin:system_audit');
+  const canManageShareLinks = isAdmin || permissions.includes('deliverable:upload') || permissions.includes('project:edit');
+
+  const allowedRoutes = ['dashboard', 'tasks', 'projects', 'order-form', 'deliverables', 'team', 'profile'];
+  if (canEditCopy) allowedRoutes.push('copy-studio');
+  if (canViewConsultation) allowedRoutes.push('consultation');
+  if (isAdmin || roleKeys.includes('manager') || roleKeys.includes('ceo')) allowedRoutes.push('signage');
+  if (canViewAdmin) allowedRoutes.push('admin');
+
+  return {
+    canApproveDeliverables,
+    canDeleteProject,
+    canManageTeam,
+    canReassign,
+    canEditCopy,
+    canViewConsultation,
+    canViewAdmin,
+    canViewAuditLog,
+    canManageShareLinks,
+    allowedRoutes
+  };
+}
+
 // Initial Users Directory (All User IDs strictly start with SS)
 const SYSTEM_USERS = [
-  { id: 'SS0001', username: 'hasan', name: 'Hasan', email: 'hasan@suamisihat.com', role: 'CEO, Manager', roles: ['CEO', 'Manager'], staffId: 'SS0001', department: 'Executive Management' },
-  { id: 'SS0071', username: 'gaddafi', name: 'Gaddafi', email: 'gaddafi@suamisihat.com', role: 'CEO', roles: ['CEO'], staffId: 'SS0071', department: 'Executive Management' },
-  { id: 'SS0073', username: 'raihan', name: 'Raihan', email: 'raihan.suamisihat@gmail.com', role: 'SalesManager', roles: ['SalesManager'], staffId: 'SS0073', department: 'Marketing & Sales' },
-  { id: 'SS0004', username: 'harussani', name: 'Harussani', email: 'harussani.suamisihat@gmail.com', role: 'Head of Creative', roles: ['Designer', 'Admin'], officialTitle: 'Head of Creative', staffId: 'SS0004', department: 'Creative Production' },
-  { id: 'SS0035', username: 'haikal', name: 'Haikal', email: 'haikal.suamisihat@gmail.com', role: 'Designer', roles: ['Designer'], staffId: 'SS0035', department: 'Multimedia & Motion' },
-  { id: 'SS0037', username: 'aliff', name: 'Aliff', email: 'aliffnaz.suamisihat@gmail.com', role: 'Designer', roles: ['Designer'], staffId: 'SS0037', department: 'Multimedia & Motion' },
-  { id: 'SS0000', username: 'admin', name: 'System Administrator', email: 'admin@suamisihat.com', role: 'Administrator', roles: ['Administrator'], staffId: 'SS0000', department: 'IT & Infrastructure' }
+  { id: 'SS0001', username: 'hasan', name: 'Hasan', email: 'hasan@suamisihat.com', role: 'CEO', roleKey: 'ceo', roles: ['ceo'], staffId: 'SS0001', department: 'Executive Management' },
+  { id: 'SS0071', username: 'gaddafi', name: 'Gaddafi', email: 'gaddafi@suamisihat.com', role: 'CEO', roleKey: 'ceo', roles: ['ceo'], staffId: 'SS0071', department: 'Executive Management' },
+  { id: 'SS0073', username: 'raihan', name: 'Raihan', email: 'raihan.suamisihat@gmail.com', role: 'SalesManager', roleKey: 'manager', roles: ['manager'], staffId: 'SS0073', department: 'Marketing & Sales' },
+  { id: 'SS0004', username: 'harussani', name: 'Harussani', email: 'harussani.suamisihat@gmail.com', role: 'Head of Creative', roleKey: 'admin', roles: ['admin'], officialTitle: 'Head of Creative', staffId: 'SS0004', department: 'Creative Production' },
+  { id: 'SS0035', username: 'haikal', name: 'Haikal', email: 'haikal.suamisihat@gmail.com', role: 'Designer', roleKey: 'designer', roles: ['designer'], staffId: 'SS0035', department: 'Multimedia & Motion' },
+  { id: 'SS0037', username: 'aliff', name: 'Aliff', email: 'aliffnaz.suamisihat@gmail.com', role: 'Designer', roleKey: 'designer', roles: ['designer'], staffId: 'SS0037', department: 'Multimedia & Motion' },
+  { id: 'SS0000', username: 'admin', name: 'System Administrator', email: 'admin@suamisihat.com', role: 'Administrator', roleKey: 'admin', roles: ['admin'], staffId: 'SS0000', department: 'IT & Infrastructure' }
 ];
 
 function getPasswordStorePath() {
@@ -442,16 +448,19 @@ function updateUserPassword(username, newPassword, options = {}) {
  * authenticateToken only lets it call POST /auth/change-password.
  */
 function generateToken(user, options = {}) {
-  const roles = getUserRoles(user);
+  const roleKeys = getUserRoleKeys(user);
+  const primaryRoleKey = user.roleKey || roleKeys[0] || 'designer';
+  const roles = roleKeys;
   const permissions = getUserPermissions(user);
-  const officialTitle = user.officialTitle || (typeof user.role === 'string' ? user.role : 'Head of Creative');
+  const officialTitle = user.officialTitle || (typeof user.role === 'string' ? user.role : 'Designer');
   return jwt.sign(
     {
       id: user.id || user.staffId,
       username: user.username,
       name: user.name,
       officialTitle,
-      role: roles.join(', '),
+      role: typeof user.role === 'string' ? user.role : roles.join(', '),
+      roleKey: primaryRoleKey,
       roles: roles,
       staffId: user.staffId,
       department: user.department,
@@ -576,33 +585,24 @@ function authenticateMedia(req, res, next) {
 }
 
 function hasCanonicalRole(user, targetRole) {
-  const roles = getUserRoles(user).map(r => (r || '').trim().toLowerCase());
-  const target = (targetRole || '').trim().toLowerCase();
-  if (target === 'admin' || target === 'administrator') {
-    return roles.includes('admin') || roles.includes('administrator');
-  }
-  return roles.includes(target);
+  const roleKeys = getUserRoleKeys(user);
+  const target = normalizeRoleKey(targetRole) || (targetRole || '').trim().toLowerCase();
+  return roleKeys.includes(target);
 }
 
 function requireRole(...allowedRoles) {
-  const normalizedTargets = allowedRoles.map(r => (r || '').trim().toLowerCase());
+  const normalizedTargets = allowedRoles.map(r => normalizeRoleKey(r) || (r || '').trim().toLowerCase());
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Please sign in to continue.' });
     }
-    const userRoles = getUserRoles(req.user).map(r => (r || '').trim().toLowerCase());
-    const isAllowed = userRoles.some(r => {
-      if ((normalizedTargets.includes('admin') || normalizedTargets.includes('administrator')) && 
-          (r === 'admin' || r === 'administrator')) {
-        return true;
-      }
-      return normalizedTargets.includes(r);
-    });
+    const userRoleKeys = getUserRoleKeys(req.user);
+    const isAllowed = userRoleKeys.some(r => normalizedTargets.includes(r));
 
     if (!isAllowed) {
       AuditService.logEvent({
         actor: req.user?.name || req.user?.username || 'Unknown',
-        role: req.user?.role || 'Unknown',
+        role: req.user?.roleKey || req.user?.role || 'Unknown',
         action: 'SECURITY_ACCESS_DENIED',
         entityType: 'Endpoint',
         entityId: req.originalUrl || (req.baseUrl ? req.baseUrl + req.path : req.path),
@@ -610,7 +610,7 @@ function requireRole(...allowedRoles) {
           method: req.method,
           path: req.originalUrl || req.path,
           requiredRoles: allowedRoles,
-          userRoles
+          userRoles: userRoleKeys
         }
       });
       return res.status(403).json({
@@ -867,10 +867,14 @@ function resetPasswordWithToken(token, newPassword) {
 }
 
 module.exports = {
+  VALID_ROLE_KEYS,
+  normalizeRoleKey,
+  getUserRoleKeys,
   SYSTEM_USERS,
   ROLE_PERMISSIONS,
   getUserRoles,
   getUserPermissions,
+  deriveUserCapabilities,
   hasCanonicalRole,
   getPasswordStorePath,
   getStoredPasswords,

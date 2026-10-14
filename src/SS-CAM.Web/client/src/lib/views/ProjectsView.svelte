@@ -82,8 +82,8 @@
   }
 
   const isAdminUser = $derived.by(() => {
-    const role = (appState.currentUser?.role || '').toLowerCase();
-    return role.includes('admin') || role.includes('director') || role.includes('lead') || role.includes('manager') || role.includes('executive');
+
+    return appState.currentUser?.capabilities?.canDeleteProject ?? false;
   });
 
   function setViewMode(mode: ViewMode) {

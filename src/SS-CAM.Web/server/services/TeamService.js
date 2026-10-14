@@ -202,12 +202,12 @@ class TeamService {
   static getStaffRoster() {
     const rosterPath = this.getRosterPath();
     const defaultTeam = [
-      { staffId: 'SS0004', username: 'harussani', name: 'Harussani', email: 'harussani.suamisihat@gmail.com', role: 'Head of Creative', department: 'Creative Production', defaultBrand: 'SS', avatarColor: '#0078D4', active: true },
-      { staffId: 'SS0035', username: 'haikal', name: 'Haikal', email: 'haikal.suamisihat@gmail.com', role: 'Multimedia Designer', department: 'Multimedia & Motion', defaultBrand: 'SS', avatarColor: '#106EBE', active: true },
-      { staffId: 'SS0037', username: 'aliff', name: 'Aliff', email: 'aliffnaz.suamisihat@gmail.com', role: 'Multimedia Designer', department: 'Multimedia & Motion', defaultBrand: 'SSE', avatarColor: '#7C3AED', active: true },
-      { staffId: 'SS0073', username: 'raihan', name: 'Raihan', email: 'raihan.suamisihat@gmail.com', role: 'Head of Marketing & Sale', department: 'Marketing & Sales', defaultBrand: 'SS', avatarColor: '#D97706', active: true },
-      { staffId: 'SS0001', username: 'hasan', name: 'Hasan', email: 'hasan@suamisihat.com', role: 'Chief Executive Officer', department: 'Executive Management', defaultBrand: 'SS', avatarColor: '#21A1F7', active: true },
-      { staffId: 'SS0071', username: 'gaddafi', name: 'Gaddafi', email: 'gaddafi@suamisihat.com', role: 'Co-Chief Executive Officer', department: 'Executive Management', defaultBrand: 'SS', avatarColor: '#059669', active: true }
+      { staffId: 'SS0004', username: 'harussani', name: 'Harussani', email: 'harussani.suamisihat@gmail.com', role: 'Head of Creative', roleKey: 'admin', roles: ['admin'], officialTitle: 'Head of Creative', department: 'Creative Production', defaultBrand: 'SS', avatarColor: '#0078D4', active: true },
+      { staffId: 'SS0035', username: 'haikal', name: 'Haikal', email: 'haikal.suamisihat@gmail.com', role: 'Multimedia Designer', roleKey: 'designer', roles: ['designer'], officialTitle: 'Multimedia Designer', department: 'Multimedia & Motion', defaultBrand: 'SS', avatarColor: '#106EBE', active: true },
+      { staffId: 'SS0037', username: 'aliff', name: 'Aliff', email: 'aliffnaz.suamisihat@gmail.com', role: 'Multimedia Designer', roleKey: 'designer', roles: ['designer'], officialTitle: 'Multimedia Designer', department: 'Multimedia & Motion', defaultBrand: 'SSE', avatarColor: '#7C3AED', active: true },
+      { staffId: 'SS0073', username: 'raihan', name: 'Raihan', email: 'raihan.suamisihat@gmail.com', role: 'Head of Marketing & Sale', roleKey: 'manager', roles: ['manager'], officialTitle: 'Head of Marketing & Sale', department: 'Marketing & Sales', defaultBrand: 'SS', avatarColor: '#D97706', active: true },
+      { staffId: 'SS0001', username: 'hasan', name: 'Hasan', email: 'hasan@suamisihat.com', role: 'Chief Executive Officer', roleKey: 'ceo', roles: ['ceo'], officialTitle: 'Chief Executive Officer', department: 'Executive Management', defaultBrand: 'SS', avatarColor: '#21A1F7', active: true },
+      { staffId: 'SS0071', username: 'gaddafi', name: 'Gaddafi', email: 'gaddafi@suamisihat.com', role: 'Co-Chief Executive Officer', roleKey: 'ceo', roles: ['ceo'], officialTitle: 'Co-Chief Executive Officer', department: 'Executive Management', defaultBrand: 'SS', avatarColor: '#059669', active: true }
     ];
 
     if (!fs.existsSync(rosterPath)) {
@@ -270,7 +270,7 @@ class TeamService {
 
   /** Fields a staff record may carry. Anything else sent by a caller (passwords, internal flags) is dropped. */
   static get EDITABLE_FIELDS() {
-    return ['name', 'email', 'role', 'roles', 'department', 'officialTitle', 'defaultBrand', 'avatar', 'avatarUrl', 'avatarColor', 'active'];
+    return ['name', 'email', 'role', 'roles', 'roleKey', 'department', 'officialTitle', 'defaultBrand', 'avatar', 'avatarUrl', 'avatarColor', 'active'];
   }
 
   /** A staff record that is safe to send to other people's browsers (no credentials, ever). */
@@ -320,6 +320,15 @@ class TeamService {
     }
     const roleString = roles.join(', ') || 'Designer';
 
+    const validRoles = config.VALID_ROLES || ['admin', 'ceo', 'manager', 'designer', 'copywriter', 'clinic', 'viewer'];
+    let roleKey = 'designer';
+    if (member.roleKey && validRoles.includes(String(member.roleKey).toLowerCase())) {
+      roleKey = String(member.roleKey).toLowerCase();
+    } else {
+      const match = roles.map(r => String(r).toLowerCase()).find(r => validRoles.includes(r));
+      if (match) roleKey = match;
+    }
+
     let avatarUrl = member.avatarUrl || '';
     let avatarVal = member.avatar || '';
     if (member.avatar && member.avatar.startsWith('data:image/')) {
@@ -336,6 +345,7 @@ class TeamService {
       name: member.name.trim(),
       email: member.email ? member.email.trim() : `${username}@suamisihat.com`,
       role: roleString,
+      roleKey,
       roles: roles.length > 0 ? roles : ['Designer'],
       department: member.department ? member.department.trim() : 'Creative Production',
       defaultBrand: (member.defaultBrand || 'SS').trim().toUpperCase(),
@@ -396,10 +406,23 @@ class TeamService {
       updatedRole = roster[idx].role || 'Designer';
     }
 
+    const validRoles = config.VALID_ROLES || ['admin', 'ceo', 'manager', 'designer', 'copywriter', 'clinic', 'viewer'];
+    let updatedRoleKey = updates.roleKey;
+    if (updatedRoleKey && validRoles.includes(String(updatedRoleKey).toLowerCase())) {
+      updatedRoleKey = String(updatedRoleKey).toLowerCase();
+    } else if (updatedRoles && Array.isArray(updatedRoles)) {
+      const match = updatedRoles.map(r => String(r).toLowerCase()).find(r => validRoles.includes(r));
+      if (match) updatedRoleKey = match;
+    }
+    if (!updatedRoleKey) {
+      updatedRoleKey = roster[idx].roleKey || 'designer';
+    }
+
     roster[idx] = {
       ...roster[idx],
       ...updates,
       role: updatedRole || 'Designer',
+      roleKey: updatedRoleKey,
       roles: updatedRoles || ['Designer'],
       DisplayText: `${targetStaffId} - ${updates.name || roster[idx].name} (${updatedRole || 'Designer'})`,
       staffId: targetStaffId // Preserve immutable Staff ID
@@ -408,6 +431,79 @@ class TeamService {
     this.saveStaffRoster(roster);
     this.saveUserProfile(targetStaffId, roster[idx]);
     return roster[idx];
+  }
+
+  /**
+   * Derives a canonical roleKey from legacy title, role, or department using old substring rules.
+   * Used strictly for one-time startup migration of existing roster records that lack roleKey.
+   */
+  static deriveLegacyRoleKey(member) {
+    if (!member) return 'designer';
+    const validRoles = config.VALID_ROLES || ['admin', 'ceo', 'manager', 'designer', 'copywriter', 'clinic', 'viewer'];
+    if (member.roleKey && validRoles.includes(String(member.roleKey).toLowerCase())) {
+      return String(member.roleKey).toLowerCase();
+    }
+    const rolesArr = Array.isArray(member.roles) ? member.roles : [];
+    const roleStr = typeof member.role === 'string' ? member.role : '';
+    const titleStr = typeof member.officialTitle === 'string' ? member.officialTitle : '';
+    const deptStr = typeof member.department === 'string' ? member.department : '';
+    const combined = [...rolesArr, roleStr, titleStr, deptStr].join(' ').toLowerCase();
+
+    if (combined.includes('admin') || combined.includes('administrator')) return 'admin';
+    if (combined.includes('ceo') || combined.includes('chief executive')) return 'ceo';
+    if (combined.includes('director') || combined.includes('manager') || combined.includes('lead') || combined.includes('head') || combined.includes('executive')) return 'manager';
+    if (combined.includes('copywriter') || combined.includes('writer')) return 'copywriter';
+    if (combined.includes('clinic') || combined.includes('doctor') || combined.includes('medical')) return 'clinic';
+    if (combined.includes('viewer') || combined.includes('guest') || combined.includes('client')) return 'viewer';
+    return 'designer';
+  }
+
+  /**
+   * One-time startup migration: for each roster member without roleKey, derive it ONCE
+   * from the legacy title/role using old rules, save it to disk, and log to server log.
+   * Idempotent: once roleKeys are written, subsequent runs do nothing.
+   */
+  static migrateRosterRoleKeys() {
+    let migrated = 0;
+    try {
+      const roster = this.getStaffRoster();
+      let changed = false;
+
+      for (const member of roster) {
+        if (!member.roleKey) {
+          const derived = this.deriveLegacyRoleKey(member);
+          member.roleKey = derived;
+          console.log(`[TeamService] Migrated staff member ${member.staffId} (${member.name}) to roleKey: '${derived}' (from title: '${member.role || member.officialTitle || ''}')`);
+          migrated++;
+          changed = true;
+
+          // Also update user's profile.json on disk if present
+          try {
+            const userDir = this.getUserDir(member.staffId);
+            if (userDir) {
+              const pPath = path.join(userDir, 'profile.json');
+              if (fs.existsSync(pPath)) {
+                let profile = JSON.parse(fs.readFileSync(pPath, 'utf8').replace(/^﻿/, ''));
+                if (!profile.roleKey) {
+                  profile.roleKey = derived;
+                  fs.writeFileSync(pPath, JSON.stringify(this.toPublicMember(profile), null, 2), 'utf8');
+                }
+              }
+            }
+          } catch (pe) {
+            console.debug('[TeamService] Could not update profile.json for migrated member:', pe.message);
+          }
+        }
+      }
+
+      if (changed) {
+        this.saveStaffRoster(roster);
+        console.log(`[TeamService] Stored explicit roleKey for ${migrated} roster member(s).`);
+      }
+    } catch (err) {
+      console.error('[TeamService] migrateRosterRoleKeys error:', err.message);
+    }
+    return migrated;
   }
 
   static deleteStaffMember(staffId) {

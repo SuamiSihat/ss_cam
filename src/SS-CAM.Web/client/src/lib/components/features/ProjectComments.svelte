@@ -274,7 +274,7 @@
                   {/if}
                 </div>
 
-                {#if appState.currentUser?.role === 'admin' || appState.currentUser?.name === comment.author}
+                {#if appState.currentUser?.capabilities?.canDeleteProject || appState.currentUser?.roleKey === 'admin' || appState.currentUser?.name === comment.author}
                   <button class="btn-delete" onclick={() => handleDelete(comment.id)} title="Delete comment" aria-label="Delete comment">
                     ✕
                   </button>
