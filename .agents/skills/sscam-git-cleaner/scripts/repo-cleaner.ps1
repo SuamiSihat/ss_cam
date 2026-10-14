@@ -112,7 +112,7 @@ if ($Organize -or $All) {
     $AllowedRootItems = @(
         ".agents", ".git", ".gitattributes", ".gitignore", ".markdownlint.json", ".vscode",
         "AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "FOLDER-STRUCTURE.md",
-        "QA", "README.md", "ROADMAP.md", "dist", "docs", "install.cmd", "install.sh",
+        "QA", "README.md", "ROADMAP.md", "dist", "docs", "install.sh",
         "installer", "nuget.exe", "payload", "publish", "scratch", "src", "tests",
         "SS-CAM-v*.exe", "LICENSE"
     )

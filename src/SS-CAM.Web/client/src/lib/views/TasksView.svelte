@@ -2185,9 +2185,11 @@
               <button type="button" class="batch-btn success" onclick={() => handleBatchStatusChange('done')}>
                 Mark Done
               </button>
-              <button type="button" class="batch-btn danger" onclick={handleBatchDelete}>
-                Delete
-              </button>
+              {#if appState.hasPermission('project:edit')}
+                <button type="button" class="batch-btn danger" onclick={handleBatchDelete}>
+                  Delete
+                </button>
+              {/if}
               <button type="button" class="batch-btn ghost" onclick={() => (selectedTaskIds = [])}>
                 Deselect All
               </button>

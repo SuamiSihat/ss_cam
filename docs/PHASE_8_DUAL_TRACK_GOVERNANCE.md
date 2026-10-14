@@ -2,6 +2,8 @@
 
 **Document Version:** 1.0.0  
 **Status:** Completed & Validated  
+> **Status note (2026-10-14):** The design/specification is complete, and the gate `QA/verify-dual-track.ps1` exists; it now has 4 steps (Source Guardian, public-docs leak audit, cross-platform format check `QA/verify-format-sync.ps1`, optional Release build). It runs locally only — there is no CI pipeline (no `.github/workflows`). Licensing/checkout and code signing are not yet implemented in the repository, and white-label de-branding is still in progress (see [SUAMISIHAT-COUPLING-INVENTORY.md](./SUAMISIHAT-COUPLING-INVENTORY.md)).
+
 **Prerequisites:** Phase 3/3a (Plugin & TenantConfig Engine), Phase 7 (Wiki Strategy)  
 **Deliverable:** Core vs. Edition Triage Protocol, Anti-Drift Enforcement, Git Branching Governance, and AI Agent Operating Guardrails
 
@@ -84,7 +86,7 @@ Because AI coding assistants can inadvertently re-introduce hardcoded company st
 
 ## 5. Automated Governance Gatekeeper (`QA/verify-dual-track.ps1`)
 
-To automate dual-track compliance in local environments and CI/CD pipelines, we provide the master gatekeeper script [`QA/verify-dual-track.ps1`](file:///d:/HaNa_Innovation/ss_cam/QA/verify-dual-track.ps1):
+To automate dual-track compliance in local environments and CI/CD pipelines, we provide the master gatekeeper script [`QA/verify-dual-track.ps1`](../QA/verify-dual-track.ps1):
 
 1. **Runs Source Guardian:** Verifies UTF-8 BOM, Fluent 2 control standards, silent catch blocks, and UI thread safety.
 2. **Runs Documentation Leakage Scanner:** Verifies zero internal hostnames or credentials in public wiki docs.

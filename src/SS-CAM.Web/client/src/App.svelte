@@ -181,11 +181,11 @@
 
   const pageConfig: Record<string, { title: string; layout: string; parent?: string }> = {
     dashboard:        { title: 'Dashboard',             layout: 'layout-full' },
-    tasks:            { title: 'Tasks & Workstream',     layout: 'layout-full' },
+    tasks:            { title: 'Task Manager',           layout: 'layout-full' },
     projects:         { title: 'Project Catalog',       layout: 'layout-fluid' },
     'project-detail': { title: 'Project Workspace',     layout: 'layout-full', parent: 'projects' },
-    deliverables:     { title: 'Deliverables & Reviews', layout: 'layout-page' },
-    team:             { title: 'Team & Workload',        layout: 'layout-page' },
+    deliverables:     { title: 'Deliverables', layout: 'layout-page' },
+    team:             { title: 'Team',                   layout: 'layout-page' },
     'copy-studio':    { title: 'Copywriting Studio',     layout: 'layout-page' },
     'order-form':     { title: 'Order Requests',         layout: 'layout-page' },
     consultation:     { title: 'Consultation Suite',     layout: 'layout-full' },
@@ -227,14 +227,14 @@
   const navGroups = [
     { section: 'Production', items: [
       { route: 'dashboard',    label: 'Dashboard',              icon: dashIcon },
-      { route: 'tasks',        label: 'Tasks & Workstream',     icon: taskIcon },
+      { route: 'tasks',        label: 'Task Manager',           icon: taskIcon },
       { route: 'projects',     label: 'Project Catalog',        icon: folderIcon, matchRoutes: ['projects','project-detail'] },
-      { route: 'deliverables', label: 'Deliverables & Reviews', icon: reviewIcon, badge: true },
+      { route: 'deliverables', label: 'Deliverables', icon: reviewIcon, badge: true },
     ]},
     { section: 'Operations', items: [
       { route: 'consultation', label: 'Consultation Suite',     icon: consultIcon },
       { route: 'order-form',   label: 'Order Requests',         icon: orderIcon },
-      { route: 'team',         label: 'Team & Workload',        icon: teamIcon },
+      { route: 'team',         label: 'Team',                   icon: teamIcon },
       { route: 'copy-studio',  label: 'Copywriting Studio',     icon: pencilIcon },
       { route: 'signage',      label: 'Lounge TV Signage',      icon: tvIcon },
     ]},
@@ -645,7 +645,7 @@
           href="#tasks"
           class="dock-link"
           class:active={appState.currentRoute === 'tasks'}
-          aria-label="Tasks & Workstream"
+          aria-label="Task Manager"
         >
           <svg class="dock-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             {@html taskIcon}

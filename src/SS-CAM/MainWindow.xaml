@@ -239,25 +239,25 @@
 
                 <!-- 1. Creative Studio Hub -->
                 <ui:NavigationViewItemSeparator />
-                <ui:NavigationViewItem Content="Project Creator"    Icon="{ui:SymbolIcon Folder24}"      TargetPageType="{x:Type views:ProjectCreatorPage}" NavigationCacheMode="Required" ToolTip="Scaffold brand projects &amp; folder structures" />
-                <ui:NavigationViewItem Content="Project Catalog"    Icon="{ui:SymbolIcon FolderSearch24}" TargetPageType="{x:Type views:SearchCopyPage}" NavigationCacheMode="Required" ToolTip="Browse workspace projects, assets &amp; briefs" />
-                <ui:NavigationViewItem Content="Copywriting Studio" Icon="{ui:SymbolIcon Edit24}"        TargetPageType="{x:Type views:CopywritingPage}" NavigationCacheMode="Required" ToolTip="Persist ad scripts, WhatsApp &amp; Meta copy" />
-                <ui:NavigationViewItem Content="Brand Assets"       Icon="{ui:SymbolIcon Library24}"     TargetPageType="{x:Type views:BrandAssetsPage}" NavigationCacheMode="Required" ToolTip="Brand tokens, colors, logos &amp; typography" />
+                <ui:NavigationViewItem Content="Project Creator"    Icon="{ui:SymbolIcon Folder24}"      TargetPageType="{x:Type views:ProjectCreatorPage}" NavigationCacheMode="Required" ToolTip="Create a new project with its standard folders" />
+                <ui:NavigationViewItem Content="Project Catalog"    Icon="{ui:SymbolIcon FolderSearch24}" TargetPageType="{x:Type views:SearchCopyPage}" NavigationCacheMode="Required" ToolTip="Browse projects, files and briefs" />
+                <ui:NavigationViewItem Content="Copywriting Studio" Icon="{ui:SymbolIcon Edit24}"        TargetPageType="{x:Type views:CopywritingPage}" NavigationCacheMode="Required" ToolTip="Write and save ad, WhatsApp and Meta copy" />
+                <ui:NavigationViewItem Content="Brand Assets"       Icon="{ui:SymbolIcon Library24}"     TargetPageType="{x:Type views:BrandAssetsPage}" NavigationCacheMode="Required" ToolTip="Brand colours, logos and fonts" />
 
                 <!-- 2. Operations & Delivery Hub -->
                 <ui:NavigationViewItemSeparator />
-                <ui:NavigationViewItem Content="Order Requests"     Icon="{ui:SymbolIcon ClipboardTask24}" TargetPageType="{x:Type views:OrderRequestsPage}" NavigationCacheMode="Required" ToolTip="Intake creative orders &amp; client requests" />
-                <ui:NavigationViewItem Content="Task Manager"       Icon="{ui:SymbolIcon Checkmark24}"   TargetPageType="{x:Type views:TaskManagerPage}" NavigationCacheMode="Required" ToolTip="Kanban production board &amp; handovers" />
-                <ui:NavigationViewItem Content="Project Timeline"   Icon="{ui:SymbolIcon CalendarMonth24}" TargetPageType="{x:Type views:CalendarPage}" NavigationCacheMode="Required" ToolTip="Visual project calendar, Gantt &amp; deadlines" />
-                <ui:NavigationViewItem Content="Studio Notes"       Icon="{ui:SymbolIcon Document24}"    TargetPageType="{x:Type views:QuickNotePage}" NavigationCacheMode="Required" ToolTip="Quick scratchpad, briefs &amp; Markdown notes" />
-                <ui:NavigationViewItem Content="Archive Vault"       Icon="{ui:SymbolIcon Archive24}"      TargetPageType="{x:Type views:ArchiveVaultPage}" NavigationCacheMode="Required" ToolTip="Batch-archive completed projects into cold-storage ZIPs" />
-                <ui:NavigationViewItem Content="Transcoder Bridge"   Icon="{ui:SymbolIcon ArrowSwap24}"   TargetPageType="{x:Type views:TranscoderBridgePage}" NavigationCacheMode="Required" ToolTip="Multi-format asset conversion engine for web deliverables" />
+                <ui:NavigationViewItem Content="Order Requests"     Icon="{ui:SymbolIcon ClipboardTask24}" TargetPageType="{x:Type views:OrderRequestsPage}" NavigationCacheMode="Required" ToolTip="Incoming creative requests" />
+                <ui:NavigationViewItem Content="Task Manager"       Icon="{ui:SymbolIcon Checkmark24}"   TargetPageType="{x:Type views:TaskManagerPage}" NavigationCacheMode="Required" ToolTip="Track tasks and hand work over" />
+                <ui:NavigationViewItem Content="Calendar"           Icon="{ui:SymbolIcon CalendarMonth24}" TargetPageType="{x:Type views:CalendarPage}" NavigationCacheMode="Required" ToolTip="Project dates and deadlines" />
+                <ui:NavigationViewItem Content="Quick Notes"        Icon="{ui:SymbolIcon Document24}"    TargetPageType="{x:Type views:QuickNotePage}" NavigationCacheMode="Required" ToolTip="Quick notes for you and the team" />
+                <ui:NavigationViewItem Content="Archive"             Icon="{ui:SymbolIcon Archive24}"      TargetPageType="{x:Type views:ArchiveVaultPage}" NavigationCacheMode="Required" ToolTip="Archive finished projects to free up space" />
+                <ui:NavigationViewItem Content="File Converter"      Icon="{ui:SymbolIcon ArrowSwap24}"   TargetPageType="{x:Type views:TranscoderBridgePage}" NavigationCacheMode="Required" ToolTip="Convert videos and images for web and social" />
 
                 <!-- 3. Studio Tools & Utilities -->
                 <ui:NavigationViewItemSeparator x:Name="ToolsSeparator" />
 
                 <ui:NavigationViewItemSeparator />
-                <ui:NavigationViewItem Content="Settings &amp; Profile" Icon="{ui:SymbolIcon Settings24}" TargetPageType="{x:Type views:SettingsPage}" NavigationCacheMode="Required" ToolTip="Designer preferences, NAS &amp; diagnostics" />
+                <ui:NavigationViewItem Content="Settings &amp; Profile" Icon="{ui:SymbolIcon Settings24}" TargetPageType="{x:Type views:SettingsPage}" NavigationCacheMode="Required" ToolTip="Your profile, app settings and computer checks" />
             </ui:NavigationView.MenuItems>
 
             <!-- PANE FOOTER: Status rows -->
@@ -556,7 +556,7 @@
                                 <ui:SymbolIcon Symbol="Person24" FontSize="11" Foreground="{DynamicResource FluentBrand80}" Margin="0,0,4,0" VerticalAlignment="Center"/>
                                 <ui:TextBlock Text="Designer:" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,4,0" VerticalAlignment="Center"/>
                                 <ComboBox x:Name="CmbPopoverDesignerFilter" SelectionChanged="OnPopoverDesignerFilterChanged"
-                                          Height="26" FontSize="10.5" Width="135" Padding="6,0" VerticalContentAlignment="Center"
+                                          MinHeight="36" FontSize="10.5" Width="135" Padding="6,0" VerticalContentAlignment="Center"
                                           ToolTip="Filter projects by assigned designer">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>

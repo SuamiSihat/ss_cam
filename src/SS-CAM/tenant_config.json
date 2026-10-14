@@ -7,6 +7,7 @@
   "AssetPortalUrl": "https://assets.suamisihat.myds.me",
   "StorageLabel": "SSNAS",
   "ThemeDefaultName": "SS Default (Nord Light)",
+  "UpdateRepository": "SuamiSihat/ss_cam",
   "Subsidiaries": [
     { "Code": "SSH", "Name": "SuamiSihat Holding", "DisplayName": "SSH - SuamiSihat Holding", "ColorHex": "#022057" },
     { "Code": "SSC", "Name": "SuamiSihat Clinic", "DisplayName": "SSC - SuamiSihat Clinic", "ColorHex": "#043388" },

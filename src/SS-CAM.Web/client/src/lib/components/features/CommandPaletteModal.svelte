@@ -148,8 +148,8 @@
     { type: 'action', id: 'nav-copy', label: 'Open Copywriting Studio', icon: 'edit', category: 'Navigation', execute: () => appState.navigate('copy-studio') },
     { type: 'action', id: 'nav-admin', label: 'Open Studio Administration', icon: 'settings', category: 'Governance', execute: () => appState.navigate('admin') },
     { type: 'action', id: 'act-theme', label: 'Toggle Theme (Falconia / Metamorphosis)', icon: 'colorPalette', category: 'System', execute: () => toggleTheme() },
-    { type: 'action', id: 'act-rescan', label: 'Rescan Synology NAS Vault', icon: 'history', category: 'System', execute: () => rescanVault() },
-    { type: 'action', id: 'act-download', label: 'Download SS-CAM Desktop App (v4.9.0)', icon: 'desktop', category: 'Ecosystem', execute: () => window.open('https://suamisihat.github.io/ss_cam/', '_blank') },
+    { type: 'action', id: 'act-rescan', label: 'Refresh projects', icon: 'history', category: 'System', execute: () => rescanVault() },
+    { type: 'action', id: 'act-download', label: 'Download SS-CAM desktop app', icon: 'download', category: 'Ecosystem', execute: () => window.open('https://suamisihat.github.io/ss_cam/', '_blank') },
   ];
 
   function toggleTheme() {

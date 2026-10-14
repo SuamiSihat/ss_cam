@@ -2,6 +2,8 @@
 
 **Document Version:** 1.0.0  
 **Status:** Completed & Validated  
+> **Status note (2026-10-14):** The design/specification is complete, and the public wiki (`docs/public-wiki/`) and leak scanner (`docs/scripts/audit-public-docs.ps1`) exist. Commercial distribution is not live: licensing/checkout, a CI pipeline (no `.github/workflows`) and code signing are not yet implemented in the repository, and white-label de-branding is still in progress (see [SUAMISIHAT-COUPLING-INVENTORY.md](./SUAMISIHAT-COUPLING-INVENTORY.md)).
+
 **Prerequisites:** Phase 3/3a (Plugin & TenantConfig Engine), Phase 6 (Distribution Hub)  
 **Deliverable:** Two-Wiki Doctrine, Structural Isolation Pipeline, Public Wiki Articles, and Automated Leakage Auditing
 
@@ -50,7 +52,7 @@ docs/public-wiki/
 
 ## 3. Automated Leakage Prevention Pipeline
 
-To guarantee that no internal SuamiSihat hostnames, NAS paths, or confidential parameters leak into the public documentation, we implement an automated validation script: [`docs/scripts/audit-public-docs.ps1`](file:///d:/HaNa_Innovation/ss_cam/docs/scripts/audit-public-docs.ps1).
+To guarantee that no internal SuamiSihat hostnames, NAS paths, or confidential parameters leak into the public documentation, we implement an automated validation script: [`docs/scripts/audit-public-docs.ps1`](./scripts/audit-public-docs.ps1).
 
 ### Blacklisted Patterns Enforced by CI/CD
 

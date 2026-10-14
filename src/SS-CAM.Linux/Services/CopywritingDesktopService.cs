@@ -13,20 +13,20 @@ namespace SS_CAM.Linux.Services
             if (string.IsNullOrWhiteSpace(projectPath) || !Directory.Exists(projectPath))
                 return null;
 
-            // Search priority: 01_BRIEFS/COPY.md -> 03_COPYWRITING/COPY.md -> COPY.md
-            string path01 = Path.Combine(projectPath, "01_BRIEFS", "COPY.md");
-            if (File.Exists(path01)) return path01;
-
+            // Canonical location (same as Windows and Web): 03_COPYWRITING/COPY.md.
+            // Older Linux-created projects kept it in 01_BRIEFS, so that is still read if present.
             string path03 = Path.Combine(projectPath, "03_COPYWRITING", "COPY.md");
             if (File.Exists(path03)) return path03;
+
+            string legacyPath = Path.Combine(projectPath, "01_BRIEFS", "COPY.md");
+            if (File.Exists(legacyPath)) return legacyPath;
 
             string pathRoot = Path.Combine(projectPath, "COPY.md");
             if (File.Exists(pathRoot)) return pathRoot;
 
-            // If none exists, default to 01_BRIEFS/COPY.md
-            string dir01 = Path.Combine(projectPath, "01_BRIEFS");
-            if (!Directory.Exists(dir01)) Directory.CreateDirectory(dir01);
-            return path01;
+            string dir03 = Path.Combine(projectPath, "03_COPYWRITING");
+            if (!Directory.Exists(dir03)) Directory.CreateDirectory(dir03);
+            return path03;
         }
 
         public static string GetDefaultTemplate(string projectTitle)

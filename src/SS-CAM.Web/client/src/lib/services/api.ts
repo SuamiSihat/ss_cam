@@ -40,18 +40,32 @@ export class ApiClient {
       ...((options.headers as Record<string, string>) || {})
     };
 
+    let response: Response;
     try {
-      const response = await fetch(url, { ...options, headers });
+      response = await fetch(url, { ...options, headers });
+    } catch (err: any) {
+      console.error(`[API Error] ${endpoint}:`, err.message);
+      throw new Error("Can't reach the server. Check your connection and try again.");
+    }
+
+    try {
       const data = await response.json().catch(() => ({}));
 
       if (response.status === 401 && endpoint !== '/auth/login') {
         this.removeToken();
         window.dispatchEvent(new CustomEvent('auth:required'));
-        throw new Error(data.error || 'Authentication required');
+        throw new Error('Your session has expired. Please sign in again.');
       }
 
       if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        // Server errors carry technical detail: log it, show a plain message instead.
+        if (response.status >= 500) {
+          console.error(`[API Error] ${endpoint}: ${response.status}`, data.error);
+          throw new Error('Something went wrong on our side. Please try again.');
+        }
+        const httpErr: any = new Error(data.error || ApiClient.friendlyStatusMessage(response.status));
+        httpErr.status = response.status;
+        throw httpErr;
       }
 
       return data as T;
@@ -59,6 +73,14 @@ export class ApiClient {
       console.error(`[API Error] ${endpoint}:`, err.message);
       throw err;
     }
+  }
+
+  private static friendlyStatusMessage(status: number): string {
+    if (status === 403) return "You don't have permission to do this. Ask an admin for access.";
+    if (status === 404) return "We couldn't find that item. It may have been moved or deleted.";
+    if (status === 413) return 'That file is too large to upload.';
+    if (status === 429) return 'Too many attempts. Please wait a moment and try again.';
+    return 'Something went wrong. Please try again.';
   }
 
   // ─── Authentication ───
@@ -91,7 +113,7 @@ export class ApiClient {
         body: JSON.stringify(data)
       });
     } catch (err: any) {
-      if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
+      if (err.status === 404) {
         const id = data.staffId || 'SS0004';
         const res = await this.request<any>(`/users/${encodeURIComponent(id)}`, {
           method: 'PUT',

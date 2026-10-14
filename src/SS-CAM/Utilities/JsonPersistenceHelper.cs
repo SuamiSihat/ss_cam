@@ -20,9 +20,11 @@ namespace SS_CAM.Utilities
                 T result = JsonConvert.DeserializeObject<T>(json);
                 return result != null ? result : (defaultFactory != null ? defaultFactory() : new T());
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Fallback on serialization failure to avoid crash
+                // Fallback on serialization failure to avoid crash, but record it: the caller may
+                // later Save() the default object over the unreadable file.
+                App.LogTrace(string.Format("[JsonPersistenceHelper] Could not read {0}: {1}", filePath, ex.Message));
                 return defaultFactory != null ? defaultFactory() : new T();
             }
         }
@@ -43,8 +45,9 @@ namespace SS_CAM.Utilities
                 File.WriteAllText(filePath, json);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                App.LogTrace(string.Format("[JsonPersistenceHelper] Could not save {0}: {1}", filePath, ex.Message));
                 return false;
             }
         }

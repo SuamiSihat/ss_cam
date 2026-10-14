@@ -15,6 +15,10 @@ namespace SS_CAM.Models
         public string StorageLabel { get; set; }
         public string ThemeDefaultName { get; set; }
 
+        // GitHub "owner/repo" whose releases feed the in-app update check.
+        // Leave empty to use only the portal's /ss-cam/version.json feed.
+        public string UpdateRepository { get; set; }
+
         [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
         public List<SubsidiaryConfig> Subsidiaries { get; set; }
 
@@ -31,6 +35,7 @@ namespace SS_CAM.Models
             AssetPortalUrl = "https://assets.corporate.local";
             StorageLabel = "NAS";
             ThemeDefaultName = "Corporate Light";
+            UpdateRepository = "";
             Plugins = new Dictionary<string, PluginConfig>();
             Subsidiaries = new List<SubsidiaryConfig>
             {

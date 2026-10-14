@@ -2,6 +2,8 @@
 
 **Document Version:** 1.0.0  
 **Status:** Completed & Validated  
+> **Status note (2026-10-14):** The pricing and go-to-market plan (design/specification) is complete. Not yet implemented in the repository: licensing and checkout, a CI pipeline (no `.github/workflows`), and code signing. White-label de-branding is still in progress (see [SUAMISIHAT-COUPLING-INVENTORY.md](./SUAMISIHAT-COUPLING-INVENTORY.md)). **Pricing inconsistency (flagged, not changed):** the Enterprise price here ($2,290/yr) is below the Phase 4 Enterprise floor ($2,400–$3,600/yr) that section 2 says it is based on.
+
 **Prerequisites:** Phase 4 (Cost Modelling & Economics), Phase 3/3a (Plugin Architecture & TenantConfig Engine)  
 **Deliverable:** Commercial Pricing Architecture, GTM Wedge Strategy, Soft-Launch Pipeline, and Multi-Year Revenue Forecast
 

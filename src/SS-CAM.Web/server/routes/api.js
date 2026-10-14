@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const config = require('../config');
 const { SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserPermissions, hasCanonicalRole, verifyUserPassword, updateUserPassword, createPasswordResetToken, verifyPasswordResetToken, resetPasswordWithToken, generateToken, authenticateToken, requirePermission, requireRole } = require('../middleware/auth');
 const WorkspaceService = require('../services/WorkspaceService');
+const ProjectFormat = require('../services/ProjectFormat');
 const FrontmatterService = require('../services/FrontmatterService');
 const DeliverableService = require('../services/DeliverableService');
 const ApprovalService = require('../services/ApprovalService');
@@ -256,8 +257,8 @@ router.post('/auth/reset-password', loginLimiter, (req, res) => {
     if (!token) {
       return res.status(400).json({ error: 'Reset token is required.' });
     }
-    if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 10) {
+      return res.status(400).json({ error: 'Password must be at least 10 characters long.' });
     }
 
     const resetResult = resetPasswordWithToken(token, newPassword);
@@ -512,7 +513,8 @@ router.patch('/tasks/:projectId/:taskId', authenticateToken, (req, res) => {
   }
 });
 
-router.delete('/tasks/:projectId/:taskId', authenticateToken, (req, res) => {
+// Deleting tasks is limited to managers and admins (project:edit).
+router.delete('/tasks/:projectId/:taskId', authenticateToken, requirePermission('project:edit'), (req, res) => {
   try {
     const { projectId, taskId } = req.params;
     const actor = req.user?.name || req.user?.username || 'Staff';
@@ -536,7 +538,7 @@ router.patch('/tasks/:id', authenticateToken, (req, res) => {
   }
 });
 
-router.delete('/tasks/:id', authenticateToken, (req, res) => {
+router.delete('/tasks/:id', authenticateToken, requirePermission('project:edit'), (req, res) => {
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = req.user?.role || 'Creative User';
@@ -627,7 +629,7 @@ router.patch('/studio-tasks/:id', authenticateToken, (req, res) => {
   }
 });
 
-router.delete('/studio-tasks/:id', authenticateToken, (req, res) => {
+router.delete('/studio-tasks/:id', authenticateToken, requirePermission('project:edit'), (req, res) => {
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = req.user?.role || 'Creative User';
@@ -919,41 +921,40 @@ router.get('/projects', authenticateToken, (req, res) => {
 
 router.post('/projects', authenticateToken, requirePermission('project:create'), (req, res) => {
   try {
-    const { title, brand = 'SS', designer, priority = 'normal', department = 'Creative Production', deadline } = req.body;
+    const { title, brand = 'SS', designer, priority = 'medium', department = 'Creative Production', deadline } = req.body;
     if (!title || typeof title !== 'string' || !title.trim()) {
       return res.status(400).json({ error: 'Project title is required.' });
     }
 
     const cleanTitle = title.trim();
-    const cleanBrand = String(brand || 'SS').trim().toUpperCase();
+    const cleanBrand = String(brand || 'SS').trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'SS';
     const assignedDesigner = (designer || (req.user && (req.user.name || req.user.username)) || 'Unassigned').trim();
-    const cleanPriority = String(priority || 'normal').toLowerCase();
+    const cleanPriority = ProjectFormat.normalizePriority(priority);
     const cleanDept = String(department || 'Creative Production').trim();
 
-    // Canonical project naming: YYYYMM_<JOBID>_<BRAND>_<TITLE>
+    // Same layout and numbering as the Windows Project Creator:
+    // <YYYY>/<YYYYMM>_<Month>/<YYYYMM>_<NNNN>D_<BRAND>_<Title>, with the next sequential project ID.
     const now = new Date();
-    const dateCode = now.toISOString().slice(0, 7).replace('-', '');
-    const jobSeq = `${Math.floor(1000 + Math.random() * 9000)}D`;
-    const safeTitlePart = cleanTitle.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_');
-    const folderName = `${dateCode}_${jobSeq}_${cleanBrand}_${safeTitlePart}`;
-    const projectDir = path.join(WorkspaceService.workspaceRoot, folderName);
+    WorkspaceService.scan(true);
+    const knownFolders = (WorkspaceService.projectsCache || []).map(p => p.folderName || p.id);
+    const jobSeq = ProjectFormat.nextProjectId(knownFolders, 'D');
+    const folderName = ProjectFormat.buildProjectFolderName(now, jobSeq, cleanBrand, cleanTitle);
+    const projectDir = path.join(ProjectFormat.getMonthContainer(WorkspaceService.workspaceRoot, now), folderName);
+    if (fs.existsSync(projectDir)) {
+      return res.status(409).json({ error: 'A project with this name already exists. Please try again.' });
+    }
 
     const deadlineStr = deadline ? String(deadline).trim() : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const createdStr = now.toISOString().slice(0, 10);
 
-    // Create project subfolders
-    const subfolders = ['01_BRIEF_ASSETS', '02_SOURCE_FILES', '03_COPYWRITING', '04_WORK_IN_PROGRESS', '05_DELIVERABLES'];
-    for (const sub of subfolders) {
-      const p = path.join(projectDir, sub);
-      if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
-    }
+    ProjectFormat.createProjectFolders(projectDir);
 
     // Write README.md with YAML frontmatter
     const frontmatter = {
       title: cleanTitle,
       brand: cleanBrand,
       designer: assignedDesigner,
-      status: 'in_progress',
+      status: 'backlog',
       priority: cleanPriority,
       created: createdStr,
       createdDate: createdStr,
@@ -962,7 +963,7 @@ router.post('/projects', authenticateToken, requirePermission('project:create'),
       deadline: deadlineStr,
       duration: '7 days',
       department: cleanDept,
-      revision: 1
+      revision: 0
     };
 
     const initialBody = `# ${cleanTitle}\n\nProject brief and deliverables created via SS-CAM.\n`;
@@ -1009,7 +1010,7 @@ router.post('/projects', authenticateToken, requirePermission('project:create'),
       id: folderName,
       title: cleanTitle,
       brand: cleanBrand,
-      status: 'in_progress',
+      status: 'backlog',
       priority: cleanPriority,
       designer: assignedDesigner,
       deadline: deadlineStr,
@@ -1018,76 +1019,6 @@ router.post('/projects', authenticateToken, requirePermission('project:create'),
   } catch (err) {
     console.error('[API:Projects] Create project error:', err.message);
     res.status(500).json({ error: err.message });
-  }
-});
-
-// ─── TASKS & WORKSTREAM (CLICKUP-STYLE MULTI-TENANT ENGINE) ─────────────
-
-router.get('/tasks', authenticateToken, (req, res) => {
-  try {
-    const { role, assignee, status, projectId, search } = req.query;
-    const tasks = TaskService.getAllTasks({ role, assignee, status, projectId, search });
-    const stats = TaskService.getStats();
-    res.json({ success: true, tasks, stats });
-  } catch (err) {
-    console.error('[API:Tasks] List tasks error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.post('/tasks', authenticateToken, (req, res) => {
-  try {
-    const { projectId, name, title, role, assignee, assigneeName, status, weight, channel, specs, notes, deliverableId, linkedFile } = req.body;
-    if (!projectId) {
-      return res.status(400).json({ error: 'projectId is required to link task' });
-    }
-    if (!name && !title) {
-      return res.status(400).json({ error: 'Task name/title is required' });
-    }
-
-    const actor = (req.user && (req.user.name || req.user.username)) || 'User';
-    const task = TaskService.createTask(projectId, {
-      name: name || title,
-      role,
-      assignee,
-      assigneeName,
-      status,
-      weight,
-      channel,
-      specs,
-      notes,
-      deliverableId,
-      linkedFile
-    }, actor);
-
-    res.status(201).json({ success: true, task });
-  } catch (err) {
-    console.error('[API:Tasks] Create task error:', err.message);
-    res.status(err.message.includes('not found') ? 404 : 500).json({ error: err.message });
-  }
-});
-
-router.patch('/tasks/:projectId/:taskId', authenticateToken, (req, res) => {
-  try {
-    const { projectId, taskId } = req.params;
-    const actor = (req.user && (req.user.name || req.user.username)) || 'User';
-    const task = TaskService.updateTask(projectId, taskId, req.body, actor);
-    res.json({ success: true, task });
-  } catch (err) {
-    console.error('[API:Tasks] Update task error:', err.message);
-    res.status(err.message.includes('not found') ? 404 : 500).json({ error: err.message });
-  }
-});
-
-router.delete('/tasks/:projectId/:taskId', authenticateToken, requirePermission('project:edit'), (req, res) => {
-  try {
-    const { projectId, taskId } = req.params;
-    const actor = (req.user && (req.user.name || req.user.username)) || 'User';
-    const result = TaskService.deleteTask(projectId, taskId, actor);
-    res.json(result);
-  } catch (err) {
-    console.error('[API:Tasks] Delete task error:', err.message);
-    res.status(err.message.includes('not found') ? 404 : 500).json({ error: err.message });
   }
 });
 
@@ -1169,6 +1100,16 @@ router.get('/projects/:id/asset', (req, res) => {
     if (!targetPath.startsWith(rootWithSep) && targetPath !== projectRoot) {
       console.warn(`[API] /projects/:id/asset Path traversal attempt blocked: ${targetPath}`);
       return res.status(403).send('Access denied: Path traversal detected');
+    }
+
+    // This route is public (brief images, client review), so never serve hidden files
+    // or project data files such as _comments.jsonl, _lock.json or snapshot metadata.
+    const BLOCKED_ASSET_EXTENSIONS = ['.json', '.jsonl', '.env', '.lock', '.tmp'];
+    const relSegments = path.relative(projectRoot, targetPath).split(path.sep);
+    if (relSegments.some(seg => seg.startsWith('.')) ||
+        BLOCKED_ASSET_EXTENSIONS.includes(path.extname(targetPath).toLowerCase())) {
+      console.warn(`[API] /projects/:id/asset Blocked non-asset file request: ${targetPath}`);
+      return res.status(403).send('Access denied');
     }
 
     // 1. Direct path match
@@ -1643,7 +1584,8 @@ router.get('/ai/status', authenticateToken, (req, res) => {
   }
 });
 
-router.post('/ai/config', authenticateToken, (req, res) => {
+// AI key and model are site settings: admins only.
+router.post('/ai/config', authenticateToken, requireRole('admin'), (req, res) => {
   try {
     const { apiKey, preferredModel } = req.body;
     const ok = GeminiService.saveApiKey(apiKey, preferredModel);
@@ -1893,7 +1835,7 @@ router.get('/webhooks', authenticateToken, (req, res) => {
   }
 });
 
-router.post('/webhooks', authenticateToken, (req, res) => {
+router.post('/webhooks', authenticateToken, requireRole('admin'), (req, res) => {
   try {
     const { name, url, serviceType, events, active } = req.body;
     const hook = WebhookService.addWebhook({ name, url, serviceType, events, active });
@@ -1903,7 +1845,7 @@ router.post('/webhooks', authenticateToken, (req, res) => {
   }
 });
 
-router.delete('/webhooks/:id', authenticateToken, (req, res) => {
+router.delete('/webhooks/:id', authenticateToken, requireRole('admin'), (req, res) => {
   try {
     const ok = WebhookService.deleteWebhook(req.params.id);
     res.json({ success: ok });
@@ -1912,7 +1854,7 @@ router.delete('/webhooks/:id', authenticateToken, (req, res) => {
   }
 });
 
-router.post('/webhooks/test', authenticateToken, async (req, res) => {
+router.post('/webhooks/test', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const { url, serviceType } = req.body;
     const result = await WebhookService.testPing(url, serviceType);
@@ -2331,7 +2273,9 @@ router.get('/users', authenticateToken, (req, res) => {
   }
 });
 
-const DEFAULT_PASSWORD = 'SuamiSihat123!';
+// Default password for new accounts and admin "reset to default". Override per tenant with
+// DEFAULT_STAFF_PASSWORD in .env. Must meet the 10-character minimum.
+const DEFAULT_PASSWORD = process.env.DEFAULT_STAFF_PASSWORD || 'SuamiSihat123';
 
 function handleCreateStaffUser(req, res) {
   try {
@@ -2340,7 +2284,7 @@ function handleCreateStaffUser(req, res) {
       return res.status(400).json({ error: 'Password must be at least 10 characters long.' });
     }
     const newMember = TeamService.addStaffMember(req.body);
-    // Always set a password — use provided or fall back to SuamiSihat123! default
+    // Always set a password — use the one provided or fall back to DEFAULT_PASSWORD
     updateUserPassword(newMember.username, password);
     AuditService.logEvent({
       actor: req.user.name,
@@ -2459,7 +2403,7 @@ router.post('/users/:username/reset-password', authenticateToken, requireRole('a
 });
 
 // ─── ADMIN: RESET TO DEFAULT PASSWORD ────────────────────────────────────────
-// One-click reset to SuamiSihat123! without typing — shows in audit log.
+// One-click reset to DEFAULT_PASSWORD without typing — recorded in the audit log.
 router.post('/users/:username/reset-to-default', authenticateToken, requireRole('admin'), (req, res) => {
   try {
     updateUserPassword(req.params.username, DEFAULT_PASSWORD);
@@ -2471,41 +2415,9 @@ router.post('/users/:username/reset-to-default', authenticateToken, requireRole(
       entityId: req.params.username,
       details: { resetBy: req.user.username }
     });
-    res.json({ success: true, message: 'Password reset to default (SuamiSihat123!) for ' + req.params.username + '. Ask them to change it after login.' });
+    res.json({ success: true, message: 'Password for ' + req.params.username + ' reset to the default (' + DEFAULT_PASSWORD + '). Ask them to change it after signing in.' });
   } catch (err) {
     res.status(400).json({ error: err.message });
-  }
-});
-
-// ─── PUBLIC: FORGOT PASSWORD REQUEST ─────────────────────────────────────────
-// No email — records a visible help request in the audit log for the admin.
-// Rate-limited to prevent abuse.
-const forgotLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3,
-  keyGenerator: (req) => (req.body && req.body.username) ? req.body.username.toLowerCase() : req.ip,
-  validate: false,
-  message: { error: 'Too many password reset requests. Please contact your administrator directly.' }
-});
-router.post('/auth/forgot-password', forgotLimiter, (req, res) => {
-  try {
-    const { username } = req.body;
-    if (!username || typeof username !== 'string') {
-      return res.status(400).json({ error: 'Username is required.' });
-    }
-    // Record the request — admin can see it in the Audit Log tab
-    AuditService.logEvent({
-      actor: username.toLowerCase().trim(),
-      role: 'Unknown',
-      action: 'AUTH_PASSWORD_RESET_REQUESTED',
-      entityType: 'User',
-      entityId: username.toLowerCase().trim(),
-      details: { requestIp: req.ip, note: 'Admin: use Admin Panel → Staff → Reset to Default to resolve.' }
-    });
-    // Always return the same message (no user enumeration)
-    res.json({ success: true, message: 'Your request has been logged. Please ask your administrator to reset your password from the Admin Panel.' });
-  } catch (err) {
-    res.status(500).json({ error: 'Unable to process request.' });
   }
 });
 
@@ -2607,7 +2519,7 @@ router.delete('/companies/:code', authenticateToken, requireRole('admin'), (req,
 
 // ─── AUDIT LOGS ─────────────────────────────────────────────────────
 
-router.get('/audit', authenticateToken, (req, res) => {
+router.get('/audit', authenticateToken, requirePermission('admin:system_audit'), (req, res) => {
   try {
     const logs = AuditService.getLogs({
       limit: parseInt(req.query.limit, 10) || 100,
@@ -2931,7 +2843,7 @@ router.post('/notes', authenticateToken, (req, res) => {
 
     const cleanTitle = (title || 'Untitled Note').trim();
     const cleanBody = (body || '').trim();
-    const frontmatter = `---\npinned: ${isPinned ? 'true' : 'false'}\npriority: ${priority.toLowerCase()}\n---\n`;
+    const frontmatter = `---\npinned: ${isPinned ? 'true' : 'false'}\npriority: ${String(priority).toLowerCase().replace(/[^a-z]/g, '') || 'normal'}\n---\n`;
     const fullContent = `${frontmatter}# ${cleanTitle}\n\n${cleanBody}\n`;
 
     fs.writeFileSync(filePath, fullContent, 'utf8');
@@ -2949,7 +2861,8 @@ router.post('/notes', authenticateToken, (req, res) => {
 
 router.delete('/notes/:id', authenticateToken, (req, res) => {
   try {
-    const { id } = req.params;
+    // Same filename rule as POST /notes, so an encoded '../' in the id cannot escape the notes folder.
+    const id = path.basename(String(req.params.id)).replace(/[^a-zA-Z0-9_-]/g, '_');
     const dirs = getAllNotesDirs();
     let deleted = false;
 

@@ -18,7 +18,7 @@ namespace SS_CAM.Linux.Services
                     IsDefault = true,
                     SlaDays = 3,
                     SlotWeight = 1.0,
-                    Folders = new List<string> { "01_BRIEFS", "02_RAW_ASSETS", "03_WORKING_FILES", "04_EXPORTS", "05_DELIVERABLES" }
+                    Folders = new List<string> { "01_BRIEF_ASSETS", "02_SOURCE_FILES", "03_COPYWRITING", "04_WORK_IN_PROGRESS", "05_DELIVERABLES" }
                 },
                 new CategoryPreset
                 {
@@ -28,7 +28,7 @@ namespace SS_CAM.Linux.Services
                     IsDefault = true,
                     SlaDays = 2,
                     SlotWeight = 0.7,
-                    Folders = new List<string> { "01_BRIEFS", "02_RAW_ASSETS", "03_WORKING_FILES", "04_EXPORTS", "05_DELIVERABLES" }
+                    Folders = new List<string> { "01_BRIEF_ASSETS", "02_SOURCE_FILES", "03_COPYWRITING", "04_WORK_IN_PROGRESS", "05_DELIVERABLES" }
                 },
                 new CategoryPreset
                 {
@@ -38,7 +38,7 @@ namespace SS_CAM.Linux.Services
                     IsDefault = true,
                     SlaDays = 7,
                     SlotWeight = 2.0,
-                    Folders = new List<string> { "01_BRIEFS", "02_RAW_ASSETS", "03_WORKING_FILES", "04_EXPORTS", "05_DELIVERABLES" }
+                    Folders = new List<string> { "01_BRIEF_ASSETS", "02_SOURCE_FILES", "03_COPYWRITING", "04_WORK_IN_PROGRESS", "05_DELIVERABLES" }
                 },
                 new CategoryPreset
                 {
@@ -48,7 +48,7 @@ namespace SS_CAM.Linux.Services
                     IsDefault = true,
                     SlaDays = 5,
                     SlotWeight = 2.0,
-                    Folders = new List<string> { "01_BRIEFS", "02_RAW_ASSETS", "03_WORKING_FILES", "04_EXPORTS", "05_DELIVERABLES" }
+                    Folders = new List<string> { "01_BRIEF_ASSETS", "02_SOURCE_FILES", "03_COPYWRITING", "04_WORK_IN_PROGRESS", "05_DELIVERABLES" }
                 },
                 new CategoryPreset
                 {
@@ -58,7 +58,7 @@ namespace SS_CAM.Linux.Services
                     IsDefault = true,
                     SlaDays = 10,
                     SlotWeight = 2.5,
-                    Folders = new List<string> { "01_BRIEFS", "02_RAW_ASSETS", "03_WORKING_FILES", "04_EXPORTS", "05_DELIVERABLES" }
+                    Folders = new List<string> { "01_BRIEF_ASSETS", "02_SOURCE_FILES", "03_COPYWRITING", "04_WORK_IN_PROGRESS", "05_DELIVERABLES" }
                 },
                 new CategoryPreset
                 {
@@ -68,7 +68,7 @@ namespace SS_CAM.Linux.Services
                     IsDefault = true,
                     SlaDays = 3,
                     SlotWeight = 1.0,
-                    Folders = new List<string> { "01_BRIEFS", "02_RAW_ASSETS", "03_WORKING_FILES", "04_EXPORTS", "05_DELIVERABLES" }
+                    Folders = new List<string> { "01_BRIEF_ASSETS", "02_SOURCE_FILES", "03_COPYWRITING", "04_WORK_IN_PROGRESS", "05_DELIVERABLES" }
                 },
                 new CategoryPreset
                 {
@@ -78,7 +78,7 @@ namespace SS_CAM.Linux.Services
                     IsDefault = true,
                     SlaDays = 5,
                     SlotWeight = 1.5,
-                    Folders = new List<string> { "01_BRIEFS", "02_RAW_ASSETS", "03_WORKING_FILES", "04_EXPORTS", "05_DELIVERABLES" }
+                    Folders = new List<string> { "01_BRIEF_ASSETS", "02_SOURCE_FILES", "03_COPYWRITING", "04_WORK_IN_PROGRESS", "05_DELIVERABLES" }
                 }
             };
         }

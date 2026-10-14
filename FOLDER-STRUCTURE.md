@@ -18,22 +18,27 @@ For detailed step-by-step setup, see [SSNAS Setup Guide](./docs/SSNAS-SETUP.md).
 
 ## 🏛️ Centralized Directory Hierarchy Specification
 
-The official studio standard organizes all projects by **Year** and **Month**, maintaining a single source of truth across all designers and departments:
+The official studio standard organizes all projects by **Year** and **Month**, maintaining a single source of truth across all designers and departments. Since the current unreleased update (after v5.2.0) all four SS-CAM apps — Windows, Web, Linux and Android — create projects in exactly this layout:
 
 ```text
 Creative-Team/                             ← WorkspaceRoot (E:\SynologyDrive\Creative-Team or \\SSNAS\Creative-Team)
 │
 ├── _Team/                                  ← Studio-wide shared governance, configs & logs
-│   ├── audit-log.jsonl                     ← Immutable security & activity trail
+│   ├── audit-log.jsonl                     ← Append-only security & activity trail (Web portal + desktop)
 │   ├── team-notes.json                     ← Team Board announcements & bulletin
-│   ├── companies.json                      ← Subsidiary master registry (SSH, SSC, SSW, SSE, SST)
-│   └── staff-roster.json                   ← Authenticated personnel credentials
+│   ├── live_tasks.json                     ← Live task telemetry shared with the Web portal
+│   └── _Config/
+│       ├── staff_directory.json            ← Staff accounts, roles and active flag
+│       └── companies.json                  ← Subsidiary master registry (SSH, SSC, SSW, SSE, SST)
 │
-└── [YYYY]/                                 ← Centralized Year Root (e.g. 2026)
-    ├── [YYYYMM_Month]/                     ← Chronological Month Container (e.g. 202608_August)
+├── _Orders/
+│   └── creative-orders.jsonl               ← Creative order ledger (one JSON record per line)
+│
+└── [YYYY]/                                 ← Year folder, plain year only (e.g. 2026 — never "SS-2026")
+    ├── [YYYYMM_Month]/                     ← Month folder, English month name (e.g. 202610_October)
     │   │
-    │   ├── [YYYYMM]_[ProjectID]_[Brand]_[Title]/ ← Canonical Project Directory (e.g. 202608_0085D_SS_Rejal_Packaging)
-    │   │   ├── README.md                   ← Creative brief & YAML frontmatter metadata
+    │   ├── [YYYYMM]_[NNNN][Type]_[BRAND]_[Title]/ ← Project folder (e.g. 202610_0085D_SS_Rejal_Packaging)
+    │   │   ├── README.md                   ← Creative brief + YAML frontmatter (the only project details file)
     │   │   ├── _comments.jsonl             ← In-project contextual discussion thread
     │   │   ├── 01_BRIEF_ASSETS/            ← Raw client references, moodboards, logos, fonts
     │   │   ├── 02_SOURCE_FILES/            ← Working source files (.psd, .ai, .aep, .blend, .af)
@@ -41,10 +46,12 @@ Creative-Team/                             ← WorkspaceRoot (E:\SynologyDrive\C
     │   │   ├── 04_WORK_IN_PROGRESS/        ← Draft previews, WIP renders, review mockups
     │   │   └── 05_DELIVERABLES/            ← Final approved client master files (PDF, PNG, MP4)
     │   │
-    │   └── 202608_0086S_SSE_Merdeka_Promo/
+    │   └── 202610_0086S_SSE_Merdeka_Promo/
     │
-    └── 202607_July/
+    └── 202609_September/
 ```
+
+There is no `project.yaml` file: everything about a project (status, priority, designer, deadline, revision) lives in the `README.md` frontmatter.
 
 ---
 
@@ -56,7 +63,7 @@ Format:
 | Component | Format | Description | Example |
 |---|---|---|---|
 | **Date Code** | `YYYYMM` | Four-digit year + two-digit month | `202608` |
-| **Job ID** | `####X` | Four-digit sequence followed by discipline preset code (`D`, `S`, `V`, `P`, `E`, `W`) | `0085D` |
+| **Job ID** | `####X` | Next sequential four-digit project ID (highest existing ID + 1), followed by the discipline preset code (`D`, `S`, `V`, `P`, `E`, `W`) | `0085D` |
 | **Sub-brand** | Identifier | Official business code (`SS`, `SSH`, `SSC`, `SSW`, `SSE`, `SST`) | `SSE` |
 | **Project Name** | Title | Concise description separated by underscores | `Rejal_Packaging` |
 
@@ -90,7 +97,23 @@ Each canonical project directory contains 5 standardized numbered subfolders:
 
 ## 📄 README.md Frontmatter Specification
 
-Every project `README.md` includes an Obsidian-compatible YAML frontmatter header powering both the desktop **Task Manager** and the **Web Portal**:
+Every project `README.md` includes an Obsidian-compatible YAML frontmatter header powering the desktop **Task Manager**, the **Web Portal**, and the Linux and Android apps.
+
+**Project status values** (the same on every app):
+
+| Value | Meaning |
+|---|---|
+| `backlog` | New, not started (every new project starts here, with `priority: medium` and `revision: 0`) |
+| `in-progress` | Being worked on |
+| `review` | Waiting for review |
+| `revision` | Changes requested |
+| `approved` | Signed off — approving a project writes `approved` on every app |
+| `on-hold` | Paused |
+| `done` | Legacy value only; shown as "Archived" on the Web dashboard |
+
+Older spellings found in existing projects (`in_progress`, `in_review`, `on_hold`, `priority: normal`) are still read and treated as the canonical value (`in-progress`, `review`, `on-hold`, `medium`).
+
+Example:
 
 ```yaml
 ---
@@ -140,6 +163,6 @@ The dedicated copywriting studio document is saved inside `03_COPYWRITING/COPY.m
 
 The SS-CAM scanner automatically recognizes legacy paths and alias folders:
 
-- Legacy root: `Creative-Team/[Staff_ID]/SS-[YYYY]/...`
+- Legacy root: `Creative-Team/[Staff_ID]/SS-[YYYY]/...` (read only — new projects are never created with the `SS-` year prefix).
 - Legacy folder aliases: `Artwork Design` → `02_SOURCE_FILES`, `Production` → `05_DELIVERABLES`, `Artwork Mockup` → `04_WORK_IN_PROGRESS`.
 - Legacy projects are indexed alongside centralized projects without data loss.

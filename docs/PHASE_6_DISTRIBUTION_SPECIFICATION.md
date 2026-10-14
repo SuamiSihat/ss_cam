@@ -2,6 +2,8 @@
 
 **Document Version:** 1.0.0  
 **Status:** Completed & Validated  
+> **Status note (2026-10-14):** The distribution design/specification is complete, and a static landing page exists in `docs/commercial-landing/`. Not yet implemented in the repository: the license checkout flow, a CI pipeline (no `.github/workflows`), and code signing. White-label de-branding is still in progress (see [SUAMISIHAT-COUPLING-INVENTORY.md](./SUAMISIHAT-COUPLING-INVENTORY.md)).
+
 **Prerequisites:** Phase 4 (Cost Modelling), Phase 5 (Revenue & GTM Pricing Strategy)  
 **Deliverable:** Commercial Web Architecture, License Checkout Flow, Multi-Platform Download Hub, and Auto-Update Channel Specification
 

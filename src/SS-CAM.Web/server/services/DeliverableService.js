@@ -2,6 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../config');
 
+// Supported deliverable media formats. Also used by resolveSafePath so the public
+// preview/stream/download routes can only ever serve media, never config or data files.
+const MEDIA_EXTENSIONS = [
+  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.bmp', '.tiff',
+  '.mp4', '.webm', '.mov', '.mkv', '.avi',
+  '.pdf',
+  '.mp3', '.wav', '.ogg', '.m4a'
+];
+
 class DeliverableService {
   /**
    * Retrieves all deliverables and design assets for a project folder.
@@ -12,13 +21,7 @@ class DeliverableService {
       return [];
     }
 
-    // Supported deliverable media formats
-    const mediaExtensions = [
-      '.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.bmp', '.tiff',
-      '.mp4', '.webm', '.mov', '.mkv', '.avi',
-      '.pdf',
-      '.mp3', '.wav', '.ogg', '.m4a'
-    ];
+    const mediaExtensions = MEDIA_EXTENSIONS;
 
     const results = [];
     const WorkspaceService = require('./WorkspaceService');
@@ -347,12 +350,18 @@ class DeliverableService {
         return null;
       }
 
+      if (!MEDIA_EXTENSIONS.includes(path.extname(normalizedPath).toLowerCase())) {
+        console.warn(`[DeliverableService] Blocked non-media file request: ${normalizedPath}`);
+        return null;
+      }
+
       if (!fs.existsSync(normalizedPath)) {
         return null;
       }
 
       return normalizedPath;
     } catch (e) {
+      console.warn('[DeliverableService] Could not resolve asset id:', e.message);
       return null;
     }
   }

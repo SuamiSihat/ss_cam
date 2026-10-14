@@ -2,13 +2,27 @@ package com.suamisihat.sscam.data.models
 
 import com.google.gson.annotations.SerializedName
 
+// Canonical project status values written to README.md frontmatter. Must match the
+// Windows app (Models/ProjectStatus.cs) and Web (server/services/ProjectFormat.js).
+// normalizedStatus below is only an internal display key.
 object ProjectStatusConstants {
     const val BACKLOG = "backlog"
-    const val IN_PROGRESS = "in_progress"
-    const val REVIEW = "in_review"
+    const val IN_PROGRESS = "in-progress"
+    const val REVIEW = "review"
     const val REVISION = "revision"
-    const val APPROVED = "done"
-    const val ON_HOLD = "on_hold"
+    const val APPROVED = "approved"
+    const val ON_HOLD = "on-hold"
+
+    /** Maps any legacy or display spelling to the canonical value sent to the server. */
+    fun toCanonical(status: String): String = when (status.lowercase().trim()) {
+        "in_progress", "inprogress", "in progress", "in-progress" -> IN_PROGRESS
+        "in_review", "inreview", "in-review", "review" -> REVIEW
+        "revision", "revision_requested" -> REVISION
+        "done", "approved", "completed" -> APPROVED
+        "queued", "stuck", "on_hold", "on-hold", "hold", "paused" -> ON_HOLD
+        "backlog", "" -> BACKLOG
+        else -> status
+    }
 }
 
 data class ProjectsResponse(

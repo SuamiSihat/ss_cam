@@ -1,5 +1,23 @@
 # SS-CAM FINAL QA REPORT
 
+## 2026-10-14 — Unreleased Changes on Top of v5.2.0
+
+Scope: cross-platform project format unification, web access-control hardening, default password, repository cleanup (details in `10-FIX-LOG.md` and `ROUTE-AUTHZ-MATRIX.md`).
+
+| Check | Status | Notes |
+|---|---|---|
+| Windows Release build (`run-sscam-qa.ps1 -Build -Configuration Release`) | **PASS** | |
+| Source Guardian (`QA/verify-sscam.ps1`) | **PASS** | 14/14 checks |
+| Web server tests (`npm test`) | **PASS** | Test count: see `10-FIX-LOG.md` |
+| Linux Release build | **PASS** | 0 warnings, .NET 10.0.402 SDK |
+| Android `compileDebugKotlin` | **PASS** | Compile only; no device or emulator run |
+| Cross-platform format check (`QA/verify-format-sync.ps1`) | **PASS** | Run on its own |
+| Desktop launch smoke test | **BLOCKED** | Not run, to avoid touching the production NAS workspace |
+
+The older sections below are kept as recorded and were not re-verified on 2026-10-14.
+
+---
+
 ## Status: PASS — v5.2.0 Feature Release
 
 **QA Date**: 2026-10-12  

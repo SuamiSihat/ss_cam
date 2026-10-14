@@ -7,7 +7,26 @@ namespace SS_CAM.Linux.Models
     {
         public string Project { get; set; } = "";
         public string FullPath { get; set; } = "";
-        public string Status { get; set; } = "backlog"; // backlog|in-progress|review|done|on-hold
+        public string Status { get; set; } = "backlog"; // backlog|in-progress|review|revision|approved|on-hold (done = archived)
+
+        /// <summary>
+        /// Folds legacy spellings (in_progress, in_review, on_hold, completed...) into the canonical
+        /// values shared with the Windows app and Web portal.
+        /// </summary>
+        public static string NormalizeStatus(string? status)
+        {
+            string s = (status ?? "").Trim().Trim('"', '\'').ToLowerInvariant();
+            switch (s)
+            {
+                case "": case "todo": case "pending": case "draft": return "backlog";
+                case "in_progress": case "inprogress": case "in progress": case "active": return "in-progress";
+                case "in_review": case "in-review": return "review";
+                case "revision_required": case "revision-required": case "changes_requested": return "revision";
+                case "completed": return "approved";
+                case "on_hold": case "onhold": case "paused": return "on-hold";
+                default: return s;
+            }
+        }
         public string Designer { get; set; } = "";
         public string Client { get; set; } = "";
         public string Deadline { get; set; } = "";
@@ -91,10 +110,12 @@ namespace SS_CAM.Linux.Models
             {
                 switch (Status?.ToLowerInvariant())
                 {
-                    case "in-progress": return "In Progress";
-                    case "review": return "In Review";
-                    case "done": return "Completed";
-                    case "on-hold": return "On Hold";
+                    case "in-progress": return "In progress";
+                    case "review": return "Review";
+                    case "revision": return "Revision";
+                    case "approved": return "Approved";
+                    case "done": return "Archived";
+                    case "on-hold": return "On hold";
                     default: return "Backlog";
                 }
             }

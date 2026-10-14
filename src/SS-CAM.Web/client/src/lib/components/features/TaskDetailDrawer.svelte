@@ -1170,13 +1170,15 @@
     <!-- ═══ FOOTER ACTIONS ═══ -->
     <div class="drawer-footer">
       <div class="footer-left">
-        {#if !showDeleteConfirm}
+        {#if !appState.hasPermission('project:edit')}
+          <!-- Only managers and admins can delete tasks -->
+        {:else if !showDeleteConfirm}
           <button
             type="button"
             class="delete-task-btn"
             onclick={handleDeleteClick}
             disabled={isDeleting || isSaving}
-            title="Delete Task Permanently"
+            title="Delete task permanently"
           >
             <FluentIcons name="trash" size={14} />
             <span>Delete</span>

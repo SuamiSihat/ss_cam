@@ -231,7 +231,6 @@
     <Compile Include="Services\WellbeingDataService.cs" />
     <Compile Include="Services\WellbeingTimerService.cs" />
     <Compile Include="Services\FatigueRuleEngine.cs" />
-    <Compile Include="Services\ProjectGeneratorService.cs" />
     <Compile Include="Services\WorkspaceScanner.cs" />
     <Compile Include="Services\UserProfileService.cs" />
     <Compile Include="Services\PayloadInstallerService.cs" />

@@ -68,33 +68,35 @@ Dependency Mgmt   NuGet (packages.config)
 
 ## 2. Repository Structure
 
+SS-CAM has four client apps in one repository (single trunk `SS-Master`). All four share the same project format on the NAS — see [FOLDER-STRUCTURE.md](./FOLDER-STRUCTURE.md).
+
 ```text
-SS-Brand-Assets/
+SS-CAM/
 ├── src/
-│   └── SS-CAM/                        C# WPF application source
-│       ├── Models/                    Data models (Dashboard, UserProfile, Wellbeing, Radio, Team)
-│       ├── Services/                  Business logic and data access services
-│       ├── Views/                     XAML pages and code-behind
-│       ├── Properties/                Assembly metadata (version, GUID)
-│       ├── packages/                  NuGet restored dependencies
-│       ├── SS-CAM.csproj              MSBuild project file
-│       └── app.ico                    Application icon
-├── installer/
-│   ├── src/                           Legacy PowerShell setup scripts (v1.x)
-│   ├── bootstrapper/                  Legacy C# EXE bootstrapper (v1.x)
-│   ├── assets/                        Installer branding images
-│   ├── EULA.txt                       End User Licence Agreement
-│   └── Build-Installer.ps1            Versioned build script (supports v1.x and v2.x+)
+│   ├── SS-CAM/                        Windows desktop app (C# WPF, .NET Framework 4.8)
+│   │   ├── Models/ Services/ Views/   Data models, business logic, XAML pages
+│   │   ├── Dialogs/ Converters/ Styles/ Utilities/ Plugins/ Resources/
+│   │   ├── Properties/                Assembly metadata (version, GUID)
+│   │   ├── packages/                  NuGet restored dependencies
+│   │   └── SS-CAM.csproj              MSBuild project file
+│   ├── SS-CAM.Web/                    Web portal: Svelte client + Node/Express server (Docker)
+│   │   ├── client/src/                Svelte client (built with Vite)
+│   │   ├── server/                    API routes, services, middleware, tests
+│   │   ├── sample-workspace/          Test fixture (tests run on a temporary copy)
+│   │   └── Dockerfile, docker-compose.yml
+│   ├── SS-CAM.Linux/                  Linux desktop app (Avalonia, .NET 10)
+│   └── SS-CAM.Android/                Android companion app (Kotlin, Gradle)
+├── QA/                                QA documents, fix log, gate and check scripts
+├── docs/                              Specifications, public wiki, screenshots, landing pages
+├── installer/                         Windows build script, Linux package script, EULA, legacy v1.x bootstrapper
 ├── payload/
 │   ├── Fonts/                         Installable desktop typefaces and licences
 │   ├── Audio/                         Ambient and interaction sound effects
-│   └── Brand Assets/
-│       ├── Logos/                     SVG and PNG logo variants per sub-brand
-│       ├── Libraries/                 .afassets and .cclibs files
-│       └── Colour Palettes/           .afpalette and .ase swatch files
-├── tests/                             PowerShell smoke and integration tests
-├── docs/                              Application screenshot assets
+│   └── Brand Assets/                  Logos, design libraries, colour palettes
+├── tests/                             PowerShell smoke and integration tests (Windows)
+├── .agents/skills/                    Agent skills (QA runner, code guardian, release tools)
 ├── dist/                              Build output — not committed (see .gitignore)
+├── AGENTS.md                          Rules for contributors and coding agents
 ├── CHANGELOG.md                       Release history with integrity hashes
 ├── CONTRIBUTING.md                    This document
 ├── FOLDER-STRUCTURE.md                Workspace folder naming convention and frontmatter spec
@@ -147,6 +149,40 @@ dist\SS-CAM-v2.5.0.exe   (~5 MB, single-file, all dependencies embedded)
 
 > **C# Language Version:** The MSBuild compiler at `C:\Windows\Microsoft.NET\Framework64\v4.0.30319` only accepts `/langversion:5` (C# 5). Do **not** add `<LangVersion>` to the `.csproj` or use features requiring C# 6+ (expression-bodied members, null-conditional operators, string interpolation). Use `string.Format()` and explicit null checks throughout.
 
+### Windows Release Build via the QA Runner (Recommended)
+
+```powershell
+.\.agents\skills\sscam-qa\scripts\run-sscam-qa.ps1 -Build -Configuration Release
+```
+
+### Web Portal (`src/SS-CAM.Web`)
+
+```powershell
+cd src\SS-CAM.Web
+npm install
+npm test               # server tests; run on a temporary copy of sample-workspace
+npm run build:client   # builds the Svelte client
+docker compose up -d   # serves the portal on port 4000
+```
+
+The server reports its version from `package.json`. Copy `.env.example` to `.env` for local settings (for example `DEFAULT_STAFF_PASSWORD`).
+
+### Linux App (`src/SS-CAM.Linux`, requires .NET 10 SDK)
+
+```powershell
+cd src\SS-CAM.Linux
+dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true
+```
+
+Or build the Linux package with `installer\build-linux-package.ps1`.
+
+### Android App (`src/SS-CAM.Android`, requires JDK 17)
+
+```powershell
+cd src\SS-CAM.Android
+.\gradlew.bat bundleRelease
+```
+
 ### Legacy v1.x Bootstrapper Build
 
 ```powershell
@@ -184,7 +220,21 @@ To reset to a clean state during development, delete:
 
 ## 6. Testing & Verification
 
-All test scripts are located in `tests\`.
+### Governance Gate (run before every commit)
+
+```powershell
+.\QA\verify-dual-track.ps1          # add -Build to include step 4
+```
+
+The gate has 4 steps: (1) Source Guardian, (2) public documentation leakage audit, (3) cross-platform project format check (`QA\verify-format-sync.ps1`), (4) optional Release build (`-Build`).
+
+`QA\verify-format-sync.ps1` can also be run on its own. It only reads files and checks that Windows, Web, Linux and Android agree on project status values, the 5 project subfolders, the year/month folder layout and the `03_COPYWRITING/COPY.md` location.
+
+`QA\sync-design-tokens.ps1` compares design tokens against `..\ss-assets\SS-Design-System\assets\tokens\design-tokens.json` by default (override with `-TokensPath`). It changes nothing unless `-Apply` is passed.
+
+### Windows Test Scripts
+
+Windows test scripts are located in `tests\`. Web tests run with `npm test` in `src\SS-CAM.Web` (see section 4).
 
 ### Smoke Test
 
@@ -277,7 +327,9 @@ SS-CAM uses **Semantic Versioning**: `MAJOR.MINOR.PATCH`
 
 | Version | Status | Notes |
 | --- | --- | --- |
-| `v2.3.6` | **Latest Stable** | Fluent 2 full compliance — Segoe Fluent Icons, token colours |
+| Unreleased | In progress | Cross-platform project format, web access-control hardening, repo cleanup |
+| `v5.2.0` | **Latest Stable** | Windows, Web, Linux and Android all at 5.2.0 |
+| `v2.3.6` | Stable (historical) | Fluent 2 full compliance — Segoe Fluent Icons, token colours |
 | `v2.1.0` | Stable | Radio & Focus Stream Player |
 | `v2.0.7` | Stable | Dashboard Intelligence Suite |
 | `v1.9.10` | Stable | Legacy PowerShell bootstrapper |
@@ -297,6 +349,9 @@ Version strings must be updated consistently across:
 | `src\SS-CAM\Views\DashboardPage.xaml` | Version badge TextBlock fallback |
 | `src\SS-CAM\Views\SettingsPage.xaml.cs` | Update check fallback string |
 | `installer\Build-Installer.ps1` | Default `$Version` parameter |
+| `src\SS-CAM.Web\package.json` | `version` (the web server reads its version from here) |
+| `src\SS-CAM.Linux\SS-CAM.Linux.csproj` | `<Version>` |
+| `src\SS-CAM.Android\app\build.gradle.kts` | `versionName` (e.g. `5.2.0`) and `versionCode` (e.g. `5200`) |
 | `CHANGELOG.md` | New release section header |
 | `README.md` | Download link, version badge, and release table |
 

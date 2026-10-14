@@ -36,6 +36,7 @@ import com.suamisihat.sscam.data.api.LoginRequest
 import com.suamisihat.sscam.data.api.SscamApiService
 import com.suamisihat.sscam.data.sync.SyncQueueManager
 import com.suamisihat.sscam.data.models.CreateProjectRequest
+import com.suamisihat.sscam.data.models.ProjectStatusConstants
 import com.suamisihat.sscam.data.models.CreativeOrder
 import com.suamisihat.sscam.data.models.CreateOrderRequest
 import com.suamisihat.sscam.data.models.DecisionRequest
@@ -234,10 +235,10 @@ object ProjectCacheManager {
 }
 
 enum class CompanionScreen(val title: String, val icon: ImageVector) {
-    Dashboard("Overview", Icons.Default.Home),
+    Dashboard("Dashboard", Icons.Default.Home),
     Tasks("Tasks", Icons.AutoMirrored.Filled.Assignment),
-    Team("Studio", Icons.Default.Group),
-    Wellbeing("Lounge", Icons.Default.Spa)
+    Team("Team", Icons.Default.Group),
+    Wellbeing("Wellbeing", Icons.Default.Spa)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -779,7 +780,7 @@ fun CompanionAppScreen(
                                 onSignOff = { item ->
                                     // Optimistic local state update (0ms instant response)
                                     projects = projects.map {
-                                        if (it.id == item.id) it.copy(status = "done") else it
+                                        if (it.id == item.id) it.copy(status = ProjectStatusConstants.APPROVED) else it
                                     }
                                     coroutineScope.launch {
                                         val req = DecisionRequest("approved", "1-tap companion signoff", activeUsername)
@@ -848,7 +849,7 @@ fun CompanionAppScreen(
                                 onSignOff = { item ->
                                     // Optimistic local state update (0ms instant response)
                                     projects = projects.map {
-                                        if (it.id == item.id) it.copy(status = "done") else it
+                                        if (it.id == item.id) it.copy(status = ProjectStatusConstants.APPROVED) else it
                                     }
                                     coroutineScope.launch {
                                         val req = DecisionRequest("approved", "1-tap companion signoff", activeUsername)
@@ -882,15 +883,7 @@ fun CompanionAppScreen(
                                     }
                                 },
                                 onUpdateProjectStatus = { projectId, newStatus ->
-                                    val apiStatus = when (newStatus.lowercase()) {
-                                        "in_progress", "inprogress" -> "in-progress"
-                                        "in_review", "inreview" -> "in-review"
-                                        "revision", "revision_requested" -> "revision"
-                                        "done", "approved", "completed" -> "done"
-                                        "stuck" -> "stuck"
-                                        "queued", "on_hold", "on-hold" -> "on-hold"
-                                        else -> newStatus
-                                    }
+                                    val apiStatus = ProjectStatusConstants.toCanonical(newStatus)
                                     projects = projects.map {
                                         if (it.id == projectId) it.copy(status = apiStatus) else it
                                     }
@@ -901,7 +894,8 @@ fun CompanionAppScreen(
                                             Toast.makeText(context, "Status updated to $apiStatus", Toast.LENGTH_SHORT).show()
                                             refreshLiveData()
                                         } catch (e: Exception) {
-                                            Toast.makeText(context, "Status update failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            android.util.Log.w("SSCAM", "Status update failed", e)
+                                            Toast.makeText(context, "Couldn't update the status. Please try again.", Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 },
@@ -913,7 +907,8 @@ fun CompanionAppScreen(
                                             Toast.makeText(context, "README synced with NAS storage", Toast.LENGTH_SHORT).show()
                                             refreshLiveData()
                                         } catch (e: Exception) {
-                                            Toast.makeText(context, "README sync failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            android.util.Log.w("SSCAM", "README sync failed", e)
+                                            Toast.makeText(context, "Couldn't save the brief. Please try again.", Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 },
@@ -939,11 +934,14 @@ fun CompanionAppScreen(
                                             Toast.makeText(context, "Deliverables updated", Toast.LENGTH_SHORT).show()
                                             refreshLiveData()
                                         } catch (e: Exception) {
-                                            Toast.makeText(context, "Subtask sync failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            android.util.Log.w("SSCAM", "Subtask sync failed", e)
+                                            Toast.makeText(context, "Couldn't save the subtask. Please try again.", Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 },
                                 onCreateNewTask = { title, desc, brand, priority ->
+                                    // Same default as the web portal: deadline one week from today.
+                                    val defaultDeadline = java.time.LocalDate.now().plusDays(7).toString()
                                     coroutineScope.launch {
                                         try {
                                             val api = SscamApiService.create(authToken = authToken)
@@ -951,10 +949,10 @@ fun CompanionAppScreen(
                                                 CreateProjectRequest(
                                                     title = title,
                                                     brand = brand,
-                                                    designer = currentUserProfile?.name ?: "Harussani",
+                                                    designer = currentUserProfile?.name ?: "Unassigned",
                                                     priority = priority,
                                                     department = "Creative Production",
-                                                    deadline = "2026-09-15"
+                                                    deadline = defaultDeadline
                                                 )
                                             )
                                             if (res.isSuccessful && res.body() != null) {
@@ -964,27 +962,27 @@ fun CompanionAppScreen(
                                                     id = "proj_" + System.currentTimeMillis(),
                                                     title = title,
                                                     brand = brand,
-                                                    status = "in_progress",
+                                                    status = ProjectStatusConstants.BACKLOG,
                                                     priority = priority,
-                                                    designer = currentUserProfile?.name ?: "Harussani",
-                                                    deadline = "2026-09-15T00:00:00.000Z"
+                                                    designer = currentUserProfile?.name ?: "Unassigned",
+                                                    deadline = defaultDeadline
                                                 )
                                                 projects = listOf(newProj) + projects
                                             }
-                                            Toast.makeText(context, "Created deliverable: $title", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "Project created: $title", Toast.LENGTH_SHORT).show()
                                             refreshLiveData()
                                         } catch (e: Exception) {
                                             val newProj = ProjectItem(
                                                 id = "proj_" + System.currentTimeMillis(),
                                                 title = title,
                                                 brand = brand,
-                                                status = "in_progress",
+                                                status = ProjectStatusConstants.BACKLOG,
                                                 priority = priority,
-                                                designer = currentUserProfile?.name ?: "Harussani",
-                                                deadline = "2026-09-15T00:00:00.000Z"
+                                                designer = currentUserProfile?.name ?: "Unassigned",
+                                                deadline = defaultDeadline
                                             )
                                             projects = listOf(newProj) + projects
-                                            Toast.makeText(context, "Offline Task Created: $title", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "You're offline. \"$title\" isn't saved to the server yet.", Toast.LENGTH_LONG).show()
                                         }
                                     }
                                 }

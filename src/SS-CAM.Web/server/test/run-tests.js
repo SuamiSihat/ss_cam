@@ -9,7 +9,12 @@ const fs = require('fs');
 process.env.NODE_ENV = 'test';
 
 // Sandbox isolation: Ensure test suite runs exclusively in local sandbox and never touches production NAS
-const sandboxWorkspace = path.resolve(__dirname, '../../sample-workspace');
+// Copy the tracked sample-workspace fixture into a throwaway temp folder so test
+// runs never modify files under version control.
+const fixtureWorkspace = path.resolve(__dirname, '../../sample-workspace');
+const sandboxWorkspace = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sscam-web-test-'));
+fs.cpSync(fixtureWorkspace, sandboxWorkspace, { recursive: true });
+process.on('exit', () => fs.rmSync(sandboxWorkspace, { recursive: true, force: true }));
 if (!process.env.WORKSPACE_ROOT) {
   process.env.WORKSPACE_ROOT = sandboxWorkspace;
 }
@@ -208,10 +213,7 @@ This is the project brief content.
   // ─── TEST 8: Login View DOM Structure & Authentication ─────────────
   test('LoginView renders brand header, quick sign-in roster, and authentication form', () => {
     const svelteLoginPath = path.join(__dirname, '../../client/src/lib/views/LoginView.svelte');
-    const legacyLoginPath = path.join(__dirname, '../../client/js/views/LoginView.js');
-    const content = fs.existsSync(svelteLoginPath)
-      ? fs.readFileSync(svelteLoginPath, 'utf8')
-      : fs.readFileSync(legacyLoginPath, 'utf8');
+    const content = fs.readFileSync(svelteLoginPath, 'utf8');
 
     assert.ok(content.includes('SuamiSihat Creative Portal') || content.includes('login-hero-bg'), 'Login title/viewport must exist');
     assert.ok(content.includes('quick-roster') || content.includes('heroWaveCanvas'), 'Quick roster or canvas must exist');
@@ -221,10 +223,7 @@ This is the project brief content.
   // ─── TEST 9: ApiClient Interface Integrity ──────────────────────────
   test('ApiClient contains updateProject, updateBrief, and submitDecision methods', () => {
     const apiTsPath = path.join(__dirname, '../../client/src/lib/services/api.ts');
-    const apiJsPath = path.join(__dirname, '../../client/js/api.js');
-    const content = fs.existsSync(apiTsPath)
-      ? fs.readFileSync(apiTsPath, 'utf8')
-      : fs.readFileSync(apiJsPath, 'utf8');
+    const content = fs.readFileSync(apiTsPath, 'utf8');
 
     assert.ok(content.includes('updateProject') || content.includes('updateProjectStatus'), 'ApiClient updateProject method must exist');
     assert.ok(content.includes('updateBrief') || content.includes('updateProjectBrief'), 'ApiClient updateBrief method must exist');
@@ -2248,6 +2247,22 @@ This is the project brief content.
     }
   });
 
+  test('ProjectFormat: canonical status, priority, folder name, month container and next project ID', () => {
+    const ProjectFormat = require('../services/ProjectFormat');
+    assert.strictEqual(ProjectFormat.normalizeProjectStatus('in_progress'), 'in-progress');
+    assert.strictEqual(ProjectFormat.normalizeProjectStatus('IN_REVIEW'), 'review');
+    assert.strictEqual(ProjectFormat.normalizeProjectStatus('on_hold'), 'on-hold');
+    assert.strictEqual(ProjectFormat.normalizeProjectStatus('done'), 'done');
+    assert.strictEqual(ProjectFormat.normalizeProjectStatus(''), 'backlog');
+    assert.strictEqual(ProjectFormat.normalizePriority('normal'), 'medium');
+    assert.strictEqual(ProjectFormat.normalizePriority('URGENT'), 'urgent');
+    const oct = new Date(2026, 9, 14);
+    assert.strictEqual(ProjectFormat.buildProjectFolderName(oct, '0124D', 'SSC', 'Raya Campaign: Draft'), '202610_0124D_SSC_Raya_Campaign__Draft');
+    assert.strictEqual(ProjectFormat.getMonthContainer('/ws', oct), path.join('/ws', '2026', '202610_October'));
+    assert.strictEqual(ProjectFormat.nextProjectId(['202609_0099D_SS_A', '202610_0123S_SSC_B', 'notes']), '0124D');
+    assert.strictEqual(ProjectFormat.nextProjectId([]), '0001D');
+  });
+
   // Test 49: Mobile & API project creation: POST /api/projects requires auth, validates input, and returns 201
   test('Mobile project creation: POST /api/projects validates auth and payload, creates project structure, and returns 201', async () => {
     const express = require('express');
@@ -2322,11 +2337,13 @@ This is the project brief content.
       const createRes = await makeRequest('POST', '/api/projects', designerToken, validPayload);
       assert.strictEqual(createRes.statusCode, 201, `Valid creation must return 201, got ${createRes.statusCode}`);
       assert.ok(createRes.body.id, 'Response must include project id');
-      assert.strictEqual(createRes.body.status, 'in_progress');
+      assert.strictEqual(createRes.body.status, 'backlog', 'New projects start in backlog, like the Windows Project Creator');
       assert.strictEqual(createRes.body.priority, 'urgent');
+      assert.match(createRes.body.id, /^\d{6}_\d{4}D_SS_Automated_Test_Deliverable$/, 'Folder name must follow YYYYMM_NNNND_BRAND_Title');
 
-      createdFolder = path.join(WorkspaceService.workspaceRoot, createRes.body.id);
-      assert.ok(fs.existsSync(createdFolder), 'Project directory must be created on disk');
+      const ProjectFormat = require('../services/ProjectFormat');
+      createdFolder = path.join(ProjectFormat.getMonthContainer(WorkspaceService.workspaceRoot, new Date()), createRes.body.id);
+      assert.ok(fs.existsSync(createdFolder), 'Project directory must be created inside <YYYY>/<YYYYMM>_<Month>/');
       assert.ok(fs.existsSync(path.join(createdFolder, 'README.md')), 'README.md must be generated');
       assert.ok(fs.existsSync(path.join(createdFolder, '03_COPYWRITING', 'COPY.md')), 'COPY.md must be generated');
       assert.ok(fs.existsSync(path.join(createdFolder, '05_DELIVERABLES')), '05_DELIVERABLES must be generated');
@@ -2559,7 +2576,7 @@ This is the project brief content.
     assert.strictEqual(reuseCheck.valid, false, 'Consumed token cannot be reused');
 
     // 7. Restore original password for test user
-    updateUserPassword('harussani', 'SuamiSihat123!');
+    updateUserPassword('harussani', 'SuamiSihat123');
 
     // 8. EmailService fallback dispatch test
     const emailRes = await EmailService.sendPasswordResetEmail({ username: 'harussani', email: 'harussani@suamisihat.com' }, 'dummy_token', 'http://localhost:4000');

@@ -1,7 +1,16 @@
-param([switch]$Apply)
+# Compares the SS Design System tokens with the Windows default theme. Read-only unless -Apply is passed.
+param(
+    [switch]$Apply,
+    # Design-system token file; defaults to the ss-assets repo checked out next to this one.
+    [string]$TokensPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'ss-assets\SS-Design-System\assets\tokens\design-tokens.json')
+)
 
-$jsonPath = "D:\HaNa_Innovation\ssDesignSystem\assets\tokens\design-tokens.json"
-$xamlPath = "D:\HaNa_Innovation\ss_cam\src\SS-CAM\Styles\SSDefaultTheme.xaml"
+$jsonPath = $TokensPath
+if (-not (Test-Path $jsonPath)) {
+    Write-Host "Design tokens not found: $jsonPath (pass -TokensPath)" -ForegroundColor Red
+    exit 1
+}
+$xamlPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'src\SS-CAM\Styles\SSDefaultTheme.xaml'
 
 $json = Get-Content $jsonPath -Raw | ConvertFrom-Json
 

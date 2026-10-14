@@ -29,7 +29,7 @@ public static class FrontmatterService
             if (fm != null)
             {
                 item.HasFrontmatter = true;
-                item.Status = GetValue(fm, "status", "backlog");
+                item.Status = ProjectStatusItem.NormalizeStatus(GetValue(fm, "status", "backlog"));
                 item.Designer = GetValue(fm, "designer", string.Empty);
                 item.Client = GetValue(fm, "client", string.Empty);
                 item.Deadline = GetValue(fm, "deadline", string.Empty);

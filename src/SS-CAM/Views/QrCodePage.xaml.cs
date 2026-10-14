@@ -513,8 +513,9 @@ namespace SS_CAM.Views
         {
             try
             {
-                string path = @"e:\Dev\Projects\SS-Brand-Assets\payload\Brand Assets\Logos\ss_icon_light.png";
-                if (File.Exists(path))
+                string payloadDir = PayloadInstallerService.FindPayloadDirectory();
+                string path = string.IsNullOrEmpty(payloadDir) ? "" : Path.Combine(payloadDir, "Brand Assets", "Logos", "ss_icon_light.png");
+                if (!string.IsNullOrEmpty(path) && File.Exists(path))
                 {
                     return new Bitmap(path);
                 }

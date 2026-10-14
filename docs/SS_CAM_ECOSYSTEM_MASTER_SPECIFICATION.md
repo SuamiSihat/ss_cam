@@ -49,14 +49,16 @@ The ecosystem operates on an **Offline-First Markdown-as-Database** architecture
 
 ## 3. Canonical 6-Stage Kanban Pipeline
 
-To ensure 100% interoperability across both clients, all projects move through a unified 6-stage lifecycle:
+To ensure interoperability across all four clients (Windows, Web, Linux, Android), all projects move through a unified 6-stage lifecycle:
 
 ```text
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-│  1. Backlog  │➔│2. In Progress│➔│3.Review Queue│➔│4.Revision Reqd  │➔│5.Done & Approved │  │ 6. On Hold / Que │
-│  (backlog)   │  │(in-progress) │  │   (review)   │  │   (revision)     │  │ (done/approved)  │  │    (on-hold)     │
+│  1. Backlog  │➔│2. In Progress│➔│3.Review Queue│➔│4.Revision Reqd  │➔│   5. Approved    │  │ 6. On Hold / Que │
+│  (backlog)   │  │(in-progress) │  │   (review)   │  │   (revision)     │  │    (approved)    │  │    (on-hold)     │
 └──────────────┘  └──────────────┘  └──────────────┘  └──────────────────┘  └──────────────────┘  └──────────────────┘
 ```
+
+**Canonical values (unreleased update after v5.2.0, verified 2026-10-14):** `backlog`, `in-progress`, `review`, `revision`, `approved`, `on-hold`. Approving a project writes `approved` on every client — the Windows sign-off and the Linux approve action previously wrote `done`, and the Android app previously wrote underscore values (`in_progress`, `in_review`, `on_hold`) and `done`; all now write the canonical values. `done` is a legacy value, shown as "Archived" on the Web dashboard. Readers on every client fold old spellings (`in_progress`, `in_review`, `on_hold`, `priority: normal`) into the canonical values. Reference implementation for the Web: `src/SS-CAM.Web/server/services/ProjectFormat.js`; cross-client check: `QA/verify-format-sync.ps1`.
 
 ### Stage Definitions & Color Standards
 
@@ -66,7 +68,7 @@ To ensure 100% interoperability across both clients, all projects move through a
 | `in-progress`| **In Progress** | `#0078D4` (Brand Blue) | Designer actively developing master canvas and assets. |
 | `review` | **Review Queue** | `#F59E0B` (Caution Amber) | Proof rendered to `05_DELIVERABLES`; submitted for Art Director review. |
 | `revision` | **Revision Required** | `#D97706` (Deep Orange) | Art Director requested changes; revision counter incremented (`rev + 1`). |
-| `done` / `approved` | **Done & Approved** | `#10B981` (Emerald Green) | Art Director signed off; ready for final production and handover. |
+| `approved` | **Approved** | `#10B981` (Emerald Green) | Art Director signed off; ready for final production and handover. (Legacy `done` is shown as "Archived" on the Web dashboard.) |
 | `on-hold` | **On Hold / Queued**| `#64748B` (Slate Muted) | Paused, blocked, or archived pending external feedback. |
 
 ---
@@ -121,23 +123,30 @@ sequenceDiagram
 
 ### A. Folder Vault Layout
 
+Full naming rules: [FOLDER-STRUCTURE.md](../FOLDER-STRUCTURE.md).
+
 ```text
 <WorkspaceRoot>/
-├── _Staff/
-│   └── staff-directory.json         <-- Shared user profiles & RBAC
 ├── _Team/
+│   ├── _Config/
+│   │   ├── staff_directory.json    <-- Shared user profiles & RBAC
+│   │   └── companies.json          <-- Subsidiary registry
+│   ├── audit-log.jsonl             <-- Append-only audit trail
+│   ├── live_tasks.json             <-- Live task telemetry
 │   ├── team-notes.json             <-- Shared bulletin, notices, revision alerts
 │   └── comments/                   <-- Fallback comments store
+├── _Orders/
+│   └── creative-orders.jsonl       <-- Creative order ledger
 ├── _Clinic/                        <-- Clinic Operations & Franchise Vault
 │   ├── Consultation_Kits/          <-- 3D anatomy, procedure simulations, roadmaps
 │   ├── Signage_Playlists/          <-- Waiting lounge TV video loops & doctor rosters
 │   ├── KKM_Approved_Library/       <-- Pre-approved collaterals with LIU/MAB codes
 │   ├── SOP_Manuals/                <-- Clinical & front desk standard operating procedures
 │   └── Aftercare_Cards/            <-- Post-treatment recovery instruction templates
-├── 2026/                           <-- Year root (or Designer/SS-2026)
-│   └── 202608_August/              <-- Month folder
-│       └── 202608_0085D_SS_Rejal_Packaging/   <-- Canonical Project Root
-│           ├── README.md           <-- YAML Frontmatter & Brief
+├── 2026/                           <-- Year root, plain year (legacy Designer/SS-2026 is read only)
+│   └── 202608_August/              <-- Month folder: <YYYYMM>_<English month>
+│       └── 202608_0085D_SS_Rejal_Packaging/   <-- <YYYYMM>_<NNNN><Type>_<BRAND>_<Title>
+│           ├── README.md           <-- YAML Frontmatter & Brief (only project details file; no project.yaml)
 │           ├── _comments.jsonl     <-- Contextual feedback thread
 │           ├── 01_BRIEF_ASSETS/    <-- References, briefs, brand assets
 │           ├── 02_SOURCE_FILES/    <-- Master PSD, AI, AFDESIGN, PRPROJ
@@ -150,7 +159,7 @@ sequenceDiagram
 
 ```yaml
 ---
-status: in-progress       # backlog | in-progress | review | revision | approved | done | on-hold
+status: in-progress       # backlog | in-progress | review | revision | approved | on-hold  (done = legacy, "Archived")
 designer: Haikal          # Designer Name / Staff ID
 manager: MGR01            # Assigned Reviewer / Art Director
 client: SS                # Sub-brand: SS | SSH | SSC | SSW | SSE | SST
@@ -291,4 +300,4 @@ Both desktop and web generate identical handover ZIP files:
 
 - **Strict Medical Advertising Board (LIU/MAB) Alignment**: All branch promotional collaterals distributed through SS-CAM require a registered KKM/LIU approval number and expiration timestamp stored in YAML frontmatter.
 - **Tamper-Resistant Collaterals**: Branch managers can only inject contact/address parameters into locked layout regions; core medical claims and drug schedules cannot be modified at branch level.
-- **Audit Trail**: Every asset download and distribution is logged in `_Clinic/audit-log.jsonl` for regulatory review.
+- **Audit Trail**: Audited actions are logged in `_Team/audit-log.jsonl` for regulatory review. (Note 2026-10-14: no separate `_Clinic/audit-log.jsonl` exists in the code; per-download logging of clinic assets is not verified.)

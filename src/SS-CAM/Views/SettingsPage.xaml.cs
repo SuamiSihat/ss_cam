@@ -361,10 +361,14 @@ namespace SS_CAM.Views
 
                 try
                 {
-                    // Primary: GitHub Releases API (always reflects published releases)
-                    const string GithubApiUrl = "https://api.github.com/repos/Corporate/ss_cam/releases/latest";
-                    System.Net.ServicePointManager.SecurityProtocol =
-                        System.Net.SecurityProtocolType.Tls12 | System.Net.SecurityProtocolType.Tls11;
+                    // Primary: GitHub Releases API of the tenant's update repository
+                    string updateRepo = TenantConfigService.Current != null ? TenantConfigService.Current.UpdateRepository : null;
+                    if (string.IsNullOrWhiteSpace(updateRepo))
+                        throw new InvalidOperationException("No update repository configured; using portal feed.");
+                    updateRepo = updateRepo.Trim().Trim('/');
+                    string GithubApiUrl = "https://api.github.com/repos/" + updateRepo + "/releases/latest";
+                    // Add TLS 1.2 without removing protocols other code in the app relies on.
+                    System.Net.ServicePointManager.SecurityProtocol |= System.Net.SecurityProtocolType.Tls12;
 
                     System.Net.HttpWebRequest req = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(GithubApiUrl);
                     req.Timeout = 8000;
@@ -389,8 +393,8 @@ namespace SS_CAM.Views
 
                         // Build the exe download URL from known naming convention
                         downloadUrl = string.Format(
-                            "https://github.com/Corporate/ss_cam/releases/download/v{0}/SS-CAM-v{0}.exe",
-                            latestVersion);
+                            "https://github.com/{1}/releases/download/v{0}/SS-CAM-v{0}.exe",
+                            latestVersion, updateRepo);
                     }
                 }
                 catch (Exception ex)

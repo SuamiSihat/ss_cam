@@ -382,7 +382,7 @@ namespace SS_CAM.Views
         {
             if (_isConverting)
             {
-                MessageBox.Show("Conversion is in progress. Please cancel first.", "Transcoder Bridge", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("A conversion is still running. Cancel it first.", "File Converter", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

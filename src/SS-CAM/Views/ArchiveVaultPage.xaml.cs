@@ -332,7 +332,7 @@ namespace SS_CAM.Views
                 if (File.Exists(catalogPath))
                     System.Diagnostics.Process.Start(catalogPath);
                 else
-                    MessageBox.Show("Catalog file not found. Run an archive operation first.", "Archive Vault", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("No archive history yet. Archive a project first.", "Archive", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] OpenCatalog: " + ex.Message); }
         }

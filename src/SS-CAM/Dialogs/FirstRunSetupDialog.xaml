@@ -87,7 +87,7 @@
 
                         <StackPanel Margin="0,0,0,10">
                             <ui:TextBlock Text="Department / Unit:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
-                            <ComboBox x:Name="CmbDepartment" Height="32" Padding="8,4" VerticalContentAlignment="Center" FontSize="11">
+                            <ComboBox x:Name="CmbDepartment" Height="36" Padding="8,4" VerticalContentAlignment="Center" FontSize="11">
                                 <ComboBoxItem Content="Creative &amp; Brand" IsSelected="True"/>
                                 <ComboBoxItem Content="Video &amp; Motion Design"/>
                                 <ComboBoxItem Content="3D &amp; Visual FX"/>

@@ -105,6 +105,48 @@ namespace SS_CAM.Services
             }
         }
 
+        /// <summary>
+        /// First active staff member with the Admin role in _Team/_Config/staff_directory.json.
+        /// Returns their username (or name / staff ID, which the portal also accepts), or null.
+        /// </summary>
+        private static string ResolveFallbackAdminUsername()
+        {
+            try
+            {
+                List<StaffDirectoryItem> staff = UserProfileService.GetStaffDirectory(null);
+                if (staff == null) return null;
+                foreach (StaffDirectoryItem member in staff)
+                {
+                    if (member == null || !member.Active) continue;
+                    bool isAdmin = IsAdminRole(member.Role);
+                    if (!isAdmin && member.Roles != null)
+                    {
+                        foreach (string r in member.Roles)
+                        {
+                            if (IsAdminRole(r)) { isAdmin = true; break; }
+                        }
+                    }
+                    if (!isAdmin) continue;
+                    if (!string.IsNullOrWhiteSpace(member.Username)) return member.Username.Trim();
+                    if (!string.IsNullOrWhiteSpace(member.Name)) return member.Name.Trim();
+                    if (!string.IsNullOrWhiteSpace(member.StaffId)) return member.StaffId.Trim();
+                }
+            }
+            catch (Exception ex)
+            {
+                App.LogTrace("[CreativeOrderService] Could not read staff directory for admin fallback: " + ex.Message);
+            }
+            return null;
+        }
+
+        private static bool IsAdminRole(string role)
+        {
+            if (string.IsNullOrWhiteSpace(role)) return false;
+            string r = role.Trim();
+            return string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(r, "Administrator", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static async Task<string> GetAuthTokenAsync(string username)
         {
             if (!string.IsNullOrEmpty(_cachedJwtToken) && DateTime.UtcNow < _tokenExpiry)
@@ -114,7 +156,18 @@ namespace SS_CAM.Services
 
             try
             {
-                string uname = !string.IsNullOrWhiteSpace(username) ? username.Trim() : "harussani";
+                string uname = !string.IsNullOrWhiteSpace(username) ? username.Trim() : null;
+                if (uname == null)
+                {
+                    // No signed-in designer: fall back to any active admin from the team's staff directory.
+                    // Runs off the UI thread because the directory is read from the NAS.
+                    uname = await Task.Run(() => ResolveFallbackAdminUsername()).ConfigureAwait(false);
+                }
+                if (string.IsNullOrWhiteSpace(uname))
+                {
+                    App.LogTrace("[CreativeOrderService] No username or active admin found; skipping portal sign-in.");
+                    return null;
+                }
                 var payload = new { username = uname };
                 string json = JsonConvert.SerializeObject(payload);
 

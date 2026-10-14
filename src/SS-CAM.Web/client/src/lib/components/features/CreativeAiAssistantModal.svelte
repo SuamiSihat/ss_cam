@@ -91,7 +91,7 @@
     } catch (err: any) {
       if (!aiStatus.configured) {
         activeTab = 'settings';
-        appState.addToast('Please configure your Google AI Studio API key first', 'info');
+        appState.addToast("The AI assistant isn't set up yet. Ask an admin to add the AI key.", 'info');
       } else {
         appState.addToast(`Generation failed: ${err.message}`, 'error');
       }
@@ -120,7 +120,7 @@
     } catch (err: any) {
       if (!aiStatus.configured) {
         activeTab = 'settings';
-        appState.addToast('Please configure your Google AI Studio API key first', 'info');
+        appState.addToast("The AI assistant isn't set up yet. Ask an admin to add the AI key.", 'info');
       } else {
         appState.addToast(`Generation failed: ${err.message}`, 'error');
       }
@@ -148,7 +148,7 @@
     } catch (err: any) {
       if (!aiStatus.configured) {
         activeTab = 'settings';
-        appState.addToast('Please configure your Google AI Studio API key first', 'info');
+        appState.addToast("The AI assistant isn't set up yet. Ask an admin to add the AI key.", 'info');
       } else {
         appState.addToast(`Generation failed: ${err.message}`, 'error');
       }
@@ -265,7 +265,17 @@
       <!-- Modal Body -->
       <div class="ai-body">
         {#if activeTab === 'settings'}
-          <!-- Setup Panel -->
+          <!-- Setup Panel: the AI key is a site setting, so only admins can change it -->
+          {#if !appState.hasPermission('admin:system')}
+          <div class="settings-card">
+            <h3 class="card-title">AI assistant setup</h3>
+            <p class="card-sub">
+              {aiStatus.configured
+                ? 'The AI assistant is set up and ready to use.'
+                : "The AI assistant isn't set up yet. Ask an admin to add the AI key."}
+            </p>
+          </div>
+          {:else}
           <div class="settings-card">
             <h3 class="card-title">Google AI Studio API Configuration</h3>
             <p class="card-sub">
@@ -300,6 +310,7 @@
               </FluentButton>
             </div>
           </div>
+          {/if}
 
         {:else}
           <!-- Split Generator Grid -->

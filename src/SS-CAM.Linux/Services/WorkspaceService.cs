@@ -139,7 +139,7 @@ author: {designer}
         {
             Project = folderName,
             FullPath = projectPath,
-            Status = "in_progress",
+            Status = "backlog",
             Designer = designer,
             Client = client,
             Priority = priority,

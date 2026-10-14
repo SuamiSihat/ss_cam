@@ -485,7 +485,7 @@
       `- **Process Memory**: RSS: ${memRss} | Heap: ${memHeap}`,
       `- **Process Uptime**: ${uptimeMins} minutes (${systemStatus?.uptimeSeconds || 0}s)`,
       `- **Platform & Runtime**: ${systemStatus?.platform || 'win32'} / Node.js ${systemStatus?.nodeVersion || 'v20+'}`,
-      `- **Portal Version**: SS-CAM Web v${systemStatus?.version || '4.9.1'}`,
+      `- **Portal Version**: SS-CAM Web v${systemStatus?.version || 'unknown'}`,
       `- **Corporate Entities**: ${companies.length} subsidiaries (${companies.filter(c => c.status === 'active').length} active)`,
       `- **Staff Roster**: ${users.length} authenticated accounts (${stats.adminsCount} Admin, ${stats.designersCount} Designer)`,
       `- **Audit Trail Ledger**: ${auditLogs.length} logged security actions`
@@ -638,14 +638,14 @@
   async function handleResetToDefault(user: any) {
     const name = user.name || user.username;
     const username = user.username || user.staffId;
-    if (!confirm('Reset ' + name + "'s password to the default (SuamiSihat123!)?\nThey can log in with SuamiSihat123! immediately.")) return;
+    if (!confirm('Reset ' + name + "'s password to the default password?\nThey can sign in with it straight away.")) return;
     try {
       const res = await ApiClient.request('/users/' + encodeURIComponent(username) + '/reset-to-default', { method: 'POST' });
       if (res.success) {
-        appState.addToast('Password reset to default for ' + name + '. Default: SuamiSihat123!', 'success');
+        appState.addToast(res.message || ('Password reset to default for ' + name + '.'), 'success');
       }
     } catch (err: any) {
-      appState.addToast('Reset to default failed: ' + err.message, 'error');
+      appState.addToast("Couldn't reset the password. " + err.message, 'error');
     }
   }
 
@@ -1682,7 +1682,7 @@
           <div class="telemetry-detail-list">
             <div class="telemetry-row">
               <span class="tel-label">Server Version</span>
-              <b>SS-CAM Web v{systemStatus?.version || '4.5.1'} ({systemStatus?.platform || 'x64'})</b>
+              <b>SS-CAM Web v{systemStatus?.version || 'unknown'} ({systemStatus?.platform || 'x64'})</b>
             </div>
             <div class="telemetry-row">
               <span class="tel-label">Client Framework</span>

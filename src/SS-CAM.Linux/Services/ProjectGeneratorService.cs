@@ -78,9 +78,11 @@ namespace SS_CAM.Linux.Services
 
             var cleanYear = Regex.IsMatch(year, @"^\d{4}$") ? year : DateTime.Now.ToString("yyyy");
             var curMonthNum = DateTime.Now.ToString("MM");
-            var curMonthFull = DateTime.Now.ToString("MMMM");
-            
-            var yearFolder = $"SS-{cleanYear}";
+            // Invariant culture so the month folder is always English (e.g. 202610_October),
+            // matching the Windows Project Creator and the Web portal.
+            var curMonthFull = DateTime.Now.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture);
+
+            var yearFolder = cleanYear;
             var monthFolder = $"{cleanYear}{curMonthNum}_{curMonthFull}";
             var dateCode = $"{cleanYear}{curMonthNum}";
 
@@ -99,13 +101,13 @@ namespace SS_CAM.Linux.Services
             var cleanDeadline = !string.IsNullOrWhiteSpace(deadline) ? deadline : DateTime.Now.AddDays(3).ToString("yyyy-MM-dd");
             var cleanDuration = !string.IsNullOrWhiteSpace(duration) ? duration : Models.ProjectStatusItem.CalculateDuration(cleanStart, cleanDeadline);
 
-            // Canonical 5-Folder hierarchy
+            // Canonical 5-folder hierarchy shared by every SS-CAM client
             var subFolders = new List<string>
             {
-                "01_BRIEFS",
-                "02_RAW_ASSETS",
-                "03_WORKING_FILES",
-                "04_EXPORTS",
+                "01_BRIEF_ASSETS",
+                "02_SOURCE_FILES",
+                "03_COPYWRITING",
+                "04_WORK_IN_PROGRESS",
                 "05_DELIVERABLES"
             };
 
@@ -126,29 +128,11 @@ namespace SS_CAM.Linux.Services
                 Directory.CreateDirectory(path);
             }
 
-            // Write project.yaml frontmatter metadata
-            var yamlPath = Path.Combine(projectRoot, "project.yaml");
-            var yamlContent = 
-$@"project_id: {dateCode}_{cleanProjectNumber}_{cleanSubBrand}
-title: ""{projectName}""
-sub_brand: {cleanSubBrand}
-designer: {designer}
-created_date: {cleanCreated}
-start_date: {cleanStart}
-deadline: {cleanDeadline}
-duration: {cleanDuration}
-category: {presetType}
-status: in-progress
-priority: medium
-version: 1.0.0
-";
-            File.WriteAllText(yamlPath, yamlContent, System.Text.Encoding.UTF8);
-
-            // Write README.md with Frontmatter for TaskManager / WorkspaceScanner
+            // README.md frontmatter is the single source of project details on every platform
             var readmePath = Path.Combine(projectRoot, "README.md");
-            var readmeContent = 
+            var readmeContent =
 $@"---
-status: in-progress
+status: backlog
 designer: {designer}
 client: {cleanSubBrand}
 created: {cleanCreated}
@@ -156,6 +140,7 @@ start_date: {cleanStart}
 deadline: {cleanDeadline}
 duration: {cleanDuration}
 priority: medium
+revision: 0
 tags: [{cleanSubBrand}, {presetType}]
 ---
 
@@ -175,8 +160,8 @@ tags: [{cleanSubBrand}, {presetType}]
 ";
             File.WriteAllText(readmePath, readmeContent, System.Text.Encoding.UTF8);
 
-            // Write 01_BRIEFS/COPY.md or 03_WORKING_FILES/COPY.md
-            var copyPath = Path.Combine(projectRoot, "01_BRIEFS", "COPY.md");
+            // Copy lives in 03_COPYWRITING/COPY.md, as on Windows and Web
+            var copyPath = Path.Combine(projectRoot, "03_COPYWRITING", "COPY.md");
             var initialCopy = string.IsNullOrWhiteSpace(briefMarkdown)
                 ? CopywritingDesktopService.GetDefaultTemplate(projectName)
                 : briefMarkdown;

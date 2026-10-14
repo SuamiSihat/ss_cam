@@ -1301,3 +1301,68 @@
   - Test suite: `82/82` passed (69 unit/integration + 13 administration governance tests).
   - Dual-track governance: `14/14` passed. Pushed to `origin SS-Master`.
 
+---
+
+## P1: Project-wide audit, sanitisation & copy standardisation (2026-10-14, v5.2.0 → Unreleased)
+
+**Security (Web server)**
+- `/deliverables/preview|stream|download` (no login) could read any workspace file, including `_Team/ai-config.json` (AI key) and audit logs. Now limited to media file types (`DeliverableService.resolveSafePath`).
+- `/projects/:id/asset` (no login) now refuses hidden files and data files (`.json`, `.jsonl`, `.env`, `.lock`, `.tmp`).
+- `DELETE /notes/:id` path traversal (`%2F..`) could delete any `.md` in the workspace. The id is now sanitised like `POST /notes`. The note `priority` value is sanitised to stop frontmatter injection.
+- An unreadable password store used to read as empty, so the bootstrap path could overwrite every user's hash. It now fails closed and logs (`auth.js getStoredPasswords`).
+- Webhook create/delete/test now require admin; `GET /audit` requires `admin:system_audit`.
+- Password minimum aligned to 10 characters (reset routes said 8 but storage required 10, so 8–9 character resets failed with a 500).
+
+**Correctness**
+- Web server reported version 4.14.0 (wrong download/APK links). Now read from `package.json`.
+- Stale version labels fixed: Web Admin fallbacks, command palette, Linux header (now read from the assembly), Android Settings (now v5.2.0 / build 5200).
+- Missing web icons `chat` and `desktop` (rendered blank) replaced with `comment` and `download`.
+- Desktop "Check for updates" queried the non-existent `Corporate/ss_cam` repo, broken by the dual-track find-and-replace. Added `TenantConfig.UpdateRepository` (SuamiSihat edition: `SuamiSihat/ss_cam`) and stopped overwriting the process TLS settings (`|=`).
+- `WorkspaceWatcherService` watched `staff-directory.json`, but the real file is `staff_directory.json`.
+- Removed developer-machine paths (`E:Dev...`) from `AudioFeedbackService` and `QrCodePage`; the QR logo now loads from the payload folder.
+- `JsonPersistenceHelper` load/save failures are now logged to `startup_trace.log` instead of being swallowed.
+- ComboBoxes `CmbPopoverDesignerFilter` (26px) and `CmbDepartment` (32px) raised to the 36px standard.
+- Web tests wrote into the tracked `sample-workspace/`, leaving git dirty after every run. They now run on a temporary copy.
+
+**Copy**
+- Canonical module names applied to nav labels on Windows, Linux, Web and Android (see `04-TERMINOLOGY.md` §5). Desktop nav tooltips rewritten in plain language.
+- Web API errors mapped to plain messages; server sign-in and permission messages rewritten.
+- README rewritten for non-technical readers; release notes now live only in CHANGELOG.
+
+**Verification**
+- Desktop Release build: PASS. Source Guardian: 14/14 PASS. Dual-track gate: PASS.
+- Web `npm test`: 82/82 PASS. Client `vite build`: PASS (built into a scratch folder; `client/dist` not rebuilt).
+- Linux and Android: BLOCKED. No .NET SDK or Android toolchain on this machine; changes are label and version strings only.
+- Desktop launch smoke test: not run, to avoid writing to the production NAS from this machine.
+
+---
+
+## P1: Owner decisions — format sync, access rules & cleanup (2026-10-14, Unreleased)
+
+Decisions from the product owner, implemented and verified:
+
+1. **Default password** `SuamiSihat123` for new accounts and *Reset to default*. It can be overridden with `DEFAULT_STAFF_PASSWORD`. The admin UI no longer hard-codes it.
+2. **File previews stay public** (needed by image and video tags and the client review page). They are still restricted to media files, and data and hidden files are blocked.
+3. **Only managers and admins can delete tasks** (`project:edit`) on `DELETE /tasks/:projectId/:taskId`, `/tasks/:id` and `/studio-tasks/:id`. Delete buttons are hidden for others. The Windows and Android apps have no task delete.
+4. **AI key and site settings are admin-only.** `POST /ai/config` requires admin; the AI assistant tells non-admins to ask an admin.
+5. **Windows order sign-in** falls back to the first active admin in `staff_directory.json`, not "harussani". Known gap: the desktop sends no password, so portal sign-in still fails; orders fall back to the NAS ledger.
+6. **One project format on all four apps.**
+   - Folder layout, IDs, subfolders, COPY.md location, starting values, and `approved` written on approval.
+   - Web, Linux and Android code changed; Android's hard-coded 15 Sep 2026 deadline fixed.
+   - New `QA/verify-format-sync.ps1` (check-only) is now step 3 of `verify-dual-track.ps1`.
+   - `QA/sync-status-enums.ps1` was removed: it rewrote source from a non-existent external file and would have mangled the new Android code.
+7. **Deleted** `install.cmd` (third-party Antigravity CLI installer).
+8. **Rebuilt** `client/dist`.
+9. **Cleanup.**
+   - Removed the legacy web client (16 files), 2 unused Svelte components, 4 dead duplicate task routes and a dead duplicate forgot-password route.
+   - Removed the unused Windows `ProjectGeneratorService` and 269 lines of dead QR encoder code.
+   - `sync-design-tokens.ps1` now uses repo-relative paths.
+
+**Verification**
+- Windows Release build: PASS. Source Guardian: 14/14 PASS.
+- Web `npm test`: 83/83 PASS. This includes a new `ProjectFormat` unit test and an updated project-creation test that checks the month folder and ID format.
+- Web `npm run build:client`: PASS. `svelte-check`: 136 errors, down from 138 (none new; all pre-existing type issues).
+- Linux `dotnet build -c Release` (SDK 10.0.402): PASS, 0 warnings.
+- Android `:app:compileDebugKotlin`: PASS.
+- `QA/verify-format-sync.ps1`: PASS (14/14). `QA/sync-design-tokens.ps1`: Windows theme colours match the design system.
+- Windows launch smoke test: BLOCKED (not run, to avoid writing to the production NAS).

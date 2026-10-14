@@ -6,6 +6,8 @@
 **Scope:** Convert an internal WPF/Web/Android tool into a sellable, white-labelable product while continuing SuamiSihat-internal development on the same underlying engine.  
 **Status:** **Execution Complete & Production Shipped (v4.11.0 Released on `SS-Master`)**  
 
+> **Status note (2026-10-14, current release v5.2.0):** The phases below are complete as design and specification. They are **not** yet commercially distributed. Not yet implemented in the repository: licensing and checkout, a CI pipeline (there is no `.github/workflows`), and code signing. White-label de-branding is still in progress — see [SUAMISIHAT-COUPLING-INVENTORY.md](./SUAMISIHAT-COUPLING-INVENTORY.md). **Pricing inconsistency (flagged, not changed):** the Phase 5 Enterprise price ($2,290/yr) is below the Phase 4 Enterprise floor ($2,400–$3,600/yr) given in the Phase 4 section.
+
 ---
 
 ## 0. Executive Summary
@@ -32,7 +34,7 @@ Distribution (download hub), documentation (public wiki), and dual-track governa
 
 ## 1. Current State Assessment (carried forward from prior technical audit)
 
-These findings directly gate Phase 0 and are not repeated in full here — see the companion report [`docs/antigravity-drift-fix-report.md`](file:///d:/HaNa_Innovation/ss_cam/docs/antigravity-drift-fix-report.md) for evidence and line-level detail.
+These findings directly gate Phase 0 and are not repeated in full here — see the companion report [`docs/antigravity-drift-fix-report.md`](./antigravity-drift-fix-report.md) for evidence and line-level detail.
 
 - **No single source of truth for tokens.** WPF theme XAML is hand-maintained, disconnected from `SS-Design-System`'s token export.
 - **No single source of truth for status/terminology.** Web, WPF, and Android each hand-maintain their own status-string sets; Android code shows active, unresolved drift (multiple string variants checked defensively in the same conditional).
@@ -228,7 +230,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 
 ## Phase 4 — Cost Modelling
 
-**Status:** Completed (See full specification in [`docs/PHASE_4_COST_MODELLING.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_4_COST_MODELLING.md))  
+**Status:** Completed (See full specification in [`docs/PHASE_4_COST_MODELLING.md`](./PHASE_4_COST_MODELLING.md))  
 **Objective:** Know the real cost of running this as a product before pricing it.
 
 **Modelled Cost Figures:**
@@ -262,7 +264,7 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 
 ## Phase 5 — Revenue Forecasting & Go-to-Market
 
-**Status:** Completed (See full specification in [`docs/PHASE_5_REVENUE_GTM.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_5_REVENUE_GTM.md))  
+**Status:** Completed (See full specification in [`docs/PHASE_5_REVENUE_GTM.md`](./PHASE_5_REVENUE_GTM.md))  
 **Objective:** Pricing model, initial launch plan, and defensible revenue forecast.
 
 **Selected Commercial Pricing Model:**
@@ -304,19 +306,19 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 
 ## 6. Distribution — Live Web for Download
 
-**Status:** Completed (See full specification in [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md) and deployment package in [`dist/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/dist/commercial-landing/))
+**Status:** Completed (See full specification in [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](./PHASE_6_DISTRIBUTION_SPECIFICATION.md) and deployment package in `dist/commercial-landing/` (build output, not in the repository))
 
 **Architecture & Implementation:**
 
 - **Decoupled Commercial Domain & Edge CDN:** Public production site at `https://getcam.dev` hosted on Cloudflare Pages with binary releases delivered via Cloudflare R2 (`cam-releases-public`) with zero egress fees. Structurally zero leakage of internal NAS endpoints (`suamisihat.myds.me`).
-- **Interactive Commercial Landing Portal:** Built and distributed under [`docs/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/docs/commercial-landing/) and [`dist/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/dist/commercial-landing/):
+- **Interactive Commercial Landing Portal:** Built and distributed under [`docs/commercial-landing/`](./commercial-landing/) and `dist/commercial-landing/` (build output, not in the repository):
   - **Aesthetic Excellence:** Full Microsoft Fluent 2 Dark Glassmorphic design (`#090B10` dark canvas, Outfit display typography, Inter body typography, JetBrains Mono code snippets, cyan/blue branding gradients, and 60fps micro-animations).
   - **Interactive Pricing Matrix:** Dynamic Annual vs. Monthly switch with verified 17% discount math ($490/yr vs. $49/mo for Studio Business; $2,290/yr vs. $199/mo for Enterprise Partner).
   - **Multi-Platform Download Hub:** Dedicated tab views for Windows x64 Authenticode installer, Synology DSM Container Manager 1-click Docker Compose with single-click clipboard copy, Linux `.deb`/tarball, and Android Companion app (Play Store and direct APK).
   - **Decoupled Architecture Section (`#architecture`):** Dedicated breakdown of the Pluggable Extension Engine, Dynamic Tenant Injection via `TenantConfig.json`, and Dual-Track single-trunk governance.
-  - **Developer & IT Documentation Section (`#docs`):** Integrated knowledge base links pointing to Getting Started, Tenant Config Specification, and Plugin Diagnostics in [`docs/public-wiki/`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/).
+  - **Developer & IT Documentation Section (`#docs`):** Integrated knowledge base links pointing to Getting Started, Tenant Config Specification, and Plugin Diagnostics in [`docs/public-wiki/`](./public-wiki/).
   - **Checkout & Licensing Modal:** Live modal dialog simulating instant seat license key issuance and automated `TenantConfig.json` provisioning.
-  - **Zero Leakage Compliance:** Validated via [`docs/scripts/audit-public-docs.ps1`](file:///d:/HaNa_Innovation/ss_cam/docs/scripts/audit-public-docs.ps1) to ensure zero internal URLs, hostnames, or credentials appear anywhere in the commercial distribution assets.
+  - **Zero Leakage Compliance:** Validated via [`docs/scripts/audit-public-docs.ps1`](./scripts/audit-public-docs.ps1) to ensure zero internal URLs, hostnames, or credentials appear anywhere in the commercial distribution assets.
 - **Auto-Update Channel Delivery:** Decoupled channels (`stable`, `lts`, `tenant/<id>`) via versioned manifest feeds with tenant config injection.
 - **Pre-Flight Customer Diagnostic Tool:** Embedded network/NAS health testing to validate client LAN SMB and Docker ports before filing support tickets, enforcing the Phase 4 support cost floor.
 
@@ -324,35 +326,35 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 
 ## 7. Documentation — Wiki Strategy
 
-**Status:** Completed (See full specification in [`docs/PHASE_7_WIKI_STRATEGY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_7_WIKI_STRATEGY.md) and public knowledge base in [`docs/public-wiki/`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/))
+**Status:** Completed (See full specification in [`docs/PHASE_7_WIKI_STRATEGY.md`](./PHASE_7_WIKI_STRATEGY.md) and public knowledge base in [`docs/public-wiki/`](./public-wiki/))
 
 **The Two-Wiki Architecture & Implementation:**
 
 | | Internal Ops Wiki | Public Product Wiki |
 |---|---|---|
 | **Audience** | SuamiSihat dev/design team | Customers, studio IT, white-label partners |
-| **Path** | `AGENTS.md`, `QA/`, `.agents/skills/` | [`docs/public-wiki/`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/) (Published to `getcam.dev/docs`) |
+| **Path** | `AGENTS.md`, `QA/`, `.agents/skills/` | [`docs/public-wiki/`](./public-wiki/) (Published to `getcam.dev/docs`) |
 | **Content** | Engineering standards, QA test harnesses, release publisher runbooks | Getting Started, Synology Docker stack, `TenantConfig.json` schema, plugin APIs, troubleshooting |
 | **Contains** | Internal NAS paths, subsidiary codes, internal credentials | **Zero proprietary or internal references** (Enforced by automated scanner) |
-| **Verification** | [`QA/verify-sscam.ps1`](file:///d:/HaNa_Innovation/ss_cam/QA/verify-sscam.ps1) | [`docs/scripts/audit-public-docs.ps1`](file:///d:/HaNa_Innovation/ss_cam/docs/scripts/audit-public-docs.ps1) |
+| **Verification** | [`QA/verify-sscam.ps1`](../QA/verify-sscam.ps1) | [`docs/scripts/audit-public-docs.ps1`](./scripts/audit-public-docs.ps1) |
 
 **Public Documentation Suite (`docs/public-wiki/`):**
 
-1. [`README.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/README.md) — Documentation index and architectural overview.
-2. [`01-GETTING-STARTED.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/01-GETTING-STARTED.md) — Workstation system requirements, Windows setup, and Synology DSM Container Manager setup.
-3. [`02-TENANT-CONFIG-SPEC.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/02-TENANT-CONFIG-SPEC.md) — Comprehensive JSON schema reference for white-labeling logos, colors, shortcuts, and custom endpoints.
-4. [`03-PLUGIN-SYSTEM.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/03-PLUGIN-SYSTEM.md) — Modular plugin lifecycle (`IAppPlugin`), dynamic navigation binding, and command palette integration.
-5. [`04-TROUBLESHOOTING.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/04-TROUBLESHOOTING.md) — LAN SMB permission resolution, port conflict remapping, and built-in network diagnostics.
+1. [`README.md`](./public-wiki/README.md) — Documentation index and architectural overview.
+2. [`01-GETTING-STARTED.md`](./public-wiki/01-GETTING-STARTED.md) — Workstation system requirements, Windows setup, and Synology DSM Container Manager setup.
+3. [`02-TENANT-CONFIG-SPEC.md`](./public-wiki/02-TENANT-CONFIG-SPEC.md) — Comprehensive JSON schema reference for white-labeling logos, colors, shortcuts, and custom endpoints.
+4. [`03-PLUGIN-SYSTEM.md`](./public-wiki/03-PLUGIN-SYSTEM.md) — Modular plugin lifecycle (`IAppPlugin`), dynamic navigation binding, and command palette integration.
+5. [`04-TROUBLESHOOTING.md`](./public-wiki/04-TROUBLESHOOTING.md) — LAN SMB permission resolution, port conflict remapping, and built-in network diagnostics.
 
 **Automated Pre-Publication Guard:**
 
-- Validated via [`docs/scripts/audit-public-docs.ps1`](file:///d:/HaNa_Innovation/ss_cam/docs/scripts/audit-public-docs.ps1). Scans all public wiki files against the Phase 0 coupling blacklist, guaranteeing that zero internal hostnames, corporate registries, or credentials leak to customers.
+- Validated via [`docs/scripts/audit-public-docs.ps1`](./scripts/audit-public-docs.ps1). Scans all public wiki files against the Phase 0 coupling blacklist, guaranteeing that zero internal hostnames, corporate registries, or credentials leak to customers.
 
 ---
 
 ## 8. Dual-Track Development Governance
 
-**Status:** Completed (See full specification in [`docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md) and automated gatekeeper in [`QA/verify-dual-track.ps1`](file:///d:/HaNa_Innovation/ss_cam/QA/verify-dual-track.ps1))
+**Status:** Completed (See full specification in [`docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md`](./PHASE_8_DUAL_TRACK_GOVERNANCE.md) and automated gatekeeper in [`QA/verify-dual-track.ps1`](../QA/verify-dual-track.ps1))
 
 **Principle:** One engine, two editions, enforced by the Phase 3 architecture and automated governance — not by discipline alone.
 
@@ -392,35 +394,37 @@ A white-label customer's config simply differs on values — e.g. `"waktu-solat"
 
 ## 10. Roadmap Timeline & Execution Status
 
+> **2026-10-14:** "COMPLETE" below means design/specification complete. Licensing/checkout, CI and code signing are not yet implemented, and de-branding is still in progress (see the status note at the top of this document).
+
 | Phase | Focus Area | Deliverables & Artifacts | Status |
 |---|---|---|---|
-| **0 — Foundation Audit** | Coupling Inventory & Baseline | [`docs/SUAMISIHAT-COUPLING-INVENTORY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/SUAMISIHAT-COUPLING-INVENTORY.md), [`docs/antigravity-drift-fix-report.md`](file:///d:/HaNa_Innovation/ss_cam/docs/antigravity-drift-fix-report.md) | **COMPLETE** |
+| **0 — Foundation Audit** | Coupling Inventory & Baseline | [`docs/SUAMISIHAT-COUPLING-INVENTORY.md`](./SUAMISIHAT-COUPLING-INVENTORY.md), [`docs/antigravity-drift-fix-report.md`](./antigravity-drift-fix-report.md) | **COMPLETE** |
 | **1 — Naming & Identity** | Commercial Identity Architecture | CAM Studio / CreativeOps Core branding, zero-leakage naming | **COMPLETE** |
 | **2 — Brand Guide** | Visual Token Separation | Design tokens, Fluent 2 dark glassmorphic system | **COMPLETE** |
 | **3 / 3a — Architecture Split** | Plugin Engine & TenantConfig | `IAppPlugin.cs`, `TenantConfigService.cs`, `PluginRegistry.cs`, `SettingsPage.xaml` toggles | **COMPLETE** |
-| **4 — Cost Modelling** | Operational Economics | [`docs/PHASE_4_COST_MODELLING.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_4_COST_MODELLING.md) ($340–$1,289/yr fixed overhead) | **COMPLETE** |
-| **5 — Revenue & GTM** | Commercial Pricing & Wedges | [`docs/PHASE_5_REVENUE_GTM.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_5_REVENUE_GTM.md) ($0 Core / $490/yr Biz / $2,290/yr Enterprise) | **COMPLETE** |
-| **6 — Distribution Web** | Decoupled Download Hub | [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md), [`docs/commercial-landing/`](file:///d:/HaNa_Innovation/ss_cam/docs/commercial-landing/) | **COMPLETE** |
-| **7 — Public Wiki** | Two-Wiki Structural Isolation | [`docs/PHASE_7_WIKI_STRATEGY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_7_WIKI_STRATEGY.md), [`docs/public-wiki/`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/), `audit-public-docs.ps1` | **COMPLETE** |
-| **8 — Dual-Track Governance**| Anti-Drift & Single Trunk | [`docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md), [`QA/verify-dual-track.ps1`](file:///d:/HaNa_Innovation/ss_cam/QA/verify-dual-track.ps1) | **COMPLETE** |
+| **4 — Cost Modelling** | Operational Economics | [`docs/PHASE_4_COST_MODELLING.md`](./PHASE_4_COST_MODELLING.md) ($340–$1,289/yr fixed overhead) | **COMPLETE** |
+| **5 — Revenue & GTM** | Commercial Pricing & Wedges | [`docs/PHASE_5_REVENUE_GTM.md`](./PHASE_5_REVENUE_GTM.md) ($0 Core / $490/yr Biz / $2,290/yr Enterprise) | **COMPLETE** |
+| **6 — Distribution Web** | Decoupled Download Hub | [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](./PHASE_6_DISTRIBUTION_SPECIFICATION.md), [`docs/commercial-landing/`](./commercial-landing/) | **COMPLETE** |
+| **7 — Public Wiki** | Two-Wiki Structural Isolation | [`docs/PHASE_7_WIKI_STRATEGY.md`](./PHASE_7_WIKI_STRATEGY.md), [`docs/public-wiki/`](./public-wiki/), `audit-public-docs.ps1` | **COMPLETE** |
+| **8 — Dual-Track Governance**| Anti-Drift & Single Trunk | [`docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md`](./PHASE_8_DUAL_TRACK_GOVERNANCE.md), [`QA/verify-dual-track.ps1`](../QA/verify-dual-track.ps1) | **COMPLETE** |
 
 **Official Release Artifacts:**
 
 - **Git Branch:** `SS-Master` (Single trunk, zero white-label code forks)
 - **Production Release Tag:** `v4.11.0` (Commit: `ed66ea7a`)
-- **Release Executable:** [`dist/SS-CAM-v4.11.0.exe`](file:///d:/HaNa_Innovation/ss_cam/dist/SS-CAM-v4.11.0.exe) and [`dist/SS-CAM.exe`](file:///d:/HaNa_Innovation/ss_cam/dist/SS-CAM.exe) (6,131,200 bytes)
+- **Release Executable:** `dist/SS-CAM-v4.11.0.exe` and `dist/SS-CAM.exe` (build outputs, not in the repository; 6,131,200 bytes)
 
 ---
 
 ## Appendix — Reference Documents
 
-- [`docs/antigravity-drift-fix-report.md`](file:///d:/HaNa_Innovation/ss_cam/docs/antigravity-drift-fix-report.md) — Technical audit: token drift, status-enum drift, enforcement gaps, source evidence.
-- [`docs/SUAMISIHAT-COUPLING-INVENTORY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/SUAMISIHAT-COUPLING-INVENTORY.md) — Complete inventory of network paths, subsidiary codes, brand identity, and module couplings.
-- [`docs/PHASE_4_COST_MODELLING.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_4_COST_MODELLING.md) — Operational cost model, infrastructure budgets, and unit economics.
-- [`docs/PHASE_5_REVENUE_GTM.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_5_REVENUE_GTM.md) — Pricing architecture, go-to-market wedges, and 3-year revenue projections.
-- [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md) — Edge CDN, multi-platform artifact delivery matrix, and licensing checkout architecture.
-- [`docs/PHASE_7_WIKI_STRATEGY.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_7_WIKI_STRATEGY.md) — Two-wiki isolation framework and pre-publication scanner rules.
-- [`docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md`](file:///d:/HaNa_Innovation/ss_cam/docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md) — Open-Core dual-track development rules, code triage protocols, and release publisher runbooks.
-- [`docs/commercial-landing/index.html`](file:///d:/HaNa_Innovation/ss_cam/docs/commercial-landing/index.html) — Live commercial distribution landing portal with interactive pricing and download matrix.
-- [`docs/public-wiki/README.md`](file:///d:/HaNa_Innovation/ss_cam/docs/public-wiki/README.md) — Public customer and IT knowledge base index.
-- [`QA/verify-dual-track.ps1`](file:///d:/HaNa_Innovation/ss_cam/QA/verify-dual-track.ps1) — Master automated dual-track governance gatekeeper script.
+- [`docs/antigravity-drift-fix-report.md`](./antigravity-drift-fix-report.md) — Technical audit: token drift, status-enum drift, enforcement gaps, source evidence.
+- [`docs/SUAMISIHAT-COUPLING-INVENTORY.md`](./SUAMISIHAT-COUPLING-INVENTORY.md) — Complete inventory of network paths, subsidiary codes, brand identity, and module couplings.
+- [`docs/PHASE_4_COST_MODELLING.md`](./PHASE_4_COST_MODELLING.md) — Operational cost model, infrastructure budgets, and unit economics.
+- [`docs/PHASE_5_REVENUE_GTM.md`](./PHASE_5_REVENUE_GTM.md) — Pricing architecture, go-to-market wedges, and 3-year revenue projections.
+- [`docs/PHASE_6_DISTRIBUTION_SPECIFICATION.md`](./PHASE_6_DISTRIBUTION_SPECIFICATION.md) — Edge CDN, multi-platform artifact delivery matrix, and licensing checkout architecture.
+- [`docs/PHASE_7_WIKI_STRATEGY.md`](./PHASE_7_WIKI_STRATEGY.md) — Two-wiki isolation framework and pre-publication scanner rules.
+- [`docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md`](./PHASE_8_DUAL_TRACK_GOVERNANCE.md) — Open-Core dual-track development rules, code triage protocols, and release publisher runbooks.
+- [`docs/commercial-landing/index.html`](./commercial-landing/index.html) — Live commercial distribution landing portal with interactive pricing and download matrix.
+- [`docs/public-wiki/README.md`](./public-wiki/README.md) — Public customer and IT knowledge base index.
+- [`QA/verify-dual-track.ps1`](../QA/verify-dual-track.ps1) — Master automated dual-track governance gatekeeper script.

@@ -68,8 +68,8 @@ namespace SS_CAM.Services
             AddNav("Copywriting Studio", "Live markdown editor, WhatsApp & Meta Ad previews", typeof(CopywritingPage), "\uE70F");
             AddNav("Brand Assets", "Master brand system color matrix & sub-brands hub", typeof(BrandAssetsPage), "\uE8F1");
             AddNav("Task Manager", "ClickUp-style Kanban board, task status & handovers", typeof(TaskManagerPage), "\uE73E");
-            AddNav("Project Timeline", "Visual project timeline, Gantt chart & delivery deadlines", typeof(CalendarPage), "\uE787");
-            AddNav("Studio Notes", "Team scratchpad, quick ideas & Markdown notes", typeof(QuickNotePage), "\uE70B");
+            AddNav("Calendar", "Project dates and deadlines", typeof(CalendarPage), "\uE787");
+            AddNav("Quick Notes", "Quick notes for you and the team", typeof(QuickNotePage), "\uE70B");
 
             // Add dynamic plugins from registry
             foreach (var plugin in PluginRegistry.ActivePlugins)

@@ -2,6 +2,8 @@
 
 **Document Version:** 1.0.0  
 **Status:** Completed & Validated  
+> **Status note (2026-10-14):** The cost model (design/specification) is complete. Not yet implemented in the repository: licensing and checkout, a CI pipeline (no `.github/workflows`), and code signing. White-label de-branding is still in progress (see [SUAMISIHAT-COUPLING-INVENTORY.md](./SUAMISIHAT-COUPLING-INVENTORY.md)). **Pricing inconsistency (flagged, not changed):** this document sets an Enterprise floor of $2,400+/yr (the master document gives $2,400–$3,600/yr), but Phase 5 prices Enterprise at $2,290/yr — below that floor.
+
 **Prerequisites:** Phase 0 (Coupling Inventory), Phase 3/3a (Plugin & TenantConfig Engine)  
 **Output Feeds Into:** Phase 5 (Revenue Forecasting & Go-To-Market Pricing Strategy)
 

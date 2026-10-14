@@ -74,7 +74,7 @@
 
   function getIconName(type: string): IconName {
     switch (type) {
-      case 'mention': return 'chat';
+      case 'mention': return 'comment';
       case 'comment': return 'comment';
       case 'revision': return 'warning';
       case 'approval': return 'checkCircle';

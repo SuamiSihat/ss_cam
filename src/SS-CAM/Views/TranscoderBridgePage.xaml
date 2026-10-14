@@ -3,7 +3,7 @@
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-      Title="Transcoder Bridge">
+      Title="File Converter">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                   Padding="24,20,24,32" PreviewMouseWheel="OnScrollViewerPreviewMouseWheel">
@@ -21,7 +21,7 @@
                         <ui:SymbolIcon Symbol="ArrowSwap24" FontSize="24"
                                        Foreground="{DynamicResource FluentBrand80}"
                                        VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <ui:TextBlock Text="Transcoder Bridge" FontSize="24" FontWeight="Bold"
+                        <ui:TextBlock Text="File Converter" FontSize="24" FontWeight="Bold"
                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                       VerticalAlignment="Center"/>
                     </StackPanel>

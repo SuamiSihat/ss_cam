@@ -24,7 +24,7 @@ Write-Host "Repository: $RepoRoot" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 # Step 1: Source Guardian Verification
-Write-Host "`n[STEP 1/3] Running Source Guardian..." -ForegroundColor Yellow
+Write-Host "`n[STEP 1/4] Running Source Guardian..." -ForegroundColor Yellow
 $SourceGuardianScript = Join-Path $RepoRoot "QA\verify-sscam.ps1"
 if (-not (Test-Path $SourceGuardianScript)) {
     Write-Error "Source Guardian script not found: $SourceGuardianScript"
@@ -43,7 +43,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Step 2: Public Documentation Leakage Audit
-Write-Host "`n[STEP 2/3] Auditing Public Documentation for Leakage..." -ForegroundColor Yellow
+Write-Host "`n[STEP 2/4] Auditing Public Documentation for Leakage..." -ForegroundColor Yellow
 $AuditScript = Join-Path $RepoRoot "docs\scripts\audit-public-docs.ps1"
 if (-not (Test-Path $AuditScript)) {
     Write-Error "Public docs audit script not found: $AuditScript"
@@ -56,9 +56,17 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# Step 3: Optional Release Build Verification
+# Step 3: Cross-platform project format (Windows / Web / Linux / Android)
+Write-Host "`n[STEP 3/4] Checking cross-platform project format..." -ForegroundColor Yellow
+& $psCmd -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "QA\verify-format-sync.ps1")
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "`n[FAIL] Platforms disagree on the project format (statuses, folders or layout)." -ForegroundColor Red
+    exit 1
+}
+
+# Step 4: Optional Release Build Verification
 if ($Build) {
-    Write-Host "`n[STEP 3/3] Compiling Release Build..." -ForegroundColor Yellow
+    Write-Host "`n[STEP 4/4] Compiling Release Build..." -ForegroundColor Yellow
     $QaRunner = Join-Path $RepoRoot ".agents\skills\sscam-qa\scripts\run-sscam-qa.ps1"
     if (Test-Path $QaRunner) {
         & $psCmd -ExecutionPolicy Bypass -File $QaRunner -Build -Configuration Release
@@ -70,7 +78,7 @@ if ($Build) {
         Write-Host "  [SKIP] QA runner not found; skipping build." -ForegroundColor Gray
     }
 } else {
-    Write-Host "`n[STEP 3/3] Build check skipped (Pass -Build to trigger full Release compile)." -ForegroundColor Gray
+    Write-Host "`n[STEP 4/4] Build check skipped (Pass -Build to trigger full Release compile)." -ForegroundColor Gray
 }
 
 Write-Host "`n============================================================" -ForegroundColor Green

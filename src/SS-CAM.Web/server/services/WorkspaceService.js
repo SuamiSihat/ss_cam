@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const config = require('../config');
+const ProjectFormat = require('./ProjectFormat');
 const FrontmatterService = require('./FrontmatterService');
 const AuditService = require('./AuditService');
 
@@ -422,8 +423,9 @@ class WorkspaceService {
     const { frontmatter, body, versionHash } = FrontmatterService.readProjectReadme(fullPath);
 
     // Compute status
-    const status = frontmatter.status || 'backlog';
-    const priority = frontmatter.priority || 'medium';
+    // Fold spelling variants written by older clients (in_progress, on_hold, normal...) into the canonical values.
+    const status = ProjectFormat.normalizeProjectStatus(frontmatter.status, frontmatter.status ? String(frontmatter.status).toLowerCase() : 'backlog');
+    const priority = ProjectFormat.normalizePriority(frontmatter.priority);
     const designer = frontmatter.designer || 'Unassigned';
     const deadline = frontmatter.deadline || '';
     const created = frontmatter.created || frontmatter.createdDate || this.inferCreatedDate(folderName, fullPath);
@@ -726,8 +728,8 @@ class WorkspaceService {
       try {
         const { frontmatter, body, versionHash } = FrontmatterService.readProjectReadme(project.fullPath);
         if (frontmatter) {
-          if (frontmatter.status) project.status = frontmatter.status;
-          if (frontmatter.priority) project.priority = frontmatter.priority;
+          if (frontmatter.status) project.status = ProjectFormat.normalizeProjectStatus(frontmatter.status, String(frontmatter.status).toLowerCase());
+          if (frontmatter.priority) project.priority = ProjectFormat.normalizePriority(frontmatter.priority);
           if (frontmatter.designer) project.designer = frontmatter.designer;
           project.manager = frontmatter.manager || 'Unassigned';
           if (frontmatter.department) project.department = frontmatter.department;

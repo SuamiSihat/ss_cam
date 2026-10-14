@@ -72,8 +72,8 @@
     e.preventDefault();
     submitError = null;
 
-    if (newPassword.length < 8) {
-      submitError = 'Password must be at least 8 characters long.';
+    if (newPassword.length < 10) {
+      submitError = 'Password must be at least 10 characters long.';
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -154,7 +154,7 @@
               type={showPassword ? 'text' : 'password'}
               class="field-input"
               bind:value={newPassword}
-              placeholder="Minimum 8 characters"
+              placeholder="Minimum 10 characters"
               required
             />
             <button

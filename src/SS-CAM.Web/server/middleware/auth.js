@@ -204,7 +204,10 @@ function getStoredPasswords() {
   try {
     return JSON.parse(fs.readFileSync(pPath, 'utf8')) || {};
   } catch (e) {
-    return {};
+    // Fail closed: returning {} here would let the bootstrap/update paths rewrite the
+    // store with a single entry and wipe every other user's password hash.
+    console.error(`[Auth] Password store is unreadable (${pPath}):`, e.message);
+    throw new Error('Password store is unreadable. Restore it from backup before signing in.');
   }
 }
 
@@ -326,12 +329,12 @@ function authenticateToken(req, res, next) {
   const token = (authHeader && authHeader.split(' ')[1]) || req.query.token;
 
   if (!token) {
-    return res.status(401).json({ error: 'Authentication required. Please log in.' });
+    return res.status(401).json({ error: 'Please sign in to continue.' });
   }
 
   jwt.verify(token, config.JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(403).json({ error: 'Session expired or invalid token.' });
+      return res.status(403).json({ error: 'Your session has expired. Please sign in again.' });
     }
     req.user = user;
     next();
@@ -351,7 +354,7 @@ function requireRole(...allowedRoles) {
   const normalizedTargets = allowedRoles.map(r => (r || '').trim().toLowerCase());
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required. Please log in.' });
+      return res.status(401).json({ error: 'Please sign in to continue.' });
     }
     const userRoles = getUserRoles(req.user).map(r => (r || '').trim().toLowerCase());
     const isAllowed = userRoles.some(r => {
@@ -377,7 +380,7 @@ function requireRole(...allowedRoles) {
         }
       });
       return res.status(403).json({
-        error: `Access Denied. Required role: [${allowedRoles.join(', ')}]. Your role: '${req.user.role}'`
+        error: "You don't have permission to do this. Ask an admin for access.", requiredRoles: allowedRoles
       });
     }
     next();
@@ -411,7 +414,7 @@ function requirePermission(permission) {
         }
       });
       return res.status(403).json({
-        error: `Permission Denied. Required: '${permission}'. Your role: '${req.user.role}'`
+        error: "You don't have permission to do this. Ask an admin for access.", requiredPermission: permission
       });
     }
     next();
@@ -525,8 +528,8 @@ function resetPasswordWithToken(token, newPassword) {
   const check = verifyPasswordResetToken(token);
   if (!check.valid) return { success: false, error: check.error };
 
-  if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 8) {
-    return { success: false, error: 'New password must be at least 8 characters long' };
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 10) {
+    return { success: false, error: 'New password must be at least 10 characters long' };
   }
 
   const updated = updateUserPassword(check.username, newPassword.trim());

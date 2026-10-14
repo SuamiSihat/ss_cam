@@ -66,13 +66,15 @@ fun ManageProjectBottomSheet(
         )
     }
 
+    // Keys are Android's internal display keys (see ProjectItem.normalizedStatus);
+    // ProjectStatusConstants.toCanonical() converts them to the shared values on save.
     val availableStatuses = listOf(
-        Triple("in_progress", "In Progress", Color(0xFFFBBF24)),
-        Triple("in_review", "In Review", SshAzure),
+        Triple("backlog", "Backlog", Color(0xFF64748B)),
+        Triple("in_progress", "In progress", Color(0xFFFBBF24)),
+        Triple("in_review", "Review", SshAzure),
         Triple("revision", "Revision", Color(0xFFF97316)),
-        Triple("done", "Completed", SshSuccessGreen),
-        Triple("stuck", "Stuck / Urgent", Color(0xFFEF4444)),
-        Triple("queued", "Queued", Color(0xFF64748B))
+        Triple("done", "Approved", SshSuccessGreen),
+        Triple("on_hold", "On hold", Color(0xFFEF4444))
     )
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)

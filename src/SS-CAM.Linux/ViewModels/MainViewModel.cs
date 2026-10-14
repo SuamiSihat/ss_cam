@@ -23,7 +23,8 @@ namespace SS_CAM.Linux.ViewModels
         [ObservableProperty] private object? _currentPage;
         [ObservableProperty] private string _currentTabName = "Dashboard";
         [ObservableProperty] private string _appName = "SuamiSihat™ SS-CAM";
-        [ObservableProperty] private string _appVersion = "v4.10.1-linux";
+        // Read from the assembly (set by <Version> in SS-CAM.Linux.csproj) so it never goes stale.
+        [ObservableProperty] private string _appVersion = "v" + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "?") + "-linux";
         [ObservableProperty] private string _statusMessage = "Ready.";
         [ObservableProperty] private string _currentTimeString = "";
         [ObservableProperty] private string _focusTimerText = "25:00 Focus";
@@ -691,9 +692,10 @@ priority: medium
         {
             if (task != null)
             {
-                task.Status = "done";
+                // "approved" is what Windows, Web and Android write on approval
+                task.Status = "approved";
                 FilterKanbanTasks();
-                StatusMessage = $"Task '{task.Project}' marked as Completed.";
+                StatusMessage = $"'{task.Project}' approved.";
             }
         }
 
@@ -728,7 +730,7 @@ priority: medium
             BacklogTasks = new ObservableCollection<ProjectStatusItem>(filtered.Where(t => t.Status == "backlog"));
             InProgressTasks = new ObservableCollection<ProjectStatusItem>(filtered.Where(t => t.Status == "in-progress"));
             ReviewTasks = new ObservableCollection<ProjectStatusItem>(filtered.Where(t => t.Status == "review" || t.Status == "revision"));
-            DoneTasks = new ObservableCollection<ProjectStatusItem>(filtered.Where(t => t.Status == "done"));
+            DoneTasks = new ObservableCollection<ProjectStatusItem>(filtered.Where(t => t.IsCompletedStatus));
 
             MetricTotalTasks = filtered.Count;
             MetricInProgressTasks = InProgressTasks.Count;

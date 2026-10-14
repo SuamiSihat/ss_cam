@@ -10,7 +10,12 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
-const sandboxWorkspace = path.resolve(__dirname, '../../sample-workspace');
+// Copy the tracked sample-workspace fixture into a throwaway temp folder so test
+// runs never modify files under version control.
+const fixtureWorkspace = path.resolve(__dirname, '../../sample-workspace');
+const sandboxWorkspace = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sscam-web-test-'));
+fs.cpSync(fixtureWorkspace, sandboxWorkspace, { recursive: true });
+process.on('exit', () => fs.rmSync(sandboxWorkspace, { recursive: true, force: true }));
 if (!process.env.WORKSPACE_ROOT) {
   process.env.WORKSPACE_ROOT = sandboxWorkspace;
 }

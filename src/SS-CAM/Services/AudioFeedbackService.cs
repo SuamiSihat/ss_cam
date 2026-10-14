@@ -248,7 +248,6 @@ namespace SS_CAM.Services
             {
                 Path.Combine(payloadDir, "Audio", mp3FileName),
                 Path.Combine(localApp, "Audio", mp3FileName),
-                @"E:\Dev\Projects\SS-Brand-Assets\payload\Audio\" + mp3FileName,
                 Path.Combine(baseDir, "payload", "Audio", mp3FileName),
                 Path.Combine(baseDir, mp3FileName)
             };

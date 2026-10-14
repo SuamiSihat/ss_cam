@@ -2,6 +2,71 @@
 
 All notable SS-CAM changes are documented here.
 
+## [Unreleased] - 2026-10-14 (Cross-Platform Format Sync, Access Control & Cleanup)
+
+### One project format on every app
+
+- **Same folders everywhere**: Windows, Web, Linux and Android now all create projects as `<YYYY>/<YYYYMM>_<Month>/<YYYYMM>_<NNNN>D_<BRAND>_<Title>/` with `01_BRIEF_ASSETS` … `05_DELIVERABLES`.
+  - **Web**: projects were created at the top of the shared drive with a random number. They now go in the year/month folder with the next project ID (`server/services/ProjectFormat.js`).
+  - **Linux**: replaced the old `01_BRIEFS` / `02_RAW_ASSETS` / `03_WORKING_FILES` / `04_EXPORTS` folders and the `SS-2026` year folder. The month name is always English. COPY.md moved to `03_COPYWRITING`; old Linux projects are still read. Linux no longer writes `project.yaml`.
+- **Same status values everywhere**: `backlog`, `in-progress`, `review`, `revision`, `approved`, `on-hold`.
+  - New projects start as `backlog`, priority `medium`, revision 0 on every app.
+  - Approving a project now writes `approved` on Windows, Linux and Android. Windows and Linux used to write `done`, which the web dashboard counts as Archived.
+  - Android now sends canonical values. It used to send `in-review`, `stuck` and `queued`.
+  - Web and Linux read older spellings (`in_progress`, `on_hold`, `normal`) correctly. The Linux task board no longer hides projects saved with those spellings.
+- **Android**: new projects get a deadline one week ahead. They used to get a fixed 15 Sep 2026.
+- **New check**: `QA/verify-format-sync.ps1` confirms all four apps agree. It is now step 3 of `QA/verify-dual-track.ps1`. It replaces `QA/sync-status-enums.ps1`, which rewrote source files from a file outside the repo.
+
+### Access control (Web)
+
+- **Deleting tasks is limited to managers and admins** (`project:edit`) on all three delete routes, including the duplicate `/studio-tasks/:id` route. The delete buttons are hidden for other users.
+- **Admins only**: changing the AI key (the AI assistant shows non-admins a "Ask an admin" note instead), adding, removing or testing webhooks. The audit log needs `admin:system_audit`.
+- **Default password** for new accounts and *Reset to default* is `SuamiSihat123`. It can be overridden with `DEFAULT_STAFF_PASSWORD` in `.env`. The admin screen no longer hard-codes it.
+- **File previews stay public**, because image and video tags and client review links need them, but they are now restricted:
+  - The deliverable preview, stream and download routes serve only media files.
+  - The project file route refuses hidden files and data files (`.json`, `.jsonl`, `.env`, `.lock`, `.tmp`).
+  - This closes a leak of the AI key and audit log.
+- **Fixed** path traversal in note deletion and frontmatter injection through the note priority.
+- **Fixed** a password-store read error that could wipe every user's password. It now fails safely and is logged.
+- **Fixed** the password minimum: 10 characters everywhere. Resets used to accept 8.
+
+### Windows app
+
+- **Update check fixed**: it now uses `UpdateRepository` from the tenant config (SuamiSihat edition: `SuamiSihat/ss_cam`). The dual-track rename had pointed it at a repo that doesn't exist.
+- **Order sign-in**: falls back to the first active admin in the staff directory instead of a hard-coded name.
+- **Logging**: failures loading or saving settings files are now logged.
+- **Paths**: developer-machine paths removed from sounds and the QR logo.
+- **Staff list watcher**: team-list changes are detected again (it was watching `staff-directory.json`; the real file is `staff_directory.json`).
+- **Dropdown heights**: two dropdowns raised to the 36 px standard.
+
+### Copy and naming
+
+- **Same module names on all four apps**:
+  - Dashboard
+  - Task Manager
+  - Calendar
+  - Quick Notes
+  - Deliverables
+  - Team
+  - Wellbeing
+  - Archive
+  - File Converter
+- **Plain-language messages**: error messages on Web and Android, server sign-in and permission messages, and Windows menu tooltips.
+- **New style guide**: `QA/04-TERMINOLOGY.md` sets out the naming and copy rules.
+- **Versions**: version labels corrected (Web server now reads `package.json`; Linux reads its assembly version; Android shows 5.2.0).
+
+### Cleanup
+
+- **Removed**:
+  - The root `install.cmd`, an unrelated third-party "Antigravity CLI" installer.
+  - The legacy web client (`client/js`, `client/css`) and two unused Svelte components.
+  - Duplicate task routes and a duplicate forgot-password route.
+  - The unused Windows `ProjectGeneratorService`.
+  - About 270 lines of dead QR encoder code.
+- **Web tests** now run on a temporary copy of `sample-workspace`, so they no longer modify tracked files.
+- **README** rewritten for non-technical readers.
+- **QA scripts**: QA scripts now use repo-relative paths.
+
 ## [5.2.0] - 2026-10-12 (Enterprise Intelligence, Asset Versioning & Collision Guard)
 
 ### Asset Versioning & Snapshots Engine

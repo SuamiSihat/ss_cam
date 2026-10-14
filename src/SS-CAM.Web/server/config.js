@@ -117,7 +117,8 @@ module.exports = {
   DEFAULT_NAS_PATH: process.platform === 'win32' ? uncNasPath : linuxNasPath,
   FALLBACK_LOCAL_WORKSPACE: fallbackLocalWorkspace,
   APP_TITLE: 'SuamiSihat Creative Team Portal',
-  VERSION: '4.14.0',
+  // Single source of truth: the release version in package.json.
+  VERSION: require('../package.json').version,
   APP_URL: process.env.APP_URL || 'https://creative.suamisihat.myds.me',
   SMTP_HOST: process.env.SMTP_HOST || '',
   SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),

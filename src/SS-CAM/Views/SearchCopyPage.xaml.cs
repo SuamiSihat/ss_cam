@@ -850,10 +850,12 @@ namespace SS_CAM.Views
         {
             if (currentStatusItem == null || selectedItem == null) return;
 
-            currentStatusItem.Status = "done";
+            // Same status the Web and Android apps write when a project is approved
+            // ("done" is shown as Archived on the web dashboard).
+            currentStatusItem.Status = ProjectStatusConstants.Approved;
             FrontmatterService.WriteStatus(currentStatusItem);
             UpdateReadmeDisplay();
-            NotificationService.ShowSuccess("Sign-Off Approved", string.Format("Project '{0}' signed off and marked as Done.", selectedItem.Project), selectedItem.FullPath);
+            NotificationService.ShowSuccess("Project approved", string.Format("'{0}' is now marked as Approved.", selectedItem.Project), selectedItem.FullPath);
         }
 
         private void OnRequestRevisionClicked(object sender, RoutedEventArgs e)

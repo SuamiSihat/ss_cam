@@ -321,7 +321,7 @@
                             <ui:Button Appearance="Secondary" Height="30" Padding="12,0" Click="OnOpenTranscoderBridgeClicked" Cursor="Hand" ToolTip="Open full Transcoder Bridge page" Margin="0,0,8,0">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Open24" FontSize="12" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <ui:TextBlock Text="Transcoder Bridge" FontSize="11" VerticalAlignment="Center"/>
+                                    <ui:TextBlock Text="File Converter" FontSize="11" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </ui:Button>
 

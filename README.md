@@ -1,436 +1,218 @@
-# SS-CAM — SuamiSihat™ Creative Assets Management
+# SS-CAM — Creative Asset Manager
 
-## Enterprise Creative Operations & Assets Management Platform
-
-Standardized Project Vaults · ClickUp 3.0 Workspace · Copywriting Studio · Brand Asset Inspector · Synology NAS Native · Multi-Platform
+**One place for the creative team's projects, files, tasks and approvals.**
 
 [![Release](https://img.shields.io/badge/release-v5.2.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v5.2.0)
-[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20Linux%20%7C%20Android%20%7C%20Docker-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam)
-[![Framework](https://img.shields.io/badge/.NET%20Framework-4.8%20%7C%20.NET%2010.0%20%7C%20Compose-purple?style=flat-square)](https://dotnet.microsoft.com)
-[![Web Stack](https://img.shields.io/badge/web-Svelte%205%20%2B%20Node.js%2020-ff3e00?style=flat-square)](https://svelte.dev)
-[![Design System](https://img.shields.io/badge/design-Fluent%202%20%2F%2060%3A30%3A10-0078D4?style=flat-square)](https://fluent2.microsoft.design)
-[![License](https://img.shields.io/badge/licence-Internal%20Use-orange?style=flat-square)](./installer/EULA.txt)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Web%20%7C%20Android%20%7C%20Linux-blue?style=flat-square)](#which-app-should-i-use)
+[![Licence](https://img.shields.io/badge/licence-Internal%20use-orange?style=flat-square)](./installer/EULA.txt)
+
+SS-CAM (SuamiSihat Creative Assets Management) keeps every creative project in a tidy, standard folder on the shared drive and gives the team simple tools to plan the work, write the copy, review the designs and hand the files over. It was built for SuamiSihat Holding's creative team and is used across the group's companies.
+
+> **Latest release:** v5.2.0 (12 October 2026) — file version history and roll-back, "someone else is editing" warnings, and faster approvals on the web. See the [full change history](./CHANGELOG.md).
 
 ---
 
-## 🚀 What's New in v5.2.0 ("Enterprise Intelligence, Asset Versioning & Collision Guard")
+## Contents
 
-* **📸 Asset Revision Snapshots & Rollback Engine (`SnapshotDesktopService.cs`, `SnapshotService.js`)**:
-  * **Point-in-Time Snapshots**: Automated non-destructive snapshots of master design files (`.afdesign`, `.psd`, `.ai`, `.pdf`) stored across Synology NAS vaults.
-  * **Interactive Snapshot Timeline Dialog**: In-app timeline dialog (`ProjectSnapshotsDialog.xaml`, `ProjectVersionTimelineModal.svelte`) for 1-click preview and rollback with pre-rollback safety snapshots.
-* **🛡️ Real-Time Project Lock Leasing & Collision Guard (`FileCollisionGuardService.cs`, `CollisionGuardService.js`)**:
-  * **Multi-Designer Collision Prevention**: Real-time project lock leasing engine preventing concurrent write collisions on shared NAS vaults (`_lock.json`).
-  * **Visual Occupancy Ribbons**: Live lock status banners and editor occupancy indicators in Desktop Task Manager, Search & Copy, and Web Portal views.
-* **💎 Web Deliverables & Production Vault UX / Art Direction Overhaul (`DeliverablesView.svelte`)**:
-  * **Production Vault Telemetry Ribbon**: Real-time deliverable counts, storage footprints, and media format ratio charts (Raster vs Video vs Print).
-  * **1-Click Fast Sign-Off**: Direct Quick Approve (`✓`) and Quick Revision (`✕`) buttons on grid cards and DAM table rows without lightbox friction.
-* **⚡ TasksView 2-Tier Toolbar & Executive Bottleneck Radar (`TasksView.svelte`, `TaskDetailDrawer.svelte`)**:
-  * **Executive Bottleneck Radar**: Real-time radar highlighting overdue deliverables, unassigned tasks, and revision bottlenecks.
-  * **Non-Blocking Inline Confirmation**: Replaced blocking native browser dialogs with non-destructive inline action confirmation pills.
-* **🐧 Native Linux Desktop Client (.NET 10 / Avalonia UI 12.1)**:
-  * **Full .NET 10 Compatibility**: Clean build with 0 warnings, single-file native distribution tarball (`dist/SS-CAM-v5.2.0-linux-x64.tar.gz`), and 76/76 automated smoke test verification.
+- [What you can do](#what-you-can-do)
+- [Which app should I use?](#which-app-should-i-use)
+- [Getting started](#getting-started)
+- [How projects are organised](#how-projects-are-organised)
+- [Where things stand](#where-things-stand)
+- [Help and troubleshooting](#help-and-troubleshooting)
+- [For developers](#for-developers)
+- [Licence](#licence)
 
 ---
 
-## 🚀 What's New in v4.13.0 ("Split-View WhatsApp Simulator & Customizable Dashboard KPI Grid")
+## What you can do
 
-* **📱 Split-View WhatsApp Simulator in Copywriting Studio (`CopywritingPage.xaml`)**:
-  * **1-Click Segmented View Toggle**: Added `[ Split WhatsApp ]` to the top mode switcher bar alongside Live Preview, Split Doc, Edit Mode, and Mockup View.
-  * **Conversational Multi-Bubble Splitting**: Automatically partitions Markdown ad copy into realistic chat bubbles separated by headers, dividers (`---`), or double linebreaks.
-  * **Rich Text & Link Previews**: Supports `*bold*`, `_italic_`, `~strikethrough~`, preserved emojis, and rich link preview cards with web globe icons and domain names.
-  * **Export to Clipboard**: 1-click `[ Copy Formatted (WhatsApp) ]` action to export copy cleanly for WhatsApp Web / Business.
-* **📊 Customizable Dashboard KPI Grid & Real-Time Production Widgets (`DashboardPage.xaml`)**:
-  * **Layout Customization Toolbar**: Click `[ ⚙ Customize ]` in the dashboard header to reveal inline Pin (`📌`) and Move (`▲` / `▼`) controls on every widget card header.
-  * **In-Flight Production Spotlight**: Live tracking of active deliverables from `CreativeOrderService` and recently updated projects from `WorkspaceScanner`, with a 3-way filter (`All In-Flight`, `In Production`, `Needs Review`).
-  * **Active Transcodes Engine**: Real-time status and progress tracking of FFmpeg background conversion queues (`TranscoderBridgePage.SharedJobs`) with Explorer folder shortcuts.
-  * **Persistent Layout Storage**: Widget order and pinning preferences automatically persist in `%APPDATA%\SS-CAM\dashboard_layout.json`.
-* **📦 Platform Build & Distribution Verification**:
-  * **Desktop & Web Synchronized**: Rebuilt Windows desktop application (`SS-CAM.exe` v4.13.0.0 in `dist/`) with 0 errors and 13/13 Source Guardian checks passing.
+| Area | What it's for |
+|---|---|
+| **Dashboard** | See your projects, deadlines and what the team is working on right now. |
+| **Project Creator** | Create a new project with the standard folders and project ID in one step. |
+| **Project Catalog** | Find any project, open its brief, preview its files and copy what you need. |
+| **Task Manager** | Plan and track work on a board, hand tasks over, and see what's overdue. |
+| **Calendar** | Project dates, deadlines and Malaysian public holidays in one view. |
+| **Copywriting Studio** | Write ad, WhatsApp and Meta copy, with a live preview of how it will look. |
+| **Deliverables** | Review final files, approve them or request changes, and compare versions side by side. |
+| **Order Requests** | Send a creative request to the team, with attachments, and follow its progress. |
+| **Brand Assets** | Official brand colours, logos and fonts, ready to copy. |
+| **Quick Notes** | Short notes for yourself or the whole team. |
+| **Archive** | Move finished projects out of the way to free up space. |
+| **File Converter** | Convert videos and images into web and social-ready formats. |
+| **Wellbeing** | Focus timer, breathing breaks, Radio and Waktu Solat. |
 
-## 🚀 What's New in v4.12.2 ("Discussion Vertical Stacking, Filter Button Alignment & Reviewer Anti-Overflow")
-
-* **💬 Project Discussion & Review Comments Vertical Stacking (`ProjectComments.svelte`)**:
-  * **Vertical Component Stacking**: Eliminated horizontal clipping and button collision in comment cards. Shifted to a 4-tier vertical structure: Author Header Row (Author + Role badge + Delete button `✕`), Deliverable Reference Row (`🎯 [filename]`), Comment Body, and Action Footer Row (`[ ✓ Resolved ]` / `[ ↻ Reopen ]` button + Timestamp).
-  * **Markdown Embedded Images & File Naming**: Render deliverable reference links with explicit file names and support inline markdown image rendering for visual design feedback.
-  * **Segmented Filter Buttons Alignment**: Re-engineered filter controls (`All`, `Open`, `Resolved`) into an equal-width 3-column segmented button group (`flex: 1 1 0%`), perfectly aligned to match the height and vertical rhythm of the search and refresh actions.
-* **🛡️ Reviewer Dropdown & Select Anti-Overflow Geometry**:
-  * **Anti-Overflow & Tooltips**: Fixed text overflow on lengthy reviewer names and role titles in `Reviewer` selectors. Added `title` tooltips, `text-overflow: ellipsis`, and custom SVG chevron indicators.
-  * **Robust Error Handling**: Hardened comment submission error reporting and deliverable association against server timeouts and internal exceptions.
-* **📦 Platform Build & Distribution Verification**:
-  * **Desktop & Web Synchronized**: Rebuilt web portal client bundle (`npm run build:client`) and desktop application (`SS-CAM.exe` v4.12.2.0, verified 6.2MB binary in `dist/`).
-
-## 🚀 What's New in v4.12.1 ("Security Hardening, WCAG 2.1 AA Accessibility & Canonical Vault Hierarchy")
-
-* **🛡️ Web Management API Security & Data Protection (`api.js`, `DeliverableService.js`)**:
-  * **JWT Route Authorization**: Enforced mandatory `authenticateToken` across `GET /api/projects/:id/export`, `POST /api/notes`, `DELETE /api/notes/:id`, and `GET /api/users`.
-  * **Directory Traversal Sanitization**: Sanitized note identifiers with `path.basename` and regex alphanumeric filtering (`/[^a-zA-Z0-9_-]/g`), eliminating path traversal and arbitrary file deletion vectors.
-  * **Path Prefix Containment Fix**: Hardened `DeliverableService.resolveSafePath` against directory-prefix traversal by verifying path boundaries against trailing directory separators (`root + path.sep`), neutralizing sibling folder escape attacks (CWE-22).
-  * **Automated Security Verification**: Extended the Web Portal verification suite (`run-tests.js`) with automated assertions for 401 unauthenticated request rejection and path traversal sanitization (59 passing tests).
-* **🎨 WCAG 2.1 AA Accessibility & Brand Hierarchy (`fluent2-tokens.css`, `CopyStudioView.svelte`, `App.svelte`)**:
-  * **Color Contrast Rectification**: Replaced low-contrast Azure text (`#21A1F7`, failing at 2.80:1 contrast) on white card surfaces with `--text-brand` (`#043388`), establishing **11.45:1 (AAA Pass)** contrast across Copywriting Studio and Order Intake views.
-  * **Keyboard Skip-to-Content Landmark (WCAG 2.4.1)**: Added an accessible `<a href="#main-content" class="skip-link">Skip to main content</a>` and designated `<main id="main-content" class="page-body" tabindex="-1">` as the primary semantic landmark.
-  * **Semantic Button & Global Escape**: Converted the user profile chip from a `div role="button"` to a semantic `<button type="button" class="user-chip">` and wired global `Escape` key dismissal for drawers, flyout menus, and the command palette.
-  * **WPF Desktop Status Accessibility**: Enabled keyboard tab stops and Enter/Space keyboard activation for PaneFooter status panels (NAS, Focus Timer, Studio Radio, Theme Switcher), and added `ToolTip` and `AutomationProperties.Name` to the update banner dismiss button.
-* **📂 Canonical 5-Folder Hierarchy & Multi-Platform Synchronization (`CreativeOrderService.cs`, `PreflightValidatorService.cs`)**:
-  * **Vault Hierarchy Standardization**: Standardized `CreativeOrderService.cs` order handover on the 5 canonical uppercase folders: `01_BRIEF_ASSETS`, `02_SOURCE_FILES`, `03_COPYWRITING`, `04_WORK_IN_PROGRESS`, `05_DELIVERABLES`.
-  * **Brief Assets & Copy Integration**: Attached brief assets and order files are now saved directly into `01_BRIEF_ASSETS` and scripts into `03_COPYWRITING/COPY.md`.
-  * **Preflight Validator Modernization**: Updated `PreflightValidatorService.cs` to validate and auto-repair using the 5 canonical folders with backward-compatible aliases for legacy structures.
-  * **Documentation & Terminology Cleanliness**: Purged `[JobID]` in `FOLDER-STRUCTURE.md` in favor of `[ProjectID]`, and updated `.job-id` CSS to `.project-id`.
-  * **Ecosystem Version Synchronization**: Synchronized versions to `4.12.1` across WPF Desktop, Web Portal, Android Companion, and Linux Client.
-
-## 🚀 What's New in v4.12.0 ("Advanced Batch Operations & Studio Archive Vault")
-
-* **📦 Batch Archive Vault & Cold Storage Optimizer (`ArchiveVaultService`, `ArchiveVaultPage`)**:
-  * **Multi-Select Archival**: Batch-archive multiple completed projects directly to cold-storage ZIPs on Synology NAS (`_Archive/[YYYY]/[YYYYMM]/`).
-  * **Audit Catalog**: Append-only `_archive_catalog.jsonl` tracks operators, project IDs, timestamps, and compressed sizes.
-  * **Fluent 2 GUI & Storage KPIs**: Interactive desktop page with 4 KPI summary banners, real-time batch progress bar, and catalog history viewer.
-* **🎞️ Multi-Format Asset Transcoder Bridge (`TranscoderService`, `TranscoderBridgePage`)**:
-  * **FFmpeg Multi-Tier Discovery Engine**: Automatic detection across user preferences, `payload/ffmpeg/`, system `PATH`, and WinGet package stores.
-  * **Standard Presets**: Fast conversion to WebP (lossy 85%), AVIF (still), WebM (VP9/Opus), Social GIF (10s preview 480p), and MP4 Compress (H.264 faststart).
-  * **Studio Tool GUI & Deliverable Quick-Actions**: Drag-and-drop batch queue page with real-time `stderr` progress reporting, plus right-click instant conversion in the project Assets Gallery.
-* **📻 Studio Radio & Particle Visualizer Upgrades (`RadioStreamService`, `VisualizerService`)**:
-  * **New Live Streams**: Chillhop Radio, SomaFM: Secret Agent, and SomaFM: Drone Zone.
-  * **New Visualizer Presets**: `GalaxyDrift` (star-field orbit), `FrequencyBars` (12-band EQ spectrum), and `PulseRing` (concentric ripple rings) selectable directly from the Radio transport strip.
-
-## 🚀 What's New in v4.11.0 ("Dual-Track Commercialization Architecture, Multi-Tenant Plugin Engine & Open-Core Governance")
-
-* **🧩 Modular Multi-Tenant Plugin Engine (`IAppPlugin`, `PluginRegistry`)**:
-  * **Decoupled Architecture**: Abstracted auxiliary modules into standalone pluggable components (`WaktuSolatPlugin`, `RadioPlayerPlugin`, `QrCodeStudioPlugin`, `CreativeWellbeingPlugin`).
-  * **Dynamic Navigation & Command Palette**: Automatic runtime mounting of enabled modules in sidebar navigation and global `Ctrl + K` Command Palette based on tenant capability settings.
-* **🏢 Dynamic Tenant Configuration Engine (`TenantConfigService`)**:
-  * **Runtime Customization**: Full tenant branding, brand primary/tint/navy color palette injection, and endpoint configuration loaded dynamically from `TenantConfig.json` without recompilation.
-  * **Core Neutralization**: All proprietary literals neutralized across 20+ desktop views and services with generic enterprise fallbacks.
-* **🌐 Commercial Distribution Hub & Public Documentation Suite**:
-  * **Commercial Landing Portal**: Fluent 2 dark glassmorphic customer landing page under `docs/commercial-landing/` with interactive pricing tier calculator ($0 Community Core, $490/yr Studio Business, $2,290/yr Enterprise White-Label) and multi-platform distribution links.
-  * **Clean Public Knowledge Base**: Dedicated, sanitised customer documentation under `docs/public-wiki/` (`01-GETTING-STARTED.md`, `02-TENANT-CONFIG-SPEC.md`, `03-PLUGIN-SYSTEM.md`, `04-TROUBLESHOOTING.md`) with automated leakage validation (`docs/scripts/audit-public-docs.ps1`).
-* **🛡️ Dual-Track Single-Trunk Governance (`QA/verify-dual-track.ps1`)**:
-  * **Automated 3-Stage Pre-Flight Gatekeeper**: Source Guardian UTF-8 BOM, Fluent 2 control standards, zero public documentation leakage verification, and Release MSBuild verification.
-
-## 🚀 What's New in v4.10.2 ("Cross-Platform 4-Date Schema Synchronization, Brief Attachment Handover & Universal Markdown Studio")
-
-* **📅 Universal 4-Date Lifecycle Across Ecosystem**:
-  * **Canonical Temporal Schema**: Standardized on 4 explicit dates across Web Portal, Windows Desktop, Linux Avalonia, and Android: **Created Date** (draft timestamp), **Start Date** (sprint kickoff), **Deadline** (due date), and **Duration** (auto-calculated turnaround).
-  * **Dynamic Turnaround Duration**: Automatically computes friendly durations (`Same day (1d)`, `X days`, `Xw (Yd)`) on date selection with zero manual math.
-* **📎 Order Attachment Vault & Brief Handover Pipeline**:
-  * **Order Attachment Multi-File Upload**: Web portal orders accept multi-file drag-and-drop attachments stored securely in `_Orders/<orderId>/`.
-  * **One-Click Handover to Projects**: Automatically copies all brief assets into `01_Brief_and_Copy/Brief_Assets/` upon project generation.
-  * **Clickable Markdown Integration**: Embeds asset tables and links in `01_Brief_and_Copy/COPY.md` and links order references in `README.md` YAML frontmatter.
-* **✍️ Universal Markdown Studio Toolbar**:
-  * Rich Markdown authoring across Web Management Portal and Desktop Copywriting Studio with H1-H3, Bold, Italic, Lists, Checklists, Blockquotes, Code, Hyperlinks, Images, and Table scaffolding.
-
-## 🚀 What's New in v4.10.1 ("Official SuamiSihat Radio Stream Upgrade & Native M3U/M3U8 Playlist Engine")
-
-* **📻 Official SuamiSihat Radio Stream Migration (`RadioStreamService.cs`, `MainViewModel.cs`, `StudioRadioScreen.kt`)**:
-  * **Live Stream Upgrade**: Migrated the official stream endpoint to `https://radio.suamisihat.myds.me/listen` (broadcasting high-fidelity 192 kbps MP3 with embedded real-time ICY metadata).
-  * **Zero-Interruption Config Migration**: Automatically migrates local `%LOCALAPPDATA%\SuamiSihat\radio_config.json` presets on startup so existing users connect to the new endpoint without resetting favorites or custom presets.
-  * **Multi-Platform Parity**: Synchronized across Windows Desktop, Linux Avalonia (`MainViewModel.cs`), and Android (`StudioRadioScreen.kt`).
-* **🎵 Native M3U / M3U8 Playlist Engine (`PlaylistHelper`, `RadioStreamService.cs`)**:
-  * **Direct Stream Resolution & Playback**: Automatically resolves `.m3u`, `.m3u8`, and `.pls` playlist URLs directly to the target media stream for smooth playback in WPF `MediaPlayer`.
-  * **On-the-Fly Stream Redirection**: Intercepts `audio/x-mpegurl` stream responses within `LocalAudioProxy`, parsing and reconnecting to the true audio feed without breaking playback or throwing codec exceptions.
-  * **Extended Attribute & Relative Path Parsing**: Full `#EXTINF` parser extracting `tvg-name`, `group-title` (genre), and `tvg-logo` / `logo` (album art), with automatic relative path resolution against playlist base URLs.
-  * **Station Playlist Export**: Added 1-click **Export** toolbar button (`&#xE74E;`) in `RadioPage.xaml` exporting the full station collection to `.m3u` / `.m3u8` via `SaveFileDialog`.
-  * **Online Playlist Import & Stream Testing**: Import playlists directly via web URLs (`ImportPlaylistUrl`), with enhanced stream testing reporting verified M3U endpoints (`TestStreamUrl`).
-
-## 🚀 What's New in v4.10.0 ("Smart Drag-and-Drop Vault Ingester, Myers LCS Diff Engine & AI Brief Intelligence")
-
-* **📥 Smart Drag-and-Drop Vault Ingester (`SmartIngesterService.cs`)**:
-  * **Canonical 5-Folder Auto-Sorting**: Automatically sorts dropped files and directories into the standardized hierarchy: `01_BRIEF_ASSETS`, `02_SOURCE_FILES`, `03_COPYWRITING`, `04_WORK_IN_PROGRESS`, and `05_DELIVERABLES`.
-  * **Collision Safety**: Implements non-destructive collision renaming (`_1`, `_2`), ensuring working files are never accidentally overwritten.
-  * **Multi-Surface Desktop Integration**: Drag external files directly into the `ProjectCreatorPage` staging dropzone, `SearchCopyPage` project catalog cards, or `TaskManagerPage` Kanban cards.
-* **🔍 Myers LCS Markdown Diff Engine (`TextDiffService.cs`, `MarkdownDiffDialog.xaml`)**:
-  * **Myers LCS Line Diffing**: Computes edit distance, LCS similarity metrics, and highlights line mutations (`Equal`, `Insert`, `Delete`, `Modify`).
-  * **Automatic Snapshot Archiving**: Automatically creates timestamped immutable backups in `archive/` or `.snapshots/` upon saving scripts or briefs.
-  * **Fluent 2 Revision Inspector**: Modal `<ui:FluentWindow>` with Before/After revision selector, similarity score badge, additions/deletions counts, Unified and Side-by-Side views, and 1-click clipboard copy.
-* **🧠 AI Brief Intelligence & Copy Preflight Assistant (`GeminiDesktopService.cs`, `GeminiService.js`)**:
-  * **Dual Engine (Online Gemini 1.5 + Offline Resilient)**: Queries Google Gemini 1.5 using NAS credentials with automatic offline heuristic fallback.
-  * **AI Brief Completeness Auditor**: Validates deliverables, target audience, aspect ratios, core hooks, and brand color tokens with an Art Director score (0–100).
-  * **AI Copywriting Preflight**: Audits copy tone, hooks, and scans against Malaysian KKM / LIU medical and cosmetic advertising regulations.
-* **📝 Notion & Evernote Inspired Quick Notes Studio (`QuickNotePage.xaml`, `QuickNoteService.cs`)**:
-  * **Notion-Style Header & Properties**: 12-emoji page icon picker, inline title editor synced with Markdown `# Title`, category dropdown, priority tags, relative time, and live reading time metrics.
-  * **Distraction-Free Zen Mode**: 1-click focus toggle button collapsing the sidebar for full-screen writing.
-  * **Evernote-Inspired Sidebar**: Instant search with clear button, 6 category filter chips (`All`, `Pin`, `High`, `Tasks`, `Ideas`, `Briefs`), and multi-factor sort selector (`Recently Edited`, `Date Created`, `Title`, `Priority`).
-  * **Block Formatting Toolbar & Callouts**: 4 Notion callout blocks (`[!NOTE]`, `[!TIP]`, `[!WARNING]`, `[!DANGER]`), 1-click Markdown table generator, task checkboxes, and 3-way view switcher (`Split`, `Edit`, `Preview`).
-  * **Starter Templates**: 4-card interactive grid for Creative Briefs, Meeting Syncs, 3-Hook Ad Scripts, and Mind Drops.
-* **🌐 Tri-Platform Version Parity**:
-  * Windows Desktop: v4.10.0 (`SS-CAM.exe` Release MSBuild verified).
-  * Web Management Portal: v4.10.0 (34/34 unit tests & 7/7 smoke tests passed).
-  * Android Companion App: v4.10.0 (`versionCode = 4100`, `versionName = "4.10.0"`).
-
-## 🚀 What's New in v4.9.0 ("Visual Project Timeline & Gantt Inspector Drawer, Live Studio Workstream Telemetry, Command Palette v3.5.1 & Tri-Platform Parity")
-
-* **📅 Visual Project Timeline & Interactive Gantt Inspector Drawer (`CalendarPage.xaml`)**:
-  * **Docked Right Inspector Drawer (`ProjectDetailDrawer`)**: Slide-in 440px inspector drawer docked to the right edge of the visual calendar view with Fluent 2 glassmorphic styling. Click any project row or timeline bar in the Gantt chart (or "Inspect" in day cards) to view metadata and controls.
-  * **Interactive Scheduling & Dynamic Date Calculations**: Dual date pickers for Start Date and Deadline with automatic duration calculation (`{N}d`), plus 1-click extension buttons (`+1d`, `+3d`, `+1w`).
-  * **Malaysian Off-Day Conflict Alert & 1-Click Auto-Reschedule**: Real-time evaluation against weekends and national public holidays with a 1-click **"Fix Off-Day Conflict"** button that shifts deadlines to the next working day.
-  * **Deliverables & Subtask Checklist Management**: Track deliverables completion (`{Done}/{Total} Deliverables Done (X%)`), 1-click status cycling (`Draft` ➔ `In Progress` ➔ `Done`), and inline editing synced directly with `README.md` frontmatter.
-  * **Gantt Chart Subtask Status Indicators**: Left column displays `[✓ X/Y • Z pts]` badge (turns green on full completion); timeline bars feature a `✓ X/Y` pill badge; hover tooltips display complete deliverable breakdown.
-* **📡 Live Studio Telemetry & Workstream Pulse (Web, Desktop, Android)**:
-  * **Unified Telemetry Feed**: Real-time synchronization of active designer tasks via `<WorkspaceRoot>/_Team/live_tasks.json` with 16-hour session freshness filter and UTF-8 BOM safety.
-  * **Web Management Portal**: Added elevated Live Studio Radar card on the main dashboard with digital stopwatches for each active designer workstation, paired with the top header pulse indicator (`● {N} in Studio` / `● Studio Idle`) and interactive task flyout.
-  * **Android Native Companion**: Connected `DeskCompanionMode` with an infinite pulsing Emerald ticker (`● N IN STUDIO • DESIGNER: TASK`), live workstation sprint card, and elevated Team Hub live workstream section with designer initials avatars and session notes.
-* **⚡ Master Brand System v3.5.1 & Command Palette Alignment**:
-  * **Web Command Palette (`Ctrl + K`)**: Added 5 reactive category filter tabs (`All`, `Projects`, `Brand Colors`, `Copywriting Hooks`, `Studio Actions`), the 16 official Single-Source-of-Truth tokens with regular (HEX) and <kbd>Shift</kbd> (CSS variable) copy actions, and pre-scaffolded direct-response marketing hooks directory.
-  * **Android Brand Hub**: Integrated the 16 official v3.5.1 color tokens with 1-tap clipboard copying, packaging dieline specs, and 7 high-converting Malay marketing hooks.
-* **📦 Packaging Deliverables & Creative Orders Intake**:
-  * Integrated dedicated packaging dieline formats (`pkg_box_sleeve` — Box & Sleeve, `pkg_label` — Bottle/Jar/Vial Label) with 300 DPI CMYK and die-cut bleed specs.
-  * Added strategic `tier_0` (`🗓️ Low / Pipeline`) priority tier with automated +21 day delivery threshold guidance across Web and Mobile order forms.
-* **🛡️ Production Release Packaging**:
-  * Windows Desktop portable binary `dist/SS-CAM-v4.9.0.exe` (5.99 MB).
-  * Android production app bundle `app-release.aab` (6.03 MB, RSA 2048 cryptographically verified) and standalone release `app-release.apk` (3.39 MB).
-
-* **📋 Deliverables & Subtask Management Engine (`README.md` Frontmatter)**:
-  * Unified deliverables schema structuring actual artwork outputs directly in `subtasks:` YAML frontmatter (ID, Name, Type, Weight, Status, Specs, Designer).
-  * Subtask weight points dynamically aggregate to compute total project complexity points and calculate progress completion ratios across the studio.
-  * 1-click status cycling (`Draft` ➔ `In Progress` ➔ `Done`) seamlessly available across Desktop Task Manager, Web Deliverables Gallery, and Android Companion.
-* **🔄 Tri-Platform Real-Time Synchronization Architecture**:
-  * **Windows Desktop (WPF 4.8)**: `WorkspaceWatcherService` watches Synology NAS directories (`D:\SynologyDrive\Creative-Team`) with 600ms debouncing. Both `DashboardPage` (KPI telemetry, recent projects, overdue metrics) and `TaskManagerPage` (Kanban boards, queue counts) subscribe and automatically re-render without manual refreshes.
-  * **Web Management Portal (Svelte 5 / Node.js 20)**: `WorkspaceService` watches filesystem via Chokidar, parses YAML frontmatter with `js-yaml`, and broadcasts Server-Sent Events (SSE `project:updated` / `workspace:updated`) to all connected browser clients. `PUT /api/projects/:id` accepts and merges subtask arrays with SHA-256 version hash optimistic locking.
-  * **Android Native Companion (Jetpack Compose / Retrofit)**: Integrated `updateProject` API in `SscamApiService`, powering instant optimistic local UI updates and real-time synchronization of project statuses, subtask deliverables, and `README.md` body edits from mobile devices.
-* **🛡️ Frontmatter Parser Hierarchy Guard ([FrontmatterService.cs](file:///d:/HaNa_Innovation/ss_cam/src/SS-CAM/Services/FrontmatterService.cs))**:
-  * Fixed parser indentation handling so child subtask statuses (e.g. `status: draft` under `subtasks:`) do not unintentionally overwrite top-level project status.
-
-## 🚀 What's New in v4.8.1 ("Command Palette, 60-30-10 Polish, Live Work Stopwatch & Creative Operations")
-
-* **⚡ Global Studio Command Palette (`Ctrl + K`) ([CommandPaletteService.cs](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/Services/CommandPaletteService.cs))**:
-  * Universal keyboard-first launcher accessible anywhere via <kbd>Ctrl</kbd> + <kbd>K</kbd>, global header spotlight button, or sidebar search trigger.
-  * Instant access to 15 studio modules, official Master Brand System v3.5.1 color tokens with real-time swatches, pre-scaffolded marketing hooks & CTAs, live NAS project folders, and immediate execution of studio actions.
-* **🎨 Art Director 60-30-10 Visual Hierarchy Polish**:
-  * Strict adherence to 60% calm neutral canvas, 30% structural hierarchy surfaces, and 10% intentional brand/status accents (`#21A1F7` Azure & `#10B981` Emerald).
-  * Redesigned `TitleBarStrip` with spotlight search box and live work status pill.
-* **⏱️ Live Designer Work Session Stopwatch & Status Indicator ([WorkSessionTrackerService.cs](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/Services/WorkSessionTrackerService.cs))**:
-  * Pulsing status dot, active project code, live digital clock (`01:42:15`), and interactive timer popover drawer with designer filter and crash-resilient auto-recovery.
-* **📡 Real-Time Live Studio Tasks & Work Stream ([LiveTaskSyncService.cs](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/Services/LiveTaskSyncService.cs))**:
-  * Multi-workstation synchronization via shared ledger at `<WorkspaceRoot>\_Team\live_tasks.json`, embedded dashboard live task stream with 1-second live digital tickers, and instant desktop toast alerts when team members begin or resume project tasks.
-* **📋 Creative Request Operations Architecture & Intake Backlog Upgrade**:
-  * Added strategic **Low / Pipeline (`tier_0`)** intake tier with automated 21-day minimum delivery threshold.
-  * Segmented 2-step **Digital Screen vs. Print, Packaging & POSM** channel selectors with interactive custom dimensions and physical print substrate specifications.
-  * Full request editing with Option A permission governance and automatic locking once accepted or cancelled.
-  * Renamed intake status from "Completed" to **"Added to Backlog"** across Web, Windows, and Linux to ensure clear requester communication.
-  * Removed duplicate "Lifecycle Actions" from expanded detail views, cleanly unifying all actions into the canonical table row.
-  * Stripped UTF-8 BOM (`\uFEFF`) in Node.js backend parsers for seamless cross-platform .NET desktop interoperability, and purged all legacy demo orders from NAS storage.
-* **🔧 Universal Dropdown Polish**:
-  * Comprehensive resolution of dropdown text cropping, baseline clipping, and mnemonic underscore stripping across all 15 views in the desktop application.
-
-## 🚀 What's New in v4.8.0 ("Visual Revision Diff & Copywriting Studio Live Preview")
-
-* **🔍 Interactive Visual Asset Revision Diff Inspector ([VisualDiffDialog.xaml](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/Dialogs/VisualDiffDialog.xaml))**:
-  * **5 Interactive Inspection Modes**: Vertical Split swipe with draggable Fluent 2 grip badge, Horizontal Split swipe for 9:16 vertical video creatives, Side-by-Side dual view, Opacity Blend onion-skin (0%–100%) for alignment verification, and 32bpp Euclidean RGB Pixel Difference mapping highlighting altered regions in high-visibility magenta (`#FF007F`).
-  * **Automated Revision Pair Detection**: Intelligently groups deliverables and project folders (`_v1` → `_v2`, `_rev1` → `_rev2`, `draft` → `final`) and auto-selects the active file pair.
-  * **Synchronized Navigation**: Smooth mouse wheel zoom (0.1x to 10.0x) centered on cursor and middle/right-click drag-to-pan affecting both comparison layers in lockstep.
-  * **Technical Asset Inspection Strip**: Displays resolution, file size with delta (`2.1 MB (-12.5%)`), green `1:1 MATCH` badge or amber `SCALED` indicator, and a 1-click `⇄ Swap` button.
-  * **Catalog & Task Inspector Quick Launchers**: Added `Compare Revisions (Diff)` button in Assets Gallery, `Visual Revision Diff` in Task Inspector, and gallery double-click auto-seeding.
-* **✍️ Copywriting Studio Split-View Live Preview & Formatting Engine ([CopywritingPage.xaml](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/Views/CopywritingPage.xaml))**:
-  * **Side-by-Side Split View**: Real-time markdown editor with live rendered preview synced at 150ms debounced interval.
-  * **Segmented Sub-Preview Modes**: Toggle seamlessly between `[ Doc ]` (FlowDocument), `[ WhatsApp ]` (Chat Simulation), `[ Meta Ad ]` (Feed Sponsored Post), and `[ Both ]` (Dual side-by-side).
-  * **WhatsApp Rich Inlines & OG Preview**: Converts `*bold*`, `_italic_`, `~strike~`, and code into RichText inlines; automatically extracts destination URLs to build dynamic OG preview cards with domain, title, and thumbnail.
-  * **Meta Ad Feed Simulation**: Automatic headline extraction from `#` headers or YAML tags, dynamic CTA inference (`Send Message`, `Order Now`, `Shop Now`), and interactive `... See more` / `See less` text truncation.
-  * **1-Click Platform Exporters**: Dedicated buttons to copy sanitized WhatsApp broadcast copy or structured Meta Ads Manager payload (`=== PRIMARY TEXT ===`, `=== HEADLINE ===`, `=== CALL TO ACTION ===`).
-* **🖼️ Cross-Platform Avatar & User Profile Synchronization**:
-  * Dedicated physical binary file storage inside `_Team/Users/{staffId}/avatar.jpg` and `profile.json`.
-  * Sanitized `staff_directory.json` into a lightweight reference index (`avatarUrl: "/api/users/{staffId}/avatar"`), eliminating JSON bloating.
-  * High-performance binary streaming route `GET /api/users/:id/avatar` with MIME type detection and HTTP cache headers.
-  * Desktop `UserProfileService.cs` bi-directional auto-sync (mirrors local avatars to NAS `_Team/Users/{staffId}/avatar.jpg`) and complete camelCase `[JsonProperty]` mappings preventing credential stripping.
-* **🛡️ Source Guardian 100% PASS**:
-  * Replaced all raw high-byte Unicode characters in XAML attributes with XML entities (`&#x2122;`, `&#x26A0;`, `&#x1F1F2;&#x1F1FE;`), achieving zero warnings on XAML attributes.
-
-## 🚀 What's New in v4.7.0 ("Velocity Navigation & Canva Cloud Bridge")
-
-* **⚡ Instantaneous Tab Navigation (0 ms)**:
-  * Enabled `NavigationCacheMode="Required"` across all 15 navigation views in the desktop application ([MainWindow.xaml](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/MainWindow.xaml)). Tab switching is now instantaneous with zero UI thread stutter, retaining search filters, active scroll positions, and loaded data.
-  * Completely eliminated blocking synchronous recursive filesystem crawls on the UI thread in Dashboard, Calendar, and Task Manager views.
-  * Resolved the `System.InvalidCastException` on the Order Requests page by statically isolating the card context menu.
-* **🎨 Canva Creative Cloud Bridge in Project Creator ([ProjectCreatorPage.xaml](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/Views/ProjectCreatorPage.xaml))**:
-  * **Platform Auto-Size Deep Launcher**: 1-click **"Create on Canva (Auto-size)"** button dynamically opens Canva preconfigured with the exact dimensions of the selected platform preset (1:1 Feed 1080x1080, 9:16 Story 1080x1920, 16:9 Banner 1920x1080, A4/A3/A5 print dimensions).
-  * **Windows Shortcut Auto-Scaffolding**: Automatically generates `02_SOURCE/Open_In_Canva.url` inside newly scaffolded projects for instant 1-click browser launching.
-  * **Frontmatter Persistence**: Stores `canva_url: https://...` in `README.md` YAML frontmatter with automatic sync across Desktop and Web.
-* **📋 Task Manager & Kanban Canva Badges ([TaskManagerPage.xaml](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/Views/TaskManagerPage.xaml))**:
-  * Prominent teal `[CANVA]` pill badge rendered on cards containing Canva design links.
-  * **"Open in Canva"** quick action integrated into Kanban card context menus and the project detail drawer.
-* **🌐 Web Management Portal Synchronization (`SS-CAM.Web`)**:
-  * Added Canva Creative Cloud link input and direct launch button to `FrontmatterPanel.svelte`.
-* **🖼️ Per-User Team Storage & Binary Avatar Streaming**:
-  * Transitioned from monolithic Base64 string embedding in `staff_directory.json` to dedicated physical binary file storage inside `_Team/Users/{staffId}/avatar.jpg` and `profile.json`.
-  * High-performance binary streaming route `GET /api/users/:id/avatar` with MIME type detection and HTTP cache headers.
-  * Desktop `UserProfileService.cs` bi-directional auto-sync (mirrors local avatars to NAS `_Team/Users/{staffId}/avatar.jpg`) and complete camelCase `[JsonProperty]` mappings preventing credential stripping.
-* **📅 Visual Gantt Timeline Off-Day Shading, Day Labels & Conflict Prevention**:
-  * Two-tier stacked day headers with uniform 3-letter day names (`Mon, Tue, Wed, Thu, Fri, Sat, Sun`) via `MalaysiaHolidayService.GetDayLetter`.
-  * Red color highlight (`#DC2626`) restricted strictly to official Malaysia Public Holidays, rendering weekends in clean neutral slate (`#64748B`).
-  * Full-height column background fills and boundary lines across all project rows for Saturdays & Sundays (slate wash) and official Malaysia Public Holidays (soft red wash).
-  * Business working day SLA engine skipping non-working days, plus active Gantt deadline conflict detection with `⚠️ Off-Day` badges and rescheduling alerts.
-* **📱 Android Companion App Alignment (`SS-CAM.Android`)**:
-  * Version bumped to `v4.7.0` (build 471), automatically streaming `/api/users/{staffId}/avatar`.
-
-## 🚀 What's New in v4.6.2
-
-* **🤝 Designer Task Handover ([TaskManagerPage.xaml](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/Views/TaskManagerPage.xaml))**:
-  * **Right-Click Quick Handover**: Instant re-assignment of any project card to any team designer via the card context menu with instant YAML frontmatter update and success toast.
-  * **Detail Pane Task Owner Selection**: Dedicated editable designer combo box and "Hand Over Task" button in the project detail drawer for seamless workflow transfers.
-* **📂 Synology NAS `_Orders` Temporary Attachment Vault**:
-  * Dedicated temporary intake vault at `\\SSNAS\Creative-Team\_Orders\<ORDER_ID>\` for reference assets, briefs, logos, PDFs, and sketches.
-  * Underscore prefix (`_Orders`) ensures project directory scanners safely ignore temporary order folders, preventing collisions with official year project vaults (`2026/`).
-  * Realtime JSONL sync to `_Orders/creative-orders.jsonl` on the NAS.
-* **🌐 Web Management Portal (`SS-CAM.Web`)**:
-  * **Multi-File Upload Dropzone**: Modern Fluent 2 drag-and-drop file uploader in the "New Request" modal supporting multiple attachments up to 50MB per file.
-  * **Role Detection Fix**: Resolved role checking bug where composite roles like `"Admin, Designer"` were denied action buttons and status dropdowns.
-  * **Attachment Actions & Preview**: Direct preview, download, delete, and 1-click **"Copy NAS Folder Path"** to clipboard for opening in Windows Explorer.
-  * **1-Click Project Ingestion**: Ingests all order attachments directly into the linked project's `01_BRIEF_ASSETS` directory on the NAS.
-* **🪟 Desktop Standardized Project Creator ([ProjectCreatorPage.xaml](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/Views/ProjectCreatorPage.xaml))**:
-  * **Order Discovery Dropdown**: Discovers active orders from `_Orders/creative-orders.jsonl` with live attachment counts (`[📎 N files]`) and instant Sync button.
-  * **Auto-Population**: Selecting an order auto-populates project title, sub-brand, and structured brief remarks.
-  * **Automatic Attachment Ingestion**: Copies all attachments into `01_BRIEF_ASSETS/`, sets `order_id` in `README.md` frontmatter, and updates order status to `in_progress`.
-* **🔄 Cross-Platform Creative Orders Real-Time Sync**:
-  * Direct live REST API integration between Desktop (Windows WPF & Linux Avalonia) and the Web Management Portal (`/api/orders`).
-  * Dedicated Desktop Order Requests management page ([OrderRequestsPage.xaml](file:///e:/Dev/Projects/SS-Brand-Assets/src/SS-CAM/Views/OrderRequestsPage.xaml)).
-* **📱 Android Native Studio Companion (v4.6.2, Build 466)**:
-  * Synchronized settings, metrics, and Creative Orders pipeline with signed Google Play AAB bundle & standalone APK.
+The web app also includes **Team** (workload by person), **Admin** (accounts, companies and activity log) and the clinic tools (**Consultation Suite** and **Lounge TV Signage**).
 
 ---
 
-## 🚀 Overview
+## Which app should I use?
 
-**SS-CAM** (SuamiSihat Creative Assets Management) is an enterprise creative operations and digital asset platform developed for **SuamiSihat™ Holding Sdn. Bhd.** It unifies creative workflows across native Windows/Linux workstations, Android mobile devices, and centralized Synology NAS network storage.
+All four apps work on the same projects, so you can switch between them freely.
 
-SS-CAM eliminates project disorganization, scattered copywriting drafts, inconsistent brand palettes, and untracked deliverable approvals by providing a standardized filesystem vault hierarchy, a Markdown-as-database architecture, an in-app Copywriting Studio, multi-platform collaboration tools, automated 1-click handover ZIP packaging, and live designer capacity analytics.
-
----
-
-## 📥 Multi-Platform Deployment Options
-
-SS-CAM provides a comprehensive multi-client ecosystem to support diverse creative studio environments:
-
-| Target Platform | Package / Variant | Deployment / Execution | Role in Ecosystem |
-|---|---|---|---|
-| 🪟 **Windows 10 / 11** | **Native WPF Single-File (`src/SS-CAM`)** | Portable executable: `.\dist\SS-CAM-v4.12.1.exe` | **Flagship Designer Client**: Offline-first, full Post Haste template generator, Preflight Quality Auditor, Direct Synology Drive I/O. |
-| 🐧 **Linux Desktop (Fedora/Ubuntu)** | **Native Avalonia UI (`src/SS-CAM.Linux`)** | Standalone Tarball: `.\dist\SS-CAM-v4.10.1-linux-x64.tar.gz`<br>1-Command: `curl -fsSL https://raw.githubusercontent.com/SuamiSihat/ss_cam/SS-Master/installer/install-linux.sh \| sudo bash` | **Native Linux Desktop Client**: Skia graphics engine, GNOME/KDE `.desktop` integration, direct `~/SynologyDrive/` I/O. |
-| 📱 **Android Native** | **Native Android App (`src/SS-CAM.Android`)** | [Google Play Store](https://play.google.com/store/apps/details?id=com.suamisihat.creative&hl=en-US&ah=4fxu9FCVL39aFVxQdNL2fGvtHd4&pli=1)<br>Direct APK: `.\dist\SS-CAM-v4.12.1-android-release.apk` | **Mobile Studio Companion**: 2×2 Bento KPI telemetry, 1-tap deliverable approvals, live ICY radio streaming, desk standby clock, push alerts. |
-| 🌐 **Admin Web Portal** | **Docker Web Container (`src/SS-CAM.Web`)** | Deploy on Synology NAS / Linux Server: `cd src/SS-CAM.Web && docker compose up -d` | **Admin & Central Control Plane**: User provisioning, holding switcher (SSH/SSC/SSW/SSE/SST), audit logs, API hub. |
-
----
-
-## 🌟 Core Features & Capabilities
-
-### 1. Standardized 5-Folder Vault Hierarchy
-
-All creative projects follow a canonical directory structure on Synology NAS (`Creative-Team/[YYYY]/[YYYYMM_Month]/[ProjectFolder]`), preventing file clutter and missing assets:
-
-```text
-📁 YYYYMM_NNNNX_BRAND_ProjectTitle/
-├── 📁 01_BRIEF_ASSETS/        # Raw creative briefs, moodboards, reference imagery
-├── 📁 02_SOURCE_FILES/        # Working Affinity Designer (.afdesign), Photoshop (.psd), Illustrator (.ai)
-├── 📁 03_COPYWRITING/         # Dedicated COPY.md scripts, viral hook angles, and copy specs
-├── 📁 04_WORK_IN_PROGRESS/    # Intermediate drafts, work-in-progress exports, and test renders
-├── 📁 05_DELIVERABLES/        # Final approved mockups, high-res deliverables, and client exports
-└── 📄 README.md               # YAML frontmatter metadata (status, priority, designer, revision)
-```
-
-### 2. ClickUp 3.0-Style 2-Column Task Workspace
-
-* **Markdown Brief Canvas (68%)**: Full-featured GFM brief editor with live syntax highlighting, table rendering, callout alert blocks, and Mermaid diagrams.
-* **Right Inspector Panel (32%)**: Collapsible inspector panel displaying job ID, designer routing, priority, campaign deadlines, holding subsidiary metadata, and deliverable review actions.
-* **Deliverable Inspection & Review**: Lightbox modal with one-click `✓ Sign-Off` or `⚠️ Request Revision` actions that automatically increment revision rounds.
-
-### 3. Dedicated Copywriting Studio & Live Telemetry
-
-* **Direct NAS Persistence**: Automatically reads and writes to `03_COPYWRITING/COPY.md`.
-* **Live Copy Analytics**: Computes real-time word count, character count, and estimated reading time.
-* **Structured Hook Frameworks**: Pre-scaffolded templates for viral video hooks, product benefit scripts, and social ad copy.
-
-### 4. Contextual Discussions & Notification Feed
-
-* **NAS JSONL Discussion Engine**: Project-level comments stored in `_comments.jsonl` with support for `@mention` tags (e.g. `@hasan`, `@haikal`, `@harussani`).
-* **Notification Drawer**: Global activity feed tracking mentions, approvals, revision requests, and project assignments.
-
-### 5. Enterprise RBAC & Security Audit Logs
-
-* **Role-Based Permissions**: Granular roles for `Admin`, `Director`, `Lead`, `Manager`, `Designer`, and `Copywriter`.
-* **Permanent Audit Trail**: All critical operations (creations, deletions, sign-offs, role updates) are recorded to an immutable JSONL audit log (`_Team/_Audit/audit_log.jsonl`).
-* **Safe Administrative Project Deletion**: Authorized administrative deletion with boundary checks, system folder protections (`_Team`, `#recycle`), and recursive NAS subfolder removal.
-
-### 6. Minimal Brand Assets & Swatch Inspector
-
-* **Live Swatch Telemetry**: Live interactive explorer for SuamiSihat holding palettes (`SSH`, `SSC`, `SSW`, `SSE`, `SST`) displaying **HEX**, **RGB**, **CMYK**, and **Pantone** breakdowns with 1-click clipboard copying.
-* **Vector QR Code Studio**: Generate branded QR codes for URLs, Wi-Fi credentials, and vCards with high-resolution PNG export.
-
-### 7. Creative Wellbeing & Biometric Rhythm
-
-* **Real-Time 5-Axis Biometric Radar**: Live spider chart calculating creative flow, vitality, rest, focus, and pressure.
-* **Biometric Flow Calibrator & 1-Click Rebalancers**: Tactile 1–5 baseline rating matrix and instant cognitive reset shortcuts.
-* **30-Day Creative Focus Heatmap**: GitHub-style activity grid mapping daily deep work intensity and streaks.
-* **Interactive Vector Hydration Tracker**: Real-time water intake tracking with animated wave physics and 8 glass cup tiles.
-* **16-Second Box Breathing Coach**: Visual stress reset coach for high-intensity design sprints.
-* **JAKIM Waktu Solat**: Real-time prayer timetable for 41 Malaysian zones with live countdowns and adhan notifications.
-* **Focus Radio Player**: Low-latency stream player for Malaysian stations (BFM 89.9, Hitz, Era, Hot FM, Suria, THR Raaga) and lo-fi focus beats.
-
----
-
-## 🎨 Design System & Visual Hierarchy
-
-SS-CAM adheres to the **Microsoft Fluent 2** design language and the **SuamiSihat 60:30:10** color rule:
-
-| Visual Ratio | Scope | Palette Tokens | Purpose |
-|---|---|---|---|
-| **60% Dominant** | Application Surfaces | Deep Prussian Blue (`#022057`) / Clean Slate (`#F8FAFC`) | Clean background canvas and visual balance |
-| **30% Structure** | Structural Controls | SuamiSihat Azure (`#21A1F7`) & Royal Blue (`#043388`) | Navigation bars, cards, borders, text hierarchy |
-| **10% Accent** | Action Energy | Warm Gold (`#BD9A73`) & Success Green (`#107C10`) | Primary CTAs, status badges, alert highlights |
-
-### Available Desktop Themes
-
-1. **SS Default**: Deep navy sidebar with clean white content canvas.
-2. **Falconia**: Pure Fluent 2 Light mode with crisp typography and subtle card borders.
-3. **Metamorphosis**: Dark glassmorphic theme with cyan glowing accents and frosted surfaces.
-
----
-
-## 🏗️ Technical Architecture
-
-```text
-┌───────────────────────────────────────────────────────────────────────────────────┐
-│                                 SS-CAM ECOSYSTEM                                  │
-├─────────────────────────┬─────────────────────────┬───────────────────────────────┤
-│ 🖥️ WINDOWS WORKSTATION   │ 🐧 FEDORA WORKSTATION   │ 📱 ANDROID MOBILE COMPANION   │
-│ • C# WPF (.NET 4.8)     │ • Avalonia UI (.NET 8)  │ • Kotlin + Jetpack Compose    │
-│ • WPF-UI (Fluent 2)     │ • Native Skia Engine    │ • Coil / Hardware Bitmaps     │
-│ • Direct Local SSD I/O  │ • Local ~/SynologyDrive │ • Instant Push Alerts & Diff  │
-├─────────────────────────┴─────────────────────────┴───────────────────────────────┤
-│                          🌐 SYNOLOGY NAS ADMIN WEB PORTAL                         │
-│                          • Svelte 5 (Runes) + TypeScript                          │
-│                          • Node.js 20 Express + WebSocket + REST/SSE API          │
-│                          • Central Administration, Holdings Switcher & Audit Logs │
-│                          • Live Review Lightbox & Split Visual Comparison         │
-└─────────────────────────────────────────┬─────────────────────────────────────────┘
-                                          │
-                                          ▼
-┌───────────────────────────────────────────────────────────────────────────────────┐
-│ 📂 SYNOLOGY NAS FILE SYSTEM (Markdown-as-Database Storage)                        │
-│ • Canonical 5-Folder Hierarchy: \\SSNAS\Creative-Team\[YYYY]\[Month]\[Project]    │
-│ • YAML Frontmatter Project Metadata (README.md)                                   │
-│ • Markdown Copywriting Hooks (03_COPYWRITING/COPY.md)                             │
-│ • Immutable Audit Logs & Team Profiles (_Team/_Audit/audit_log.jsonl)             │
-│ • Cross-Platform Realtime Sync via Synology Drive & Chokidar File Watchers        │
-└───────────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 💻 System Requirements
-
-| Specification | Desktop Client Requirement | Web Portal Requirement |
+| You are… | Use | Why |
 |---|---|---|
-| **Operating System** | Windows 10 (1903+) / Windows 11 / Linux (x64) | Synology DSM 7.x / Ubuntu 22.04+ / Docker |
-| **Runtime** | .NET Framework 4.8 (Windows) / .NET 8.0 (Linux) | Node.js 20 LTS or Docker Engine |
-| **Memory (RAM)** | 4 GB Minimum (8 GB+ Recommended) | 512 MB Container RAM |
-| **Storage Footprint**| ~5.7 MB (Single-File Portable Exe) | ~120 MB Docker Image |
-| **Network** | Synology Drive Client or SMB `\\SSNAS\Creative-Team` | Port 4000 (HTTPS via Reverse Proxy) |
+| A **designer** at a Windows PC | **Windows app** | The full toolset, and it works directly with the files on the shared drive. |
+| A **manager, art director or reviewer** | **Web app** | Nothing to install. Review and approve work, manage the team and accounts. |
+| **On the move** | **Android app** | Check tasks, approve deliverables, read notes and listen to Radio. |
+| A designer on **Linux** | **Linux app** | The core designer tools on Fedora or Ubuntu. |
 
 ---
 
-## 📄 License & Governance
+## Getting started
 
-SS-CAM is an internal digital assets & clinic operations management platform created for **SuamiSihat™ Holding Sdn. Bhd.** and **SuamiSihat Clinic (SSC)** franchise network.
+### Windows app
 
-* **Organization**: SuamiSihat Digital & Creative Production Division
-* **Documentation**: [Master Ecosystem Specification](./docs/SS_CAM_ECOSYSTEM_MASTER_SPECIFICATION.md) · [GitHub Pages Landing Page](https://suamisihat.github.io/ss_cam/)
-* **Franchise & Clinic Operations**: [PERNAS Grant Proposal](./docs/KERTAS_CADANGAN_GERAN_PERNAS_SSCAM.md) · [Official PDF Proposal](./docs/KERTAS_CADANGAN_GERAN_PERNAS_SSCAM.pdf)
-* **Roadmap**: [Project Development Roadmap](./ROADMAP.md)
-* **Repository**: [SuamiSihat/ss_cam](https://github.com/SuamiSihat/ss_cam)
-* **License**: Internal Commercial Use Only — see [EULA](./installer/EULA.txt)
+1. Download the latest `SS-CAM-v5.2.0.exe` from the [Releases page](https://github.com/SuamiSihat/ss_cam/releases/latest).
+2. Make sure the shared drive is set up on your PC first — follow the [shared drive setup guide](./docs/SSNAS-SETUP.md).
+3. Run the app. It's a single file, so there's nothing else to install. It checks for updates from **Settings & Profile**.
+
+### Web app
+
+Open the web portal address your admin gave you and sign in with your username. Your admin creates your account in **Admin → Users**.
+
+### Android app
+
+Install **SS-CAM Companion** from [Google Play](https://play.google.com/store/apps/details?id=com.suamisihat.creative), or install the APK from the [Releases page](https://github.com/SuamiSihat/ss_cam/releases/latest). Sign in with the same username you use on the web.
+
+### Linux app
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SuamiSihat/ss_cam/SS-Master/installer/install-linux.sh | sudo bash
+```
+
+---
+
+## How projects are organised
+
+Every project lives in its own folder on the shared drive, grouped by year and month:
+
+```text
+Creative-Team / 2026 / 202610_October / 202610_0123D_SSC_Raya-Campaign /
+├── 01_BRIEF_ASSETS       Brief, references and moodboards
+├── 02_SOURCE_FILES       Working design files (Affinity, Photoshop, Illustrator)
+├── 03_COPYWRITING        The project's copy
+├── 04_WORK_IN_PROGRESS   Drafts and test exports
+├── 05_DELIVERABLES       Final, approved files
+└── README.md             Project details: status, designer, deadline
+```
+
+The apps create and read these folders for you, so you rarely need to touch them by hand. Because everything is stored as normal files, your work is still there and readable even if an app isn't running.
+
+**Project status** moves through: Backlog → In progress → Review → Revision → Approved (or On hold).
+
+---
+
+## Where things stand
+
+**Version:** every app is on **v5.2.0**.
+
+**What's the same everywhere:** the project folder layout, project IDs, project status, comments, Order Requests, the team list and the brand colours. A check (`QA/verify-format-sync.ps1`) confirms all four apps stay in step.
+
+**What differs by app:**
+
+| Feature | Windows | Web | Android | Linux |
+|---|:-:|:-:|:-:|:-:|
+| Dashboard | ● | ● | ● | ◐ |
+| Project Creator | ● | — | ◐ | ● |
+| Project Catalog | ● | ● | — | ◐ |
+| Task Manager | ● | ● | ● | ◐ |
+| Calendar | ● | ◐ | ◐ | ◐ |
+| Copywriting Studio | ● | ● | — | ◐ |
+| Deliverables & approvals | ● | ● | ● | ◐ |
+| Order Requests | ● | ● | ◐ | — |
+| Brand Assets | ● | — | — | ◐ |
+| Quick Notes | ● | — | ● | ◐ |
+| Archive and File Converter | ● | — | — | — |
+| Wellbeing, Radio, Waktu Solat | ● | — | ● | ◐ |
+| Team, Admin, clinic tools | — | ● | ◐ | — |
+
+● full  ◐ partial  — not available
+
+**What's next:** the [roadmap](./ROADMAP.md) lists the next milestone (v5.3.0, early 2027). Known gaps between the apps are tracked in the [QA reports](./QA/).
+
+---
+
+## Help and troubleshooting
+
+| Problem | What to try |
+|---|---|
+| "Can't reach the shared drive" | Check you're on the office network or VPN, and that Synology Drive is running. See the [setup guide](./docs/SSNAS-SETUP.md). |
+| The web app says your session has expired | Sign in again. Sessions end after 12 hours. |
+| You can't see a project someone else created | Wait a minute for the shared drive to sync — the apps update on their own. On the web, press `Ctrl + K` and choose **Refresh projects**. |
+| "Someone else is editing this project" | Another designer has the project open. Wait for them to finish, or ask them to close it. |
+| You forgot your password | Use **Forgot password** on the sign-in page, or ask your admin to reset it to the default password. |
+| You can't delete a task | Only managers and admins can delete tasks. Ask your manager. |
+| You can't change the AI assistant's settings | The AI key is a site setting that only admins can change in **Admin**. |
+
+The Windows app keeps a log at `%LOCALAPPDATA%\SuamiSihat\startup_trace.log`. Send it with any bug report.
+
+---
+
+## For developers
+
+### Repository layout
+
+| Folder | What's in it |
+|---|---|
+| [`src/SS-CAM`](./src/SS-CAM) | Windows app — C#, WPF, .NET Framework 4.8, [WPF-UI](https://github.com/lepoco/wpfui) (Fluent 2) |
+| [`src/SS-CAM.Web`](./src/SS-CAM.Web) | Web app — Svelte 5 client and Node.js/Express server, deployed with Docker |
+| [`src/SS-CAM.Android`](./src/SS-CAM.Android) | Android app — Kotlin and Jetpack Compose |
+| [`src/SS-CAM.Linux`](./src/SS-CAM.Linux) | Linux app — Avalonia UI 12 on .NET 10 |
+| [`installer`](./installer) | Windows and Linux installers, `version.json` update feed |
+| [`payload`](./payload) | Fonts, brand assets and sounds shipped with the desktop app |
+| [`QA`](./QA) | QA reports, runbooks and verification scripts |
+| [`docs`](./docs) | Specifications, setup guides, the public wiki and landing pages |
+| [`.agents/skills`](./.agents/skills) | Automation for QA, releases and deployment |
+
+### Build and test
+
+```powershell
+# Windows app: build + Source Guardian checks
+.\.agents\skills\sscam-qa\scripts\run-sscam-qa.ps1 -Build -Configuration Release
+
+# Governance gate (run before committing): code checks, public-docs leak scan,
+# cross-platform format check (QA/verify-format-sync.ps1); add -Build to compile
+.\QA\verify-dual-track.ps1
+```
+
+```bash
+# Web app (from src/SS-CAM.Web)
+npm install
+npm test               # server tests run against a temporary copy of sample-workspace
+npm run build:client   # builds client/dist
+docker compose up -d   # serves on port 4000; copy .env.example to .env first
+                       # (DEFAULT_STAFF_PASSWORD sets the default account password)
+
+# Linux app (from src/SS-CAM.Linux)
+dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true
+# (or run installer/build-linux-package.ps1 to produce the release tarball)
+
+# Android app (from src/SS-CAM.Android)
+./gradlew bundleRelease
+```
+
+### Rules worth knowing
+
+- **Read [`AGENTS.md`](./AGENTS.md) first.** It covers filesystem safety, the Fluent 2 UI rules, terminology and the definition of done.
+- **The Windows app is limited to C# 5.** It builds with the .NET Framework MSBuild, so no string interpolation or `?.`. See [`ROADMAP.md` → Architecture Constraints](./ROADMAP.md#architecture-constraints).
+- **Keep the core generic.** Company names, URLs and branding come from `src/SS-CAM/tenant_config.json` (`TenantConfigService`), not from code.
+- **Use the canonical names** in the [terminology guide](./QA/04-TERMINOLOGY.md) for any text people will read.
+
+### Further reading
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — architecture, coding standards and the release process
+- [Ecosystem master specification](./docs/SS_CAM_ECOSYSTEM_MASTER_SPECIFICATION.md) — data model and cross-app contracts
+- [Shared drive folder structure](./FOLDER-STRUCTURE.md)
+- [Commercialisation plan](./docs/ss-cam-commercialization-master-doc.md) and [dual-track governance](./docs/PHASE_8_DUAL_TRACK_GOVERNANCE.md)
+- [PERNAS grant proposal](./docs/KERTAS_CADANGAN_GERAN_PERNAS_SSCAM.md)
+- [Changelog](./CHANGELOG.md) · [Roadmap](./ROADMAP.md) · [QA reports](./QA/)
+
+---
+
+## Licence
+
+SS-CAM is internal software of **SuamiSihat Holding Sdn. Bhd.** Use is limited to the group and its authorised partners — see the [EULA](./installer/EULA.txt).
+
+Built by the SuamiSihat Digital & Creative Production Division · [github.com/SuamiSihat/ss_cam](https://github.com/SuamiSihat/ss_cam)
