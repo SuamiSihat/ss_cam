@@ -37,24 +37,31 @@ an optimized Android App Bundle (`.aab`) ready for Google Play Console.
 
 ## 2. Usage & Execution Script
 
-Run the automated release script:
+**Signing credentials are never stored in this repository.** Set them in your terminal for the session, then run the script:
 
 ```powershell
-powershell -ExecutionPolicy Bypass `
-  -File .\.agents\skills\sscam-android-release\scripts\build-android-release.ps1
-```
+$env:KEYSTORE_FILE     = "E:\path\to\sscam-release.jks"
+$env:KEYSTORE_PASSWORD = Read-Host "Keystore password"   # or paste it; do not save it in a file
+$env:KEY_ALIAS         = "sscam_key"
+$env:KEY_PASSWORD      = $env:KEYSTORE_PASSWORD
 
-### Optional Parameters
-
-- `-BumpVersion`: Increments `versionCode` by 1 (default: `$true`).
-- `-VersionName <String>`: Override `versionName` (e.g. `"4.6.1"`).
-- `-BuildApk`: Also outputs a standalone APK in addition to `.aab`.
-
-```powershell
-# Example: Bump version code and build both AAB and APK
 .\.agents\skills\sscam-android-release\scripts\build-android-release.ps1 `
-  -BumpVersion -BuildApk
+  -ExpectedSha1 "<upload key SHA1 shown in Play Console > App integrity>"
 ```
+
+The script then:
+
+- Builds the release bundle (`bundleRelease`).
+- Reads the certificate that actually signed it, and **stops** if the bundle is unsigned, debug-signed, or signed with a key other than `-ExpectedSha1`.
+- Copies the bundle to `dist/SS-CAM-v<versionName>-android-release.aab`.
+
+It never generates a keystore. If the key is missing, restore it from your secure backup.
+
+### Optional parameters
+
+- `-BumpVersion`: increases `versionCode` by 1 (Google Play rejects a code it has already seen). Add `-VersionName "5.2.1"` to change the name too.
+- `-BuildApk`: also builds a standalone APK. It is signed with the upload key, so it will **not** update a copy installed from Google Play.
+- `-SkipFingerprintCheck`: only for local testing; never for a bundle you will upload.
 
 ---
 
@@ -109,13 +116,14 @@ If Google Play Console rejects an uploaded `.aab` due to an upload key mismatch 
      -export -rfc -alias sscam_key `
      -file dist\upload_certificate.pem `
      -keystore src\SS-CAM.Android\app\sscam-release.jks `
-     -storepass sscam2026release
+     -storepass:env KEYSTORE_PASSWORD
    ```
-2. **Current Keystore Fingerprints**:
-   - **File**: `src/SS-CAM.Android/app/sscam-release.jks`
-   - **Alias**: `sscam_key`
-   - **SHA1**: `96:FE:4D:47:16:88:8D:53:40:CE:FE:1F:98:D6:DE:64:22:0A:C1:48`
-   - **SHA256**: `2B:25:CD:BC:2D:E3:A0:59:E6:DD:7C:40:63:04:63:2F:72:5C:BB:BE:8F:97:B6:6E:B3:DE:CA:F1:56:88:FA:20`
+2. **Check the keystore fingerprint** (never write the keystore password into a file or document):
+   ```powershell
+   & "C:/Program Files/Microsoft/jdk-17.0.20.101-hotspot/bin/keytool.exe" `
+     -list -v -keystore src/SS-CAM.Android/app/sscam-release.jks -storepass:env KEYSTORE_PASSWORD
+   ```
+   Compare the SHA1 with the upload key shown in Play Console > App integrity.
 3. **Submit Reset in Google Play Console**:
    - Navigate to [Google Play Console](https://play.google.com/console).
    - Select **SS-CAM** (`com.suamisihat.creative`).

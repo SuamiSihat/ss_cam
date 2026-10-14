@@ -4,13 +4,43 @@ param(
     [string]$NasHost = "suamisihat.myds.me",
     [int]$NasPort = 2222,
     [string]$NasUser = "harussani",
-    [string]$NasDockerDir = "/volume1/docker/ss-cam-web"
+    [string]$NasDockerDir = "/volume1/docker/ss-cam-web",
+    [string]$PortalUrl = "https://creative.suamisihat.myds.me",
+    # After you have run the NAS commands, run again with -VerifyOnly to check the live portal.
+    [switch]$VerifyOnly
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
 $webDir = Join-Path $repoRoot 'src\SS-CAM.Web'
 $guardianScript = Join-Path $repoRoot 'QA\verify-sscam.ps1'
+
+if ($VerifyOnly) {
+    # Live health check: the portal answers, reports the expected version, and no longer exposes the staff list.
+    $repoRootForVerify = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
+    $expected = (Get-Content (Join-Path $repoRootForVerify 'src\SS-CAM.Web\package.json') -Raw | ConvertFrom-Json).version
+    Write-Host "Checking $PortalUrl (expected version $expected)..." -ForegroundColor Yellow
+    $failed = 0
+    try {
+        $status = Invoke-RestMethod -Uri "$PortalUrl/api/status" -TimeoutSec 20
+        $live = if ($status.version) { $status.version } else { "unknown" }
+        if ($live -eq $expected) { Write-Host "  [PASS] Portal is up, version $live" -ForegroundColor Green }
+        else { Write-Host "  [FAIL] Portal reports version $live, expected $expected (old container still running?)" -ForegroundColor Red; $failed++ }
+    } catch { Write-Host "  [FAIL] Portal did not answer: $($_.Exception.Message)" -ForegroundColor Red; $failed++ }
+    foreach ($route in @('/api/auth/roster', '/api/team/roster', '/api/notes')) {
+        try {
+            $r = Invoke-WebRequest -Uri ($PortalUrl + $route) -TimeoutSec 20 -UseBasicParsing -ErrorAction Stop
+            Write-Host "  [FAIL] $route is still open without signing in (HTTP $($r.StatusCode))" -ForegroundColor Red; $failed++
+        } catch {
+            $code = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 }
+            if ($code -in 401, 403, 404) { Write-Host "  [PASS] $route requires sign-in or is removed (HTTP $code)" -ForegroundColor Green }
+            else { Write-Host "  [FAIL] $route gave an unexpected result (HTTP $code)" -ForegroundColor Red; $failed++ }
+        }
+    }
+    if ($failed -gt 0) { Write-Host "`nRESULT: FAIL ($failed problem(s))" -ForegroundColor Red; exit 1 }
+    Write-Host "`nRESULT: PASS" -ForegroundColor Green
+    exit 0
+}
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host " SS-CAM Web Portal Automated Deployment Pipeline" -ForegroundColor Cyan
@@ -74,11 +104,14 @@ try {
 Write-Host "`n[ 4/4 ] Synology NAS Docker Deployment Setup" -ForegroundColor Yellow
 Write-Host "To complete live deployment on NAS (${NasHost}:${NasPort}), run the following in your SSH session:" -ForegroundColor Cyan
 Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
-Write-Host "cd $NasDockerDir" -ForegroundColor White
+Write-Host "# 0. Back up the current app files first (the password store in data/ is kept untouched)" -ForegroundColor Gray
+Write-Host "cd $NasDockerDir && sudo tar --exclude=node_modules -czf ../ss-cam-web-backup-`$(date +%Y%m%d-%H%M).tar.gz ." -ForegroundColor White
 Write-Host "if [ ! -d .git ]; then git init && git remote add origin https://github.com/SuamiSihat/ss_cam.git; fi" -ForegroundColor White
 Write-Host "git fetch origin && git checkout -f -B SS-Master origin/SS-Master" -ForegroundColor White
 Write-Host "if [ -d 'src/SS-CAM.Web' ]; then cp -rf src/SS-CAM.Web/* .; fi" -ForegroundColor White
 Write-Host "sudo docker restart ss-cam-web-portal || sudo docker-compose restart" -ForegroundColor White
+Write-Host "# Then, back on this PC, check the live portal:" -ForegroundColor Gray
+Write-Host "#   .\.agents\skills\sscam-web-deploy\scripts\deploy-sscam-web.ps1 -VerifyOnly" -ForegroundColor Gray
 Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
 
 Write-Host "`n============================================================" -ForegroundColor Cyan
