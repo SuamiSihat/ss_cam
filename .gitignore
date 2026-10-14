@@ -79,3 +79,4 @@ screenshot.png
 keystore.properties
 **/keystore.properties
 
+src/SS-CAM.Web/server/test/temp-sandbox-*/
