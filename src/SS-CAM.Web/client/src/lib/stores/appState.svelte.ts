@@ -100,6 +100,7 @@ class AppStateStore {
     try {
       const res = await ApiClient.getMe();
       this.currentUser = res.user;
+      ApiClient.startMediaKeepAlive();
       this.loadNotificationCount();
     } catch {
       this.currentUser = null;
@@ -129,10 +130,11 @@ class AppStateStore {
   }
 
   logout() {
-    ApiClient.removeToken();
+    // Ends the session on the server too, so a copied token stops working.
+    void ApiClient.signOut();
     this.currentUser = null;
     this.navigate('login');
-    this.addToast('Logged out successfully', 'info');
+    this.addToast('Signed out', 'info');
   }
 }
 

@@ -2,6 +2,19 @@
 
 All notable SS-CAM changes are documented here.
 
+## [Unreleased] - Web portal security hardening (Phase 1)
+
+Details, evidence and open items: `QA/PHASE1-SECURITY-REPORT.md` and `QA/ROUTE-AUTHZ-MATRIX.md`.
+
+- **Sign-in is required for live updates, project files, deliverables, order attachments, company details and clinic tools.** Images, downloads and live updates use a short-lived, read-only cookie set at sign-in.
+- **Accounts are safer.** People can no longer edit someone else's account by choosing a look-alike name. Names, usernames and emails must be unique. Changing your email needs your current password.
+- **Passwords.** New accounts and admin resets get a random one-time password, shown once; the person must choose their own at first sign-in. Passwords are no longer written to staff files, and any left behind are removed at start-up.
+- **Sessions can be ended.** Changing a password, suspending someone, changing their role or signing out ends their sessions. Tokens in web addresses are no longer accepted.
+- **Sign-in limits** per account, per address and per IP; forgot-password is limited; reset links are stored hashed and always use the portal address from settings.
+- **Share links** last 1 to 30 days, can only be managed by the project's designer or a manager, only reach their own project (or single file), and no longer show internal direction, copy or staff comments.
+- **Uploads and files.** Runnable file types are refused; SVG/HTML files cannot run scripts. Archive is admin only and limited to the shared workspace.
+- **Other.** Server errors no longer show file paths; webhook addresses are checked; AI key is sent in a header; email content is escaped; multer upgraded (production audit: 0 vulnerabilities); Docker publishes on this machine only by default.
+
 ## [5.2.1] - 2026-10-14 (Cross-Platform Format Sync, Access Control & Cleanup)
 
 ### One project format on every app

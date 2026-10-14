@@ -14,6 +14,11 @@
   let department = $state<string>('');
   let role = $state<string>('');
   let email = $state<string>('');
+  // Changing the email address needs the current password, because reset links are sent there.
+  let emailPassword = $state<string>('');
+  const emailChanged = $derived(
+    email.trim().toLowerCase() !== (appState.currentUser?.email || '').trim().toLowerCase()
+  );
   let defaultBrand = $state<string>('SS');
   let avatar = $state<string>('');
   let avatarColor = $state<string>('#0078D4');
@@ -245,10 +250,12 @@
         officialTitle: role.trim(),
         avatar: avatar || '',
         avatarColor: avatarColor || '#0078D4',
-        defaultBrand: defaultBrand || 'SS'
+        defaultBrand: defaultBrand || 'SS',
+        ...(emailChanged ? { currentPassword: emailPassword } : {})
       };
 
       const res = await ApiClient.updateProfile(savePayload);
+      emailPassword = '';
 
       // Persist to local storage cache immediately for instant recovery
       if (typeof localStorage !== 'undefined') {
@@ -471,6 +478,15 @@
             bind:value={email}
             placeholder="e.g. name.suamisihat@gmail.com"
           />
+
+          {#if emailChanged}
+            <FluentInput
+              label="Current password (needed to change your email)"
+              type="password"
+              bind:value={emailPassword}
+              placeholder="Enter your current password"
+            />
+          {/if}
 
           <div class="form-row" style="margin-bottom: 0;">
             <label class="field-label" for="default-brand-select">Default Operating Brand</label>

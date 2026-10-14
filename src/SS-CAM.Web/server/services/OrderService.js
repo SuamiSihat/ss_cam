@@ -9,6 +9,7 @@ const fs     = require('fs');
 const path   = require('path');
 const os     = require('os');
 const config = require('../config');
+const { uploadBlockedReason } = require('../middleware/safeFile');
 
 // ─── NAS Directory & Storage Helpers ──────────────────────────────────────────
 
@@ -179,6 +180,7 @@ function normalizeOrder(raw) {
     Requester:      raw.requester      || raw.Requester      || 'Unknown',
     requesterRole:  raw.requesterRole  || raw.RequesterRole  || '',
     RequesterRole:  raw.requesterRole  || raw.RequesterRole  || '',
+    requesterStaffId: raw.requesterStaffId || '',
     status:         finalStatus,
     Status:         finalStatus,
     submittedAt:    raw.submittedAt    || raw.SubmittedAt    || new Date().toISOString(),
@@ -300,6 +302,8 @@ function saveOrderAttachment(orderId, filename, data, actor = 'Requester') {
   const safeId = path.basename(orderId);
   const safeFilename = path.basename(filename || 'attachment').replace(/[\/\\:*?"<>|]/g, '_');
   if (!safeFilename) throw new Error('Invalid filename.');
+  const blocked = uploadBlockedReason(safeFilename);
+  if (blocked) throw Object.assign(new Error(blocked), { status: 400 });
 
   const dir = getOrderDir(safeId);
   const targetPath = path.join(dir, safeFilename);
@@ -481,6 +485,7 @@ function submitOrder(payload) {
     attachmentNote,
     requester,
     requesterRole,
+    requesterStaffId,
     attachments: incomingAttachments
   } = payload;
 
@@ -540,6 +545,7 @@ function submitOrder(payload) {
     Requester:      requester || 'Unknown',
     requesterRole:  requesterRole || '',
     RequesterRole:  requesterRole || '',
+    requesterStaffId: requesterStaffId || '',
     status:         'pending',
     Status:         'pending',
     submittedAt:    new Date().toISOString(),

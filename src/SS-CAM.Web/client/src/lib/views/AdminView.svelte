@@ -552,7 +552,7 @@
       return;
     }
 
-    if (!isEditingUser && (!editingUser.password || editingUser.password.length < 10)) {
+    if (!isEditingUser && editingUser.password && editingUser.password.length < 10) {
       appState.addToast('Initial password must be at least 10 characters long.', 'warning');
       return;
     }
@@ -575,7 +575,15 @@
       } else {
         const res = await ApiClient.addStaffMember(editingUser);
         if (res.success || res.member) {
-          appState.addToast(`User ${editingUser.name} (${editingUser.staffId}) provisioned!`, 'success');
+          if ((res as any).temporaryPassword) {
+            // Shown once and kept on screen until dismissed: it is not stored anywhere readable.
+            appState.addToast(
+              `Temporary password for ${editingUser.name}: ${(res as any).temporaryPassword}. Share it privately. They must choose a new password when they sign in.`,
+              'success', 'Account created', 0
+            );
+          } else {
+            appState.addToast(`${editingUser.name} (${editingUser.staffId}) was added. They must choose a new password when they sign in.`, 'success');
+          }
           showUserModal = false;
           await refreshData();
         }
@@ -638,11 +646,12 @@
   async function handleResetToDefault(user: any) {
     const name = user.name || user.username;
     const username = user.username || user.staffId;
-    if (!confirm('Reset ' + name + "'s password to the default password?\nThey can sign in with it straight away.")) return;
+    if (!confirm('Reset ' + name + "'s password? A one-time temporary password will be shown once. They must choose a new password when they sign in.")) return;
     try {
       const res = await ApiClient.request('/users/' + encodeURIComponent(username) + '/reset-to-default', { method: 'POST' });
       if (res.success) {
-        appState.addToast(res.message || ('Password reset to default for ' + name + '.'), 'success');
+        // The temporary password is shown once and stays until dismissed.
+        appState.addToast(res.message || ('Password reset for ' + name + '.'), 'success', 'Password reset', 0);
       }
     } catch (err: any) {
       appState.addToast("Couldn't reset the password. " + err.message, 'error');
@@ -2122,7 +2131,7 @@
 
       <div class="form-group">
           <label class="field-label" for="user-password-field">
-            {isEditingUser ? 'New Password (leave blank to keep current)' : 'Initial Password (min 10 chars)'}
+            {isEditingUser ? 'New Password (leave blank to keep current)' : 'Initial Password (leave blank to generate one)'}
           </label>
           <input
             id="user-password-field"

@@ -271,7 +271,8 @@ class DeliverableService {
     if (typeof res.setHeader === 'function') {
       res.setHeader('ETag', etag);
       res.setHeader('Last-Modified', lastModified);
-      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=3600');
+      // Private: these files are for signed-in people and must not be kept in shared caches.
+      res.setHeader('Cache-Control', 'private, max-age=86400, stale-while-revalidate=3600');
     }
 
     // Conditional HTTP 304 Not Modified for non-range requests
@@ -327,6 +328,11 @@ class DeliverableService {
       });
       fileStream.pipe(res);
     }
+  }
+
+  /** True for the image, video, audio and PDF types that deliverables are made of. */
+  static isMediaFile(filePath) {
+    return MEDIA_EXTENSIONS.includes(path.extname(String(filePath || '')).toLowerCase());
   }
 
   /**

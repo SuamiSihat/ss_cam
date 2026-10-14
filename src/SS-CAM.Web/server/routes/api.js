@@ -1,10 +1,41 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
+
+// Server-side failures never show file paths or internal messages to people. The real message goes
+// to the server log with a short reference that can be quoted to an admin.
+router.use((req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    if (res.statusCode >= 500 && body && typeof body === 'object' && !Array.isArray(body)) {
+      const reference = crypto.randomUUID().slice(0, 8);
+      console.error(`[API ${res.statusCode} ${reference}] ${req.method} ${req.originalUrl}: ${body.error || body.message || ''}`);
+      const { message, ...rest } = body;
+      body = {
+        ...rest,
+        error: 'Something went wrong on our side. Please try again, and tell an admin if it keeps happening.',
+        reference
+      };
+    }
+    return originalJson(body);
+  };
+  next();
+});
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
-const { SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserPermissions, hasCanonicalRole, verifyUserPassword, updateUserPassword, createPasswordResetToken, verifyPasswordResetToken, resetPasswordWithToken, findUserByIdentifier, generateToken, authenticateToken, requirePermission, requireRole } = require('../middleware/auth');
+const {
+  SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserPermissions, hasCanonicalRole,
+  verifyUserPassword, updateUserPassword, generateTemporaryPassword, isMustChangePassword,
+  setMustChangePassword, revokeUserSessions, revokeTokenId,
+  createPasswordResetToken, verifyPasswordResetToken, resetPasswordWithToken,
+  findLoginUser, findUserByIdentifier, findUserForSession, findIdentityConflict,
+  generateToken, authenticateToken, authenticateMedia, setMediaCookie, clearMediaCookie,
+  requirePermission, requireRole
+} = require('../middleware/auth');
+const { LoginGuard, limitBy } = require('../middleware/rateGuard');
+const { applySafeFileHeaders, uploadBlockedReason } = require('../middleware/safeFile');
 const WorkspaceService = require('../services/WorkspaceService');
 const ProjectFormat = require('../services/ProjectFormat');
 const FrontmatterService = require('../services/FrontmatterService');
@@ -29,7 +60,6 @@ const BranchService = require('../services/BranchService');
 const CareDispatcherService = require('../services/CareDispatcherService');
 const CollisionGuardService = require('../services/CollisionGuardService');
 const multer = require('multer');
-const rateLimit = require('express-rate-limit');
 
 // ─── IN-PROCESS TTL CACHE ───────────────────────────────────────────────────
 // Lightweight Map-based cache for expensive NAS filesystem scan routes.
@@ -53,30 +83,42 @@ function cacheInvalidate(...keys) {
   keys.forEach(k => _ttlCache.delete(k));
 }
 
-const loginLimiter = rateLimit({
+// Public password-reset endpoints. Forgot-password counts every request (not only failures) so it
+// cannot be used to flood someone's inbox; the identifier is part of the key so one person cannot
+// be mail-bombed from many addresses either.
+const forgotPasswordByIp = limitBy({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: 'Too many reset requests. Please wait an hour and try again.'
+});
+const forgotPasswordByAccount = limitBy({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  includeIp: false,
+  keyFn: (req) => String((req.body && req.body.identifier) || '').trim().toLowerCase().slice(0, 100),
+  message: 'Too many reset requests for this account. Please wait an hour and try again.'
+});
+const resetTokenLimiter = limitBy({
   windowMs: 15 * 60 * 1000,
-  max: 10,                        // Per account+IP pair - not a global office-wide counter
-  skipSuccessfulRequests: true,   // Only failed attempts burn quota
-  keyGenerator: (req) => {
-    // Isolate each user's lockout so one locked account never blocks colleagues
-    const username = ((req.body && req.body.username) || 'anonymous').toLowerCase().trim();
-    return req.ip + '_' + username;
-  },
-  skip: (req) => process.env.NODE_ENV === 'test',
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: false,
-  message: { error: 'Too many failed login attempts for this account. Please wait 15 minutes, or ask an administrator to reset your password from the Admin Panel.' }
+  max: 20,
+  message: 'Too many attempts. Please wait a few minutes and try again.'
 });
 
 const orderUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit for high-res creative assets
+  limits: { fileSize: 100 * 1024 * 1024, files: 15 }, // 100MB limit for high-res creative assets
+  fileFilter: (req, file, cb) => {
+    const reason = uploadBlockedReason(file.originalname);
+    if (reason) return cb(Object.assign(new Error(reason), { status: 400 }));
+    cb(null, true);
+  }
 });
 
 // ─── REAL-TIME SERVER-SENT EVENTS (SSE) ROUTE ───────────────────────
 
-router.get('/events', (req, res) => {
+// Live updates carry orders, notes, comments and staff changes, so only signed-in people may listen.
+// EventSource cannot send an Authorization header, so it uses the media cookie (see authenticateMedia).
+router.get('/events', authenticateMedia, (req, res) => {
   SseService.addClient(req, res);
 });
 
@@ -86,7 +128,7 @@ router.get('/events', (req, res) => {
 // their username, so staff names and roles are no longer exposed to anyone on the internet.
 
 // ─── REAL-TIME LIVE STUDIO TASKS & TELEMETRY ROUTE ───────────────────
-router.get('/team/live-tasks', (req, res) => {
+router.get('/team/live-tasks', authenticateToken, (req, res) => {
   try {
     const liveTasks = TeamService.getLiveTasks();
     res.json({
@@ -100,30 +142,28 @@ router.get('/team/live-tasks', (req, res) => {
   }
 });
 
-router.post('/auth/login', loginLimiter, (req, res) => {
-  const { username, password } = req.body;
-  
-  if (!username) {
+const SIGN_IN_FAILED = 'Invalid credentials. Please verify your username and password.';
+const SIGN_IN_LOCKED = 'Too many failed sign-in attempts. Please wait 15 minutes, or ask an administrator to reset your password.';
+
+router.post('/auth/login', (req, res) => {
+  const { username, password } = req.body || {};
+
+  if (!username || typeof username !== 'string') {
     return res.status(400).json({ error: 'Username is required' });
   }
+  if (password !== undefined && typeof password !== 'string') {
+    return res.status(400).json({ error: SIGN_IN_FAILED });
+  }
 
-  const staffRoster = TeamService.getStaffRoster();
-  const searchKey = username.trim().toLowerCase();
+  const user = findLoginUser(username);
+  // Count attempts against the real account (not the spelling typed) so name, username and staff ID
+  // all share one budget. Unknown names still get a budget, keyed by what was typed.
+  const accountKey = user ? user.username : username;
 
-  // Support case-insensitive lookup by username, name, or staffId from live roster
-  let user = staffRoster.find(
-    u => (u.username && u.username.toLowerCase() === searchKey) || 
-         (u.name && u.name.toLowerCase() === searchKey) ||
-         (u.staffId && u.staffId.toLowerCase() === searchKey)
-  );
-
-  // Fallback to SYSTEM_USERS if not in staff directory
-  if (!user) {
-    user = SYSTEM_USERS.find(
-      u => (u.username && u.username.toLowerCase() === searchKey) || 
-           (u.name && u.name.toLowerCase() === searchKey) ||
-           (u.id && u.id.toLowerCase() === searchKey)
-    );
+  const gate = LoginGuard.check(req.ip, accountKey);
+  if (gate.blocked) {
+    res.setHeader('Retry-After', String(gate.retryAfterSec));
+    return res.status(429).json({ error: SIGN_IN_LOCKED });
   }
 
   if (!user) {
@@ -132,23 +172,42 @@ router.post('/auth/login', loginLimiter, (req, res) => {
     } catch (e) {
       console.debug('[Auth:Login] Dummy compare error:', e.message);
     }
-    return res.status(401).json({ error: 'Invalid credentials. Please verify your username and password.' });
-  }
-
-  if (user.active === false) {
-    return res.status(403).json({ error: 'Account has been suspended' });
+    LoginGuard.recordFailure(req.ip, accountKey);
+    return res.status(401).json({ error: SIGN_IN_FAILED });
   }
 
   if (!verifyUserPassword(user.username, password)) {
-    return res.status(401).json({ error: 'Invalid credentials. Please verify your username and password.' });
+    LoginGuard.recordFailure(req.ip, accountKey);
+    AuditService.logEvent({
+      actor: user.username, role: 'User', action: 'AUTH_LOGIN_FAILED',
+      entityType: 'User', entityId: user.username, details: { ip: req.ip }
+    });
+    return res.status(401).json({ error: SIGN_IN_FAILED });
   }
 
-  res.json(buildSignInResponse(user, isDefaultPassword(password)));
+  // The password was right. A suspended account gets the same answer as a wrong password so the
+  // sign-in form cannot be used to find out which accounts exist or are suspended.
+  if (user.active === false) {
+    LoginGuard.recordFailure(req.ip, accountKey);
+    return res.status(401).json({ error: SIGN_IN_FAILED });
+  }
+
+  LoginGuard.recordSuccess(req.ip, accountKey);
+  AuditService.logEvent({
+    actor: user.username, role: 'User', action: 'AUTH_LOGIN_SUCCESS',
+    entityType: 'User', entityId: user.username, details: { ip: req.ip }
+  });
+
+  const mustChange = isDefaultPassword(password) || isMustChangePassword(user.username);
+  const response = buildSignInResponse(user, mustChange);
+  // A restricted session (password change required) gets no media access until it has changed it.
+  if (!mustChange) setMediaCookie(req, res, user);
+  res.json(response);
 });
 
-/** True when the password is the shared default (or the pre-2026-10 default), which must be changed. */
+/** True when the password is the old shared default, which must be changed on first use. */
 function isDefaultPassword(password) {
-  return password === config.DEFAULT_STAFF_PASSWORD || password === 'SuamiSihat123!';
+  return password === config.DEFAULT_STAFF_PASSWORD || config.LEGACY_DEFAULT_PASSWORDS.includes(password);
 }
 
 /** Session token + user profile returned by sign-in and by a successful password change. */
@@ -181,9 +240,16 @@ function buildSignInResponse(user, mustChangePassword) {
 
 router.post('/auth/change-password', authenticateToken, (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    
-    if (!verifyUserPassword(req.user.username, currentPassword)) {
+    const { currentPassword, newPassword } = req.body || {};
+
+    // A stolen session must not be able to guess the current password without limit.
+    const gate = LoginGuard.check(req.ip, req.user.username);
+    if (gate.blocked) {
+      res.setHeader('Retry-After', String(gate.retryAfterSec));
+      return res.status(429).json({ error: SIGN_IN_LOCKED });
+    }
+    if (typeof currentPassword !== 'string' || !verifyUserPassword(req.user.username, currentPassword)) {
+      LoginGuard.recordFailure(req.ip, req.user.username);
       return res.status(400).json({ error: 'Current password is incorrect.' });
     }
     if (typeof newPassword !== 'string' || newPassword.length < 10) {
@@ -204,25 +270,29 @@ router.post('/auth/change-password', authenticateToken, (req, res) => {
       details: { username: req.user.username }
     });
 
-    // Hand back a normal (unrestricted) session so the person can carry on straight away.
-    const user = findUserByIdentifier(req.user.username) || req.user;
-    res.json({ ...buildSignInResponse(user, false), message: 'Password updated.' });
+    // Every older session for this person was just signed out. Hand back a new, normal
+    // (unrestricted) session so the person can carry on straight away.
+    const user = findUserForSession(req.user) || req.user;
+    const response = buildSignInResponse(user, false);
+    setMediaCookie(req, res, user);
+    res.json({ ...response, message: 'Password updated.' });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
 // ─── AUTH: FORGOT PASSWORD ──────────────────────────────────────────
-router.post('/auth/forgot-password', loginLimiter, async (req, res) => {
+router.post('/auth/forgot-password', forgotPasswordByIp, forgotPasswordByAccount, async (req, res) => {
   try {
-    const { identifier } = req.body;
+    const { identifier } = req.body || {};
     if (!identifier || typeof identifier !== 'string') {
       return res.status(400).json({ error: 'Username, email, or staff ID is required.' });
     }
 
     const result = createPasswordResetToken(identifier);
     if (result && result.user && result.token) {
-      const clientBase = req.headers.origin || config.APP_URL;
+      // The link always points at the configured portal address, never at a caller-supplied Origin.
+      const clientBase = config.APP_URL;
       await EmailService.sendPasswordResetEmail(result.user, result.token, clientBase);
       AuditService.logEvent({
         actor: result.user.username,
@@ -245,18 +315,25 @@ router.post('/auth/forgot-password', loginLimiter, async (req, res) => {
   }
 });
 
-router.post('/auth/verify-reset-token', (req, res) => {
-  const { token } = req.body;
+function maskEmail(email) {
+  if (typeof email !== 'string' || !email.includes('@')) return '';
+  const [local, domain] = email.split('@');
+  return `${local.slice(0, 1)}${'*'.repeat(Math.max(2, Math.min(local.length - 1, 6)))}@${domain}`;
+}
+
+router.post('/auth/verify-reset-token', resetTokenLimiter, (req, res) => {
+  const { token } = req.body || {};
   const check = verifyPasswordResetToken(token);
   if (!check.valid) {
     return res.status(400).json({ valid: false, error: check.error });
   }
-  res.json({ valid: true, username: check.username, email: check.email });
+  // The reset page only needs to know the link works; the email is shown masked.
+  res.json({ valid: true, username: check.username, email: maskEmail(check.email) });
 });
 
-router.post('/auth/reset-password', loginLimiter, (req, res) => {
+router.post('/auth/reset-password', resetTokenLimiter, (req, res) => {
   try {
-    const { token, newPassword } = req.body;
+    const { token, newPassword } = req.body || {};
     if (!token) {
       return res.status(400).json({ error: 'Reset token is required.' });
     }
@@ -287,7 +364,7 @@ router.post('/auth/reset-password', loginLimiter, (req, res) => {
 
 // --- ADMIN: CLEAR RATE-LIMIT LOCKOUT ----------------------------------------
 // Allows an admin to immediately unlock a locked-out user without SSH.
-// Resets the loginLimiter in-memory store for all known IPs for that username.
+// Clears the sign-in counters for that account across every address.
 router.post('/auth/clear-lockout', authenticateToken, requireRole('admin'), (req, res) => {
   try {
     const { username } = req.body;
@@ -295,11 +372,10 @@ router.post('/auth/clear-lockout', authenticateToken, requireRole('admin'), (req
       return res.status(400).json({ error: 'username is required.' });
     }
     const targetUser = username.toLowerCase().trim();
-    if (loginLimiter && loginLimiter.resetKey) {
-      ['127.0.0.1', '::1', '::ffff:127.0.0.1', '172.17.0.1', req.ip].forEach(ip => {
-        try { loginLimiter.resetKey(ip + '_' + targetUser); } catch (e) { /* ignore */ }
-      });
-    }
+    // Clears the account's counters for every address, so the person can retry immediately.
+    const resolved = findLoginUser(targetUser);
+    LoginGuard.clearAccount(targetUser);
+    if (resolved) LoginGuard.clearAccount(resolved.username);
     AuditService.logEvent({
       actor: req.user.name,
       role: req.user.role,
@@ -314,16 +390,20 @@ router.post('/auth/clear-lockout', authenticateToken, requireRole('admin'), (req
   }
 });
 
+/** The roster entry that belongs to a session. The staff ID in the token is the identity; display names are never used to match. */
+function findRosterMember(sessionUser) {
+  const roster = TeamService.getStaffRoster();
+  const staffId = String((sessionUser && (sessionUser.staffId || sessionUser.id)) || '').trim().toLowerCase();
+  if (staffId) {
+    const byId = roster.find(u => String(u.staffId || '').toLowerCase() === staffId);
+    if (byId) return byId;
+  }
+  const username = String((sessionUser && sessionUser.username) || '').trim().toLowerCase();
+  return username ? roster.find(u => String(u.username || '').toLowerCase() === username) : undefined;
+}
+
 router.get('/auth/me', authenticateToken, (req, res) => {
-  const staffRoster = TeamService.getStaffRoster();
-  const searchStaffId = (req.user.staffId || req.user.id || '').toLowerCase();
-  const searchUsername = (req.user.username || '').toLowerCase();
-  const searchName = (req.user.name || '').toLowerCase();
-  const liveStaff = staffRoster.find(u => 
-    (u.staffId && u.staffId.toLowerCase() === searchStaffId) ||
-    (u.username && u.username.toLowerCase() === searchUsername) ||
-    (u.name && u.name.toLowerCase() === searchName)
-  );
+  const liveStaff = findRosterMember(req.user);
 
   if (liveStaff) {
     const canonicalRoles = Array.isArray(liveStaff.roles) && liveStaff.roles.length > 0
@@ -354,41 +434,99 @@ router.get('/auth/me', authenticateToken, (req, res) => {
   }
 });
 
+/** Issues the media cookie used by images, downloads and live updates. Called after sign-in and on a timer. */
+router.post('/auth/media-session', authenticateToken, (req, res) => {
+  const user = findUserForSession(req.user);
+  if (!user || user.active === false) {
+    return res.status(403).json({ error: 'Your session has expired. Please sign in again.', code: 'SESSION_EXPIRED' });
+  }
+  setMediaCookie(req, res, user);
+  res.json({ success: true });
+});
+
+/** Signs out this device: the session token stops working and the media cookie is cleared. */
+router.post('/auth/logout', authenticateToken, (req, res) => {
+  revokeTokenId(req.user.jti, req.user.exp);
+  clearMediaCookie(req, res);
+  AuditService.logEvent({
+    actor: req.user.username, role: req.user.role, action: 'AUTH_LOGOUT',
+    entityType: 'User', entityId: req.user.username, details: { ip: req.ip }
+  });
+  res.json({ success: true });
+});
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 router.put('/auth/profile', authenticateToken, (req, res) => {
   try {
-    const staffRoster = TeamService.getStaffRoster();
-    const searchStaffId = (req.user.staffId || req.user.id || '').toLowerCase();
-    const searchUsername = (req.user.username || '').toLowerCase();
-    const searchName = (req.user.name || '').toLowerCase();
-    
-    let target = staffRoster.find(u => 
-      (u.staffId && u.staffId.toLowerCase() === searchStaffId) ||
-      (u.username && u.username.toLowerCase() === searchUsername) ||
-      (u.name && u.name.toLowerCase() === searchName)
-    );
+    const body = req.body || {};
+    // The person is always the one in the session token. A staffId, username or name in the body
+    // is ignored, so nobody can edit someone else's record by sending or choosing a look-alike.
+    const target = findRosterMember(req.user);
+    const seed = target ? null : findUserForSession(req.user);
 
     const isCallerAdmin = hasCanonicalRole(req.user, 'admin');
+    const current = target || seed || {};
 
-    // Anti-escalation: Non-admin users cannot alter their assigned roles or permissions
-    const safeRole = isCallerAdmin 
-      ? (req.body.role || req.body.officialTitle || (target ? target.role : 'Designer'))
-      : (target ? target.role : (req.user.role || 'Designer'));
+    const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim() : (current.name || req.user.name);
+    const email = typeof body.email === 'string' ? body.email.trim() : (current.email || '');
 
-    const updates = {
-      name: req.body.name || (target ? target.name : req.user.name),
-      email: req.body.email !== undefined ? req.body.email : (target ? target.email : req.user.email),
-      department: req.body.department || (target ? target.department : req.user.department),
-      role: safeRole,
-      officialTitle: req.body.officialTitle || (target ? target.officialTitle : 'Head of Creative'),
-      avatar: req.body.avatar !== undefined ? req.body.avatar : (target ? target.avatar : ''),
-      avatarColor: req.body.avatarColor || (target ? target.avatarColor : '#0078D4'),
-      defaultBrand: req.body.defaultBrand || (target ? target.defaultBrand : 'SS')
+    if (name.length > 80) {
+      return res.status(400).json({ error: 'Please use a shorter name (80 characters or fewer).' });
+    }
+    if (email && (email.length > 254 || !EMAIL_PATTERN.test(email))) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+
+    const nameChanged = name.toLowerCase() !== String(current.name || '').toLowerCase();
+    const emailChanged = email.toLowerCase() !== String(current.email || '').toLowerCase();
+
+    const conflict = findIdentityConflict(
+      { name: nameChanged ? name : '', email: emailChanged ? email : '' },
+      current.staffId || req.user.staffId
+    );
+    if (conflict) {
+      return res.status(409).json({ error: conflict });
+    }
+
+    // Email is where password reset links go, so changing it needs the current password.
+    if (emailChanged) {
+      const gate = LoginGuard.check(req.ip, req.user.username);
+      if (gate.blocked) {
+        res.setHeader('Retry-After', String(gate.retryAfterSec));
+        return res.status(429).json({ error: SIGN_IN_LOCKED });
+      }
+      if (typeof body.currentPassword !== 'string' || !verifyUserPassword(req.user.username, body.currentPassword)) {
+        LoginGuard.recordFailure(req.ip, req.user.username);
+        return res.status(400).json({ error: 'Enter your current password to change your email address.', code: 'CURRENT_PASSWORD_REQUIRED' });
+      }
+    }
+
+    // Anti-escalation: only admins can change assigned roles.
+    const safeRole = isCallerAdmin
+      ? (body.role || body.officialTitle || current.role || 'Designer')
+      : (current.role || req.user.role || 'Designer');
+
+    const text = (value, fallback, max) => {
+      const v = typeof value === 'string' && value.trim() ? value.trim() : fallback;
+      return typeof v === 'string' ? v.slice(0, max) : v;
     };
 
-    if (isCallerAdmin && Array.isArray(req.body.roles) && req.body.roles.length > 0) {
-      updates.roles = req.body.roles;
-    } else if (target && target.roles) {
-      updates.roles = target.roles;
+    const updates = {
+      name,
+      email,
+      department: text(body.department, current.department || req.user.department, 80),
+      role: safeRole,
+      officialTitle: text(body.officialTitle, current.officialTitle || 'Head of Creative', 80),
+      avatar: body.avatar !== undefined ? body.avatar : (current.avatar || ''),
+      avatarColor: text(body.avatarColor, current.avatarColor || '#0078D4', 20),
+      defaultBrand: text(body.defaultBrand, current.defaultBrand || 'SS', 10)
+    };
+
+    if (isCallerAdmin && Array.isArray(body.roles) && body.roles.length > 0) {
+      updates.roles = body.roles;
+    } else if (current.roles) {
+      updates.roles = current.roles;
     }
 
     let updatedMember;
@@ -398,8 +536,8 @@ router.put('/auth/profile', authenticateToken, (req, res) => {
       updatedMember = TeamService.addStaffMember({
         staffId: req.user.staffId || 'SS' + Math.floor(1000 + Math.random() * 9000),
         username: req.user.username,
-        role: safeRole,
-        ...updates
+        ...updates,
+        role: safeRole
       });
     }
 
@@ -409,10 +547,10 @@ router.put('/auth/profile', authenticateToken, (req, res) => {
       action: 'PROFILE_UPDATED',
       entityType: 'User',
       entityId: updatedMember.staffId,
-      details: { name: updatedMember.name, email: updatedMember.email }
+      details: { name: updatedMember.name, email: updatedMember.email, emailChanged }
     });
 
-    SseService.broadcast('team:updated', { member: updatedMember, action: 'profile_updated' });
+    SseService.broadcast('team:updated', { member: TeamService.toPublicMember(updatedMember), action: 'profile_updated' });
 
     res.json({
       success: true,
@@ -432,7 +570,7 @@ router.put('/auth/profile', authenticateToken, (req, res) => {
   }
 });
 
-router.get('/auth/users', authenticateToken, (req, res) => {
+router.get('/auth/users', authenticateToken, requireRole('admin'), (req, res) => {
   res.json({ users: SYSTEM_USERS, roles: Object.keys(ROLE_PERMISSIONS) });
 });
 
@@ -1047,7 +1185,8 @@ router.get('/projects/:id', authenticateToken, (req, res) => {
   }
 });
 
-router.get(['/projects/:id/export', '/projects/:id/export/zip'], authenticateToken, (req, res) => {
+// A download link opened in the browser cannot send a header, so this accepts the media cookie too.
+router.get(['/projects/:id/export', '/projects/:id/export/zip'], authenticateMedia, (req, res) => {
   try {
     const project = WorkspaceService.getProjectById(req.params.id);
     if (!project) {
@@ -1075,14 +1214,23 @@ router.get(['/projects/:id/export', '/projects/:id/export/zip'], authenticateTok
   }
 });
 
-router.get('/projects/:id/asset', (req, res) => {
+/**
+ * Serves one file from inside a project folder. Used by the signed-in staff route and by the
+ * share-link route. `allowFile(absolutePath)` lets the share-link route narrow it further.
+ */
+function serveProjectAsset(project, rawPath, req, res, allowFile = () => true) {
+  const send = (filePath) => {
+    if (!allowFile(filePath)) {
+      return res.status(403).send('Access denied');
+    }
+    applySafeFileHeaders(req, res, filePath);
+    return res.sendFile(filePath);
+  };
   try {
-    const project = WorkspaceService.getProjectById(req.params.id);
     if (!project || !project.fullPath) {
       return res.status(404).send('Project not found');
     }
 
-    const rawPath = req.query.path || req.query.file;
     if (!rawPath || typeof rawPath !== 'string') {
       return res.status(400).send('Asset path query parameter required');
     }
@@ -1117,7 +1265,7 @@ router.get('/projects/:id/asset', (req, res) => {
 
     // 1. Direct path match
     if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
-      return res.sendFile(targetPath);
+      return send(targetPath);
     }
 
     // 2. Candidate folder checks (for case sensitivity or shorthand wikilinks)
@@ -1136,7 +1284,7 @@ router.get('/projects/:id/asset', (req, res) => {
     for (const folder of candidateFolders) {
       const candidatePath = path.resolve(projectRoot, folder, filename);
       if (candidatePath.startsWith(rootWithSep) && fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
-        return res.sendFile(candidatePath);
+        return send(candidatePath);
       }
     }
 
@@ -1163,21 +1311,41 @@ router.get('/projects/:id/asset', (req, res) => {
 
     const foundPath = findFileRecursive(projectRoot, filename);
     if (foundPath && foundPath.startsWith(rootWithSep) && fs.existsSync(foundPath) && fs.statSync(foundPath).isFile()) {
-      return res.sendFile(foundPath);
+      return send(foundPath);
     }
 
     return res.status(404).send(`Asset file not found: ${filename}`);
   } catch (err) {
-    console.error('[API] /projects/:id/asset error:', err);
-    res.status(500).send(err.message);
+    console.error('[API] project asset error:', err);
+    res.status(500).send('Could not load this file.');
   }
+}
+
+router.get('/projects/:id/asset', authenticateMedia, (req, res) => {
+  serveProjectAsset(WorkspaceService.getProjectById(req.params.id), req.query.path || req.query.file, req, res);
 });
 
-router.post('/projects/archive', authenticateToken, requireRole('admin', 'designer'), async (req, res) => {
+
+router.post('/projects/archive', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
-    const { projectIds, archiveRoot, copyOnly } = req.body;
-    if (!Array.isArray(projectIds) || projectIds.length === 0) {
-      return res.status(400).json({ error: 'projectIds array is required.' });
+    const { projectIds, archiveRoot, copyOnly, confirmDelete } = req.body || {};
+    if (!Array.isArray(projectIds) || projectIds.length === 0 || projectIds.length > 50) {
+      return res.status(400).json({ error: 'Choose between 1 and 50 projects to archive.' });
+    }
+
+    // The archive must stay inside the shared workspace: no writing to arbitrary folders on the server.
+    if (archiveRoot !== undefined && archiveRoot !== null && archiveRoot !== '') {
+      const workspaceRoot = path.resolve(WorkspaceService.workspaceRoot || config.WORKSPACE_ROOT);
+      const requestedRoot = path.resolve(String(archiveRoot));
+      const rootWithSep = workspaceRoot.endsWith(path.sep) ? workspaceRoot : workspaceRoot + path.sep;
+      if (requestedRoot !== workspaceRoot && !requestedRoot.startsWith(rootWithSep)) {
+        return res.status(400).json({ error: 'The archive location must be inside the shared workspace.' });
+      }
+    }
+
+    // copyOnly:false removes the original project folders after zipping. Never do that by accident.
+    if (copyOnly === false && confirmDelete !== true) {
+      return res.status(400).json({ error: 'Removing the original folders needs explicit confirmation (confirmDelete: true).' });
     }
 
     const projectPaths = [];
@@ -1361,97 +1529,190 @@ router.post('/projects/:id/ingest', authenticateToken, (req, res) => {
     const result = WorkspaceService.ingestFile(id, targetSubfolder, filename, fileData, actor);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Could not upload the file.' });
   }
 });
 
 // ─── SHARE & PUBLIC CLIENT REVIEW ROUTES ────────────────────────────
 
+/** The project's own designer, a manager or an admin may create, list and revoke its share links. */
+function canManageProjectShares(user, project) {
+  if (!user || !project) return false;
+  const permissions = Array.isArray(user.permissions) && user.permissions.length > 0 ? user.permissions : getUserPermissions(user);
+  if (permissions.includes('project:edit') || hasCanonicalRole(user, 'admin')) return true;
+  const mine = [user.name, user.username, user.staffId, user.id].filter(Boolean).map(v => String(v).trim().toLowerCase());
+  const designer = String(project.designer || '').trim().toLowerCase();
+  return !!designer && mine.includes(designer);
+}
+
+const SHARE_FORBIDDEN = "Only the project's designer or a manager can manage share links.";
+
 router.post('/share/generate', authenticateToken, (req, res) => {
   try {
-    const { projectId, deliverableId, expiresInDays, permissions, note } = req.body;
-    if (!projectId) {
+    const { projectId, deliverableId, expiresInDays, permissions, note } = req.body || {};
+    if (!projectId || typeof projectId !== 'string') {
       return res.status(400).json({ error: 'projectId is required.' });
     }
-    const createdBy = req.user ? req.user.name : 'Staff';
+    const project = WorkspaceService.getProjectById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found.' });
+    }
+    if (!canManageProjectShares(req.user, project)) {
+      return res.status(403).json({ error: SHARE_FORBIDDEN });
+    }
     const tokenRecord = ShareService.createShareToken({
       projectId,
-      deliverableId,
-      createdBy,
-      expiresInDays: expiresInDays !== undefined ? expiresInDays : 14,
+      deliverableId: typeof deliverableId === 'string' && deliverableId ? deliverableId : null,
+      createdBy: req.user.name || 'Staff',
+      createdByStaffId: req.user.staffId || '',
+      expiresInDays,
       permissions: permissions || 'review_approve',
       note: note || ''
     });
+    AuditService.logEvent({
+      actor: req.user.name, role: req.user.role, action: 'SHARE_LINK_CREATED',
+      entityType: 'Project', entityId: project.id,
+      details: { permissions: tokenRecord.permissions, expiresAt: tokenRecord.expiresAt, singleFile: !!tokenRecord.deliverableId }
+    });
     res.status(201).json({ success: true, share: tokenRecord });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
 });
 
 router.get('/share/list/:projectId', authenticateToken, (req, res) => {
   try {
-    const links = ShareService.getProjectShareLinks(req.params.projectId);
+    const project = WorkspaceService.getProjectById(req.params.projectId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found.' });
+    }
+    if (!canManageProjectShares(req.user, project)) {
+      return res.status(403).json({ error: SHARE_FORBIDDEN });
+    }
+    const links = ShareService.getProjectShareLinks(project.id);
     res.json({ success: true, links });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Could not load share links.' });
   }
 });
 
 router.delete('/share/:token', authenticateToken, (req, res) => {
   try {
+    const record = ShareService.getRecord(req.params.token);
+    if (!record) {
+      return res.status(404).json({ error: 'Share link not found.' });
+    }
+    const project = WorkspaceService.getProjectById(record.projectId);
+    const isCreator = record.createdByStaffId && record.createdByStaffId === req.user.staffId;
+    if (!isCreator && !canManageProjectShares(req.user, project)) {
+      return res.status(403).json({ error: SHARE_FORBIDDEN });
+    }
     const revoked = ShareService.revokeToken(req.params.token);
+    AuditService.logEvent({
+      actor: req.user.name, role: req.user.role, action: 'SHARE_LINK_REVOKED',
+      entityType: 'Project', entityId: record.projectId, details: {}
+    });
     res.json({ success: revoked });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Could not revoke the share link.' });
   }
 });
 
 // ─── PUBLIC / GUEST REVIEW ENDPOINTS (NO AUTH REQUIRED) ─────────────
+// Every route below is tied to one share link: it can only reach that link's project (and, for a
+// single-file link, only that file), and it is rate-limited because anyone on the internet can call it.
 
-router.get('/public/review/:token', (req, res) => {
+const publicReviewRead = limitBy({ windowMs: 15 * 60 * 1000, max: 900, message: 'Too many requests. Please wait a few minutes and try again.' });
+const publicReviewWrite = limitBy({
+  windowMs: 15 * 60 * 1000, max: 30,
+  keyFn: (req) => String(req.params.token || '').slice(0, 80),
+  message: 'Too many submissions. Please wait a few minutes and try again.'
+});
+
+const REVIEW_LINK_INVALID = 'Review link is invalid or has expired.';
+const cleanGuestText = (value, max) => String(value == null ? '' : value).replace(/\0/g, '').trim().slice(0, max);
+
+router.get('/public/review/:token', publicReviewRead, (req, res) => {
   try {
     const data = ShareService.validateToken(req.params.token);
     if (!data) {
-      return res.status(404).json({ error: 'Review link is invalid or has expired.' });
+      return res.status(404).json({ error: REVIEW_LINK_INVALID });
     }
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[API] public review load error:', err.message);
+    res.status(500).json({ error: 'Could not open this review right now.' });
   }
 });
 
-router.post('/public/review/:token/decision', (req, res) => {
+/** A deliverable file (preview, video stream or download) for a share link. */
+router.get('/public/review/:token/file', publicReviewRead, (req, res) => {
   try {
-    const data = ShareService.validateToken(req.params.token);
-    if (!data) {
-      return res.status(404).json({ error: 'Review link is invalid or has expired.' });
-    }
-    if (data.shareInfo.permissions === 'view_only') {
-      return res.status(403).json({ error: 'This share link is view-only.' });
+    const scope = ShareService.resolveToken(req.params.token);
+    if (!scope) return res.status(404).send('This link is invalid or has expired.');
+
+    const safePath = DeliverableService.resolveSafePath(req.query.id);
+    if (!safePath || !ShareService.isPathInScope(scope, safePath)) {
+      return res.status(404).send('File not found.');
     }
 
-    const { decision, reviewerName, reviewerOrg, comment = '', deliverableId = null } = req.body;
+    const mode = String(req.query.mode || 'preview');
+    applySafeFileHeaders(req, res, safePath, { download: mode === 'download' });
+    if (mode === 'stream') return DeliverableService.streamMedia(safePath, req, res);
+    return res.sendFile(safePath);
+  } catch (err) {
+    console.error('[API] public review file error:', err.message);
+    res.status(500).send('Could not load this file.');
+  }
+});
+
+/** Image fallback for a share link, limited to media files in the link's own scope. */
+router.get('/public/review/:token/asset', publicReviewRead, (req, res) => {
+  const scope = ShareService.resolveToken(req.params.token);
+  if (!scope) return res.status(404).send('This link is invalid or has expired.');
+  serveProjectAsset(scope.project, req.query.path || req.query.file, req, res, (absPath) =>
+    DeliverableService.isMediaFile(absPath) && ShareService.isPathInScope(scope, absPath)
+  );
+});
+
+router.post('/public/review/:token/decision', publicReviewWrite, (req, res) => {
+  try {
+    const scope = ShareService.resolveToken(req.params.token);
+    if (!scope) {
+      return res.status(404).json({ error: REVIEW_LINK_INVALID });
+    }
+    if (scope.record.permissions === 'view_only') {
+      return res.status(403).json({ error: 'This share link is view-only.' });
+    }
+    const project = scope.project;
+
+    const { decision, reviewerName, reviewerOrg } = req.body || {};
+    const comment = cleanGuestText((req.body || {}).comment, 2000);
+    const deliverableId = (req.body || {}).deliverableId || null;
     if (!decision || !['approved', 'revision_requested', 'rejected'].includes(decision)) {
       return res.status(400).json({ error: 'Valid decision (approved, revision_requested, rejected) is required.' });
     }
+    if (!ShareService.isDeliverableInScope(scope, deliverableId)) {
+      return res.status(403).json({ error: 'This link does not cover that file.' });
+    }
 
-    const reviewer = (reviewerName && reviewerName.trim()) 
-      ? `${reviewerName.trim()}${reviewerOrg ? ` (${reviewerOrg.trim()})` : ''}` 
-      : 'External Reviewer';
+    const name = cleanGuestText(reviewerName, 80);
+    const org = cleanGuestText(reviewerOrg, 80);
+    const reviewer = name ? `${name}${org ? ` (${org})` : ''}` : 'External Reviewer';
 
     ApprovalService.processDecision({
-      projectId: data.project.id,
+      projectId: project.id,
       decision,
       reviewer,
       role: 'Client Reviewer',
-      comment: comment.trim(),
-      deliverableId
+      comment,
+      deliverableId: deliverableId || scope.record.deliverableId || null
     });
 
     // Notify clients via SSE
     cacheInvalidate('dashboard:all:all', 'dashboard:30d:all', 'dashboard:90d:all', 'projects:all');
     SseService.broadcast('project:decision', {
-      projectId: data.project.id,
+      projectId: project.id,
       decision,
       reviewer,
       timestamp: new Date().toISOString()
@@ -1460,12 +1721,12 @@ router.post('/public/review/:token/decision', (req, res) => {
     // Cloud Webhook Alert
     const webhookEvent = decision === 'approved' ? 'DELIVERABLE_APPROVED' : (decision === 'revision_requested' ? 'REVISION_REQUESTED' : 'DELIVERABLE_REJECTED');
     WebhookService.dispatch(webhookEvent, {
-      title: `${(data.project && data.project.title) || data.project.id} - ${decision.replace(/_/g, ' ').toUpperCase()}`,
-      description: comment.trim() || `Client decision recorded: ${decision}`,
+      title: `${project.title || project.id} - ${decision.replace(/_/g, ' ').toUpperCase()}`,
+      description: comment || `Client decision recorded: ${decision}`,
       actor: reviewer,
       reviewer,
-      brand: (data.project && data.project.brand) || 'SS',
-      jobId: (data.project && data.project.jobId) || data.project.id,
+      brand: project.brand || 'SS',
+      jobId: project.jobId || project.id,
       deliverableId,
       status: decision
     });
@@ -1475,89 +1736,103 @@ router.post('/public/review/:token/decision', (req, res) => {
     const waText = [
       `🎨 *SS-CAM Creative Review Decision*`,
       ``,
-      `*Project:* ${data.project.jobId || data.project.id} - ${data.project.title || 'Creative Campaign'}`,
+      `*Project:* ${project.jobId || project.id} - ${project.title || 'Creative Campaign'}`,
       `*Status:* ${statusEmoji}`,
       `*Reviewer:* ${reviewer}`,
-      comment.trim() ? `*Notes:* "${comment.trim()}"` : '',
-      `*Portal Link:* https://creative.suamisihat.myds.me/#review?token=${encodeURIComponent(req.params.token)}`
+      comment ? `*Notes:* "${comment}"` : '',
+      `*Portal Link:* ${config.APP_URL}/#review?token=${encodeURIComponent(req.params.token)}`
     ].filter(Boolean).join('\n');
 
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`;
 
     res.json({ success: true, message: `Decision recorded: ${decision}`, reviewer, whatsappUrl, waText });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[API] public review decision error:', err.message);
+    res.status(500).json({ error: 'Could not record your decision. Please try again.' });
   }
 });
 
-router.get('/public/review/:token/download', (req, res) => {
+router.get('/public/review/:token/download', publicReviewRead, (req, res) => {
   try {
-    const data = ShareService.validateToken(req.params.token);
-    if (!data) {
-      return res.status(404).json({ error: 'Review link is invalid or has expired.' });
+    const scope = ShareService.resolveToken(req.params.token);
+    if (!scope) {
+      return res.status(404).json({ error: REVIEW_LINK_INVALID });
+    }
+    if (scope.record.deliverableId) {
+      return res.status(403).json({ error: 'This link covers a single file. Download it from the review page.' });
     }
 
-    const project = WorkspaceService.getProjectById(data.project.id);
-    if (!project) {
-      return res.status(404).json({ error: 'Project folder not found.' });
-    }
-
+    const project = scope.project;
     const folderName = path.basename(project.fullPath);
-    const preset = (req.query.preset || 'all').toLowerCase();
+    const preset = String(req.query.preset || 'all').toLowerCase();
 
     WebhookService.dispatch('HANDOVER_EXPORTED', {
       title: `Client Handover Download: ${project.title || folderName} (${preset.toUpperCase()})`,
-      description: `Client downloaded creative deliverables for ${project.jobId || data.project.id}.`,
+      description: `Client downloaded creative deliverables for ${project.jobId || project.id}.`,
       actor: 'Client Reviewer',
       brand: project.brand || 'SS',
-      jobId: project.jobId || data.project.id
+      jobId: project.jobId || project.id
     });
 
-    ExportService.streamProjectHandover(project.fullPath, data.project.id, res, {
+    ExportService.streamProjectHandover(project.fullPath, project.id, res, {
       preset,
       includeWip: false,
       includeSources: false,
       includeBriefAssets: false
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[API] public review download error:', err.message);
+    res.status(500).json({ error: 'Could not prepare the download.' });
   }
 });
 
-router.get('/public/review/:token/comments', (req, res) => {
+router.get('/public/review/:token/comments', publicReviewRead, (req, res) => {
   try {
-    const data = ShareService.validateToken(req.params.token);
-    if (!data) {
-      return res.status(404).json({ error: 'Review link is invalid or has expired.' });
+    const scope = ShareService.resolveToken(req.params.token);
+    if (!scope) {
+      return res.status(404).json({ error: REVIEW_LINK_INVALID });
     }
-
-    const project = WorkspaceService.getProjectById(data.project.id);
-    const comments = CommentService.getComments(project ? project.fullPath : null, data.project.id);
+    const comments = ShareService.publicComments(
+      CommentService.getComments(scope.project.fullPath, scope.project.jobId || scope.project.id)
+    );
     res.json({ comments });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[API] public review comments error:', err.message);
+    res.status(500).json({ error: 'Could not load comments.' });
   }
 });
 
-router.post('/public/review/:token/comments', (req, res) => {
+router.post('/public/review/:token/comments', publicReviewWrite, (req, res) => {
   try {
-    const data = ShareService.validateToken(req.params.token);
-    if (!data) {
-      return res.status(404).json({ error: 'Review link is invalid or has expired.' });
+    const scope = ShareService.resolveToken(req.params.token);
+    if (!scope) {
+      return res.status(404).json({ error: REVIEW_LINK_INVALID });
+    }
+    if (scope.record.permissions === 'view_only') {
+      return res.status(403).json({ error: 'This share link is view-only.' });
+    }
+    const project = scope.project;
+    const body = req.body || {};
+
+    const deliverableId = body.deliverableId || null;
+    if (!ShareService.isDeliverableInScope(scope, deliverableId)) {
+      return res.status(403).json({ error: 'This link does not cover that file.' });
+    }
+    const content = cleanGuestText(body.content, 2000);
+    if (!content) {
+      return res.status(400).json({ error: 'Please write a comment first.' });
     }
 
-    const project = WorkspaceService.getProjectById(data.project.id);
-    const { content, reviewerName, reviewerOrg, deliverableId, pinX, pinY, annotation } = req.body;
-
-    const author = (reviewerName && reviewerName.trim()) 
-      ? `${reviewerName.trim()}${reviewerOrg ? ` (${reviewerOrg.trim()})` : ''}` 
-      : 'Guest Reviewer';
+    const name = cleanGuestText(body.reviewerName, 80);
+    const org = cleanGuestText(body.reviewerOrg, 80);
+    const author = name ? `${name}${org ? ` (${org})` : ''}` : 'Guest Reviewer';
 
     // Support both flattened pinX/pinY and structured annotation object
-    const finalPinX = (annotation && typeof annotation.x === 'number') ? annotation.x : pinX;
-    const finalPinY = (annotation && typeof annotation.y === 'number') ? annotation.y : pinY;
+    const annotation = body.annotation;
+    const finalPinX = (annotation && typeof annotation.x === 'number') ? annotation.x : body.pinX;
+    const finalPinY = (annotation && typeof annotation.y === 'number') ? annotation.y : body.pinY;
 
-    const comment = CommentService.addComment(project ? project.fullPath : null, data.project.id, {
+    const comment = CommentService.addComment(project.fullPath, project.jobId || project.id, {
       author,
       authorRole: 'Client Reviewer',
       authorAvatar: '#10B981',
@@ -1568,10 +1843,11 @@ router.post('/public/review/:token/comments', (req, res) => {
       annotation: annotation || (finalPinX != null ? { x: finalPinX, y: finalPinY } : undefined)
     });
 
-    SseService.broadcast('comment:added', { projectId: data.project.id, comment });
+    SseService.broadcast('comment:added', { projectId: project.id, comment });
     res.status(201).json({ success: true, comment });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error('[API] public review comment error:', err.message);
+    res.status(400).json({ error: 'Could not save your comment. Please try again.' });
   }
 });
 
@@ -1777,7 +2053,7 @@ router.delete('/projects/:id/lock', authenticateToken, (req, res) => {
 
 // ─── 1-CLICK PROJECT REASSIGNMENT (RADAR WORKLOAD) ───────────────────
 
-router.post('/projects/:id/reassign', authenticateToken, (req, res) => {
+router.post('/projects/:id/reassign', authenticateToken, requirePermission('project:assign'), (req, res) => {
   try {
     const project = WorkspaceService.getProjectById(req.params.id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
@@ -1829,9 +2105,19 @@ router.post('/projects/:id/reassign', authenticateToken, (req, res) => {
 
 // ─── STUDIO WEBHOOK INTEGRATIONS (DISCORD / SLACK / TELEGRAM) ────────
 
-router.get('/webhooks', authenticateToken, (req, res) => {
+// A webhook address works like a password for the chat channel, so only admins see the list and
+// the address itself is masked.
+router.get('/webhooks', authenticateToken, requireRole('admin'), (req, res) => {
   try {
-    const hooks = WebhookService.getWebhooks();
+    const maskUrl = (url) => {
+      try {
+        const u = new URL(url);
+        return `${u.protocol}//${u.host}/…${String(url).slice(-4)}`;
+      } catch (e) {
+        return '…';
+      }
+    };
+    const hooks = WebhookService.getWebhooks().map(h => ({ ...h, url: maskUrl(h.url) }));
     res.json({ success: true, webhooks: hooks });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1863,7 +2149,8 @@ router.post('/webhooks/test', authenticateToken, requireRole('admin'), async (re
     const result = await WebhookService.testPing(url, serviceType);
     res.json({ success: true, result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // A rejected address (not https, private network) is the admin's to fix, so say why.
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -2197,31 +2484,37 @@ router.get('/deliverables', authenticateToken, (req, res) => {
   }
 });
 
-router.get('/deliverables/preview', (req, res) => {
+// Deliverable files are for signed-in people. Browsers cannot send an Authorization header for
+// <img>, <video> or download links, so these accept the media cookie (see authenticateMedia).
+// Guests on a share link use /public/review/:token/file instead.
+router.get('/deliverables/preview', authenticateMedia, (req, res) => {
   const safePath = DeliverableService.resolveSafePath(req.query.id);
   if (!safePath) {
     return res.status(404).send('Asset not found or access denied.');
   }
 
+  applySafeFileHeaders(req, res, safePath);
   res.sendFile(safePath);
 });
 
-router.get('/deliverables/stream', (req, res) => {
+router.get('/deliverables/stream', authenticateMedia, (req, res) => {
   const safePath = DeliverableService.resolveSafePath(req.query.id);
   if (!safePath) {
     return res.status(404).send('Asset not found or access denied.');
   }
 
+  applySafeFileHeaders(req, res, safePath);
   DeliverableService.streamMedia(safePath, req, res);
 });
 
-router.get('/deliverables/download', (req, res) => {
+router.get('/deliverables/download', authenticateMedia, (req, res) => {
   const safePath = DeliverableService.resolveSafePath(req.query.id);
   if (!safePath) {
     return res.status(404).send('Asset not found or access denied.');
   }
 
-  res.download(safePath);
+  applySafeFileHeaders(req, res, safePath, { download: true });
+  res.sendFile(safePath);
 });
 
 // ─── TEAM & WORKLOAD ────────────────────────────────────────────────
@@ -2276,29 +2569,35 @@ router.get('/users', authenticateToken, (req, res) => {
   }
 });
 
-// Default password for new accounts and admin "reset to default". Override per tenant with
-// DEFAULT_STAFF_PASSWORD in .env. Must meet the 10-character minimum.
-const DEFAULT_PASSWORD = config.DEFAULT_STAFF_PASSWORD;
+// New accounts and admin resets get a random one-time password (shown once to the admin).
+// Whoever receives it must choose their own password at first sign-in.
 
 function handleCreateStaffUser(req, res) {
   try {
-    const password = req.body.password || DEFAULT_PASSWORD;
-    if (typeof password !== 'string' || password.length < 10) {
+    const supplied = req.body.password;
+    if (supplied !== undefined && supplied !== '' && (typeof supplied !== 'string' || supplied.length < 10)) {
       return res.status(400).json({ error: 'Password must be at least 10 characters long.' });
     }
+    const password = supplied || generateTemporaryPassword();
     const newMember = TeamService.addStaffMember(req.body);
-    // Always set a password — use the one provided or fall back to DEFAULT_PASSWORD
-    updateUserPassword(newMember.username, password);
+    // An admin chose or generated this password, so the new person must replace it at first sign-in.
+    updateUserPassword(newMember.username, password, { mustChange: true });
     AuditService.logEvent({
       actor: req.user.name,
       role: req.user.role,
       action: 'USER_CREATED',
       entityType: 'User',
       entityId: newMember.staffId,
-      details: { staffId: newMember.staffId, name: newMember.name, role: newMember.role, usedDefaultPassword: !req.body.password }
+      details: { staffId: newMember.staffId, name: newMember.name, role: newMember.role, temporaryPasswordGenerated: !supplied }
     });
-    SseService.broadcast('team:updated', { member: newMember, action: 'created' });
-    res.json({ success: true, user: newMember, member: newMember, usedDefaultPassword: !req.body.password });
+    const publicMember = TeamService.toPublicMember(newMember);
+    SseService.broadcast('team:updated', { member: publicMember, action: 'created' });
+    res.json({
+      success: true,
+      user: publicMember,
+      member: publicMember,
+      ...(supplied ? {} : { temporaryPassword: password })
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -2328,20 +2627,26 @@ function handleUpdateStaffUser(req, res) {
       }
     }
 
+    const before = existing ? JSON.stringify([existing.role, existing.roles, existing.active !== false]) : '';
     const updated = TeamService.updateStaffMember(req.params.id, req.body);
     if (req.body.password) {
-      updateUserPassword(updated.username, req.body.password);
+      // The admin chose this password, so the person must replace it at next sign-in.
+      updateUserPassword(updated.username, req.body.password, { mustChange: true });
+    } else if (before !== JSON.stringify([updated.role, updated.roles, updated.active !== false])) {
+      // Role or suspension changed: end their current sessions so the change applies immediately.
+      revokeUserSessions(updated.username);
     }
+    const publicMember = TeamService.toPublicMember(updated);
     AuditService.logEvent({
       actor: req.user.name,
       role: req.user.role,
       action: 'USER_UPDATED',
       entityType: 'User',
       entityId: req.params.id,
-      details: updated
+      details: { name: publicMember.name, role: publicMember.role, active: publicMember.active, passwordChanged: !!req.body.password }
     });
-    SseService.broadcast('team:updated', { member: updated, action: 'updated' });
-    res.json({ success: true, user: updated, member: updated });
+    SseService.broadcast('team:updated', { member: publicMember, action: 'updated' });
+    res.json({ success: true, user: publicMember, member: publicMember });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -2370,6 +2675,7 @@ router.delete('/users/:id', authenticateToken, requireRole('admin'), (req, res) 
     }
 
     const result = TeamService.deleteStaffMember(req.params.id);
+    if (target && target.username) revokeUserSessions(target.username);
     AuditService.logEvent({
       actor: req.user.name,
       role: req.user.role,
@@ -2390,7 +2696,7 @@ router.post('/users/:username/reset-password', authenticateToken, requireRole('a
     if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 10) {
       return res.status(400).json({ error: 'New password must be at least 10 characters long.' });
     }
-    updateUserPassword(req.params.username, newPassword);
+    updateUserPassword(req.params.username, newPassword, { mustChange: true });
     AuditService.logEvent({
       actor: req.user.name,
       role: req.user.role,
@@ -2406,10 +2712,12 @@ router.post('/users/:username/reset-password', authenticateToken, requireRole('a
 });
 
 // ─── ADMIN: RESET TO DEFAULT PASSWORD ────────────────────────────────────────
-// One-click reset to DEFAULT_PASSWORD without typing — recorded in the audit log.
+// One-click reset to a random one-time password. It is shown once to the admin, never stored in
+// readable form and never written to the audit log. The person must change it at next sign-in.
 router.post('/users/:username/reset-to-default', authenticateToken, requireRole('admin'), (req, res) => {
   try {
-    updateUserPassword(req.params.username, DEFAULT_PASSWORD);
+    const temporaryPassword = generateTemporaryPassword();
+    updateUserPassword(req.params.username, temporaryPassword, { mustChange: true });
     AuditService.logEvent({
       actor: req.user.name,
       role: req.user.role,
@@ -2418,7 +2726,11 @@ router.post('/users/:username/reset-to-default', authenticateToken, requireRole(
       entityId: req.params.username,
       details: { resetBy: req.user.username }
     });
-    res.json({ success: true, message: 'Password for ' + req.params.username + ' reset to the default (' + DEFAULT_PASSWORD + '). Ask them to change it after signing in.' });
+    res.json({
+      success: true,
+      temporaryPassword,
+      message: 'Temporary password for ' + req.params.username + ': ' + temporaryPassword + '. Share it privately. They must choose a new password when they sign in.'
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -2426,7 +2738,19 @@ router.post('/users/:username/reset-to-default', authenticateToken, requireRole(
 
 // ─── COMPANY & SUBSIDIARY DIRECTORY ROUTES ──────────────────────────
 
-router.get('/companies', (req, res) => {
+// The sign-in page shows how many active companies there are; it needs nothing more than this.
+router.get('/companies/public', publicReviewRead, (req, res) => {
+  try {
+    const companies = CompanyService.getAll()
+      .filter(c => c.status === 'active')
+      .map(c => ({ code: c.code, shortName: c.shortName || c.name, status: c.status, color: c.color }));
+    res.json({ success: true, companies });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not load companies.' });
+  }
+});
+
+router.get('/companies', authenticateToken, (req, res) => {
   try {
     const companies = CompanyService.getAll();
     res.json({ success: true, companies });
@@ -2435,7 +2759,7 @@ router.get('/companies', (req, res) => {
   }
 });
 
-router.get('/companies/:code', (req, res) => {
+router.get('/companies/:code', authenticateToken, (req, res) => {
   try {
     const company = CompanyService.getByCode(req.params.code);
     if (!company) {
@@ -2787,8 +3111,12 @@ function parseNoteMarkdown(content, filename, stat, owner = 'team') {
 // Quick Notes are shared with the whole team, but only with signed-in staff.
 router.get('/notes', authenticateToken, (req, res) => {
   try {
-    const requestedUser = req.query.user || (req.user && req.user.username);
-    const dirs = getAllNotesDirs(requestedUser);
+    // People see team notes and their own. Other people's personal notes stay private, except for admins.
+    const isAdmin = hasCanonicalRole(req.user, 'admin');
+    const requestedUser = (isAdmin && req.query.user) ? req.query.user : (req.user && req.user.username);
+    const visibleOwner = String(requestedUser || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const dirs = getAllNotesDirs(requestedUser)
+      .filter(d => (isAdmin && req.query.scope === 'all') || d.owner === 'team' || d.owner === visibleOwner);
     const notesMap = new Map();
 
     for (const dirObj of dirs) {
@@ -2869,7 +3197,10 @@ router.delete('/notes/:id', authenticateToken, (req, res) => {
   try {
     // Same filename rule as POST /notes, so an encoded '../' in the id cannot escape the notes folder.
     const id = path.basename(String(req.params.id)).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const dirs = getAllNotesDirs();
+    // Only the owner can delete a personal note; team notes can be deleted by anyone on the team.
+    const isAdmin = hasCanonicalRole(req.user, 'admin');
+    const self = String((req.user && req.user.username) || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const dirs = getAllNotesDirs().filter(d => isAdmin || d.owner === 'team' || d.owner === self);
     let deleted = false;
 
     for (const dirObj of dirs) {
@@ -2897,6 +3228,32 @@ router.delete('/notes/:id', authenticateToken, (req, res) => {
 
 
 // ─── CREATIVE ORDER FORM ROUTES ─────────────────────────────────────
+
+function permissionsOf(user) {
+  return Array.isArray(user && user.permissions) && user.permissions.length > 0 ? user.permissions : getUserPermissions(user);
+}
+
+/** Design team: people who produce or manage creative work (designers, managers, admins). */
+function isDesignTeam(user) {
+  if (!user) return false;
+  const permissions = permissionsOf(user);
+  return permissions.includes('project:edit') || permissions.includes('deliverable:upload') || hasCanonicalRole(user, 'admin');
+}
+
+/** The person who submitted the request. Matched on staff ID; older requests without one match on the exact full name only. */
+function isOrderOwner(user, order) {
+  if (!user || !order) return false;
+  const staffId = String(user.staffId || user.id || '').trim().toLowerCase();
+  if (order.requesterStaffId) {
+    return !!staffId && String(order.requesterStaffId).trim().toLowerCase() === staffId;
+  }
+  const name = String(user.name || '').trim().toLowerCase();
+  return !!name && name === String(order.requester || '').trim().toLowerCase();
+}
+
+function canChangeOrder(user, order) {
+  return isDesignTeam(user) || isOrderOwner(user, order);
+}
 
 // GET /api/orders — List all creative orders (with optional filters)
 router.get('/orders', authenticateToken, (req, res) => {
@@ -2927,7 +3284,7 @@ router.post('/orders', authenticateToken, (req, res) => {
   try {
     const requester     = req.user?.name     || req.body.requester || 'Unknown';
     const requesterRole = req.user?.role     || req.body.requesterRole || '';
-    const order = OrderService.submitOrder({ ...req.body, requester, requesterRole });
+    const order = OrderService.submitOrder({ ...req.body, requester, requesterRole, requesterStaffId: req.user?.staffId || req.user?.id || '' });
     if (!order) {
       return res.status(500).json({ error: 'Failed to create or persist creative order.' });
     }
@@ -2955,16 +3312,13 @@ router.patch('/orders/:id', authenticateToken, (req, res) => {
       return res.status(404).json({ error: `Order "${req.params.id}" not found.` });
     }
 
-    const userName    = (req.user?.name || '').trim().toLowerCase();
-    const userRole    = (req.user?.role || '').toLowerCase();
-    const userRoles   = ((req.user?.roles || []).map(r => String(r).toLowerCase()));
-    const isPrivileged = /admin|director|designer/i.test(userRole) || userRoles.some(r => /admin|director|designer/i.test(r));
-    const orderReq    = (existing.requester || '').trim().toLowerCase();
-    const isOwner     = userName && orderReq && (userName === orderReq || orderReq.includes(userName) || userName.includes(orderReq));
+    const body = req.body || {};
+    const isPrivileged = isDesignTeam(req.user);
+    const isOwner = isOrderOwner(req.user, existing);
 
     // Rule 2: Locked once done (Added to Backlog) or cancelled (unless privileged designer reopening)
-    const isContentEdit = req.body.title !== undefined || req.body.copy !== undefined || req.body.format !== undefined ||
-                          req.body.priority !== undefined || req.body.customSize !== undefined || req.body.material !== undefined;
+    const isContentEdit = body.title !== undefined || body.copy !== undefined || body.format !== undefined ||
+                          body.priority !== undefined || body.customSize !== undefined || body.material !== undefined;
 
     if ((existing.status === 'done' || existing.status === 'cancelled') && !isPrivileged) {
       return res.status(403).json({ error: 'This request has already been added to the backlog or cancelled and cannot be edited.' });
@@ -2973,6 +3327,20 @@ router.patch('/orders/:id', authenticateToken, (req, res) => {
     // Rule 1: Only original requester or design team can edit brief details
     if (isContentEdit && !isPrivileged && !isOwner) {
       return res.status(403).json({ error: 'Only the original requester or design team can edit this creative request brief.' });
+    }
+
+    // Assignment, linking to a project and internal notes belong to the design team. The requester
+    // may cancel their own request, but only the design team moves it through other statuses.
+    const designTeamOnly = ['assignedTo', 'projectId', 'internalNote'];
+    if (!isPrivileged && Object.keys(body).some(k => designTeamOnly.includes(k))) {
+      return res.status(403).json({ error: 'Only the design team can assign or link a request.' });
+    }
+    if (body.status !== undefined && !isPrivileged && !(isOwner && body.status === 'cancelled')) {
+      return res.status(403).json({ error: 'Only the design team can change the status of a request.' });
+    }
+    // Anyone else on the team may add comments, but nothing else.
+    if (!isPrivileged && !isOwner && Object.keys(body).some(k => k !== 'comments')) {
+      return res.status(403).json({ error: 'Only the original requester or design team can edit this request.' });
     }
 
     const updated = OrderService.updateOrder(req.params.id, req.body);
@@ -2995,7 +3363,16 @@ router.patch('/orders/:id', authenticateToken, (req, res) => {
 // DELETE /api/orders/:id — Cancel order
 router.delete('/orders/:id', authenticateToken, (req, res) => {
   try {
+    const existing = OrderService.getOrder(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Order not found.' });
+    if (!canChangeOrder(req.user, existing)) {
+      return res.status(403).json({ error: 'Only the original requester or design team can cancel this request.' });
+    }
     const cancelled = OrderService.cancelOrder(req.params.id);
+    AuditService.logEvent({
+      action: 'order.cancelled', actor: req.user?.name || 'User', role: req.user?.role || '',
+      entityType: 'order', entityId: req.params.id, details: {}
+    });
     SseService.broadcast('order:cancelled', { id: req.params.id });
     res.json({ success: true, order: cancelled });
   } catch (err) {
@@ -3010,6 +3387,9 @@ router.post('/orders/:id/attachments', authenticateToken, orderUpload.array('fil
     const { id } = req.params;
     const order = OrderService.getOrder(id);
     if (!order) return res.status(404).json({ error: 'Order not found.' });
+    if (!canChangeOrder(req.user, order)) {
+      return res.status(403).json({ error: 'Only the original requester or design team can add files to this request.' });
+    }
 
     const saved = [];
     const actor = req.user?.name || 'Requester';
@@ -3050,7 +3430,7 @@ router.post('/orders/:id/attachments', authenticateToken, orderUpload.array('fil
 });
 
 // GET /api/orders/:id/attachments/:filename — Download or preview attachment
-router.get('/orders/:id/attachments/:filename', (req, res) => {
+router.get('/orders/:id/attachments/:filename', authenticateMedia, (req, res) => {
   try {
     const { id, filename } = req.params;
     const filePath = OrderService.getOrderAttachmentPath(id, filename);
@@ -3076,9 +3456,10 @@ router.get('/orders/:id/attachments/:filename', (req, res) => {
       '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     };
     const contentType = mimeTypes[ext] || 'application/octet-stream';
-    res.setHeader('Content-Type', contentType);
     const isInline = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.pdf', '.txt', '.mp4'].includes(ext);
-    res.setHeader('Content-Disposition', `${isInline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(filename)}"`);
+    // Uploads are untrusted: scripts in SVG/HTML never run, and unknown types download instead of opening.
+    applySafeFileHeaders(req, res, filePath, { download: !isInline, filename });
+    res.setHeader('Content-Type', contentType);
     fs.createReadStream(filePath).pipe(res);
   } catch (err) {
     console.error('[Orders] downloadAttachment:', err.message);
@@ -3090,6 +3471,11 @@ router.get('/orders/:id/attachments/:filename', (req, res) => {
 router.delete('/orders/:id/attachments/:filename', authenticateToken, (req, res) => {
   try {
     const { id, filename } = req.params;
+    const order = OrderService.getOrder(id);
+    if (!order) return res.status(404).json({ error: 'Order not found.' });
+    if (!canChangeOrder(req.user, order)) {
+      return res.status(403).json({ error: 'Only the original requester or design team can remove files from this request.' });
+    }
     const result = OrderService.deleteOrderAttachment(id, filename);
     const updated = OrderService.getOrder(id);
     SseService.broadcast('order:updated', { order: updated });
@@ -3101,7 +3487,12 @@ router.delete('/orders/:id/attachments/:filename', authenticateToken, (req, res)
 });
 
 // POST /api/orders/:id/import-to-project — Ingest attachments to linked project 01_BRIEF_ASSETS
-router.post('/orders/:id/import-to-project', authenticateToken, (req, res) => {
+router.post('/orders/:id/import-to-project', authenticateToken, (req, res, next) => {
+  if (!isDesignTeam(req.user)) {
+    return res.status(403).json({ error: "You don't have permission to do this. Ask an admin for access." });
+  }
+  next();
+}, (req, res) => {
   try {
     const { id } = req.params;
     const { projectId } = req.body;
@@ -3150,7 +3541,7 @@ router.post('/admin/restart', authenticateToken, requireRole('admin'), (req, res
 // ─── CLINICAL OPERATIONS & PERNAS STANDARDIZATION ROUTES (v5.1.0) ───
 
 // GET /api/regulatory/rules — Regulatory rules and prohibited claims
-router.get('/regulatory/rules', (req, res) => {
+router.get('/regulatory/rules', authenticateToken, (req, res) => {
   res.json({
     success: true,
     prohibitedTerms: RegulatoryService.verifyCopy('').infractions,
@@ -3160,7 +3551,7 @@ router.get('/regulatory/rules', (req, res) => {
 });
 
 // POST /api/regulatory/verify — Verify copy against KKM / LIU guidelines
-router.post('/regulatory/verify', (req, res) => {
+router.post('/regulatory/verify', authenticateToken, (req, res) => {
   try {
     const { text } = req.body;
     const audit = RegulatoryService.verifyCopy(text || '');
@@ -3171,21 +3562,21 @@ router.post('/regulatory/verify', (req, res) => {
 });
 
 // GET /api/regulatory/claims — Pre-approved clinical claims catalog
-router.get('/regulatory/claims', (req, res) => {
+router.get('/regulatory/claims', authenticateToken, (req, res) => {
   const { category } = req.query;
   const claims = RegulatoryService.getApprovedClaims(category);
   res.json({ success: true, claims });
 });
 
 // GET /api/regulatory/disclaimer — Standard medical disclaimer
-router.get('/regulatory/disclaimer', (req, res) => {
+router.get('/regulatory/disclaimer', authenticateToken, (req, res) => {
   const { lang } = req.query;
   const disclaimer = RegulatoryService.getMedicalDisclaimer(lang === 'en' ? 'en' : 'ms');
   res.json({ success: true, disclaimer });
 });
 
 // GET /api/clinic/sops — List of Standard Operating Procedure manuals
-router.get('/clinic/sops', (req, res) => {
+router.get('/clinic/sops', authenticateToken, (req, res) => {
   try {
     const sops = RegulatoryService.getSopManuals(WorkspaceService.workspaceRoot);
     res.json({ success: true, sops });
@@ -3195,7 +3586,7 @@ router.get('/clinic/sops', (req, res) => {
 });
 
 // GET /api/clinic/sops/:id — Get specific SOP manual markdown content
-router.get('/clinic/sops/:id', (req, res) => {
+router.get('/clinic/sops/:id', authenticateToken, (req, res) => {
   try {
     const { id } = req.params;
     const content = RegulatoryService.getSopManualContent(WorkspaceService.workspaceRoot, id);
@@ -3207,26 +3598,26 @@ router.get('/clinic/sops/:id', (req, res) => {
 });
 
 // GET /api/clinic/branches — List of clinic branches
-router.get('/clinic/branches', (req, res) => {
+router.get('/clinic/branches', publicReviewRead, (req, res) => {
   res.json({ success: true, branches: BranchService.getBranches() });
 });
 
 // GET /api/clinic/branches/:code — Get branch profile
-router.get('/clinic/branches/:code', (req, res) => {
+router.get('/clinic/branches/:code', publicReviewRead, (req, res) => {
   const branch = BranchService.getBranchByCode(req.params.code);
   if (!branch) return res.status(404).json({ error: 'Branch not found.' });
   res.json({ success: true, branch });
 });
 
 // GET /api/clinic/branches/:code/intake — Generate dynamic intake QR payload
-router.get('/clinic/branches/:code/intake', (req, res) => {
+router.get('/clinic/branches/:code/intake', authenticateToken, (req, res) => {
   const { type, treatment } = req.query;
   const payload = BranchService.generateIntakePayload(req.params.code, type || 'consult', treatment || 'Umum');
   res.json({ success: true, ...payload });
 });
 
 // POST /api/clinic/branch-inject — Inject branch variables into template copy
-router.post('/clinic/branch-inject', (req, res) => {
+router.post('/clinic/branch-inject', authenticateToken, (req, res) => {
   try {
     const { templateText, branchCode, doctorName } = req.body;
     if (!templateText) return res.status(400).json({ error: 'templateText is required.' });
@@ -3238,12 +3629,12 @@ router.post('/clinic/branch-inject', (req, res) => {
 });
 
 // GET /api/clinic/care-protocols — Post-treatment care recovery protocols
-router.get('/clinic/care-protocols', (req, res) => {
+router.get('/clinic/care-protocols', authenticateToken, (req, res) => {
   res.json({ success: true, protocols: CareDispatcherService.getProtocols() });
 });
 
 // POST /api/clinic/care-dispatch — Generate 1-click WhatsApp recovery leaflet
-router.post('/clinic/care-dispatch', (req, res) => {
+router.post('/clinic/care-dispatch', authenticateToken, (req, res) => {
   try {
     const result = CareDispatcherService.generateDispatchMessage(req.body || {});
     res.json({ success: true, ...result });

@@ -99,7 +99,8 @@ class GeminiService {
 
     return {
       configured: Boolean(key && key.length > 5),
-      maskedKey: key ? `${key.substring(0, 6)}...${key.substring(key.length - 4)}` : '',
+      // Only the last four characters are ever shown.
+      maskedKey: key ? `••••${key.substring(key.length - 4)}` : '',
       preferredModel,
       availableModels: ['gemini-1.5-flash', 'gemini-1.5-pro']
     };
@@ -114,8 +115,11 @@ class GeminiService {
       throw new Error('Gemini API key is not configured. Please set your Google AI Studio key in AI Settings.');
     }
 
-    const model = modelOverride || this.getStatus().preferredModel || this.defaultModel;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    // The model name goes into the request path, so it must look like a Gemini model name and nothing else.
+    const requestedModel = modelOverride || this.getStatus().preferredModel || this.defaultModel;
+    const model = /^gemini-[a-z0-9.-]{1,40}$/.test(String(requestedModel)) ? requestedModel : this.defaultModel;
+    // The key travels in a header, never in the address (addresses end up in logs).
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
     const body = {
       systemInstruction: {
@@ -136,20 +140,18 @@ class GeminiService {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60000)
     });
 
     if (!response.ok) {
+      // The provider's own message can include account details, so it is logged but not passed on.
       const errText = await response.text();
-      let msg = `Gemini API error (${response.status})`;
-      try {
-        const errJson = JSON.parse(errText);
-        if (errJson.error && errJson.error.message) msg = errJson.error.message;
-      } catch (e) {
-        console.debug('[GeminiService] Failed to parse error response JSON:', e.message);
-      }
-      throw new Error(msg);
+      console.warn(`[GeminiService] Gemini API error (${response.status}):`, errText.slice(0, 500));
+      if (response.status === 429) throw new Error('The AI service is busy or has reached its limit. Please try again in a minute.');
+      if (response.status === 400 || response.status === 403) throw new Error('The AI service rejected the request. Ask an admin to check the AI settings.');
+      throw new Error("The AI service couldn't complete the request. Please try again.");
     }
 
     const json = await response.json();

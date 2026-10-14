@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import { ApiClient } from '$lib/services/api';
 
   let selectedTreatment = $state<'eswt' | 'trt' | 'pe_ed'>('eswt');
   let selectedPhase = $state(1); // 1, 2, 3, 4
@@ -134,9 +135,9 @@
 
     isDispatching = true;
     try {
-      const res = await fetch('/api/clinic/care-dispatch', {
+      // Uses the signed-in session: this endpoint handles a patient's name and phone number.
+      dispatchResult = await ApiClient.request('/clinic/care-dispatch', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientName,
           patientPhone,
@@ -145,14 +146,7 @@
           followUpDate
         })
       });
-
-      if (res.ok) {
-        dispatchResult = await res.json();
-        appState.addToast('Panduan penjagaan digital berjaya dijana!', 'success');
-      } else {
-        const err = await res.json();
-        appState.addToast(err.error || 'Gagal menjana panduan penjagaan.', 'error');
-      }
+      appState.addToast('Panduan penjagaan digital berjaya dijana!', 'success');
     } catch (e: any) {
       appState.addToast(e.message, 'error');
     } finally {

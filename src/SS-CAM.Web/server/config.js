@@ -79,9 +79,17 @@ if (envWorkspace && isPathAccessible(envWorkspace)) {
 
 const isProduction = (process.env.NODE_ENV || '').toLowerCase() === 'production';
 const rawJwtSecret = (process.env.JWT_SECRET || '').trim();
-if (isProduction && (!rawJwtSecret || rawJwtSecret.length < 32)) {
-  console.error('[Config] CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing, empty, or shorter than 32 characters in production mode.');
-  console.error('[Config] Refusing to start server without a strong explicit JWT_SECRET (min 32 characters).');
+// Values that look like documentation placeholders or have too little variety are never accepted:
+// anyone who has read .env.example would otherwise be able to forge sign-in tokens.
+function isWeakJwtSecret(secret) {
+  if (!secret || secret.length < 32) return true;
+  if (/replace|change.?me|placeholder|example|your[-_ ]?secret|dev-secret|secret-here/i.test(secret)) return true;
+  return new Set(secret.split('')).size < 12;
+}
+
+if (isProduction && isWeakJwtSecret(rawJwtSecret)) {
+  console.error('[Config] CRITICAL SECURITY ERROR: JWT_SECRET is missing, shorter than 32 characters, a documentation placeholder, or too repetitive in production mode.');
+  console.error('[Config] Refusing to start server without a strong random JWT_SECRET. Generate one with: openssl rand -hex 32');
   process.exit(1);
 }
 
@@ -95,13 +103,16 @@ if (!fs.existsSync(resolvedDataDir)) {
   }
 }
 
-const defaultOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:4000',
-  'http://127.0.0.1:4000',
-  'https://creative.suamisihat.myds.me'
-];
+// Local development origins are only allowed by default outside production.
+const defaultOrigins = isProduction
+  ? [(process.env.APP_URL || 'https://creative.suamisihat.myds.me').replace(/\/+$/, '')]
+  : [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:4000',
+    'http://127.0.0.1:4000',
+    'https://creative.suamisihat.myds.me'
+  ];
 const configuredOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
   : defaultOrigins;
@@ -120,6 +131,8 @@ module.exports = {
   // Default password for new accounts and Admin "Reset to default" (min. 10 characters).
   // Signing in with it forces a password change. Override per tenant in .env.
   DEFAULT_STAFF_PASSWORD: process.env.DEFAULT_STAFF_PASSWORD || 'SuamiSihat123',
+  // Earlier shared defaults. Anyone still using one is forced to change it at sign-in.
+  LEGACY_DEFAULT_PASSWORDS: ['SuamiSihat123!'],
   // Single source of truth: the release version in package.json.
   VERSION: require('../package.json').version,
   APP_URL: process.env.APP_URL || 'https://creative.suamisihat.myds.me',

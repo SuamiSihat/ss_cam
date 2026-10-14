@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -20,12 +21,17 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      // Scripts only from this site: the built client has no inline scripts and uses no eval.
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "blob:"],
-      fontSrc: ["'self'", "data:"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+      mediaSrc: ["'self'", "blob:"],
       connectSrc: ["'self'", ...config.ALLOWED_ORIGINS],
-      workerSrc: ["'self'", "blob:"]
+      workerSrc: ["'self'", "blob:"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"]
     }
   },
   crossOriginEmbedderPolicy: false
@@ -49,14 +55,27 @@ const corsOptions = {
     if (config.ALLOWED_ORIGINS.includes(origin)) {
       return callback(null, true);
     }
-    return callback(new Error(`CORS policy blocked access from origin: ${origin}`));
-  },
-  credentials: true
+    return callback(Object.assign(new Error('This site is not allowed to use the portal.'), { status: 403 }));
+  }
 };
 
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '50mb', strict: false }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Request size limits depend on the route. Anything that anonymous visitors can reach is tiny;
+// only file uploads sent as base64 get a large allowance.
+const jsonTiny = express.json({ limit: '100kb', strict: false });
+const jsonStandard = express.json({ limit: '2mb', strict: false });
+const jsonProfile = express.json({ limit: '8mb', strict: false });
+const jsonUpload = express.json({ limit: '60mb', strict: false });
+app.use((req, res, next) => {
+  const p = req.path;
+  const tinyAuthPaths = ['/api/auth/login', '/api/auth/forgot-password', '/api/auth/verify-reset-token', '/api/auth/reset-password'];
+  if (tinyAuthPaths.includes(p) || p.startsWith('/api/public/')) return jsonTiny(req, res, next);
+  const isIngest = p.startsWith('/api/projects/') && p.endsWith('/ingest');
+  if (isIngest || p.startsWith('/api/orders') || p.startsWith('/api/assets/')) return jsonUpload(req, res, next);
+  if (p === '/api/auth/profile' || p.startsWith('/api/users') || p.startsWith('/api/team/roster') || p.startsWith('/api/notes')) return jsonProfile(req, res, next);
+  return jsonStandard(req, res, next);
+});
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // API Routes (mounted at /api)
 app.use('/api', apiRoutes);
@@ -97,15 +116,28 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(clientPath, 'index.html'));
 });
 
-// Error handling middleware
+// Error handling middleware. People never see stack traces, file paths or internal messages:
+// the details go to the server log under a short reference they can quote to an admin.
 app.use((err, req, res, next) => {
-  console.error('[Server Error]', err);
   const status = err.status || err.statusCode || 500;
-  res.status(status).json({
-    error: status === 500 ? 'Internal Server Error' : (err.message || 'Bad Request'),
-    message: err.message
-  });
+  if (status >= 500) {
+    const reference = crypto.randomUUID().slice(0, 8);
+    console.error(`[Server Error ${reference}] ${req.method} ${req.originalUrl}`, err);
+    return res.status(status).json({
+      error: 'Something went wrong on our side. Please try again, and tell an admin if it keeps happening.',
+      reference
+    });
+  }
+  res.status(status).json({ error: err.expose || err.status ? (err.message || 'Bad request.') : 'Bad request.' });
 });
+
+// One-time clean-up of credentials left in readable form by earlier versions.
+try {
+  require('./middleware/auth').migratePlaintextPasswords();
+  require('./services/TeamService').scrubStoredCredentials();
+} catch (e) {
+  console.error('[Startup] Credential clean-up did not complete:', e.message);
+}
 
 app.listen(config.PORT, config.HOST, () => {
   console.log('================================================================');

@@ -102,6 +102,51 @@ export class ApiClient {
     return this.request('/auth/me');
   }
 
+  /**
+   * Signs out on the server (the session stops working everywhere it was copied) and forgets it here.
+   * The token is cleared first so nothing can reuse it while the request is in flight.
+   */
+  static async signOut(): Promise<void> {
+    const token = this.getToken();
+    this.removeToken();
+    this.stopMediaKeepAlive();
+    if (!token) return;
+    try {
+      await fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    } catch (err: any) {
+      console.warn('[API] Sign-out request did not reach the server:', err?.message);
+    }
+  }
+
+  // ─── Media session (images, downloads and live updates) ───
+  // Browsers cannot attach a header to <img>, video, download links or EventSource, so the server
+  // gives a short-lived, read-only cookie after sign-in. It is renewed while the app is open.
+  private static mediaKeepAliveTimer: number | null = null;
+
+  static async refreshMediaSession(): Promise<boolean> {
+    if (!this.getToken()) return false;
+    try {
+      await this.request('/auth/media-session', { method: 'POST' });
+      return true;
+    } catch (err: any) {
+      console.warn('[API] Could not refresh the media session:', err?.message);
+      return false;
+    }
+  }
+
+  static startMediaKeepAlive(): void {
+    if (typeof window === 'undefined' || this.mediaKeepAliveTimer !== null) return;
+    this.refreshMediaSession();
+    this.mediaKeepAliveTimer = window.setInterval(() => this.refreshMediaSession(), 30 * 60 * 1000);
+  }
+
+  static stopMediaKeepAlive(): void {
+    if (this.mediaKeepAliveTimer !== null) {
+      window.clearInterval(this.mediaKeepAliveTimer);
+      this.mediaKeepAliveTimer = null;
+    }
+  }
+
   /** Pass `token` to use a restricted sign-in token (forced change) instead of the stored session. */
   static changePassword(currentPassword: string, newPassword: string, token?: string): Promise<{ success: boolean; message: string; token?: string; user?: User }> {
     return this.request('/auth/change-password', {
@@ -111,7 +156,8 @@ export class ApiClient {
     });
   }
 
-  static async updateProfile(data: Partial<User> & { staffId?: string }): Promise<{ success: boolean; user: User }> {
+  /** `currentPassword` is required by the server when the email address changes. */
+  static async updateProfile(data: Partial<User> & { staffId?: string; currentPassword?: string }): Promise<{ success: boolean; user: User }> {
     try {
       return await this.request('/auth/profile', {
         method: 'PUT',
@@ -325,6 +371,11 @@ export class ApiClient {
     return this.request('/companies');
   }
 
+  /** Minimal active-company list for the sign-in page (no sign-in needed, no business details). */
+  static getPublicCompanies(): Promise<{ success: boolean; companies: any[] }> {
+    return this.request('/companies/public');
+  }
+
   static getCompany(code: string): Promise<{ success: boolean; company: any }> {
     return this.request(`/companies/${encodeURIComponent(code)}`);
   }
@@ -348,8 +399,13 @@ export class ApiClient {
   }
 
   // ─── Real-Time Server-Sent Events (SSE) Stream ───
+  // The stream needs the media cookie. If the server refuses it (expired cookie) the browser stops
+  // retrying by itself, so we renew the cookie and reconnect with a growing delay.
   static initEventStream(onEvent: (event: string, data: any) => void): () => void {
-    const eventSource = new EventSource('/api/events');
+    let eventSource: EventSource | null = null;
+    let stopped = false;
+    let retryTimer: number | null = null;
+    let retryDelay = 3000;
 
     const handleMessage = (evt: MessageEvent, eventName: string) => {
       try {
@@ -360,41 +416,59 @@ export class ApiClient {
       }
     };
 
-    eventSource.onopen = () => {
-      onEvent('connection:status', { status: 'connected' });
+    const notifyTaskChange = (e: MessageEvent) => {
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('task:updated', { detail: e }));
     };
 
-    eventSource.addEventListener('connected', (e) => {
-      handleMessage(e, 'connected');
-      onEvent('connection:status', { status: 'connected' });
-    });
-    eventSource.addEventListener('workspace:updated', (e) => handleMessage(e, 'workspace:updated'));
-    eventSource.addEventListener('project:updated', (e) => handleMessage(e, 'project:updated'));
-    eventSource.addEventListener('project:decision', (e) => handleMessage(e, 'project:decision'));
-    eventSource.addEventListener('comment:added', (e) => handleMessage(e, 'comment:added'));
-    eventSource.addEventListener('comment:resolved', (e) => handleMessage(e, 'comment:resolved'));
-    eventSource.addEventListener('team:updated', (e) => handleMessage(e, 'team:updated'));
-    eventSource.addEventListener('company:updated', (e) => handleMessage(e, 'company:updated'));
-    eventSource.addEventListener('task:created', (e) => {
-      handleMessage(e, 'task:created');
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('task:updated', { detail: e }));
-    });
-    eventSource.addEventListener('task:updated', (e) => {
-      handleMessage(e, 'task:updated');
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('task:updated', { detail: e }));
-    });
-    eventSource.addEventListener('task:deleted', (e) => {
-      handleMessage(e, 'task:deleted');
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('task:updated', { detail: e }));
-    });
+    const connect = () => {
+      if (stopped) return;
+      const es = new EventSource('/api/events');
+      eventSource = es;
 
-    eventSource.onerror = (err) => {
-      console.warn('[SSE] Connection interrupted, retrying in background...', err);
-      onEvent('connection:status', { status: 'reconnecting' });
+      es.onopen = () => {
+        retryDelay = 3000;
+        onEvent('connection:status', { status: 'connected' });
+      };
+
+      es.addEventListener('connected', (e) => {
+        handleMessage(e as MessageEvent, 'connected');
+        onEvent('connection:status', { status: 'connected' });
+      });
+      es.addEventListener('workspace:updated', (e) => handleMessage(e as MessageEvent, 'workspace:updated'));
+      es.addEventListener('project:updated', (e) => handleMessage(e as MessageEvent, 'project:updated'));
+      es.addEventListener('project:decision', (e) => handleMessage(e as MessageEvent, 'project:decision'));
+      es.addEventListener('comment:added', (e) => handleMessage(e as MessageEvent, 'comment:added'));
+      es.addEventListener('comment:resolved', (e) => handleMessage(e as MessageEvent, 'comment:resolved'));
+      es.addEventListener('team:updated', (e) => handleMessage(e as MessageEvent, 'team:updated'));
+      es.addEventListener('company:updated', (e) => handleMessage(e as MessageEvent, 'company:updated'));
+      es.addEventListener('task:created', (e) => { handleMessage(e as MessageEvent, 'task:created'); notifyTaskChange(e as MessageEvent); });
+      es.addEventListener('task:updated', (e) => { handleMessage(e as MessageEvent, 'task:updated'); notifyTaskChange(e as MessageEvent); });
+      es.addEventListener('task:deleted', (e) => { handleMessage(e as MessageEvent, 'task:deleted'); notifyTaskChange(e as MessageEvent); });
+
+      es.onerror = (err) => {
+        onEvent('connection:status', { status: 'reconnecting' });
+        // CONNECTING: the browser is already retrying. CLOSED: the server refused us, so renew and retry.
+        if (es.readyState === EventSource.CLOSED && !stopped) {
+          console.warn('[SSE] Connection was refused. Renewing the session and retrying...', err);
+          es.close();
+          retryTimer = window.setTimeout(async () => {
+            if (stopped) return;
+            if (await ApiClient.refreshMediaSession()) connect();
+            else if (ApiClient.getToken()) { retryDelay = Math.min(retryDelay * 2, 60000); connect(); }
+          }, retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 60000);
+        } else {
+          console.warn('[SSE] Connection interrupted, retrying in background...', err);
+        }
+      };
     };
+
+    connect();
 
     return () => {
-      eventSource.close();
+      stopped = true;
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+      eventSource?.close();
     };
   }
 
@@ -449,9 +523,9 @@ export class ApiClient {
     return `/api/public/review/${encodeURIComponent(token)}/download?preset=${encodeURIComponent(preset)}`;
   }
 
+  /** Download link. The browser sends the media cookie, so no sign-in token is put in the address. */
   static getProjectExportUrl(projectId: string, preset = 'all'): string {
-    const token = this.getToken();
-    return `/api/projects/${encodeURIComponent(projectId)}/export?preset=${encodeURIComponent(preset)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+    return `/api/projects/${encodeURIComponent(projectId)}/export?preset=${encodeURIComponent(preset)}`;
   }
 
   static submitPublicDecision(token: string, payload: { decision: string; reviewerName: string; reviewerOrg?: string; comment?: string; deliverableId?: string | null }): Promise<any> {

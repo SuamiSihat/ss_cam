@@ -1,0 +1,12 @@
+node_modules
+client/node_modules
+.env
+.env.*
+!.env.example
+data
+logs
+server/ai-config.json
+server/workspace_config.json
+server/test
+*.log
+.git

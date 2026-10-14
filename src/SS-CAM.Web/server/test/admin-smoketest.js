@@ -77,7 +77,12 @@ async function runAdminSmoketest() {
   try {
     // ─── 1. Corporate Directory & Subsidiary Endpoints ─────────────────
     await test('GET /api/companies returns active subsidiary holding structure', async () => {
-      const res = await fetch(`${baseUrl}/companies`);
+      // Full company details now need a sign-in; the sign-in page only gets a minimal public list.
+      const anon = await fetch(`${baseUrl}/companies`);
+      assert.strictEqual(anon.status, 401, `Anonymous request must be refused, got ${anon.status}`);
+      const pub = await (await fetch(`${baseUrl}/companies/public`)).json();
+      assert.ok(pub.companies.length > 0 && !('regNo' in pub.companies[0]) && !('address' in pub.companies[0]), 'Public list must not carry business details');
+      const res = await fetch(`${baseUrl}/companies`, { headers: authHeaders });
       assert.strictEqual(res.status, 200, `Expected 200, got ${res.status}`);
       const data = await res.json();
       assert.strictEqual(data.success, true);
@@ -271,19 +276,21 @@ async function runAdminSmoketest() {
     const targetProjId = targetProj ? (targetProj.jobId || targetProj.id) : '0085D';
 
     await test('GET /api/projects/:id/asset blocks path traversal', async () => {
-      const res = await fetch(`${baseUrl}/projects/${targetProjId}/asset?path=../../../../package.json`);
+      const anon = await fetch(`${baseUrl}/projects/${targetProjId}/asset?path=README.md`);
+      assert.strictEqual(anon.status, 401, `Anonymous asset request must be refused, got ${anon.status}`);
+      const res = await fetch(`${baseUrl}/projects/${targetProjId}/asset?path=../../../../package.json`, { headers: authHeaders });
       assert.strictEqual(res.status, 403, `Expected 403 Forbidden, got ${res.status}`);
     });
 
     await test('GET /api/projects/:id/asset serves project file safely', async () => {
-      const res = await fetch(`${baseUrl}/projects/${targetProjId}/asset?path=README.md`);
+      const res = await fetch(`${baseUrl}/projects/${targetProjId}/asset?path=README.md`, { headers: authHeaders });
       assert.strictEqual(res.status, 200, `Expected 200 OK, got ${res.status}`);
       const text = await res.text();
       assert.ok(text.length > 0, 'Should return non-empty file content');
     });
 
     await test('GET /api/projects/:id/asset returns 404 for missing file', async () => {
-      const res = await fetch(`${baseUrl}/projects/${targetProjId}/asset?path=nonexistent-file.png`);
+      const res = await fetch(`${baseUrl}/projects/${targetProjId}/asset?path=nonexistent-file.png`, { headers: authHeaders });
       assert.strictEqual(res.status, 404, `Expected 404 Not Found, got ${res.status}`);
     });
 

@@ -141,7 +141,6 @@
                 <option value={7}>7 Days (Recommended)</option>
                 <option value={14}>14 Days (Standard)</option>
                 <option value={30}>30 Days (Extended)</option>
-                <option value={0}>No Expiration (Permanent)</option>
               </select>
             </div>
 
@@ -182,7 +181,7 @@
                 LINK ACTIVE
               </span>
               <span class="gen-exp">
-                {generatedShare.expiresAt ? `Expires: ${new Date(generatedShare.expiresAt).toLocaleDateString()}` : 'No Expiry'}
+                {generatedShare.expiresAt ? `Expires: ${new Date(generatedShare.expiresAt).toLocaleDateString()}` : ''}
               </span>
             </div>
 

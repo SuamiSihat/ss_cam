@@ -71,6 +71,11 @@ export class MarkdownService {
    * Transforms Obsidian-style wiki links [[...]] or ![[...]] and relative images
    * into rendered image tags or attachment pills.
    */
+  /** Escapes text placed inside generated HTML (attributes and text) before the sanitiser runs. */
+  private static escapeHtml(value: string): string {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+  }
+
   static transformWikilinksAndAttachments(markdown: string, projectId?: string): string {
     if (!markdown) return '';
 
@@ -107,13 +112,18 @@ export class MarkdownService {
         const trimmedAlias = (aliasOrSize || '').trim();
         const isWidthOnly = /^\d+(?:px)?$/i.test(trimmedAlias);
         const width = isWidthOnly ? trimmedAlias.replace(/px/i, '') : null;
-        const widthStyle = width ? `style="max-width: ${width}px;"` : '';
-        const altText = (!isWidthOnly && trimmedAlias) ? trimmedAlias : filename;
+        // A plain width attribute: inline styles are not allowed through the sanitiser.
+        const widthAttr = width ? `width="${width}"` : '';
+        const altText = this.escapeHtml((!isWidthOnly && trimmedAlias) ? trimmedAlias : filename);
+        const safeFilename = this.escapeHtml(filename);
+        const safeUrl = this.escapeHtml(assetUrl);
 
-        return `\n\n<div class="markdown-image-block"><a href="${assetUrl}" target="_blank" rel="noopener noreferrer" class="markdown-image-link" title="Open ${altText} in new tab"><img src="${assetUrl}" alt="${altText}" class="markdown-attached-image" loading="lazy" ${widthStyle}/></a><div class="markdown-image-caption">${filename}</div></div>\n\n`;
+        return `\n\n<div class="markdown-image-block"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="markdown-image-link" title="Open ${altText} in new tab"><img src="${safeUrl}" alt="${altText}" class="markdown-attached-image" loading="lazy" ${widthAttr}/></a><div class="markdown-image-caption">${safeFilename}</div></div>\n\n`;
       } else {
-        const linkText = (aliasOrSize || '').trim() || filename;
-        return ` <a href="${assetUrl}" target="_blank" rel="noopener noreferrer" class="markdown-attachment-badge" download="${filename}"><span class="attachment-icon">📎</span> <span class="attachment-name">${linkText}</span></a> `;
+        const safeFilename = this.escapeHtml(filename);
+        const safeUrl = this.escapeHtml(assetUrl);
+        const linkText = this.escapeHtml((aliasOrSize || '').trim() || filename);
+        return ` <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="markdown-attachment-badge" download="${safeFilename}"><span class="attachment-icon">📎</span> <span class="attachment-name">${linkText}</span></a> `;
       }
     });
 
@@ -130,9 +140,12 @@ export class MarkdownService {
     const withCallouts = this.transformCallouts(withAttachments);
     const rawHtml = marked.parse(withCallouts, { gfm: true, breaks: true }) as string;
     
+    // No inline styles: a style attribute in shared notes could be used to paint a fake sign-in
+    // box over the page. Layout comes from the stylesheet only.
     return DOMPurify.sanitize(rawHtml, {
       ADD_TAGS: ['div', 'span', 'svg', 'path', 'code', 'pre', 'input', 'img', 'figure', 'figcaption', 'a'],
-      ADD_ATTR: ['class', 'id', 'style', 'type', 'checked', 'disabled', 'viewBox', 'd', 'fill', 'src', 'alt', 'loading', 'href', 'target', 'rel', 'download', 'title']
+      ADD_ATTR: ['class', 'id', 'type', 'checked', 'disabled', 'viewBox', 'd', 'fill', 'src', 'alt', 'loading', 'href', 'target', 'rel', 'download', 'title', 'width'],
+      FORBID_ATTR: ['style']
     });
   }
 

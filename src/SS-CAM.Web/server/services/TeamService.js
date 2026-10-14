@@ -48,6 +48,13 @@ class TeamService {
         if (commaIdx >= 0) {
           const base64Str = avatarData.substring(commaIdx + 1);
           const buffer = Buffer.from(base64Str, 'base64');
+          // Photos only (JPEG, PNG or WebP) and no larger than 3 MB.
+          const isJpeg = buffer[0] === 0xFF && buffer[1] === 0xD8;
+          const isPng = buffer[0] === 0x89 && buffer.toString('ascii', 1, 4) === 'PNG';
+          const isWebp = buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP';
+          if (buffer.length === 0 || buffer.length > 3 * 1024 * 1024 || !(isJpeg || isPng || isWebp)) {
+            throw new Error('Profile photo must be a JPEG, PNG or WebP image under 3 MB.');
+          }
           const avatarFile = path.join(userDir, 'avatar.jpg');
           fs.writeFileSync(avatarFile, buffer);
           return `/api/users/${encodeURIComponent(staffId.trim().toUpperCase())}/avatar`;
@@ -67,11 +74,51 @@ class TeamService {
       const userDir = this.getUserDir(staffId);
       if (userDir) {
         const pPath = path.join(userDir, 'profile.json');
-        fs.writeFileSync(pPath, JSON.stringify(profileData, null, 2), 'utf8');
+        // Profiles are shared files on the drive: never write credentials into them.
+        fs.writeFileSync(pPath, JSON.stringify(this.toPublicMember(profileData), null, 2), 'utf8');
       }
     } catch (e) {
       console.debug('[TeamService] saveUserProfile error:', e.message);
     }
+  }
+
+  /**
+   * Removes any password that earlier versions may have written into the staff directory or
+   * per-person profile files. Passwords belong only in the hashed password store. Run at startup.
+   */
+  static scrubStoredCredentials() {
+    let scrubbed = 0;
+    const hasSecret = m => m && typeof m === 'object' && ('password' in m || 'passwordHash' in m || 'newPassword' in m || 'currentPassword' in m);
+
+    try {
+      const roster = this.getStaffRoster();
+      if (roster.some(hasSecret)) {
+        scrubbed += roster.filter(hasSecret).length;
+        this.saveStaffRoster(roster.map(m => this.toPublicMember(m)));
+      }
+    } catch (e) {
+      console.error('[TeamService] Could not scrub staff directory:', e.message);
+    }
+
+    try {
+      const usersDir = this.getUsersDir();
+      for (const entry of fs.readdirSync(usersDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const pPath = path.join(usersDir, entry.name, 'profile.json');
+        if (!fs.existsSync(pPath)) continue;
+        let profile;
+        try { profile = JSON.parse(fs.readFileSync(pPath, 'utf8').replace(/^﻿/, '')); } catch (e) { continue; }
+        if (hasSecret(profile)) {
+          fs.writeFileSync(pPath, JSON.stringify(this.toPublicMember(profile), null, 2), 'utf8');
+          scrubbed++;
+        }
+      }
+    } catch (e) {
+      console.error('[TeamService] Could not scrub profile files:', e.message);
+    }
+
+    if (scrubbed > 0) console.log(`[TeamService] Removed stored passwords from ${scrubbed} staff file(s).`);
+    return scrubbed;
   }
 
   static getRosterPath() {
@@ -221,6 +268,33 @@ class TeamService {
     return roster;
   }
 
+  /** Fields a staff record may carry. Anything else sent by a caller (passwords, internal flags) is dropped. */
+  static get EDITABLE_FIELDS() {
+    return ['name', 'email', 'role', 'roles', 'department', 'officialTitle', 'defaultBrand', 'avatar', 'avatarUrl', 'avatarColor', 'active'];
+  }
+
+  /** A staff record that is safe to send to other people's browsers (no credentials, ever). */
+  static toPublicMember(member) {
+    if (!member || typeof member !== 'object') return member;
+    const { password, passwordHash, newPassword, currentPassword, ...rest } = member;
+    return rest;
+  }
+
+  /** Throws when a name, username or email already belongs to a different staff member. */
+  static assertUniqueIdentity(roster, { name, username, email }, exceptStaffId = '') {
+    const except = String(exceptStaffId || '').toLowerCase();
+    const norm = v => (typeof v === 'string' ? v.trim().toLowerCase() : '');
+    const others = roster.filter(m => String(m.staffId || '').toLowerCase() !== except);
+    const clash = (label, value, picks) => {
+      if (value && others.some(m => picks(m).includes(value))) {
+        throw new Error(`That ${label} is already used by another team member.`);
+      }
+    };
+    clash('name', norm(name), m => [norm(m.name), norm(m.username)]);
+    clash('username', norm(username), m => [norm(m.username), norm(m.name)]);
+    clash('email', norm(email), m => [norm(m.email)]);
+  }
+
   static addStaffMember(member) {
     const roster = this.getStaffRoster();
     const staffId = (member.staffId || '').trim().toUpperCase();
@@ -231,8 +305,12 @@ class TeamService {
       throw new Error(`Staff ID '${staffId}' already exists in the directory.`);
     }
 
+    if (typeof member.name !== 'string' || !member.name.trim()) {
+      throw new Error('Name is required.');
+    }
     const username = (member.username || member.name.toLowerCase().replace(/\s+/g, '')).trim();
-    
+    this.assertUniqueIdentity(roster, { name: member.name, username, email: member.email }, staffId);
+
     // Normalize multi-role support (Array or comma-separated string)
     let roles = ['Designer'];
     if (Array.isArray(member.roles) && member.roles.length > 0) {
@@ -281,6 +359,18 @@ class TeamService {
     }
 
     const targetStaffId = roster[idx].staffId;
+
+    // Only known profile fields are applied: no credentials, no staffId/username rewrites.
+    const requested = updates || {};
+    updates = {};
+    for (const field of this.EDITABLE_FIELDS) {
+      if (requested[field] !== undefined) updates[field] = requested[field];
+    }
+
+    this.assertUniqueIdentity(roster, {
+      name: updates.name,
+      email: updates.email
+    }, targetStaffId);
 
     // If avatar contains Base64 image, save physically to _Team/Users/{staffId}/avatar.jpg
     if (updates.avatar && typeof updates.avatar === 'string' && updates.avatar.startsWith('data:image/')) {

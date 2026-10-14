@@ -262,7 +262,7 @@
                       if (reviewData?.project?.id && !target.dataset.fallback) {
                         target.dataset.fallback = 'true';
                         const rel = d.relativePath ? d.relativePath.split('/').slice(-2).join('/') : d.filename;
-                        target.src = `/api/projects/${encodeURIComponent(reviewData.project.id)}/asset?file=${encodeURIComponent(rel)}`;
+                        target.src = `/api/public/review/${encodeURIComponent(token)}/asset?file=${encodeURIComponent(rel)}`;
                       }
                     }}
                   />

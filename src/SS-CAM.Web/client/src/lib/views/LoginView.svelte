@@ -51,7 +51,7 @@
 
     // Fetch active companies to dynamically set floating brand logos count
     try {
-      const res = await ApiClient.getCompanies();
+      const res = await ApiClient.getPublicCompanies();
       if (res && res.companies && res.companies.length > 0) {
         subsidiaryList = res.companies.filter((c: any) => c.status === 'active');
       }
@@ -320,6 +320,7 @@
       }
     }
     ApiClient.setToken(token);
+    ApiClient.startMediaKeepAlive();
     appState.currentUser = user;
     appState.addToast(`Welcome back, ${(user && user.name) || username}.`, 'success');
     appState.navigate('dashboard');

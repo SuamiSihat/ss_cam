@@ -5,6 +5,7 @@ const config = require('../config');
 const ProjectFormat = require('./ProjectFormat');
 const FrontmatterService = require('./FrontmatterService');
 const AuditService = require('./AuditService');
+const { uploadBlockedReason } = require('../middleware/safeFile');
 
 const PROJECT_DIR_REGEX = /^(\d{6})_([A-Za-z0-9]+)(?:_([A-Za-z0-9]+))?(?:_(.+))?$/;
 
@@ -1395,6 +1396,8 @@ class WorkspaceService {
 
     // Sanitize filename and subfolder to prevent path traversal
     const safeFilename = path.basename(filename);
+    const blocked = uploadBlockedReason(safeFilename);
+    if (blocked) throw Object.assign(new Error(blocked), { status: 400 });
     const validSubfolders = ['01_BRIEF_ASSETS', '02_SOURCE_FILES', '03_COPYWRITING', '04_WORK_IN_PROGRESS', '05_DELIVERABLES'];
     const safeSubfolder = validSubfolders.includes(targetSubfolder) ? targetSubfolder : '01_BRIEF_ASSETS';
 

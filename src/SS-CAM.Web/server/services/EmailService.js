@@ -2,6 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../config');
 
+/** Escapes text before it is placed inside an HTML email, so names and task titles can never inject markup. */
+function esc(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 class EmailService {
   constructor() {
     this.transporter = null;
@@ -144,8 +149,8 @@ class EmailService {
       title: 'Password Reset Request',
       subtitle: 'Secure Account Recovery',
       contentHtml: `
-        <p>Hello <strong>${user.name || user.username}</strong>,</p>
-        <p>We received a request to reset the password for your SS-CAM account (Staff ID: <code>${user.staffId || user.id || 'N/A'}</code>).</p>
+        <p>Hello <strong>${esc(user.name || user.username)}</strong>,</p>
+        <p>We received a request to reset the password for your SS-CAM account (Staff ID: <code>${esc(user.staffId || user.id || 'N/A')}</code>).</p>
         <p>Click the button below to choose a new password. This security link is valid for <strong>30 minutes</strong>.</p>
       `,
       ctaText: 'Reset My Password →',
@@ -177,36 +182,36 @@ class EmailService {
 
     const html = this.renderEmailShell({
       title: 'New Creative Task Assigned',
-      subtitle: `${project.title || project.id} · Priority: ${(project.priority || 'Normal').toUpperCase()}`,
+      subtitle: `${esc(project.title || project.id)} · Priority: ${esc((project.priority || 'Normal').toUpperCase())}`,
       contentHtml: `
-        <p>Hello <strong>${assigneeUser.name || assigneeUser.username}</strong>,</p>
-        <p><strong>${creatorName || 'Your Creative Manager'}</strong> has assigned a new task to you:</p>
+        <p>Hello <strong>${esc(assigneeUser.name || assigneeUser.username)}</strong>,</p>
+        <p><strong>${esc(creatorName || 'Your Creative Manager')}</strong> has assigned a new task to you:</p>
         
         <div class="card-meta">
           <div class="card-meta-row">
             <span class="card-meta-label">Task</span>
-            <span class="card-meta-value">${task.name}</span>
+            <span class="card-meta-value">${esc(task.name)}</span>
           </div>
           <div class="card-meta-row">
             <span class="card-meta-label">Project ID</span>
-            <span class="card-meta-value"><code>${project.id}</code></span>
+            <span class="card-meta-value"><code>${esc(project.id)}</code></span>
           </div>
           <div class="card-meta-row">
             <span class="card-meta-label">Brand</span>
-            <span class="card-meta-value">${project.brand || 'SuamiSihat'}</span>
+            <span class="card-meta-value">${esc(project.brand || 'SuamiSihat')}</span>
           </div>
           <div class="card-meta-row">
             <span class="card-meta-label">Channel</span>
-            <span class="card-meta-value">${(task.channel || 'General').toUpperCase()}</span>
+            <span class="card-meta-value">${esc((task.channel || 'General').toUpperCase())}</span>
           </div>
           <div class="card-meta-row">
             <span class="card-meta-label">Due Date</span>
-            <span class="card-meta-value">${project.deadline || 'Standard Production'}</span>
+            <span class="card-meta-value">${esc(project.deadline || 'Standard Production')}</span>
           </div>
           ${task.notes ? `
           <div class="card-meta-row">
             <span class="card-meta-label">Notes</span>
-            <span class="card-meta-value">${task.notes}</span>
+            <span class="card-meta-value">${esc(task.notes)}</span>
           </div>` : ''}
         </div>
       `,
@@ -236,27 +241,27 @@ class EmailService {
 
     const html = this.renderEmailShell({
       title: 'Task Ready for Review & QA',
-      subtitle: `${project.id} · ${project.title || ''}`,
+      subtitle: `${esc(project.id)} · ${esc(project.title || '')}`,
       contentHtml: `
-        <p>Hello <strong>${managerUser.name || managerUser.username}</strong>,</p>
-        <p><strong>${submitterName || 'A team member'}</strong> has completed work on <strong>"${task.name}"</strong> and moved the task to <strong>Review & QA</strong>.</p>
+        <p>Hello <strong>${esc(managerUser.name || managerUser.username)}</strong>,</p>
+        <p><strong>${esc(submitterName || 'A team member')}</strong> has completed work on <strong>"${esc(task.name)}"</strong> and moved the task to <strong>Review & QA</strong>.</p>
         
         <div class="card-meta">
           <div class="card-meta-row">
             <span class="card-meta-label">Task</span>
-            <span class="card-meta-value">${task.name}</span>
+            <span class="card-meta-value">${esc(task.name)}</span>
           </div>
           <div class="card-meta-row">
             <span class="card-meta-label">Project ID</span>
-            <span class="card-meta-value"><code>${project.id}</code></span>
+            <span class="card-meta-value"><code>${esc(project.id)}</code></span>
           </div>
           <div class="card-meta-row">
             <span class="card-meta-label">Submitted By</span>
-            <span class="card-meta-value">${submitterName} (${task.role})</span>
+            <span class="card-meta-value">${esc(submitterName)} (${esc(task.role)})</span>
           </div>
           <div class="card-meta-row">
             <span class="card-meta-label">Channel</span>
-            <span class="card-meta-value">${(task.channel || 'General').toUpperCase()}</span>
+            <span class="card-meta-value">${esc((task.channel || 'General').toUpperCase())}</span>
           </div>
         </div>
         <p>Please review the submitted copywriting / assets and submit an approval or revision decision.</p>

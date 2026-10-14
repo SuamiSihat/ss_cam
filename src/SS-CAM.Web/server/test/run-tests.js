@@ -832,7 +832,7 @@ This is the project brief content.
       const status = GeminiService.getStatus();
       assert.strictEqual(status.configured, true);
       assert.strictEqual(status.preferredModel, 'gemini-1.5-pro');
-      assert.ok(status.maskedKey.startsWith('AIzaSy'), 'Masked key must begin with prefix');
+      assert.ok(status.maskedKey.endsWith('6789') && !status.maskedKey.includes('AIzaSy'), 'Masked key must show only the last four characters');
 
       // 2. Format Gemini Ultra Web Prompt
       const ultraPrompt = GeminiService.formatUltraWebPrompt({
@@ -1791,7 +1791,7 @@ This is the project brief content.
         username: `admin_user_${testStaff1.toLowerCase()}`,
         role: 'Designer'
       });
-      assert.strictEqual(adminResUsers.statusCode, 200, `Admin token must receive 200 on POST /api/users, got ${adminResUsers.statusCode}`);
+      assert.strictEqual(adminResUsers.statusCode, 200, `Admin token must receive 200 on POST /api/users, got ${adminResUsers.statusCode}: ${JSON.stringify(adminResUsers.body)}`);
 
       const adminResRoster = await makeRequest('POST', '/api/team/roster', adminToken, {
         staffId: testStaff2,
@@ -1799,7 +1799,7 @@ This is the project brief content.
         username: `admin_roster_${testStaff2.toLowerCase()}`,
         role: 'Designer'
       });
-      assert.strictEqual(adminResRoster.statusCode, 200, `Admin token must receive 200 on POST /api/team/roster, got ${adminResRoster.statusCode}`);
+      assert.strictEqual(adminResRoster.statusCode, 200, `Admin token must receive 200 on POST /api/team/roster, got ${adminResRoster.statusCode}: ${JSON.stringify(adminResRoster.body)}`);
 
       const adminResCo = await makeRequest('POST', '/api/companies', adminToken, {
         code: 'TESTCO',

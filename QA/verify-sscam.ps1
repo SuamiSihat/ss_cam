@@ -222,7 +222,9 @@ if (Test-Path $webRoutes) {
 # ── CHECK 13: Web Rate Limiting on Login ──────────────────────────────────────
 if (Test-Path $webRoutes) {
     $routesText = Get-Content $webRoutes -Raw -Encoding UTF8
-    if ($routesText -match 'loginLimiter' -and $routesText -match 'router\.post\(\s*[\x27"]/auth/login[\x27"]') {
+    # The login handler counts failed attempts per account, address and IP (LoginGuard) and refuses when a limit is hit.
+    $hasGuard = ($routesText -match 'LoginGuard\.check\(') -and ($routesText -match 'LoginGuard\.recordFailure\(')
+    if (($hasGuard -or $routesText -match 'loginLimiter') -and $routesText -match 'router\.post\(\s*[\x27"]/auth/login[\x27"]') {
         Write-Check "Web login route protected by rate limiter" "PASS" ""
     } else {
         Write-Check "Web login route protected by rate limiter" "FAIL" "POST /api/auth/login must use rate limiter"
