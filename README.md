@@ -118,7 +118,7 @@ The apps create and read these folders for you, so you rarely need to touch them
 
 ## Where things stand
 
-**Version:** every app is on **v5.2.0**.
+**Version:** every app is on **v5.2.1**.
 
 **What's the same everywhere:** the project folder layout, project IDs, project status, comments, Order Requests, the team list and the brand colours. A check (`QA/verify-format-sync.ps1`) confirms all four apps stay in step.
 

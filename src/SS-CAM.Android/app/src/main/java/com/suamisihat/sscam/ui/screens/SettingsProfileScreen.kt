@@ -131,7 +131,7 @@ fun SettingsProfileScreen(
             .padding(horizontal = 22.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. Editorial Header Bar (SETTINGS & PROFILE • v5.2.0)
+        // 1. Editorial Header Bar (SETTINGS & PROFILE • v5.2.1)
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -154,7 +154,7 @@ fun SettingsProfileScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, colors.primary.copy(alpha = 0.3f))
                     ) {
                         Text(
-                            text = "v5.2.0",
+                            text = "v5.2.1",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.primary,
@@ -987,7 +987,7 @@ fun SettingsProfileScreen(
                                     border = androidx.compose.foundation.BorderStroke(1.dp, colors.primary.copy(alpha = 0.3f))
                                 ) {
                                     Text(
-                                        text = "v5.2.0",
+                                        text = "v5.2.1",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = colors.primary,
@@ -1042,7 +1042,7 @@ fun SettingsProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    "SS-CAM Studio Companion • v5.2.0 (Build 5200)",
+                    "SS-CAM Studio Companion • v5.2.1 (Build 5201)",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (colors.isDark) Color(0xFF64748B) else Color(0xFF94A3B8)

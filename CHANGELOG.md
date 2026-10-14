@@ -2,7 +2,7 @@
 
 All notable SS-CAM changes are documented here.
 
-## [Unreleased] - 2026-10-14 (Cross-Platform Format Sync, Access Control & Cleanup)
+## [5.2.1] - 2026-10-14 (Cross-Platform Format Sync, Access Control & Cleanup)
 
 ### One project format on every app
 

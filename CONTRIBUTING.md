@@ -327,8 +327,8 @@ SS-CAM uses **Semantic Versioning**: `MAJOR.MINOR.PATCH`
 
 | Version | Status | Notes |
 | --- | --- | --- |
-| Unreleased | In progress | Cross-platform project format, web access-control hardening, repo cleanup |
-| `v5.2.0` | **Latest Stable** | Windows, Web, Linux and Android all at 5.2.0 |
+| `v5.2.1` | **Latest Stable** (release pending) | Cross-platform project format, web access-control hardening, repo cleanup |
+| `v5.2.0` | Previous | Released 12 October 2026 |
 | `v2.3.6` | Stable (historical) | Fluent 2 full compliance — Segoe Fluent Icons, token colours |
 | `v2.1.0` | Stable | Radio & Focus Stream Player |
 | `v2.0.7` | Stable | Dashboard Intelligence Suite |
@@ -351,7 +351,7 @@ Version strings must be updated consistently across:
 | `installer\Build-Installer.ps1` | Default `$Version` parameter |
 | `src\SS-CAM.Web\package.json` | `version` (the web server reads its version from here) |
 | `src\SS-CAM.Linux\SS-CAM.Linux.csproj` | `<Version>` |
-| `src\SS-CAM.Android\app\build.gradle.kts` | `versionName` (e.g. `5.2.0`) and `versionCode` (e.g. `5200`) |
+| `src\SS-CAM.Android\app\build.gradle.kts` | `versionName` (e.g. `5.2.1`) and `versionCode` (e.g. `5201`) |
 | `CHANGELOG.md` | New release section header |
 | `README.md` | Download link, version badge, and release table |
 

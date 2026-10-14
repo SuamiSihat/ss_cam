@@ -68,7 +68,7 @@
 
 ---
 
-## 🛠️ Unreleased (next patch on top of v5.2.0)
+## v5.2.1 (2026-10-14, patch on top of v5.2.0)
 
 | Area | Summary |
 |---|---|
