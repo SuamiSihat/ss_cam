@@ -39,7 +39,17 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suamisihat.sscam.R
-import com.suamisihat.sscam.data.models.StaffMember
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import com.suamisihat.sscam.ui.components.UserProfileAvatar
 import com.suamisihat.sscam.ui.theme.*
 import kotlin.math.cos
@@ -48,54 +58,38 @@ import kotlin.math.sin
 /**
  * SuamiSihat Hero Login Screen
  * Features the signature SuamiSihat Hero Mesh animated glowing backdrop with floating Logomarks
- * and Men's Symbols (Mars ♂), official SuamiSihat vector logomark header, refined designer
- * account selector (Profile Pic + Name + ID Badge only), and secure authentication.
+ * and Men's Symbols (Mars ♂), official SuamiSihat vector logomark header, a typed username
+ * (or "Continue as" a remembered account) and password sign-in.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    staffList: List<StaffMember> = emptyList(),
-    initialUsername: String = "harussani",
+    savedUsername: String = "",
+    savedDisplayName: String = "",
     isLoading: Boolean = false,
     errorMessage: String? = null,
     onLogin: (username: String, password: String, rememberMe: Boolean) -> Unit,
-    onBiometricLogin: () -> Unit = {}
+    onBiometricLogin: () -> Unit = {},
+    onSwitchAccount: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
     val scrollState = rememberScrollState()
 
-    var liveStaffList by remember { mutableStateOf(staffList) }
-
-    LaunchedEffect(staffList) {
-        if (staffList.isNotEmpty()) {
-            liveStaffList = staffList
-        } else {
-            try {
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    val api = com.suamisihat.sscam.data.api.SscamApiService.create()
-                    val res = api.getTeam()
-                    if (res.isSuccessful && res.body() != null) {
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            liveStaffList = res.body()!!.allStaff
-                        }
-                    }
-                }
-            } catch (e: Exception) { }
-        }
-    }
-
-    val displayStaff = remember(liveStaffList) { liveStaffList }
-
-    var selectedUsername by remember { mutableStateOf(initialUsername) }
-    var password by remember { mutableStateOf("") }
+    // "Continue as" mode when a username is remembered on this device.
+    val isContinueMode = savedUsername.isNotBlank()
+    var typedUsername by remember(savedUsername) { mutableStateOf("") }
+    var password by remember(savedUsername) { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(true) }
-    var isDropdownOpen by remember { mutableStateOf(false) }
 
-    val currentStaff = remember(displayStaff, selectedUsername) {
-        displayStaff.find { it.username.equals(selectedUsername, ignoreCase = true) }
-            ?: displayStaff.firstOrNull()
-            ?: StaffMember(staffId = "SS-STAFF", username = selectedUsername, name = selectedUsername.replaceFirstChar { it.uppercase() }, role = "Designer", department = "Creative Production", avatarColor = "#0078D4", defaultBrand = "SSH")
+    val usernameToSubmit = if (isContinueMode) savedUsername else typedUsername.trim()
+    val canSubmit = !isLoading && usernameToSubmit.isNotBlank() && password.isNotBlank()
+    val continueName = savedDisplayName.ifBlank { savedUsername }
+
+    val passwordFocusRequester = remember { FocusRequester() }
+
+    fun submit() {
+        if (canSubmit) onLogin(usernameToSubmit, password, rememberMe)
     }
 
     // Animated Hero Aura, Wave Phase & Particle Drift
@@ -430,6 +424,7 @@ fun LoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 14.dp)
+                                .semantics { liveRegion = LiveRegionMode.Polite }
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -452,145 +447,129 @@ fun LoginScreen(
                         }
                     }
 
-                    // Field 1: User Account Profile Selector (Profile Pic, Name & ID Badge Only)
-                    Text(
-                        text = "SELECT DESIGNER ACCOUNT",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8),
-                        letterSpacing = 0.6.sp
-                    )
+                    if (isContinueMode) {
+                        // Remembered account: "Continue as <name>"
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            UserProfileAvatar(
+                                imageUrl = "",
+                                initials = continueName,
+                                avatarColorHex = "#0078D4",
+                                size = 36.dp
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Continue as $continueName",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (savedDisplayName.isNotBlank() && !savedDisplayName.equals(savedUsername, ignoreCase = true)) {
+                                    Text(
+                                        text = savedUsername,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF94A3B8),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                        TextButton(
+                            onClick = {
+                                password = ""
+                                onSwitchAccount()
+                            },
+                            enabled = !isLoading,
+                            modifier = Modifier.heightIn(min = 48.dp)
+                        ) {
+                            Text(
+                                text = "Not you? Switch account",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF38BDF8)
+                            )
+                        }
 
-                    // Dropdown Trigger Pill
-                    ExposedDropdownMenuBox(
-                        expanded = isDropdownOpen,
-                        onExpandedChange = { isDropdownOpen = !isDropdownOpen }
-                    ) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                    } else {
+                        // Field 1: Username
+                        Text(
+                            text = "Username",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF94A3B8)
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
                         Surface(
                             color = Color(0xFF132238),
                             shape = RoundedCornerShape(14.dp),
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                    .padding(horizontal = 12.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    UserProfileAvatar(
-                                        imageUrl = currentStaff.avatarUrl,
-                                        initials = currentStaff.name,
-                                        avatarColorHex = currentStaff.avatarColor,
-                                        size = 36.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = currentStaff.name,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Surface(
-                                        color = Color(0xFF0078D4).copy(alpha = 0.25f),
-                                        shape = RoundedCornerShape(6.dp),
-                                        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF38BDF8).copy(alpha = 0.5f))
-                                    ) {
-                                        Text(
-                                            text = currentStaff.staffId,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF38BDF8),
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-
                                 Icon(
-                                    imageVector = if (isDropdownOpen) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Select User",
+                                    Icons.Default.Person,
+                                    contentDescription = null,
                                     tint = Color(0xFF94A3B8),
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                TextField(
+                                    value = typedUsername,
+                                    onValueChange = { typedUsername = it },
+                                    placeholder = {
+                                        Text(
+                                            "Username",
+                                            fontSize = 13.sp,
+                                            color = Color(0xFF64748B)
+                                        )
+                                    },
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.None,
+                                        autoCorrectEnabled = false,
+                                        keyboardType = KeyboardType.Text,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = { passwordFocusRequester.requestFocus() }
+                                    ),
+                                    colors = loginFieldColors(),
+                                    singleLine = true,
+                                    enabled = !isLoading,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .semantics { contentDescription = "Username" }
                                 )
                             }
                         }
 
-                        ExposedDropdownMenu(
-                            expanded = isDropdownOpen,
-                            onDismissRequest = { isDropdownOpen = false },
-                            modifier = Modifier
-                                .background(Color(0xFF0F172A))
-                                .border(1.dp, Color(0xFF334155), RoundedCornerShape(12.dp))
-                        ) {
-                            displayStaff.forEach { staff ->
-                                val isSelected = staff.username.equals(selectedUsername, ignoreCase = true)
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            UserProfileAvatar(
-                                                imageUrl = staff.avatarUrl,
-                                                initials = staff.name,
-                                                avatarColorHex = staff.avatarColor,
-                                                size = 32.dp
-                                            )
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Text(
-                                                text = staff.name,
-                                                fontSize = 14.sp,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (isSelected) Color(0xFF38BDF8) else Color.White
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Surface(
-                                                color = Color(0xFF0078D4).copy(alpha = 0.20f),
-                                                shape = RoundedCornerShape(5.dp),
-                                                border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF38BDF8).copy(alpha = 0.4f))
-                                            ) {
-                                                Text(
-                                                    text = staff.staffId,
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF38BDF8),
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                )
-                                            }
-                                        }
-                                    },
-                                    onClick = {
-                                        selectedUsername = staff.username
-                                        isDropdownOpen = false
-                                        try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (e: Exception) {}
-                                    },
-                                    colors = MenuDefaults.itemColors(
-                                        textColor = Color.White
-                                    )
-                                )
-                            }
-                        }
+                        Text(
+                            text = "Your username, staff ID or email",
+                            fontSize = 11.sp,
+                            color = Color(0xFF94A3B8),
+                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Field 2: Password Input
                     Text(
-                        text = "PASSWORD",
-                        fontSize = 10.sp,
+                        text = "Password",
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8),
-                        letterSpacing = 0.6.sp
+                        color = Color(0xFF94A3B8)
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -619,40 +598,35 @@ fun LoginScreen(
                                 onValueChange = { password = it },
                                 placeholder = {
                                     Text(
-                                        "Enter password (optional on studio NAS)",
-                                        fontSize = 12.sp,
+                                        "Password",
+                                        fontSize = 13.sp,
                                         color = Color(0xFF64748B)
                                     )
                                 },
                                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardOptions = KeyboardOptions(
+                                    autoCorrectEnabled = false,
+                                    keyboardType = KeyboardType.Password,
+                                    imeAction = ImeAction.Done
+                                ),
                                 keyboardActions = KeyboardActions(
-                                    onDone = {
-                                        if (!isLoading) {
-                                            onLogin(selectedUsername, password, rememberMe)
-                                        }
-                                    }
+                                    onDone = { submit() }
                                 ),
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    disabledContainerColor = Color.Transparent,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White,
-                                    cursorColor = Color(0xFF38BDF8)
-                                ),
+                                colors = loginFieldColors(),
                                 singleLine = true,
-                                modifier = Modifier.weight(1f)
+                                enabled = !isLoading,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(passwordFocusRequester)
+                                    .semantics { contentDescription = "Password" }
                             )
                             IconButton(
                                 onClick = { showPassword = !showPassword },
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
                                     imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = "Toggle password visibility",
+                                    contentDescription = if (showPassword) "Hide password" else "Show password",
                                     tint = Color(0xFF94A3B8),
                                     modifier = Modifier.size(18.dp)
                                 )
@@ -662,21 +636,21 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Remember Me Row
+                    // Keep me signed in
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                rememberMe = !rememberMe
-                            },
+                            .heightIn(min = 48.dp)
+                            .toggleable(
+                                value = rememberMe,
+                                onValueChange = { rememberMe = it },
+                                role = Role.Checkbox
+                            ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
                             checked = rememberMe,
-                            onCheckedChange = { rememberMe = it },
+                            onCheckedChange = null,
                             colors = CheckboxDefaults.colors(
                                 checkedColor = Color(0xFF0078D4),
                                 uncheckedColor = Color(0xFF64748B),
@@ -686,7 +660,7 @@ fun LoginScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Remember me on this workstation",
+                            text = "Keep me signed in on this device",
                             fontSize = 12.sp,
                             color = Color(0xFFCBD5E1),
                             fontWeight = FontWeight.Medium
@@ -695,13 +669,15 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // Sign In Primary Button
+                    // Sign in primary button
                     Button(
                         onClick = {
-                            try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (e: Exception) {}
-                            onLogin(selectedUsername, password, rememberMe)
+                            try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (e: Exception) {
+                                android.util.Log.w("SSCAM", "Haptic feedback unavailable", e)
+                            }
+                            submit()
                         },
-                        enabled = !isLoading,
+                        enabled = canSubmit,
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF0078D4),
@@ -719,14 +695,14 @@ fun LoginScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Authenticating with NAS...",
+                                text = "Signing in…",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                         } else {
                             Text(
-                                text = "Sign In to Studio",
+                                text = "Sign in",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -741,37 +717,41 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    if (isContinueMode) {
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    // Biometric Hardware Unlock Button
-                    OutlinedButton(
-                        onClick = {
-                            try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (e: Exception) {}
-                            onBiometricLogin()
-                        },
-                        enabled = !isLoading,
-                        shape = RoundedCornerShape(14.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFF38BDF8)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Fingerprint,
-                            contentDescription = "Biometric Unlock",
-                            tint = Color(0xFF38BDF8),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Unlock with Biometrics (Touch / Face)",
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFE2E8F0)
-                        )
+                        // Biometric unlock: only reopens a saved, unexpired session on this device
+                        OutlinedButton(
+                            onClick = {
+                                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (e: Exception) {
+                                    android.util.Log.w("SSCAM", "Haptic feedback unavailable", e)
+                                }
+                                onBiometricLogin()
+                            },
+                            enabled = !isLoading,
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFF38BDF8)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Fingerprint,
+                                contentDescription = null,
+                                tint = Color(0xFF38BDF8),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Unlock with fingerprint or face",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFE2E8F0)
+                            )
+                        }
                     }
                 }
             }
@@ -789,4 +769,159 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+
+/** Shared transparent text-field colours for the sign-in card's dark input surfaces. */
+@Composable
+private fun loginFieldColors(): TextFieldColors = TextFieldDefaults.colors(
+    focusedContainerColor = Color.Transparent,
+    unfocusedContainerColor = Color.Transparent,
+    disabledContainerColor = Color.Transparent,
+    focusedIndicatorColor = Color.Transparent,
+    unfocusedIndicatorColor = Color.Transparent,
+    disabledIndicatorColor = Color.Transparent,
+    focusedTextColor = Color.White,
+    unfocusedTextColor = Color.White,
+    disabledTextColor = Color(0xFFCBD5E1),
+    cursorColor = Color(0xFF38BDF8)
+)
+
+/** Minimum password length required by the server. */
+private const val MIN_PASSWORD_LENGTH = 10
+
+/**
+ * "Choose a new password" step shown after signing in with the default password.
+ * Validates locally (length and match) before [onSubmit] is called with the new password.
+ */
+@Composable
+fun ChangePasswordDialog(
+    isSaving: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onSubmit: (newPassword: String) -> Unit
+) {
+    val colors = LocalSscamColors.current
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var showPasswords by remember { mutableStateOf(false) }
+    var attempted by remember { mutableStateOf(false) }
+    val confirmFocusRequester = remember { FocusRequester() }
+
+    val tooShort = newPassword.length < MIN_PASSWORD_LENGTH
+    val mismatch = confirmPassword != newPassword
+    val localError = when {
+        !attempted -> null
+        tooShort -> "Use at least $MIN_PASSWORD_LENGTH characters."
+        mismatch -> "The passwords don't match."
+        else -> null
+    }
+    val shownError = localError ?: errorMessage
+
+    fun trySubmit() {
+        attempted = true
+        if (!isSaving && !tooShort && !mismatch) onSubmit(newPassword)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "Choose a new password",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "You're using the default password. Please choose your own to continue.",
+                    fontSize = 13.sp,
+                    color = colors.textSecondary
+                )
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it },
+                    label = { Text("New password") },
+                    supportingText = { Text("At least $MIN_PASSWORD_LENGTH characters") },
+                    singleLine = true,
+                    enabled = !isSaving,
+                    visualTransformation = if (showPasswords) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(onNext = { confirmFocusRequester.requestFocus() }),
+                    trailingIcon = {
+                        IconButton(
+                            onClick = { showPasswords = !showPasswords },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (showPasswords) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (showPasswords) "Hide passwords" else "Show passwords"
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirm password") },
+                    singleLine = true,
+                    enabled = !isSaving,
+                    visualTransformation = if (showPasswords) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { trySubmit() }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(confirmFocusRequester)
+                )
+                if (!shownError.isNullOrBlank()) {
+                    Text(
+                        text = shownError,
+                        fontSize = 12.sp,
+                        color = Color(0xFFEF4444),
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { trySubmit() },
+                enabled = !isSaving && newPassword.isNotEmpty() && confirmPassword.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Saving…", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                } else {
+                    Text("Save and continue", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isSaving,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
+                Text("Cancel", fontSize = 13.sp, color = colors.textSecondary)
+            }
+        }
+    )
 }

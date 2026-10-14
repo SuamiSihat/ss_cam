@@ -956,8 +956,12 @@ This is the project brief content.
       const port = server.address().port;
       let res;
       try {
+        const anon = await fetch(`http://127.0.0.1:${port}/api/notes`);
+        assert.strictEqual(anon.status, 401, 'Quick Notes must require sign-in');
+        const { generateToken } = require('../middleware/auth');
+        const noteToken = generateToken({ username: 'brand', name: 'Brand', role: 'Designer' });
         res = await new Promise((resolve, reject) => {
-          http.get(`http://127.0.0.1:${port}/api/notes`, (r) => {
+          http.get(`http://127.0.0.1:${port}/api/notes`, { headers: { Authorization: `Bearer ${noteToken}` } }, (r) => {
             let data = '';
             r.on('data', chunk => data += chunk);
             r.on('end', () => resolve({ status: r.statusCode, body: JSON.parse(data || '{}') }));
@@ -1404,6 +1408,72 @@ This is the project brief content.
         testServer.close();
       }
     } finally {
+      config.DATA_DIR = origDataDir;
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
+  // ─── TEST: Default password forces a password change ─────────────────
+  test('Default password sign-in returns a restricted token that only allows changing the password', async () => {
+    const origDataDir = config.DATA_DIR;
+    const testDir = path.join(__dirname, 'temp-sandbox-pwc-test');
+    const bcrypt = require('bcryptjs');
+    let testServer;
+    try {
+      fs.mkdirSync(testDir, { recursive: true });
+      config.DATA_DIR = testDir;
+      fs.writeFileSync(path.join(testDir, 'user_passwords.json'),
+        JSON.stringify({ harussani: bcrypt.hashSync(config.DEFAULT_STAFF_PASSWORD, 10) }), 'utf8');
+
+      const express = require('express');
+      const testApp = express();
+      testApp.use(express.json());
+      testApp.use('/api', apiRoutes);
+      testServer = await new Promise(res => { const s = testApp.listen(0, '127.0.0.1', () => res(s)); });
+      const base = `http://127.0.0.1:${testServer.address().port}/api`;
+      const call = async (method, route, body, token) => {
+        const r = await fetch(base + route, {
+          method,
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: body ? JSON.stringify(body) : undefined
+        });
+        return { status: r.status, body: await r.json().catch(() => ({})) };
+      };
+
+      // 1. Signing in with the default password succeeds but flags a required change
+      const login = await call('POST', '/auth/login', { username: 'harussani', password: config.DEFAULT_STAFF_PASSWORD });
+      assert.strictEqual(login.status, 200);
+      assert.strictEqual(login.body.mustChangePassword, true, 'Default password must force a change');
+
+      // 2. The restricted token is refused everywhere except change-password
+      const blocked = await call('GET', '/projects', null, login.body.token);
+      assert.strictEqual(blocked.status, 403);
+      assert.strictEqual(blocked.body.code, 'PASSWORD_CHANGE_REQUIRED');
+
+      // 3. Re-using the default (or a short password) is rejected
+      const reuse = await call('POST', '/auth/change-password',
+        { currentPassword: config.DEFAULT_STAFF_PASSWORD, newPassword: config.DEFAULT_STAFF_PASSWORD }, login.body.token);
+      assert.strictEqual(reuse.status, 400);
+
+      // 4. Choosing a new password returns a normal session
+      const changed = await call('POST', '/auth/change-password',
+        { currentPassword: config.DEFAULT_STAFF_PASSWORD, newPassword: 'MyOwnStudioPass2026' }, login.body.token);
+      assert.strictEqual(changed.status, 200, JSON.stringify(changed.body));
+      assert.strictEqual(changed.body.mustChangePassword, false);
+      const allowed = await call('GET', '/projects', null, changed.body.token);
+      assert.strictEqual(allowed.status, 200, 'New token must work on normal routes');
+
+      // 5. A normal password sign-in is not flagged, and the public staff list is gone
+      const relogin = await call('POST', '/auth/login', { username: 'harussani', password: 'MyOwnStudioPass2026' });
+      assert.strictEqual(relogin.body.mustChangePassword, false);
+      const roster = await call('GET', '/auth/roster');
+      assert.strictEqual(roster.status, 404, 'Public /auth/roster must no longer exist');
+
+      // 6. Invalid tokens report SESSION_EXPIRED so apps can send people back to sign-in
+      const expired = await call('GET', '/projects', null, 'not-a-real-token');
+      assert.strictEqual(expired.body.code, 'SESSION_EXPIRED');
+    } finally {
+      if (testServer) testServer.close();
       config.DATA_DIR = origDataDir;
       try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
     }

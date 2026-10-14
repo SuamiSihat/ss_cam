@@ -57,6 +57,12 @@ export class ApiClient {
         throw new Error('Your session has expired. Please sign in again.');
       }
 
+      // Expired or invalid session: send the person back to the sign-in screen.
+      if (response.status === 403 && (data.code === 'SESSION_EXPIRED' || data.code === 'PASSWORD_CHANGE_REQUIRED')) {
+        this.removeToken();
+        window.dispatchEvent(new CustomEvent('auth:required'));
+      }
+
       if (!response.ok) {
         // Server errors carry technical detail: log it, show a plain message instead.
         if (response.status >= 500) {
@@ -84,11 +90,8 @@ export class ApiClient {
   }
 
   // ─── Authentication ───
-  static getAuthRoster(): Promise<{ success: boolean; staff: Array<{ staffId: string; username: string; name: string; role: string; department?: string; avatarColor?: string }> }> {
-    return this.request('/auth/roster');
-  }
-
-  static login(username: string, password = ''): Promise<{ success: boolean; token: string; user: User }> {
+  /** mustChangePassword: the account still uses the default password; the token only allows changePassword(). */
+  static login(username: string, password: string): Promise<{ success: boolean; token: string; user: User; mustChangePassword?: boolean }> {
     return this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password })
@@ -99,10 +102,12 @@ export class ApiClient {
     return this.request('/auth/me');
   }
 
-  static changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  /** Pass `token` to use a restricted sign-in token (forced change) instead of the stored session. */
+  static changePassword(currentPassword: string, newPassword: string, token?: string): Promise<{ success: boolean; message: string; token?: string; user?: User }> {
     return this.request('/auth/change-password', {
       method: 'POST',
-      body: JSON.stringify({ currentPassword, newPassword })
+      body: JSON.stringify({ currentPassword, newPassword }),
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {})
     });
   }
 

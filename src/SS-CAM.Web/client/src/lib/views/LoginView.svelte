@@ -3,13 +3,6 @@
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
 
-  interface UserProfile {
-    username: string;
-    name: string;
-    staffId: string;
-    role: string;
-  }
-
   // Active Subsidiaries Configuration
   // Represents SuamiSihat entities (Holding, Healthcare, Wellness, E-Commerce, Technology)
   // Dynamically fetched from Company Manager API!
@@ -21,65 +14,25 @@
     { code: 'SST', name: 'SuamiSihat Technology Sdn Bhd' }
   ]);
 
-  const defaultStaffList: UserProfile[] = [
-    { username: 'harussani', name: 'Harussani', staffId: 'SS0004', role: 'Head of Creative' },
-    { username: 'haikal', name: 'Haikal', staffId: 'SS0035', role: 'Multimedia Designer' },
-    { username: 'aliff', name: 'Aliff', staffId: 'SS0037', role: 'Multimedia Designer' },
-    { username: 'raihan', name: 'Raihan', staffId: 'SS0073', role: 'Head of Marketing & Sale' },
-    { username: 'hasan', name: 'Hasan', staffId: 'SS0001', role: 'Chief Executive Officer' },
-    { username: 'gaddafi', name: 'Gaddafi', staffId: 'SS0071', role: 'Co-Chief Executive Officer' }
-  ];
+  // Sign-in: people type their username (no public staff list). The last account used on
+  // this device is remembered so they only need to enter their password next time.
+  const storage = typeof localStorage !== 'undefined' ? localStorage : null;
+  const savedUser = storage ? storage.getItem('ss_cam_remember_user') : null;
+  const savedName = storage ? storage.getItem('ss_cam_remember_name') : null;
 
-  let staffProfiles = $state<UserProfile[]>(defaultStaffList);
-
-  // Guaranteed sorted by Staff ID Descending (SS0073 -> SS0071 -> SS0037 -> ... -> SS0001)
-  const sortedUsers = $derived.by<UserProfile[]>(() =>
-    [...staffProfiles].sort((a, b) => (b.staffId || '').localeCompare(a.staffId || ''))
-  );
-
-  // Remember Me state initialization
-  const isRemembered = typeof localStorage !== 'undefined' && localStorage.getItem('ss_cam_remember_me') === 'true';
-  const savedUser = typeof localStorage !== 'undefined' ? localStorage.getItem('ss_cam_remember_user') : null;
-
-  // Recent Active Logins (Dynamic, strictly limited to 3)
-  function getStoredRecentUsers(): string[] {
-    if (typeof localStorage === 'undefined') return ['harussani', 'haikal', 'aliff'];
-    try {
-      const stored = JSON.parse(localStorage.getItem('ss_cam_recent_users') || '[]');
-      if (Array.isArray(stored) && stored.length > 0) {
-        return stored.slice(0, 3);
-      }
-    } catch {}
-    return ['harussani', 'haikal', 'aliff'];
-  }
-
-  let recentUsernames = $state<string[]>(getStoredRecentUsers());
-  let recentProfiles = $derived.by<UserProfile[]>(() => {
-    const list: UserProfile[] = [];
-    for (const uName of recentUsernames) {
-      const profile = staffProfiles.find((p) => p.username === uName || p.staffId === uName);
-      if (profile && !list.some((p) => p.username === profile.username)) {
-        list.push(profile);
-      }
-    }
-    // Fill up to 3 from sortedUsers if less than 3
-    if (list.length < 3) {
-      for (const p of sortedUsers) {
-        if (!list.some((item) => item.username === p.username)) {
-          list.push(p);
-        }
-        if (list.length >= 3) break;
-      }
-    }
-    return list.slice(0, 3);
-  });
-
-  let rememberMe = $state<boolean>(isRemembered);
-  let username = $state<string>(savedUser || sortedUsers[0]?.username || 'harussani');
+  let rememberMe = $state<boolean>(storage ? storage.getItem('ss_cam_remember_me') !== 'false' : true);
+  let continueAs = $state<boolean>(!!savedUser);
+  let username = $state<string>(savedUser || '');
   let password = $state<string>('');
   let showPassword = $state<boolean>(false);
   let isLoading = $state<boolean>(false);
   let errorMessage = $state<string | null>(null);
+
+  // Forced password change after signing in with the default password
+  let mustChange = $state<boolean>(false);
+  let pendingToken = $state<string>('');
+  let newPassword = $state<string>('');
+  let confirmPassword = $state<string>('');
 
   let showForgotModal = $state<boolean>(false);
   let forgotUsername = $state<string>('');
@@ -96,24 +49,6 @@
     brandLogoImg = new Image();
     brandLogoImg.src = 'brand/ss-logomark-full.png';
 
-    // Fetch live staff roster dynamically from Synology NAS / Server API
-    try {
-      const rosterRes = await ApiClient.getAuthRoster();
-      if (rosterRes && rosterRes.staff && Array.isArray(rosterRes.staff) && rosterRes.staff.length > 0) {
-        staffProfiles = rosterRes.staff.map((s: any) => ({
-          username: s.username,
-          name: s.name,
-          staffId: s.staffId,
-          role: s.role
-        }));
-        if (!savedUser && staffProfiles.length > 0) {
-          username = staffProfiles[0].username;
-        }
-      }
-    } catch (e) {
-      console.warn('[LoginView] Failed to fetch live auth roster, using defaults:', e);
-    }
-
     // Fetch active companies to dynamically set floating brand logos count
     try {
       const res = await ApiClient.getCompanies();
@@ -129,14 +64,6 @@
     if (animFrameId) cancelAnimationFrame(animFrameId);
     if (resizeListener) window.removeEventListener('resize', resizeListener);
   });
-
-  function updateRecentUsers(loggedUser: string) {
-    const updated = [loggedUser, ...recentUsernames.filter((u) => u !== loggedUser)].slice(0, 3);
-    recentUsernames = updated;
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('ss_cam_recent_users', JSON.stringify(updated));
-    }
-  }
 
   function initHeroWaveCanvas() {
     if (!canvasEl) return;
@@ -374,36 +301,83 @@
     animate();
   }
 
+  function signInErrorMessage(err: any): string {
+    if (err && err.status === 401) return 'Username or password is incorrect.';
+    if (err && err.status === 429) return 'Too many attempts. Wait a minute and try again.';
+    return (err && err.message) || "Couldn't sign in. Please try again.";
+  }
+
+  function finishSignIn(token: string, user: any) {
+    if (storage) {
+      if (rememberMe) {
+        storage.setItem('ss_cam_remember_me', 'true');
+        storage.setItem('ss_cam_remember_user', username.trim());
+        storage.setItem('ss_cam_remember_name', (user && user.name) || username.trim());
+      } else {
+        storage.setItem('ss_cam_remember_me', 'false');
+        storage.removeItem('ss_cam_remember_user');
+        storage.removeItem('ss_cam_remember_name');
+      }
+    }
+    ApiClient.setToken(token);
+    appState.currentUser = user;
+    appState.addToast(`Welcome back, ${(user && user.name) || username}.`, 'success');
+    appState.navigate('dashboard');
+  }
+
   async function handleLogin(e?: Event) {
     if (e) e.preventDefault();
+    if (!username.trim() || !password) return;
     isLoading = true;
     errorMessage = null;
-
     try {
-      const res = await ApiClient.login(username, password);
+      const res = await ApiClient.login(username.trim(), password);
       if (res.success && res.token) {
-        // Handle Remember Me persistence
-        if (rememberMe) {
-          localStorage.setItem('ss_cam_remember_me', 'true');
-          localStorage.setItem('ss_cam_remember_user', username);
-        } else {
-          localStorage.removeItem('ss_cam_remember_me');
-          localStorage.removeItem('ss_cam_remember_user');
+        if (res.mustChangePassword) {
+          // Keep the restricted token in memory only; it can't be used for anything else.
+          pendingToken = res.token;
+          mustChange = true;
+          return;
         }
-
-        // Update Recent Active Users (Top 3)
-        updateRecentUsers(username);
-
-        ApiClient.setToken(res.token);
-        appState.currentUser = res.user;
-        appState.addToast(`Welcome back, ${res.user.name}! (${res.user.role})`, 'success');
-        appState.navigate('dashboard');
+        finishSignIn(res.token, res.user);
       }
     } catch (err: any) {
-      errorMessage = err.message || 'Invalid username or password.';
+      errorMessage = signInErrorMessage(err);
     } finally {
       isLoading = false;
     }
+  }
+
+  async function handleChooseNewPassword(e?: Event) {
+    if (e) e.preventDefault();
+    errorMessage = null;
+    if (newPassword.length < 10) { errorMessage = 'Your new password must be at least 10 characters.'; return; }
+    if (newPassword !== confirmPassword) { errorMessage = "The passwords don't match."; return; }
+    isLoading = true;
+    try {
+      const res = await ApiClient.changePassword(password, newPassword, pendingToken);
+      if (res.success && res.token) {
+        pendingToken = '';
+        password = '';
+        finishSignIn(res.token, res.user);
+      }
+    } catch (err: any) {
+      errorMessage = (err && err.message) || "Couldn't save your new password. Please try again.";
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function switchAccount() {
+    continueAs = false;
+    username = '';
+    password = '';
+    errorMessage = null;
+    if (storage) {
+      storage.removeItem('ss_cam_remember_user');
+      storage.removeItem('ss_cam_remember_name');
+    }
+    setTimeout(() => document.getElementById('login-username-field')?.focus(), 0);
   }
 
   async function handleForgotPassword() {
@@ -420,12 +394,6 @@
     }
   }
 
-  function selectUser(user: string) {
-    username = user;
-    // Focus password field so user can type their password, do not auto-submit
-    const pwField = document.getElementById('login-password-field');
-    if (pwField) (pwField as HTMLInputElement).focus();
-  }
 </script>
 
 <div class="login-hero-bg" id="login-hero-viewport">
@@ -449,18 +417,49 @@
       {#if errorMessage}{errorMessage}{/if}
     </div>
 
-    <form onsubmit={handleLogin} class="login-form-body">
-      <!-- User Profile Selector (Sorted by Staff ID Descending) -->
+    {#if mustChange}
+    <form onsubmit={handleChooseNewPassword} class="login-form-body">
+      <p class="forgot-modal-desc">You're using the default password. Please choose your own to continue.</p>
       <div class="form-group">
-        <label for="login-account-select" class="field-label">Select Account Profile (Staff ID ↓)</label>
-        <select id="login-account-select" class="field-select" bind:value={username} autocomplete="username">
-          {#each sortedUsers as u}
-            <option value={u.username}>
-              {u.staffId} — {u.name}
-            </option>
-          {/each}
-        </select>
+        <label for="login-new-password" class="field-label">New password</label>
+        <input id="login-new-password" type="password" class="field-input" bind:value={newPassword}
+          autocomplete="new-password" placeholder="At least 10 characters" aria-describedby="login-error-region" />
       </div>
+      <div class="form-group">
+        <label for="login-confirm-password" class="field-label">Confirm new password</label>
+        <input id="login-confirm-password" type="password" class="field-input" bind:value={confirmPassword}
+          autocomplete="new-password" aria-describedby="login-error-region" />
+      </div>
+      <button type="submit" class="submit-btn" disabled={isLoading || !newPassword || !confirmPassword}>
+        <span>{isLoading ? 'Saving…' : 'Save and continue'}</span>
+      </button>
+    </form>
+    {:else}
+    <form onsubmit={handleLogin} class="login-form-body">
+      {#if continueAs}
+        <div class="form-group">
+          <span class="field-label">Signing in as</span>
+          <div class="continue-as-row">
+            <strong class="continue-as-name">{savedName || username}</strong>
+            <button type="button" class="forgot-link" onclick={switchAccount}>Not you? Switch account</button>
+          </div>
+        </div>
+      {:else}
+        <div class="form-group">
+          <label for="login-username-field" class="field-label">Username</label>
+          <input
+            id="login-username-field"
+            type="text"
+            class="field-input"
+            bind:value={username}
+            placeholder="Username, staff ID or email"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            aria-describedby="login-error-region"
+          />
+        </div>
+      {/if}
 
       <!-- Password Field -->
       <div class="form-group">
@@ -471,7 +470,7 @@
             type={showPassword ? 'text' : 'password'}
             class="field-input"
             bind:value={password}
-            placeholder="Enter password"
+            placeholder="Password"
             autocomplete="current-password"
             aria-invalid={errorMessage ? 'true' : 'false'}
             aria-describedby="login-error-region"
@@ -480,7 +479,8 @@
             type="button"
             class="eye-btn"
             onclick={() => (showPassword = !showPassword)}
-            title="Toggle Password Visibility"
+            title={showPassword ? 'Hide password' : 'Show password'}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
             {#if showPassword}
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -505,18 +505,17 @@
         </button>
       </div>
 
-      <button type="submit" class="submit-btn" disabled={isLoading}
-        aria-label={isLoading ? 'Authenticating, please wait' : 'Sign In to Portal'}>
+      <button type="submit" class="submit-btn" disabled={isLoading || !username.trim() || !password}
+        aria-label={isLoading ? 'Signing in, please wait' : 'Sign in'}>
         {#if isLoading}
-          <span>Authenticating...</span>
+          <span>Signing in…</span>
         {:else}
-          <span>Sign In to Portal</span>
+          <span>Sign in</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         {/if}
       </button>
-
-
     </form>
+    {/if}
 
     <!-- Forgot Password Modal -->
     {#if showForgotModal}
@@ -545,7 +544,7 @@
                 type="text"
                 class="field-input"
                 bind:value={forgotUsername}
-                placeholder="e.g. harussani or staff@suamisihat.com"
+                placeholder="Username, staff ID or email"
                 autocomplete="username"
               />
             </div>
@@ -805,55 +804,16 @@
     cursor: not-allowed;
   }
 
-  .quick-roster-section {
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-  }
-
-  .roster-title {
-    font-size: 11px;
-    font-weight: 700;
-    color: #666666;
-    text-transform: uppercase;
-    display: block;
-    margin-bottom: 8px;
-  }
-
-  .roster-chips {
+  .continue-as-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .roster-chip {
-    background: #F1F5F9;
-    border: 1px solid #CBD5E1;
-    border-radius: 9999px;
-    padding: 4px 10px;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: #334155;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: inline-flex;
     align-items: center;
-    gap: 4px;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 40px;
   }
-  .roster-chip:hover {
-    color: #043388;
-    border-color: #21A1F7;
-    background: #EBF4FE;
-  }
+  .continue-as-name { font-size: 15px; color: inherit; }
 
-  .chip-id {
-    font-family: monospace;
-    color: #043388;
-    font-weight: 800;
-    font-size: 11px;
-  }
-
-  /* Forgot Password Link */
   .forgot-row {
     display: flex;
     justify-content: flex-end;

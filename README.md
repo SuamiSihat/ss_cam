@@ -67,14 +67,26 @@ All four apps work on the same projects, so you can switch between them freely.
 1. Download the latest `SS-CAM-v5.2.0.exe` from the [Releases page](https://github.com/SuamiSihat/ss_cam/releases/latest).
 2. Make sure the shared drive is set up on your PC first — follow the [shared drive setup guide](./docs/SSNAS-SETUP.md).
 3. Run the app. It's a single file, so there's nothing else to install. It checks for updates from **Settings & Profile**.
+4. In **Settings & Profile → Web portal account**, sign in with the same username and password you use on the web. This connects Order Requests and Quick Notes to the web portal. You only need to do this once per PC.
 
 ### Web app
 
-Open the web portal address your admin gave you and sign in with your username. Your admin creates your account in **Admin → Users**.
+Open the web portal address your admin gave you. Type your username (or staff ID or email) and password. Your admin creates your account in **Admin → Users**.
+
+The first time you sign in with the default password, you'll be asked to choose your own password before you can continue. Tick **Remember me** and next time you'll only need your password.
 
 ### Android app
 
-Install **SS-CAM Companion** from [Google Play](https://play.google.com/store/apps/details?id=com.suamisihat.creative), or install the APK from the [Releases page](https://github.com/SuamiSihat/ss_cam/releases/latest). Sign in with the same username you use on the web.
+Install **SS-CAM Companion** from [Google Play](https://play.google.com/store/apps/details?id=com.suamisihat.creative), or install the APK from the [Releases page](https://github.com/SuamiSihat/ss_cam/releases/latest). Sign in with the same username and password you use on the web. After that you can unlock the app with your fingerprint or face until your session ends (12 hours), then sign in with your password again.
+
+### Where your password is kept
+
+| App | What is stored | Where |
+|---|---|---|
+| Web portal server | Your password as a one-way scrambled hash (bcrypt). It can't be turned back into the password. | The server's private data folder (`DATA_DIR`), not the shared Creative-Team drive |
+| Web browser | Your session only, plus your username if you tick **Remember me**. Never your password. | This browser |
+| Windows app | Your username and password, encrypted with Windows' built-in protection (DPAPI). Only your Windows account on that PC can unlock it. | `%LOCALAPPDATA%\SuamiSihat\portal_account.dat` |
+| Android app | Your session only. Never your password. | The app's private storage on the phone |
 
 ### Linux app
 
@@ -144,6 +156,9 @@ The apps create and read these folders for you, so you rarely need to touch them
 | "Someone else is editing this project" | Another designer has the project open. Wait for them to finish, or ask them to close it. |
 | You forgot your password | Use **Forgot password** on the sign-in page, or ask your admin to reset it to the default password. |
 | You can't delete a task | Only managers and admins can delete tasks. Ask your manager. |
+| "Your session has expired" | Sign in again. On Windows the app does this for you as long as your saved password is still correct. |
+| Someone else's name appears on the sign-in screen | Choose **Not you? Switch account** and type your own username. |
+| Orders or notes on Windows don't match the web | Check **Settings & Profile → Web portal account** shows you as signed in. |
 | You can't change the AI assistant's settings | The AI key is a site setting that only admins can change in **Admin**. |
 
 The Windows app keeps a log at `%LOCALAPPDATA%\SuamiSihat\startup_trace.log`. Send it with any bug report.

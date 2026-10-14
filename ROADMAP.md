@@ -79,7 +79,7 @@
 
 ## ⚠️ Known Gaps
 
-- **Desktop cannot sign in to the Web portal with a password.** Order and notes sync from the desktop to the Web cannot authenticate; orders fall back to the NAS ledger until a desktop sign-in/sync key is designed.
+- ~~**Desktop cannot sign in to the Web portal with a password.**~~ Resolved 2026-10-14: Windows sign-in in Settings (credentials encrypted with DPAPI); orders and Quick Notes sync now authenticate.
 - **Feature differences between apps.** The Web portal has no Brand Assets, Quick Notes, Archive or Wellbeing pages; the Android app has no Project Catalog or Copywriting.
 - **Windows app turns off HTTPS certificate checks** for its web requests. Needs a decision before wider distribution.
 - **No unit-test project for the Windows app.**

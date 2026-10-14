@@ -1366,3 +1366,41 @@ Decisions from the product owner, implemented and verified:
 - Android `:app:compileDebugKotlin`: PASS.
 - `QA/verify-format-sync.ps1`: PASS (14/14). `QA/sync-design-tokens.ps1`: Windows theme colours match the design system.
 - Windows launch smoke test: BLOCKED (not run, to avoid writing to the production NAS).
+
+---
+
+## P1: Typed sign-in, forced default-password change & Windows portal sign-in (2026-10-14, Unreleased)
+
+Owner decision: typed username, not a dropdown, plus "remember me" on each device.
+
+**Server**
+- Removed the public `/auth/roster`. `/team/roster` and `GET /notes` now require sign-in.
+- `POST /notes` writes only to your own folder unless you are an admin.
+- Login returns `mustChangePassword` for the default password, with a restricted token (`pwc` claim) that only allows changing the password.
+- Change-password returns a full token and rejects the default, current or short passwords.
+- Invalid tokens now carry `code: SESSION_EXPIRED`.
+
+**Web**
+- Typed username, Continue as / Not you?, and a forced new-password step.
+- Removed the hard-coded staff list from the page bundle.
+- `SESSION_EXPIRED` returns you to sign-in.
+
+**Windows**
+- New `Services/PortalAuthService.cs`: the single portal sign-in.
+  - Credentials are encrypted with DPAPI (CurrentUser) in `%LOCALAPPDATA%<AppFolder>portal_account.dat`.
+  - Silent re-sign-in when the session ends, with back-off.
+  - Certificate errors are accepted only for the portal host.
+- New Settings card: Web portal account.
+- Orders and Quick Notes send bearer tokens. Quick Notes upload and delete never worked before.
+- Removed the username-only login and the admin fallback.
+
+**Android**
+- A fresh install no longer opens signed in as an admin (defaults were `isLoggedIn=true`, `harussani`).
+- Removed the password-less re-login on every refresh, which discarded the session.
+- Typed username, Continue as / Switch account, and a change-password dialog.
+- 401 and `SESSION_EXPIRED` return you to sign-in.
+- Biometrics only unlock an unexpired saved session. The password is never stored.
+
+**Verification**
+- See the commit message; all builds and tests were re-run before pushing.
+- The live sign-in flow against the production portal was not run (BLOCKED: no test server reachable from this machine).

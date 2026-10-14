@@ -316,6 +316,185 @@
                         </StackPanel>
                     </ui:Card>
 
+                    <!-- Web Portal Account Card -->
+                    <ui:Card Margin="0,0,0,16" Padding="20">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                <Border Width="32" Height="32" CornerRadius="8"
+                                        Background="{DynamicResource FluentBrandTint}"
+                                        Margin="0,0,10,0" VerticalAlignment="Center">
+                                    <ui:SymbolIcon Symbol="PersonKey20" FontSize="16"
+                                                   Foreground="{DynamicResource FluentBrand80}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <ui:TextBlock Text="Web portal account"
+                                                  FontSize="14" FontWeight="Bold"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <ui:TextBlock Text="Sign in to sync orders and notes with the web portal"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                  FontSize="11"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Signed out: sign-in form -->
+                            <StackPanel x:Name="PortalSignedOutPanel">
+                                <Border x:Name="PortalNotSignedInHint"
+                                        Margin="0,0,0,12" Padding="10,8" CornerRadius="6"
+                                        Background="{DynamicResource FluentBrandTint}"
+                                        BorderBrush="{DynamicResource FluentBrand80}"
+                                        BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="Info24" FontSize="14"
+                                                       Foreground="{DynamicResource FluentBrand80}"
+                                                       VerticalAlignment="Top"
+                                                       Margin="0,1,8,0"/>
+                                        <ui:TextBlock x:Name="PortalHintText"
+                                                      Text="You're not signed in. Orders and notes use the NAS copy until you sign in."
+                                                      FontSize="11" TextWrapping="Wrap" MaxWidth="420"
+                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <ui:TextBlock Text="Username" FontSize="12" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:TextBox x:Name="PortalUsernameInput" Height="36" MinHeight="36"
+                                            VerticalContentAlignment="Center"
+                                            PlaceholderText="Username, staff ID or email"
+                                            AutomationProperties.Name="Web portal username"
+                                            AutomationProperties.HelpText="Your username, staff ID or email"
+                                            PreviewKeyDown="OnPortalSignInKeyDown"
+                                            Margin="0,0,0,12"/>
+
+                                <ui:TextBlock Text="Password" FontSize="12" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:PasswordBox x:Name="PortalPasswordInput" Height="36" MinHeight="36"
+                                                VerticalContentAlignment="Center"
+                                                AutomationProperties.Name="Web portal password"
+                                                PreviewKeyDown="OnPortalSignInKeyDown"
+                                                Margin="0,0,0,8"/>
+
+                                <ui:TextBlock Text="Use the same username and password as the web portal."
+                                              FontSize="11" TextWrapping="Wrap"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              Margin="0,0,0,12"/>
+
+                                <ui:Button x:Name="BtnPortalSignIn"
+                                           Appearance="Primary"
+                                           Click="OnPortalSignInClicked"
+                                           Height="36" HorizontalAlignment="Stretch"
+                                           HorizontalContentAlignment="Center"
+                                           AutomationProperties.Name="Sign in to the web portal"
+                                           Cursor="Hand">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <ui:SymbolIcon Symbol="Key24" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <ui:TextBlock x:Name="BtnPortalSignInText" Text="Sign in" FontSize="13" FontWeight="SemiBold"
+                                                      VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </ui:Button>
+                            </StackPanel>
+
+                            <!-- Forced password change after sign-in -->
+                            <StackPanel x:Name="PortalChangePasswordPanel" Visibility="Collapsed">
+                                <ui:TextBlock Text="Choose a new password"
+                                              FontSize="13" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <ui:TextBlock Text="Your account needs a new password before you can continue. Use at least 10 characters."
+                                              FontSize="11" TextWrapping="Wrap"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+
+                                <ui:TextBlock Text="New password" FontSize="12" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:PasswordBox x:Name="PortalNewPasswordInput" Height="36" MinHeight="36"
+                                                VerticalContentAlignment="Center"
+                                                AutomationProperties.Name="New password"
+                                                PreviewKeyDown="OnPortalChangePasswordKeyDown"
+                                                Margin="0,0,0,12"/>
+
+                                <ui:TextBlock Text="Confirm new password" FontSize="12" FontWeight="SemiBold"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:PasswordBox x:Name="PortalConfirmPasswordInput" Height="36" MinHeight="36"
+                                                VerticalContentAlignment="Center"
+                                                AutomationProperties.Name="Confirm new password"
+                                                PreviewKeyDown="OnPortalChangePasswordKeyDown"
+                                                Margin="0,0,0,12"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ui:Button x:Name="BtnPortalChangePassword" Grid.Column="0"
+                                               Appearance="Primary"
+                                               Click="OnPortalChangePasswordClicked"
+                                               Height="36" HorizontalAlignment="Stretch"
+                                               HorizontalContentAlignment="Center"
+                                               AutomationProperties.Name="Change password"
+                                               Cursor="Hand">
+                                        <ui:TextBlock x:Name="BtnPortalChangePasswordText" Text="Change password" FontSize="13" FontWeight="SemiBold"/>
+                                    </ui:Button>
+                                    <ui:Button x:Name="BtnPortalCancelChange" Grid.Column="2"
+                                               Appearance="Secondary"
+                                               Click="OnPortalCancelChangeClicked"
+                                               Height="36" Padding="16,0"
+                                               AutomationProperties.Name="Cancel password change"
+                                               Content="Cancel" Cursor="Hand"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Signed in -->
+                            <StackPanel x:Name="PortalSignedInPanel" Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="16"
+                                                   Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ui:TextBlock x:Name="PortalSignedInText" Text="Signed in"
+                                                  FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ui:TextBlock x:Name="PortalSignedInDetail" Text=""
+                                              FontSize="11" TextWrapping="Wrap"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              Margin="24,0,0,12"/>
+                                <WrapPanel Orientation="Horizontal">
+                                    <ui:Button x:Name="BtnPortalSignOut"
+                                               Appearance="Secondary"
+                                               Click="OnPortalSignOutClicked"
+                                               Height="36" Padding="14,0" Margin="0,0,8,8"
+                                               AutomationProperties.Name="Sign out of the web portal"
+                                               Cursor="Hand">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="SignOut24" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock Text="Sign out" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ui:Button>
+                                    <ui:Button x:Name="BtnPortalSwitchAccount"
+                                               Appearance="Transparent"
+                                               Click="OnPortalSwitchAccountClicked"
+                                               Height="36" Padding="14,0" Margin="0,0,8,8"
+                                               AutomationProperties.Name="Not you? Switch account"
+                                               ToolTip="Sign out and sign in with a different account"
+                                               Cursor="Hand">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="PersonSwap24" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock Text="Not you? Switch account" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ui:Button>
+                                </WrapPanel>
+                            </StackPanel>
+
+                            <ui:TextBlock x:Name="PortalStatusText"
+                                          Text="" Visibility="Collapsed"
+                                          FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"
+                                          Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                                          AutomationProperties.LiveSetting="Assertive"
+                                          Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </ui:Card>
+
                     <!-- Application Theme Card -->
                     <ui:Card Padding="20">
                         <StackPanel>

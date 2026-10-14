@@ -34,7 +34,282 @@ namespace SS_CAM.Views
         {
             LoadProfileData();
             LoadPluginStates();
+            RefreshPortalAccountCard();
         }
+
+        #region Web portal account
+
+        // Password typed at sign-in, kept in memory ONLY while a forced password change is pending.
+        private string _portalPendingCurrentPassword;
+        private bool _portalBusy;
+        private bool _portalUsernamePrefilled;
+
+        private void RefreshPortalAccountCard()
+        {
+            try
+            {
+                bool pendingChange = PortalAuthService.IsPasswordChangePending && !string.IsNullOrEmpty(_portalPendingCurrentPassword);
+                bool signedIn = !pendingChange && PortalAuthService.IsSignedIn;
+
+                PortalChangePasswordPanel.Visibility = pendingChange ? Visibility.Visible : Visibility.Collapsed;
+                PortalSignedInPanel.Visibility = signedIn ? Visibility.Visible : Visibility.Collapsed;
+                PortalSignedOutPanel.Visibility = (!pendingChange && !signedIn) ? Visibility.Visible : Visibility.Collapsed;
+
+                if (signedIn)
+                {
+                    string display = PortalAuthService.SignedInDisplayName;
+                    string uname = PortalAuthService.SignedInUsername;
+                    PortalSignedInText.Text = "Signed in as " + (string.IsNullOrWhiteSpace(display) ? uname : display);
+                    PortalSignedInDetail.Text = string.IsNullOrWhiteSpace(uname) || string.Equals(uname, display, StringComparison.OrdinalIgnoreCase)
+                        ? "Orders and notes sync with the web portal."
+                        : "Username: " + uname + ". Orders and notes sync with the web portal.";
+
+                    if (PortalAuthService.SavedAccountNeedsPasswordChange)
+                    {
+                        ShowPortalStatus("Your account needs a new password. Switch account and sign in again to choose one.", true);
+                    }
+                    else if (PortalAuthService.SavedCredentialsRejected)
+                    {
+                        ShowPortalStatus("Your saved password no longer works. Switch account and sign in again.", true);
+                    }
+                }
+                else if (!pendingChange && !_portalUsernamePrefilled)
+                {
+                    // Pre-fill once per page visit (not after "Switch account", which starts blank).
+                    _portalUsernamePrefilled = true;
+                    if (string.IsNullOrWhiteSpace(PortalUsernameInput.Text))
+                    {
+                        PortalUsernameInput.Text = GetSuggestedPortalUsername();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                App.LogTrace("[SettingsPage] RefreshPortalAccountCard: " + ex.Message);
+            }
+        }
+
+        private string GetSuggestedPortalUsername()
+        {
+            string last = PortalAuthService.LastUsername;
+            if (!string.IsNullOrWhiteSpace(last)) return last;
+
+            var selected = StaffDirectoryCombo.SelectedItem as StaffDirectoryItem;
+            if (selected != null && !string.IsNullOrWhiteSpace(selected.Username)) return selected.Username.Trim();
+            if (currentProfile != null && !string.IsNullOrWhiteSpace(currentProfile.StaffId)) return currentProfile.StaffId.Trim();
+            return "";
+        }
+
+        private void ShowPortalStatus(string message, bool isError)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                PortalStatusText.Text = "";
+                PortalStatusText.Visibility = Visibility.Collapsed;
+                return;
+            }
+            PortalStatusText.Text = message;
+            PortalStatusText.SetResourceReference(TextBlock.ForegroundProperty,
+                isError ? "SystemFillColorCriticalBrush" : "SystemFillColorSuccessBrush");
+            PortalStatusText.Visibility = Visibility.Visible;
+        }
+
+        private void SetPortalBusy(bool busy)
+        {
+            _portalBusy = busy;
+            BtnPortalSignIn.IsEnabled = !busy;
+            BtnPortalChangePassword.IsEnabled = !busy;
+            BtnPortalCancelChange.IsEnabled = !busy;
+            BtnPortalSignOut.IsEnabled = !busy;
+            BtnPortalSwitchAccount.IsEnabled = !busy;
+            PortalUsernameInput.IsEnabled = !busy;
+            PortalPasswordInput.IsEnabled = !busy;
+            PortalNewPasswordInput.IsEnabled = !busy;
+            PortalConfirmPasswordInput.IsEnabled = !busy;
+            BtnPortalSignInText.Text = busy ? "Signing in..." : "Sign in";
+            BtnPortalChangePasswordText.Text = busy ? "Changing password..." : "Change password";
+        }
+
+        private void OnPortalSignInKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                e.Handled = true;
+                OnPortalSignInClicked(sender, new RoutedEventArgs());
+            }
+        }
+
+        private void OnPortalChangePasswordKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                e.Handled = true;
+                OnPortalChangePasswordClicked(sender, new RoutedEventArgs());
+            }
+        }
+
+        private async void OnPortalSignInClicked(object sender, RoutedEventArgs e)
+        {
+            if (_portalBusy) return;
+            string username = PortalUsernameInput.Text != null ? PortalUsernameInput.Text.Trim() : "";
+            string password = PortalPasswordInput.Password ?? "";
+
+            if (username.Length == 0)
+            {
+                ShowPortalStatus("Enter your username.", true);
+                PortalUsernameInput.Focus();
+                return;
+            }
+            if (password.Length == 0)
+            {
+                ShowPortalStatus("Enter your password.", true);
+                PortalPasswordInput.Focus();
+                return;
+            }
+
+            ShowPortalStatus(null, false);
+            SetPortalBusy(true);
+            try
+            {
+                PortalAuthResult result = await PortalAuthService.SignInAsync(username, password);
+                if (!result.Success)
+                {
+                    ShowPortalStatus(result.ErrorMessage ?? PortalAuthService.MsgOffline, true);
+                    PortalPasswordInput.Password = "";
+                    PortalPasswordInput.Focus();
+                    return;
+                }
+
+                PortalPasswordInput.Password = "";
+                if (result.MustChangePassword)
+                {
+                    _portalPendingCurrentPassword = password;
+                    PortalNewPasswordInput.Password = "";
+                    PortalConfirmPasswordInput.Password = "";
+                    RefreshPortalAccountCard();
+                    ShowPortalStatus(null, false);
+                    PortalNewPasswordInput.Focus();
+                    return;
+                }
+
+                RefreshPortalAccountCard();
+                ShowPortalStatus("Signed in. Orders and notes will now sync with the web portal.", false);
+                BtnPortalSignOut.Focus();
+            }
+            catch (Exception ex)
+            {
+                App.LogTrace("[SettingsPage] Portal sign-in failed: " + ex.Message);
+                ShowPortalStatus(PortalAuthService.MsgOffline, true);
+            }
+            finally
+            {
+                SetPortalBusy(false);
+            }
+        }
+
+        private async void OnPortalChangePasswordClicked(object sender, RoutedEventArgs e)
+        {
+            if (_portalBusy) return;
+            string newPassword = PortalNewPasswordInput.Password ?? "";
+            string confirm = PortalConfirmPasswordInput.Password ?? "";
+
+            if (newPassword.Length < 10)
+            {
+                ShowPortalStatus("Your new password must be at least 10 characters.", true);
+                PortalNewPasswordInput.Focus();
+                return;
+            }
+            if (!string.Equals(newPassword, confirm, StringComparison.Ordinal))
+            {
+                ShowPortalStatus("The passwords don't match.", true);
+                PortalConfirmPasswordInput.Focus();
+                return;
+            }
+            if (string.IsNullOrEmpty(_portalPendingCurrentPassword))
+            {
+                ShowPortalStatus("Sign in again, then change your password.", true);
+                PortalAuthService.CancelPendingPasswordChange();
+                RefreshPortalAccountCard();
+                return;
+            }
+            if (string.Equals(newPassword, _portalPendingCurrentPassword, StringComparison.Ordinal))
+            {
+                ShowPortalStatus("Your new password must be different from your current password.", true);
+                PortalNewPasswordInput.Focus();
+                return;
+            }
+
+            ShowPortalStatus(null, false);
+            SetPortalBusy(true);
+            try
+            {
+                PortalAuthResult result = await PortalAuthService.ChangePasswordAsync(_portalPendingCurrentPassword, newPassword);
+                if (!result.Success)
+                {
+                    ShowPortalStatus(result.ErrorMessage ?? PortalAuthService.MsgOffline, true);
+                    if (!PortalAuthService.IsPasswordChangePending)
+                    {
+                        // Restricted session expired: start again from the sign-in form.
+                        _portalPendingCurrentPassword = null;
+                        RefreshPortalAccountCard();
+                    }
+                    return;
+                }
+
+                _portalPendingCurrentPassword = null;
+                PortalNewPasswordInput.Password = "";
+                PortalConfirmPasswordInput.Password = "";
+                RefreshPortalAccountCard();
+                ShowPortalStatus("Password changed. You're signed in.", false);
+                BtnPortalSignOut.Focus();
+            }
+            catch (Exception ex)
+            {
+                App.LogTrace("[SettingsPage] Portal password change failed: " + ex.Message);
+                ShowPortalStatus(PortalAuthService.MsgOffline, true);
+            }
+            finally
+            {
+                SetPortalBusy(false);
+            }
+        }
+
+        private void OnPortalCancelChangeClicked(object sender, RoutedEventArgs e)
+        {
+            _portalPendingCurrentPassword = null;
+            PortalNewPasswordInput.Password = "";
+            PortalConfirmPasswordInput.Password = "";
+            PortalAuthService.CancelPendingPasswordChange();
+            ShowPortalStatus(null, false);
+            RefreshPortalAccountCard();
+            PortalPasswordInput.Focus();
+        }
+
+        private void OnPortalSignOutClicked(object sender, RoutedEventArgs e)
+        {
+            if (_portalBusy) return;
+            PortalAuthService.SignOut();
+            _portalUsernamePrefilled = true;
+            PortalUsernameInput.Text = GetSuggestedPortalUsername();
+            PortalPasswordInput.Password = "";
+            RefreshPortalAccountCard();
+            ShowPortalStatus("Signed out. Orders and notes now use the NAS copy only.", false);
+            PortalUsernameInput.Focus();
+        }
+
+        private void OnPortalSwitchAccountClicked(object sender, RoutedEventArgs e)
+        {
+            if (_portalBusy) return;
+            PortalAuthService.SignOut();
+            _portalUsernamePrefilled = true;
+            PortalUsernameInput.Text = "";
+            PortalPasswordInput.Password = "";
+            RefreshPortalAccountCard();
+            ShowPortalStatus(null, false);
+            PortalUsernameInput.Focus();
+        }
+
+        #endregion
 
         private void LoadPluginStates()
         {

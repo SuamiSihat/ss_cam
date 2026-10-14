@@ -89,29 +89,79 @@ object AuthPreferences {
     private const val PREFS_NAME = "sscam_auth_prefs"
     private const val KEY_IS_LOGGED_IN = "is_logged_in"
     private const val KEY_USERNAME = "saved_username"
+    private const val KEY_DISPLAY_NAME = "saved_display_name"
     private const val KEY_TOKEN = "saved_token"
 
+    private fun prefs(context: android.content.Context) =
+        context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+
+    /** Fresh installs are signed out. */
     fun isLoggedIn(context: android.content.Context): Boolean {
-        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        return prefs.getBoolean(KEY_IS_LOGGED_IN, true) // Default true for instant studio entry, persistent across logout
+        return prefs(context).getBoolean(KEY_IS_LOGGED_IN, false)
     }
 
+    /** Last username used to sign in, or "" when none is remembered. */
     fun getSavedUsername(context: android.content.Context): String {
-        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        return prefs.getString(KEY_USERNAME, "harussani") ?: "harussani"
+        return prefs(context).getString(KEY_USERNAME, "") ?: ""
     }
 
+    fun getSavedDisplayName(context: android.content.Context): String {
+        return prefs(context).getString(KEY_DISPLAY_NAME, "") ?: ""
+    }
+
+    /** Session token (JWT) issued by the server. The password is never stored. */
     fun getSavedToken(context: android.content.Context): String? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        return prefs.getString(KEY_TOKEN, null)
+        return prefs(context).getString(KEY_TOKEN, null)?.takeIf { it.isNotBlank() }
     }
 
-    fun saveAuth(context: android.content.Context, username: String, token: String?, isLoggedIn: Boolean) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        prefs.edit()
+    /** True when a saved token exists and its JWT "exp" claim is still in the future. */
+    fun hasValidToken(context: android.content.Context): Boolean {
+        val token = getSavedToken(context) ?: return false
+        return isTokenUnexpired(token)
+    }
+
+    fun isTokenUnexpired(token: String): Boolean {
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return false
+            val payload = String(
+                android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING),
+                Charsets.UTF_8
+            )
+            val exp = org.json.JSONObject(payload).optLong("exp", 0L)
+            exp > 0L && exp * 1000L > System.currentTimeMillis()
+        } catch (e: Exception) {
+            android.util.Log.w("SSCAM", "Saved session token could not be read", e)
+            false
+        }
+    }
+
+    fun saveAuth(
+        context: android.content.Context,
+        username: String,
+        displayName: String,
+        token: String,
+        isLoggedIn: Boolean
+    ) {
+        prefs(context).edit()
             .putBoolean(KEY_IS_LOGGED_IN, isLoggedIn)
             .putString(KEY_USERNAME, username)
+            .putString(KEY_DISPLAY_NAME, displayName)
             .putString(KEY_TOKEN, token)
+            .apply()
+    }
+
+    fun setLoggedIn(context: android.content.Context, isLoggedIn: Boolean) {
+        prefs(context).edit().putBoolean(KEY_IS_LOGGED_IN, isLoggedIn).apply()
+    }
+
+    /** "Not you? Switch account": forget the remembered username and any session. */
+    fun forgetSavedAccount(context: android.content.Context) {
+        prefs(context).edit()
+            .putBoolean(KEY_IS_LOGGED_IN, false)
+            .remove(KEY_TOKEN)
+            .remove(KEY_USERNAME)
+            .remove(KEY_DISPLAY_NAME)
             .apply()
     }
 
@@ -119,31 +169,24 @@ object AuthPreferences {
     private const val KEY_EMAIL = "saved_email"
 
     fun getSavedBio(context: android.content.Context): String {
-        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        return prefs.getString(
-            KEY_BIO,
-            "Lead Art Director & Administrator for SuamiSihat Creative Operations. Directing multi-brand creative assets, packaging dielines, brand identities, and campaign deliverables across SSH, SSC, SSW, SSE, and SST."
-        ) ?: ""
+        return prefs(context).getString(KEY_BIO, "") ?: ""
     }
 
     fun saveBio(context: android.content.Context, bio: String) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_BIO, bio).apply()
+        prefs(context).edit().putString(KEY_BIO, bio).apply()
     }
 
     fun getSavedEmail(context: android.content.Context): String {
-        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        return prefs.getString(KEY_EMAIL, "harussani.suamisihat@gmail.com") ?: "harussani.suamisihat@gmail.com"
+        return prefs(context).getString(KEY_EMAIL, "") ?: ""
     }
 
     fun saveEmail(context: android.content.Context, email: String) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_EMAIL, email).apply()
+        prefs(context).edit().putString(KEY_EMAIL, email).apply()
     }
 
+    /** Sign out: clears the token and the signed-in flag; the username is kept for next time. */
     fun clearAuth(context: android.content.Context) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        prefs.edit()
+        prefs(context).edit()
             .putBoolean(KEY_IS_LOGGED_IN, false)
             .remove(KEY_TOKEN)
             .apply()
@@ -252,10 +295,32 @@ fun CompanionAppScreen(
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
 
-    var isLoggedIn by remember { mutableStateOf(AuthPreferences.isLoggedIn(context)) }
+    // A session is only restored when the saved token is still valid; otherwise the user signs in again.
+    val sessionExpiredMessage = "Your session has expired. Please sign in again."
+    val startedWithExpiredSession = remember {
+        AuthPreferences.isLoggedIn(context) && !AuthPreferences.hasValidToken(context)
+    }
+    var isLoggedIn by remember {
+        mutableStateOf(AuthPreferences.isLoggedIn(context) && AuthPreferences.hasValidToken(context))
+    }
     var activeUsername by remember { mutableStateOf(AuthPreferences.getSavedUsername(context)) }
+    var savedDisplayName by remember { mutableStateOf(AuthPreferences.getSavedDisplayName(context)) }
     var isAuthenticating by remember { mutableStateOf(false) }
-    var loginErrorMessage by remember { mutableStateOf<String?>(null) }
+    var loginErrorMessage by remember {
+        mutableStateOf<String?>(if (startedWithExpiredSession) sessionExpiredMessage else null)
+    }
+
+    // Held in memory only while the "Choose a new password" step is open; never persisted.
+    data class PendingPasswordChange(
+        val username: String,
+        val displayName: String,
+        val restrictedToken: String,
+        val currentPassword: String,
+        val rememberMe: Boolean
+    )
+    var pendingPasswordChange by remember { mutableStateOf<PendingPasswordChange?>(null) }
+    var isChangingPassword by remember { mutableStateOf(false) }
+    var passwordChangeError by remember { mutableStateOf<String?>(null) }
 
     var selectedScreen by remember { mutableStateOf(CompanionScreen.Dashboard) }
     var isSettingsOpen by remember { mutableStateOf(false) }
@@ -292,7 +357,28 @@ fun CompanionAppScreen(
         notifications.count { !it.read }
     }
 
+    // Ends the session locally and returns to the sign-in screen. The username is kept.
+    fun endSession(message: String?) {
+        AuthPreferences.clearAuth(context)
+        authToken = null
+        isLoggedIn = false
+        isSettingsOpen = false
+        loginErrorMessage = message
+    }
+
+    // Any API call that gets 401 / 403 SESSION_EXPIRED raises AuthSession.expired.
+    LaunchedEffect(Unit) {
+        com.suamisihat.sscam.data.api.AuthSession.expired.collect {
+            if (isLoggedIn) {
+                endSession(sessionExpiredMessage)
+            }
+        }
+    }
+
     fun refreshLiveData() {
+        // Uses the token saved at sign-in. There is no silent re-login: without a token the user must sign in.
+        val token = authToken
+        if (!isLoggedIn || token.isNullOrBlank()) return
         coroutineScope.launch {
             isLoading = true
             val activeServer = com.suamisihat.sscam.data.api.ServerPreferences.getServerUrl(context)
@@ -300,18 +386,23 @@ fun CompanionAppScreen(
             syncMessage = "Syncing with $serverHost..."
             try {
                 withContext(Dispatchers.IO) {
-                    val anonApi = SscamApiService.create()
-                    val loginRes = anonApi.login(LoginRequest(activeUsername))
-                    val token = if (loginRes.isSuccessful) loginRes.body()?.token else null
-                    authToken = token
-
                     val api = SscamApiService.create(authToken = token)
-                    try { SyncQueueManager.flushQueue(context, api) } catch (e: Exception) { }
+                    try {
+                        SyncQueueManager.flushQueue(context, api)
+                    } catch (e: Exception) {
+                        android.util.Log.w("SSCAM", "Offline queue flush failed", e)
+                    }
                     val projRes = api.getProjects()
                     val teamRes = api.getTeam()
-                    val liveTaskRes = try { api.getLiveTasks() } catch (e: Exception) { null }
-                    val orderRes = try { api.getOrders() } catch (e: Exception) { null }
-                    val notifRes = try { api.getNotifications() } catch (e: Exception) { null }
+                    val liveTaskRes = try { api.getLiveTasks() } catch (e: Exception) {
+                        android.util.Log.w("SSCAM", "Live tasks refresh failed", e); null
+                    }
+                    val orderRes = try { api.getOrders() } catch (e: Exception) {
+                        android.util.Log.w("SSCAM", "Orders refresh failed", e); null
+                    }
+                    val notifRes = try { api.getNotifications() } catch (e: Exception) {
+                        android.util.Log.w("SSCAM", "Notifications refresh failed", e); null
+                    }
 
                     val fetchedProjects = if (projRes.isSuccessful && projRes.body() != null) {
                         projRes.body()!!.projects
@@ -364,6 +455,7 @@ fun CompanionAppScreen(
                     }
                 }
             } catch (e: Exception) {
+                android.util.Log.w("SSCAM", "Live data refresh failed", e)
                 withContext(Dispatchers.Main) {
                     syncMessage = "Synology NAS: Offline Mode"
                 }
@@ -375,7 +467,9 @@ fun CompanionAppScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
+    // Poll only while signed in; restarts when the sign-in state changes.
+    LaunchedEffect(isLoggedIn) {
+        if (!isLoggedIn) return@LaunchedEffect
         refreshLiveData()
         while (true) {
             kotlinx.coroutines.delay(30_000)
@@ -424,29 +518,52 @@ fun CompanionAppScreen(
             onExit = { isDeskModeActive = false }
         )
     } else if (!isLoggedIn) {
+        // Saves the full session token and enters the app. rememberMe controls whether the
+        // session is restored on the next app launch; the password is never stored.
+        fun completeSignIn(username: String, displayName: String, token: String, rememberMe: Boolean) {
+            AuthPreferences.saveAuth(context, username, displayName, token, isLoggedIn = rememberMe)
+            activeUsername = username
+            savedDisplayName = displayName
+            authToken = token
+            loginErrorMessage = null
+            isLoggedIn = true
+        }
+
         LoginScreen(
-            staffList = staffList,
-            initialUsername = activeUsername,
+            savedUsername = activeUsername,
+            savedDisplayName = savedDisplayName,
             isLoading = isAuthenticating,
             errorMessage = loginErrorMessage,
+            onSwitchAccount = {
+                AuthPreferences.forgetSavedAccount(context)
+                activeUsername = ""
+                savedDisplayName = ""
+                authToken = null
+                loginErrorMessage = null
+            },
             onBiometricLogin = {
+                // Biometrics can only unlock an existing, unexpired session saved on this device.
+                val savedToken = AuthPreferences.getSavedToken(context)
+                val savedUser = AuthPreferences.getSavedUsername(context)
                 val activity = context as? androidx.fragment.app.FragmentActivity
-                if (activity != null && com.suamisihat.sscam.util.BiometricAuthManager.isBiometricAvailable(context)) {
+                if (savedToken == null || savedUser.isBlank() || !AuthPreferences.isTokenUnexpired(savedToken)) {
+                    loginErrorMessage = "Sign in with your password first."
+                } else if (activity == null || !com.suamisihat.sscam.util.BiometricAuthManager.isBiometricAvailable(context)) {
+                    loginErrorMessage = "Fingerprint or face unlock isn't set up on this device. Sign in with your password."
+                } else {
                     com.suamisihat.sscam.util.BiometricAuthManager.promptBiometric(
                         activity = activity,
                         onSuccess = {
-                            val savedUser = AuthPreferences.getSavedUsername(context).ifEmpty { "harussani" }
+                            AuthPreferences.setLoggedIn(context, true)
                             activeUsername = savedUser
+                            authToken = savedToken
+                            loginErrorMessage = null
                             isLoggedIn = true
-                            refreshLiveData()
-                            Toast.makeText(context, "Biometric authenticated: Welcome back, $savedUser!", Toast.LENGTH_SHORT).show()
                         },
                         onError = { err ->
-                            Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                            loginErrorMessage = err
                         }
                     )
-                } else {
-                    Toast.makeText(context, "Biometric hardware not available or not enrolled", Toast.LENGTH_SHORT).show()
                 }
             },
             onLogin = { username, password, rememberMe ->
@@ -454,52 +571,113 @@ fun CompanionAppScreen(
                     isAuthenticating = true
                     loginErrorMessage = null
                     try {
-                        withContext(Dispatchers.IO) {
-                            val api = SscamApiService.create()
-                            val res = api.login(LoginRequest(username = username, password = password))
-                            if (res.isSuccessful && res.body() != null) {
-                                val body = res.body()!!
-                                val token = body.token
-                                withContext(Dispatchers.Main) {
-                                    activeUsername = username
-                                    authToken = token
-                                    isLoggedIn = true
-                                    if (rememberMe) {
-                                        AuthPreferences.saveAuth(context, username, token, true)
-                                    }
-                                    refreshLiveData()
-                                    Toast.makeText(context, "Authenticated with Synology NAS", Toast.LENGTH_SHORT).show()
-                                }
+                        val res = withContext(Dispatchers.IO) {
+                            SscamApiService.create().login(LoginRequest(username = username, password = password))
+                        }
+                        val body = res.body()
+                        val token = body?.token
+                        if (res.isSuccessful && body != null && body.success && !token.isNullOrBlank()) {
+                            val canonicalUsername = body.user?.username?.takeIf { it.isNotBlank() } ?: username
+                            val displayName = body.user?.name?.takeIf { it.isNotBlank() } ?: canonicalUsername
+                            if (body.mustChangePassword) {
+                                passwordChangeError = null
+                                pendingPasswordChange = PendingPasswordChange(
+                                    username = canonicalUsername,
+                                    displayName = displayName,
+                                    restrictedToken = token,
+                                    currentPassword = password,
+                                    rememberMe = rememberMe
+                                )
                             } else {
-                                withContext(Dispatchers.Main) {
-                                    activeUsername = username
-                                    isLoggedIn = true
-                                    if (rememberMe) {
-                                        AuthPreferences.saveAuth(context, username, null, true)
-                                    }
-                                    refreshLiveData()
-                                    Toast.makeText(context, "Welcome, $username (Studio Mode)", Toast.LENGTH_SHORT).show()
-                                }
+                                completeSignIn(canonicalUsername, displayName, token, rememberMe)
+                            }
+                        } else {
+                            android.util.Log.w("SSCAM", "Sign in failed: HTTP ${res.code()}")
+                            loginErrorMessage = when (res.code()) {
+                                401 -> "Username or password is incorrect."
+                                429 -> "Too many attempts. Wait a minute and try again."
+                                else -> "Sign in isn't available right now. Try again later."
                             }
                         }
+                    } catch (e: java.io.IOException) {
+                        android.util.Log.w("SSCAM", "Sign in failed: server unreachable", e)
+                        loginErrorMessage = "Can't reach the server. Check your connection."
                     } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            activeUsername = username
-                            isLoggedIn = true
-                            if (rememberMe) {
-                                AuthPreferences.saveAuth(context, username, null, true)
-                            }
-                            refreshLiveData()
-                            Toast.makeText(context, "Welcome, $username (Offline Mode)", Toast.LENGTH_SHORT).show()
-                        }
+                        android.util.Log.w("SSCAM", "Sign in failed", e)
+                        loginErrorMessage = "Something went wrong. Try again."
                     } finally {
-                        withContext(Dispatchers.Main) {
-                            isAuthenticating = false
-                        }
+                        isAuthenticating = false
                     }
                 }
             }
         )
+
+        pendingPasswordChange?.let { pending ->
+            ChangePasswordDialog(
+                isSaving = isChangingPassword,
+                errorMessage = passwordChangeError,
+                onDismiss = {
+                    if (!isChangingPassword) {
+                        pendingPasswordChange = null
+                        passwordChangeError = null
+                    }
+                },
+                onSubmit = { newPassword ->
+                    coroutineScope.launch {
+                        isChangingPassword = true
+                        passwordChangeError = null
+                        try {
+                            val res = withContext(Dispatchers.IO) {
+                                SscamApiService.create(authToken = pending.restrictedToken).changePassword(
+                                    com.suamisihat.sscam.data.api.ChangePasswordRequest(
+                                        currentPassword = pending.currentPassword,
+                                        newPassword = newPassword
+                                    )
+                                )
+                            }
+                            val body = res.body()
+                            val fullToken = body?.token
+                            if (res.isSuccessful && body != null && !fullToken.isNullOrBlank()) {
+                                val username = body.user?.username?.takeIf { it.isNotBlank() } ?: pending.username
+                                val displayName = body.user?.name?.takeIf { it.isNotBlank() } ?: pending.displayName
+                                pendingPasswordChange = null
+                                completeSignIn(username, displayName, fullToken, pending.rememberMe)
+                                Toast.makeText(context, "Password changed.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                android.util.Log.w("SSCAM", "Change password failed: HTTP ${res.code()}")
+                                val serverMessage = withContext(Dispatchers.IO) {
+                                    try {
+                                        res.errorBody()?.string()?.let { org.json.JSONObject(it).optString("error", "") }
+                                    } catch (e: Exception) {
+                                        android.util.Log.w("SSCAM", "Could not read change-password error", e)
+                                        null
+                                    }
+                                }
+                                when (res.code()) {
+                                    400 -> passwordChangeError = if (!serverMessage.isNullOrBlank()) serverMessage
+                                        else "That password can't be used. Choose a different one."
+                                    429 -> passwordChangeError = "Too many attempts. Wait a minute and try again."
+                                    401, 403 -> {
+                                        // The temporary sign-in has lapsed; start again from the sign-in screen.
+                                        pendingPasswordChange = null
+                                        loginErrorMessage = sessionExpiredMessage
+                                    }
+                                    else -> passwordChangeError = "Couldn't change your password right now. Try again later."
+                                }
+                            }
+                        } catch (e: java.io.IOException) {
+                            android.util.Log.w("SSCAM", "Change password failed: server unreachable", e)
+                            passwordChangeError = "Can't reach the server. Check your connection."
+                        } catch (e: Exception) {
+                            android.util.Log.w("SSCAM", "Change password failed", e)
+                            passwordChangeError = "Something went wrong. Try again."
+                        } finally {
+                            isChangingPassword = false
+                        }
+                    }
+                }
+            )
+        }
     } else if (isDeskModeActive) {
         DeskCompanionMode(
             activeProjects = projects,
@@ -639,7 +817,7 @@ fun CompanionAppScreen(
                             // Profile Avatar -> Toggles Swiss Editorial Profile
                             UserProfileAvatar(
                                 imageUrl = currentUserProfile?.profileImageUrl,
-                                initials = currentUserProfile?.name ?: "Harussani",
+                                initials = currentUserProfile?.name ?: savedDisplayName.ifBlank { activeUsername },
                                 avatarColorHex = currentUserProfile?.avatarColor ?: "#0078D4",
                                 size = 36.dp,
                                 onClick = { isSettingsOpen = !isSettingsOpen }
@@ -746,10 +924,9 @@ fun CompanionAppScreen(
                         projects = projects,
                         onThemeSelected = onThemeChange,
                         onSignOut = {
-                            isLoggedIn = false
-                            AuthPreferences.clearAuth(context)
-                            isSettingsOpen = false
-                            Toast.makeText(context, "Signed out of studio workstation", Toast.LENGTH_SHORT).show()
+                            // Clears the token and the signed-in flag; the username is remembered.
+                            endSession(null)
+                            Toast.makeText(context, "You're signed out.", Toast.LENGTH_SHORT).show()
                         }
                     )
                 } else {

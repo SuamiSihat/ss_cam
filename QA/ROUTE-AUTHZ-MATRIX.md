@@ -20,7 +20,7 @@ Permissions come from `server/middleware/auth.js`. `project:edit` is held by man
 | Method | Endpoint | Auth / Authorization | Line |
 |---|---|---|---|
 | `GET` | `/api/events` | **none (public)** | 79 |
-| `GET` | `/api/auth/roster` | **none (public)** | 85 |
+| ~~`GET`~~ | ~~`/api/auth/roster`~~ | **removed 2026-10-14** (staff names were public; sign-in now uses a typed username) | — |
 | `GET` | `/api/team/live-tasks` | **none (public)** | 105 |
 | `POST` | `/api/auth/login` | **none (public)** + `loginLimiter` | 119 |
 | `POST` | `/api/auth/change-password` | `authenticateToken` | 187 |
@@ -100,7 +100,7 @@ Permissions come from `server/middleware/auth.js`. `project:edit` is held by man
 | `GET` | `/api/deliverables/stream` | **none (public)** | 2206 |
 | `GET` | `/api/deliverables/download` | **none (public)** | 2215 |
 | `GET` | `/api/team` | `authenticateToken` | 2226 |
-| `GET` | `/api/team/roster` | **none (public)** | 2237 |
+| `GET` | `/api/team/roster` | `authenticateToken` | — |
 | `GET` | `/api/users/:id/avatar` | **none (public)** | 2246 |
 | `GET` | `/api/users` | `authenticateToken` | 2267 |
 | `POST` | `/api/users` | `authenticateToken` + `requireRole('admin')` | 2347 |
@@ -121,7 +121,7 @@ Permissions come from `server/middleware/auth.js`. `project:edit` is held by man
 | `GET` | `/api/system/status` | `authenticateToken` | 2548 |
 | `GET` | `/api/system/workspace-candidates` | `authenticateToken` | 2575 |
 | `POST` | `/api/system/workspace-root` | `authenticateToken` + `requireRole('admin')` | 2660 |
-| `GET` | `/api/notes` | **none (public)** | 2784 |
+| `GET` | `/api/notes` | `authenticateToken` (team-wide notes, signed-in staff only) | — |
 | `POST` | `/api/notes` | `authenticateToken` | 2834 |
 | `DELETE` | `/api/notes/:id` | `authenticateToken` | 2862 |
 | `GET` | `/api/orders` | `authenticateToken` | 2896 |
@@ -156,12 +156,18 @@ Permissions come from `server/middleware/auth.js`. `project:edit` is held by man
 - New accounts and Admin "Reset to default" use the default password `SuamiSihat123`, overridable with the `DEFAULT_STAFF_PASSWORD` environment variable. Minimum password length is 10 characters. A corrupt password store now fails closed (sign-in refused) instead of open.
 - Removed dead or duplicate routes: 4 duplicate task routes and a duplicate `POST /auth/forgot-password`. The remaining one emails a reset link and writes to the audit log.
 
+## Sign-in and session rules (2026-10-14)
+
+- `POST /auth/login` returns `mustChangePassword: true` when the default password is used. The token issued then only works for `POST /auth/change-password`; every other route answers `403` with code `PASSWORD_CHANGE_REQUIRED`.
+- `POST /auth/change-password` rejects passwords under 10 characters, the default password and the current password. On success it returns a normal session token.
+- Invalid or expired tokens answer `403` with code `SESSION_EXPIRED`; a missing token answers `401`.
+- `POST /notes` saves into the signed-in user's own folder; only admins may write into another person's folder.
+
 ## Intentionally Public Routes and Why
 
 | Route(s) | Why public | Safeguard |
 |---|---|---|
 | `POST /auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-reset-token` | Needed before sign-in | `loginLimiter` (except verify-reset-token); reset tokens are single-use and expire after 30 minutes |
-| `GET /auth/roster` | Sign-in screen user picker | Returns only active users' display fields (no email, no password data) |
 | `GET /deliverables/preview`, `/stream`, `/download` | Used by `<img>`/`<video>` tags (no auth header) and the public client review page | Paths resolved inside the workspace; only media file types are served |
 | `GET /projects/:id/asset` | Brief images and the public client review page | Refuses hidden files/folders and `.json`, `.jsonl`, `.env`, `.lock`, `.tmp` |
 | `GET/POST /public/review/:token...` | Client review links for people without an account | Valid share token required |
@@ -175,9 +181,7 @@ These are public in the code today but have no documented reason. Status: **PART
 
 - `GET /events` (Server-Sent Events stream of workspace changes).
 - `GET /team/live-tasks` (live task telemetry).
-- `GET /team/roster` (returns the full staff roster object, unlike `/auth/roster`).
 - `GET /companies`, `GET /companies/:code` (company registry).
-- `GET /notes` (reads Quick Notes; accepts `?user=` to choose whose notes).
 - `GET /orders/:id/attachments/:filename` (creative order attachments).
 
 ## Standing Controls

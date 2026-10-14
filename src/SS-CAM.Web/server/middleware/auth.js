@@ -303,7 +303,11 @@ function updateUserPassword(username, newPassword) {
   return true;
 }
 
-function generateToken(user) {
+/**
+ * Signs a session token. With { mustChangePassword: true } the token is restricted:
+ * authenticateToken only lets it call POST /auth/change-password.
+ */
+function generateToken(user, options = {}) {
   const roles = getUserRoles(user);
   const permissions = getUserPermissions(user);
   const officialTitle = user.officialTitle || (typeof user.role === 'string' ? user.role : 'Head of Creative');
@@ -317,7 +321,8 @@ function generateToken(user) {
       roles: roles,
       staffId: user.staffId,
       department: user.department,
-      permissions
+      permissions,
+      ...(options.mustChangePassword ? { pwc: true } : {})
     },
     config.JWT_SECRET,
     { expiresIn: config.JWT_EXPIRES_IN || '12h' }
@@ -334,7 +339,11 @@ function authenticateToken(req, res, next) {
 
   jwt.verify(token, config.JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(403).json({ error: 'Your session has expired. Please sign in again.' });
+      return res.status(403).json({ error: 'Your session has expired. Please sign in again.', code: 'SESSION_EXPIRED' });
+    }
+    // A token issued for a default-password sign-in may only be used to choose a new password.
+    if (user.pwc && !String(req.originalUrl || '').split('?')[0].endsWith('/auth/change-password')) {
+      return res.status(403).json({ error: 'Please change your password to continue.', code: 'PASSWORD_CHANGE_REQUIRED' });
     }
     req.user = user;
     next();

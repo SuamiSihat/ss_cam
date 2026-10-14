@@ -481,8 +481,8 @@ data class CreateOrderRequest(
     @SerializedName("deadline") val deadline: String? = null,
     @SerializedName("duration") val duration: String? = null,
     @SerializedName("attachmentNote") val attachmentNote: String = "",
-    @SerializedName("requester") val requester: String = "Harussani",
-    @SerializedName("requesterRole") val requesterRole: String = "Admin, Designer",
+    @SerializedName("requester") val requester: String = "", // server uses the signed-in user
+    @SerializedName("requesterRole") val requesterRole: String = "",
     @SerializedName("channel") val channel: String? = "digital",
     @SerializedName("material") val material: String? = null,
     @SerializedName("widthMm") val widthMm: Double? = null,

@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
-const { SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserPermissions, hasCanonicalRole, verifyUserPassword, updateUserPassword, createPasswordResetToken, verifyPasswordResetToken, resetPasswordWithToken, generateToken, authenticateToken, requirePermission, requireRole } = require('../middleware/auth');
+const { SYSTEM_USERS, ROLE_PERMISSIONS, getUserRoles, getUserPermissions, hasCanonicalRole, verifyUserPassword, updateUserPassword, createPasswordResetToken, verifyPasswordResetToken, resetPasswordWithToken, findUserByIdentifier, generateToken, authenticateToken, requirePermission, requireRole } = require('../middleware/auth');
 const WorkspaceService = require('../services/WorkspaceService');
 const ProjectFormat = require('../services/ProjectFormat');
 const FrontmatterService = require('../services/FrontmatterService');
@@ -82,24 +82,8 @@ router.get('/events', (req, res) => {
 
 // ─── AUTHENTICATION ROUTES ──────────────────────────────────────────
 
-router.get('/auth/roster', (req, res) => {
-  try {
-    const roster = TeamService.getStaffRoster()
-      .filter(u => u.active !== false)
-      .map(u => ({
-        staffId: u.staffId || u.id,
-        username: u.username || (u.name || '').toLowerCase().replace(/\s+/g, ''),
-        name: u.name,
-        role: u.role || 'Designer',
-        department: u.department || 'Creative Production',
-        avatarColor: u.avatarColor || '#0078D4'
-      }))
-      .sort((a, b) => (b.staffId || '').localeCompare(a.staffId || ''));
-    res.json({ success: true, staff: roster });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// The public /auth/roster staff list was removed: sign-in screens now ask people to type
+// their username, so staff names and roles are no longer exposed to anyone on the internet.
 
 // ─── REAL-TIME LIVE STUDIO TASKS & TELEMETRY ROUTE ───────────────────
 router.get('/team/live-tasks', (req, res) => {
@@ -159,12 +143,23 @@ router.post('/auth/login', loginLimiter, (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials. Please verify your username and password.' });
   }
 
-  const token = generateToken(user);
+  res.json(buildSignInResponse(user, isDefaultPassword(password)));
+});
+
+/** True when the password is the shared default (or the pre-2026-10 default), which must be changed. */
+function isDefaultPassword(password) {
+  return password === config.DEFAULT_STAFF_PASSWORD || password === 'SuamiSihat123!';
+}
+
+/** Session token + user profile returned by sign-in and by a successful password change. */
+function buildSignInResponse(user, mustChangePassword) {
+  const token = generateToken(user, { mustChangePassword });
   const roles = getUserRoles(user);
   const permissions = getUserPermissions(user);
-  res.json({
+  return {
     success: true,
     token,
+    mustChangePassword: !!mustChangePassword,
     user: {
       id: user.staffId || user.id,
       username: user.username,
@@ -181,8 +176,8 @@ router.post('/auth/login', loginLimiter, (req, res) => {
       defaultBrand: user.defaultBrand || 'SS',
       permissions
     }
-  });
-});
+  };
+}
 
 router.post('/auth/change-password', authenticateToken, (req, res) => {
   try {
@@ -190,6 +185,12 @@ router.post('/auth/change-password', authenticateToken, (req, res) => {
     
     if (!verifyUserPassword(req.user.username, currentPassword)) {
       return res.status(400).json({ error: 'Current password is incorrect.' });
+    }
+    if (typeof newPassword !== 'string' || newPassword.length < 10) {
+      return res.status(400).json({ error: 'Your new password must be at least 10 characters.' });
+    }
+    if (isDefaultPassword(newPassword) || newPassword === currentPassword) {
+      return res.status(400).json({ error: 'Please choose a password different from the default and your current one.' });
     }
 
     updateUserPassword(req.user.username, newPassword);
@@ -203,7 +204,9 @@ router.post('/auth/change-password', authenticateToken, (req, res) => {
       details: { username: req.user.username }
     });
 
-    res.json({ success: true, message: 'Password updated successfully.' });
+    // Hand back a normal (unrestricted) session so the person can carry on straight away.
+    const user = findUserByIdentifier(req.user.username) || req.user;
+    res.json({ ...buildSignInResponse(user, false), message: 'Password updated.' });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -2234,7 +2237,7 @@ router.get('/team', authenticateToken, (req, res) => {
 
 // ─── USER & STAFF DIRECTORY ROUTES ──────────────────────────────────
 
-router.get('/team/roster', (req, res) => {
+router.get('/team/roster', authenticateToken, (req, res) => {
   try {
     const roster = TeamService.getStaffRoster();
     res.json({ success: true, roster, users: roster });
@@ -2275,7 +2278,7 @@ router.get('/users', authenticateToken, (req, res) => {
 
 // Default password for new accounts and admin "reset to default". Override per tenant with
 // DEFAULT_STAFF_PASSWORD in .env. Must meet the 10-character minimum.
-const DEFAULT_PASSWORD = process.env.DEFAULT_STAFF_PASSWORD || 'SuamiSihat123';
+const DEFAULT_PASSWORD = config.DEFAULT_STAFF_PASSWORD;
 
 function handleCreateStaffUser(req, res) {
   try {
@@ -2781,7 +2784,8 @@ function parseNoteMarkdown(content, filename, stat, owner = 'team') {
   };
 }
 
-router.get('/notes', (req, res) => {
+// Quick Notes are shared with the whole team, but only with signed-in staff.
+router.get('/notes', authenticateToken, (req, res) => {
   try {
     const requestedUser = req.query.user || (req.user && req.user.username);
     const dirs = getAllNotesDirs(requestedUser);
@@ -2834,7 +2838,9 @@ router.get('/notes', (req, res) => {
 router.post('/notes', authenticateToken, (req, res) => {
   try {
     const { id, title, body, isPinned = false, priority = 'normal', user } = req.body;
-    const targetUser = user || (req.user && req.user.username);
+    // Staff save into their own notes folder; only admins may write into someone else's.
+    const self = req.user && req.user.username;
+    const targetUser = (user && hasCanonicalRole(req.user, 'admin')) ? user : self;
     const target = getTargetWriteDir(targetUser);
     const rawId = id || new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15);
     const noteId = path.basename(String(rawId)).replace(/[^a-zA-Z0-9_-]/g, '_');

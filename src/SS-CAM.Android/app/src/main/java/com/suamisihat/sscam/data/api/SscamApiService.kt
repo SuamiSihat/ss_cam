@@ -10,15 +10,63 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 import java.util.concurrent.TimeUnit
 
+/** Sign-in request. The password is required; the server rejects password-less sign-in. */
 data class LoginRequest(
     @SerializedName("username") val username: String,
-    @SerializedName("password") val password: String? = null
+    @SerializedName("password") val password: String
 )
+
+/** The signed-in user as returned by api/auth/login and api/auth/change-password. */
+data class AuthUser(
+    @SerializedName("username") val username: String? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("staffId") val staffId: String? = null,
+    @SerializedName("role") val role: String? = null
+)
+
 data class LoginResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("token") val token: String? = null,
+    @SerializedName("user") val user: AuthUser? = null,
+    @SerializedName("mustChangePassword") val mustChangePassword: Boolean = false,
     @SerializedName("error") val error: String? = null
 )
+
+data class ChangePasswordRequest(
+    @SerializedName("currentPassword") val currentPassword: String,
+    @SerializedName("newPassword") val newPassword: String
+)
+
+data class ChangePasswordResponse(
+    @SerializedName("success") val success: Boolean = false,
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("token") val token: String? = null,
+    @SerializedName("user") val user: AuthUser? = null,
+    @SerializedName("error") val error: String? = null
+)
+
+/**
+ * App-wide signal raised when the server rejects the saved session token
+ * (401, or 403 with code SESSION_EXPIRED). The main screen listens for it and
+ * returns the user to the sign-in screen.
+ */
+object AuthSession {
+    private val _expired = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
+    )
+    val expired: kotlinx.coroutines.flow.SharedFlow<Unit> = _expired
+
+    fun notifyExpired() {
+        _expired.tryEmit(Unit)
+    }
+
+    /** True when an authenticated response means the token is no longer accepted. */
+    fun isSessionRejected(code: Int, body: String?): Boolean {
+        if (code == 401) return true
+        return code == 403 && body?.contains("SESSION_EXPIRED") == true
+    }
+}
 
 data class NoteItemDto(
     @SerializedName("id") val id: String,
@@ -49,6 +97,10 @@ interface SscamApiService {
 
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    /** Accepts the restricted token issued when mustChangePassword is true. */
+    @POST("api/auth/change-password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<ChangePasswordResponse>
 
     @GET("api/dashboard")
     suspend fun getDashboardSummary(): Response<DashboardSummary>
@@ -153,7 +205,19 @@ interface SscamApiService {
                     if (!authToken.isNullOrBlank()) {
                         requestBuilder.addHeader("Authorization", "Bearer $authToken")
                     }
-                    chain.proceed(requestBuilder.build())
+                    val response = chain.proceed(requestBuilder.build())
+                    if (!authToken.isNullOrBlank() && (response.code == 401 || response.code == 403)) {
+                        val peek = try {
+                            response.peekBody(4096).string()
+                        } catch (e: java.io.IOException) {
+                            android.util.Log.w("SSCAM", "Could not read auth error body", e)
+                            null
+                        }
+                        if (AuthSession.isSessionRejected(response.code, peek)) {
+                            AuthSession.notifyExpired()
+                        }
+                    }
+                    response
                 }
                 .build()
 

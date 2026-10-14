@@ -17,6 +17,27 @@ All notable SS-CAM changes are documented here.
 - **Android**: new projects get a deadline one week ahead. They used to get a fixed 15 Sep 2026.
 - **New check**: `QA/verify-format-sync.ps1` confirms all four apps agree. It is now step 3 of `QA/verify-dual-track.ps1`. It replaces `QA/sync-status-enums.ps1`, which rewrote source files from a file outside the repo.
 
+### Sign-in on every app
+
+- **Type your username; no staff list.** The Web and Android sign-in screens no longer show a list of everyone's names.
+  - The public `/api/auth/roster` route is removed.
+  - The staff list that was built into the web page's code is removed.
+  - `/api/team/roster` and Quick Notes now require sign-in.
+- **Remember me** shows **Continue as [name]** with a **Not you? Switch account** link (Web and Android).
+- **Default password must be changed.** Signing in with the default password returns `mustChangePassword` and a restricted session that can only choose a new password. Every app shows a "Choose a new password" step. The new password must be at least 10 characters and different from the default.
+- **Windows app: real portal sign-in** in **Settings → Web portal account** (new `PortalAuthService`).
+  - Orders and Quick Notes sync with the web now authenticate. Quick Notes upload and delete never worked before.
+  - The username and password are saved encrypted with Windows DPAPI for the current Windows user only (`%LOCALAPPDATA%\<AppFolder>\portal_account.dat`). The app signs in again silently when the 12-hour session ends.
+  - The old username-only login and admin fallback are removed.
+  - Certificate errors are now accepted only for the configured portal address, not for every connection.
+- **Android fixes:**
+  - A fresh install no longer opens signed in as an admin.
+  - Background refresh no longer throws away the session by re-signing in without a password.
+  - An expired session returns you to sign-in with your username kept.
+  - Fingerprint or face unlock only reopens a still-valid session.
+  - The password is never stored on the phone.
+- **Session errors** carry a code (`SESSION_EXPIRED`, `PASSWORD_CHANGE_REQUIRED`) so apps can send people back to sign-in.
+
 ### Access control (Web)
 
 - **Deleting tasks is limited to managers and admins** (`project:edit`) on all three delete routes, including the duplicate `/studio-tasks/:id` route. The delete buttons are hidden for other users.

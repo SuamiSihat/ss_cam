@@ -23,17 +23,41 @@ namespace SS_CAM.Services
     /// </summary>
     public static class QuickNoteService
     {
-        private static readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
+        private static readonly HttpClient _httpClient = PortalAuthService.CreatePortalHttpClient(TimeSpan.FromSeconds(4));
         private static string WebPortalNotesApiUrl
         {
-            get
+            get { return PortalAuthService.PortalBaseUrl + "api/notes"; }
+        }
+
+        /// <summary>
+        /// Sends an authenticated request to the portal notes API. Returns null (and logs) when there is no
+        /// portal session, so callers keep the local/NAS behaviour. The caller disposes the response.
+        /// </summary>
+        private static async Task<HttpResponseMessage> SendNotesRequestAsync(HttpMethod method, string url, HttpContent content, string operation)
+        {
+            string token = await PortalAuthService.GetTokenAsync().ConfigureAwait(false);
+            if (string.IsNullOrEmpty(token))
             {
-                if (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.PortalUrl))
+                App.LogTrace("[QuickNoteService] " + operation + " skipped: not signed in to the web portal.");
+                if (content != null) content.Dispose();
+                return null;
+            }
+
+            using (HttpRequestMessage req = new HttpRequestMessage(method, url))
+            {
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                if (content != null) req.Content = content;
+                HttpResponseMessage res = await _httpClient.SendAsync(req).ConfigureAwait(false);
+                int status = (int)res.StatusCode;
+                if (status == 401 || status == 403)
                 {
-                    string url = TenantConfigService.Current.PortalUrl;
-                    return (url.EndsWith("/") ? url : url + "/") + "api/notes";
+                    PortalAuthService.InvalidateToken();
                 }
-                return "https://creative.corporate.local/api/notes";
+                if (!res.IsSuccessStatusCode)
+                {
+                    App.LogTrace("[QuickNoteService] " + operation + " returned HTTP " + status + ".");
+                }
+                return res;
             }
         }
 
@@ -269,10 +293,12 @@ namespace SS_CAM.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync(WebPortalNotesApiUrl);
-                if (!response.IsSuccessStatusCode) return;
-
-                string json = await response.Content.ReadAsStringAsync();
+                string json;
+                using (var response = await SendNotesRequestAsync(HttpMethod.Get, WebPortalNotesApiUrl, null, "Notes sync").ConfigureAwait(false))
+                {
+                    if (response == null || !response.IsSuccessStatusCode) return;
+                    json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                }
                 if (string.IsNullOrWhiteSpace(json)) return;
 
                 var root = JObject.Parse(json);
@@ -376,7 +402,8 @@ namespace SS_CAM.Services
                     };
                     string json = JsonConvert.SerializeObject(payload);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
-                    await _httpClient.PostAsync(WebPortalNotesApiUrl, content);
+                    HttpResponseMessage res = await SendNotesRequestAsync(HttpMethod.Post, WebPortalNotesApiUrl, content, "Note upload").ConfigureAwait(false);
+                    if (res != null) res.Dispose();
                 }
                 catch (Exception ex)
                 {
@@ -391,7 +418,8 @@ namespace SS_CAM.Services
             {
                 try
                 {
-                    await _httpClient.DeleteAsync(WebPortalNotesApiUrl + "/" + id);
+                    HttpResponseMessage res = await SendNotesRequestAsync(HttpMethod.Delete, WebPortalNotesApiUrl + "/" + Uri.EscapeDataString(id ?? ""), null, "Note delete").ConfigureAwait(false);
+                    if (res != null) res.Dispose();
                 }
                 catch (Exception ex)
                 {

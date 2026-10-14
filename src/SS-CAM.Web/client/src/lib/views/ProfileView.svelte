@@ -305,13 +305,14 @@
 
     isSavingPassword = true;
     try {
-      await ApiClient.changePassword(currentPassword, newPassword);
-      appState.addToast('Password updated successfully on Synology NAS', 'success');
+      const res = await ApiClient.changePassword(currentPassword, newPassword);
+      if (res.token) ApiClient.setToken(res.token);
+      appState.addToast('Password updated.', 'success');
       currentPassword = '';
       newPassword = '';
       confirmPassword = '';
     } catch (err: any) {
-      appState.addToast(`Failed to update password: ${err.message}`, 'error');
+      appState.addToast(`Couldn't update your password. ${err.message}`, 'error');
     } finally {
       isSavingPassword = false;
     }

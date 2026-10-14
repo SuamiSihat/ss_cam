@@ -7,7 +7,7 @@ This document is an inventory of every hardcoded SuamiSihat-specific reference a
 - **`creative.suamisihat.myds.me`**
   - Android: `TeamHubScreen.kt`, `SettingsProfileScreen.kt`, `SscamApiService.kt`, `MainActivity.kt` (Base API URLs and sync messages)
   - WPF: `CreativeOrderService.cs`, `QuickNoteService.cs`, `OrderRequestsPage.xaml.cs`
-    - [RESOLVED 2026-10-14] `CreativeOrderService.cs` no longer uses a hard-coded user name for order-portal sign-in; it falls back to the first active Admin in `_Team/_Config/staff_directory.json`. Known gap: the desktop sends no password, so portal sign-in still fails until a desktop sign-in/sync key is designed; orders fall back to the NAS ledger (`_Orders/creative-orders.jsonl`).
+    - [RESOLVED 2026-10-14] `CreativeOrderService.cs` and `QuickNoteService.cs` no longer use a hard-coded user name: they use `PortalAuthService` (Windows sign-in in Settings, password encrypted with DPAPI). Without a signed-in account, orders fall back to the NAS ledger (`_Orders/creative-orders.jsonl`).
   - Web: `WebhookService.js`
 - **`assets.suamisihat.myds.me`**
   - Web: [RESOLVED 2026-10-14] The legacy web client (`client/js/views/AdminView.js`, `LoginView.js`) that held these links has been removed.

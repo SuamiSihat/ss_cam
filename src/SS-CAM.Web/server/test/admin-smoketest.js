@@ -96,7 +96,9 @@ async function runAdminSmoketest() {
 
     // ─── 2. Creative Team Roster & Harussani Role Verification ─────────
     await test('GET /api/team/roster recognizes Harussani as Head of Creative with Dual Tiers', async () => {
-      const res = await fetch(`${baseUrl}/team/roster`);
+      const anon = await fetch(`${baseUrl}/team/roster`);
+      assert.strictEqual(anon.status, 401, 'Full staff roster must require sign-in');
+      const res = await fetch(`${baseUrl}/team/roster`, { headers: authHeaders });
       assert.strictEqual(res.status, 200, `Expected 200, got ${res.status}`);
       const data = await res.json();
       assert.ok(Array.isArray(data.roster), 'data.roster should be an array');

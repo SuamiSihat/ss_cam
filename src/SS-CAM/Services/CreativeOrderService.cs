@@ -22,19 +22,9 @@ namespace SS_CAM.Services
     {
         private static readonly object _fileLock = new object();
         private static readonly HttpClient _httpClient;
-        private static string _cachedJwtToken = null;
-        private static DateTime _tokenExpiry = DateTime.MinValue;
         private static string ApiBaseUrl
         {
-            get
-            {
-                if (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.PortalUrl))
-                {
-                    string url = TenantConfigService.Current.PortalUrl;
-                    return url.EndsWith("/") ? url : url + "/";
-                }
-                return "https://creative.corporate.local/";
-            }
+            get { return PortalAuthService.PortalBaseUrl; }
         }
 
         static CreativeOrderService()
@@ -42,15 +32,18 @@ namespace SS_CAM.Services
             try
             {
                 System.Net.ServicePointManager.SecurityProtocol |= System.Net.SecurityProtocolType.Tls12;
-                System.Net.ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+                // Scoped certificate policy (replaces a former accept-everything callback): valid certificates are
+                // accepted for every host; a certificate with errors is accepted ONLY for the configured PortalUrl
+                // host (the NAS portal may be self-signed). Portal HttpClients also apply this policy per handler,
+                // so other components that overwrite this global callback cannot change portal behaviour.
+                System.Net.ServicePointManager.ServerCertificateValidationCallback = PortalAuthService.ServicePointCertificateCallback;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("[CreativeOrderService] SSL config warning: " + ex.Message);
             }
 
-            var handler = new HttpClientHandler();
-            _httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(6) };
+            _httpClient = PortalAuthService.CreatePortalHttpClient(TimeSpan.FromSeconds(6));
         }
 
         private class OrdersApiResponse
@@ -106,106 +99,43 @@ namespace SS_CAM.Services
         }
 
         /// <summary>
-        /// First active staff member with the Admin role in _Team/_Config/staff_directory.json.
-        /// Returns their username (or name / staff ID, which the portal also accepts), or null.
+        /// Portal bearer token for the account signed in under Settings > Web portal account.
+        /// Returns null when not signed in or offline; callers then keep using the NAS orders ledger.
         /// </summary>
-        private static string ResolveFallbackAdminUsername()
+        private static async Task<string> GetAuthTokenAsync()
         {
-            try
+            string token = await PortalAuthService.GetTokenAsync().ConfigureAwait(false);
+            if (string.IsNullOrEmpty(token))
             {
-                List<StaffDirectoryItem> staff = UserProfileService.GetStaffDirectory(null);
-                if (staff == null) return null;
-                foreach (StaffDirectoryItem member in staff)
-                {
-                    if (member == null || !member.Active) continue;
-                    bool isAdmin = IsAdminRole(member.Role);
-                    if (!isAdmin && member.Roles != null)
-                    {
-                        foreach (string r in member.Roles)
-                        {
-                            if (IsAdminRole(r)) { isAdmin = true; break; }
-                        }
-                    }
-                    if (!isAdmin) continue;
-                    if (!string.IsNullOrWhiteSpace(member.Username)) return member.Username.Trim();
-                    if (!string.IsNullOrWhiteSpace(member.Name)) return member.Name.Trim();
-                    if (!string.IsNullOrWhiteSpace(member.StaffId)) return member.StaffId.Trim();
-                }
+                App.LogTrace("[CreativeOrderService] No web portal session; using the NAS orders ledger only.");
             }
-            catch (Exception ex)
-            {
-                App.LogTrace("[CreativeOrderService] Could not read staff directory for admin fallback: " + ex.Message);
-            }
-            return null;
+            return token;
         }
 
-        private static bool IsAdminRole(string role)
+        private static void HandleAuthFailure(HttpResponseMessage res)
         {
-            if (string.IsNullOrWhiteSpace(role)) return false;
-            string r = role.Trim();
-            return string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(r, "Administrator", StringComparison.OrdinalIgnoreCase);
+            if (res == null) return;
+            int status = (int)res.StatusCode;
+            if (status == 401 || status == 403)
+            {
+                App.LogTrace("[CreativeOrderService] Portal refused the session (HTTP " + status + "); it will be renewed on the next call.");
+                PortalAuthService.InvalidateToken();
+            }
         }
 
-        private static async Task<string> GetAuthTokenAsync(string username)
-        {
-            if (!string.IsNullOrEmpty(_cachedJwtToken) && DateTime.UtcNow < _tokenExpiry)
-            {
-                return _cachedJwtToken;
-            }
-
-            try
-            {
-                string uname = !string.IsNullOrWhiteSpace(username) ? username.Trim() : null;
-                if (uname == null)
-                {
-                    // No signed-in designer: fall back to any active admin from the team's staff directory.
-                    // Runs off the UI thread because the directory is read from the NAS.
-                    uname = await Task.Run(() => ResolveFallbackAdminUsername()).ConfigureAwait(false);
-                }
-                if (string.IsNullOrWhiteSpace(uname))
-                {
-                    App.LogTrace("[CreativeOrderService] No username or active admin found; skipping portal sign-in.");
-                    return null;
-                }
-                var payload = new { username = uname };
-                string json = JsonConvert.SerializeObject(payload);
-
-                using (var content = new StringContent(json, Encoding.UTF8, "application/json"))
-                {
-                    var res = await _httpClient.PostAsync(ApiBaseUrl + "api/auth/login", content).ConfigureAwait(false);
-                    if (res.IsSuccessStatusCode)
-                    {
-                        string body = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
-                        var dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(body);
-                        if (dict != null && dict.ContainsKey("token") && dict["token"] != null)
-                        {
-                            _cachedJwtToken = dict["token"].ToString();
-                            _tokenExpiry = DateTime.UtcNow.AddHours(12);
-                            return _cachedJwtToken;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("[CreativeOrderService] GetAuthTokenAsync error: " + ex.Message);
-            }
-
-            return null;
-        }
-
+        /// <param name="username">Kept for call-site compatibility; the signed-in portal account is used.</param>
         public static async Task<List<CreativeOrder>> FetchOrdersFromApiAsync(string username = null)
         {
             try
             {
-                string token = await GetAuthTokenAsync(username).ConfigureAwait(false);
+                string token = await GetAuthTokenAsync().ConfigureAwait(false);
                 if (string.IsNullOrEmpty(token)) return null;
 
                 using (var req = new HttpRequestMessage(HttpMethod.Get, ApiBaseUrl + "api/orders"))
                 {
                     req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                     var res = await _httpClient.SendAsync(req).ConfigureAwait(false);
+                    HandleAuthFailure(res);
                     if (res.IsSuccessStatusCode)
                     {
                         string json = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -428,7 +358,7 @@ namespace SS_CAM.Services
             // Sync update to Web Portal / Cloud API
             try
             {
-                string token = await GetAuthTokenAsync(assignedTo).ConfigureAwait(false);
+                string token = await GetAuthTokenAsync().ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(token))
                 {
                     var patchDict = new Dictionary<string, string>();
@@ -441,7 +371,8 @@ namespace SS_CAM.Services
                     {
                         req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                         req.Content = new StringContent(JsonConvert.SerializeObject(patchDict), Encoding.UTF8, "application/json");
-                        await _httpClient.SendAsync(req).ConfigureAwait(false);
+                        var res = await _httpClient.SendAsync(req).ConfigureAwait(false);
+                        HandleAuthFailure(res);
                     }
                 }
             }
@@ -472,13 +403,14 @@ namespace SS_CAM.Services
             // Sync cancel to Web Portal / Cloud API via DELETE /api/orders/:id
             try
             {
-                string token = await GetAuthTokenAsync(null).ConfigureAwait(false);
+                string token = await GetAuthTokenAsync().ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(token))
                 {
                     using (var req = new HttpRequestMessage(HttpMethod.Delete, ApiBaseUrl + "api/orders/" + orderId))
                     {
                         req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                        await _httpClient.SendAsync(req).ConfigureAwait(false);
+                        var res = await _httpClient.SendAsync(req).ConfigureAwait(false);
+                        HandleAuthFailure(res);
                     }
                 }
             }

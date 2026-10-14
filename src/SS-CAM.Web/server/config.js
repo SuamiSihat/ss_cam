@@ -117,6 +117,9 @@ module.exports = {
   DEFAULT_NAS_PATH: process.platform === 'win32' ? uncNasPath : linuxNasPath,
   FALLBACK_LOCAL_WORKSPACE: fallbackLocalWorkspace,
   APP_TITLE: 'SuamiSihat Creative Team Portal',
+  // Default password for new accounts and Admin "Reset to default" (min. 10 characters).
+  // Signing in with it forces a password change. Override per tenant in .env.
+  DEFAULT_STAFF_PASSWORD: process.env.DEFAULT_STAFF_PASSWORD || 'SuamiSihat123',
   // Single source of truth: the release version in package.json.
   VERSION: require('../package.json').version,
   APP_URL: process.env.APP_URL || 'https://creative.suamisihat.myds.me',

@@ -55,15 +55,19 @@ fun SettingsProfileScreen(
     var tempServerUrlInput by remember { mutableStateOf(currentServerUrl) }
     var isPreferencesExpanded by remember { mutableStateOf(true) }
 
-    val designerName = currentUserProfile?.name?.ifBlank { "Harussani" } ?: "Harussani"
-    val designerUsername = currentUserProfile?.username?.ifBlank { "harussani" } ?: "harussani"
-    val designerStaffId = currentUserProfile?.staffId?.ifBlank { "SS0004" } ?: "SS0004"
-    val designerRole = currentUserProfile?.role?.ifBlank { "Admin, Designer" } ?: "Admin, Designer"
+    // Fall back to the signed-in account (never a hard-coded person) when the team profile isn't loaded yet.
+    val signedInUsername = remember { AuthPreferences.getSavedUsername(context) }
+    val signedInDisplayName = remember { AuthPreferences.getSavedDisplayName(context) }
+    val designerName = currentUserProfile?.name?.takeIf { it.isNotBlank() }
+        ?: signedInDisplayName.ifBlank { signedInUsername }
+    val designerUsername = currentUserProfile?.username?.takeIf { it.isNotBlank() } ?: signedInUsername
+    val designerStaffId = currentUserProfile?.staffId?.ifBlank { "—" } ?: "—"
+    val designerRole = currentUserProfile?.role?.ifBlank { "Team member" } ?: "Team member"
     val designerBrand = currentUserProfile?.defaultBrand?.ifBlank { "SSH" } ?: "SSH"
     val designerDept = currentUserProfile?.department?.ifBlank { "Creative Production" } ?: "Creative Production"
     val designerEmail = remember(currentUserProfile) {
         val em = currentUserProfile?.email
-        if (!em.isNullOrBlank()) em else AuthPreferences.getSavedEmail(context).ifBlank { "harussani.suamisihat@gmail.com" }
+        if (!em.isNullOrBlank()) em else AuthPreferences.getSavedEmail(context)
     }
 
     var userBio by remember { mutableStateOf(AuthPreferences.getSavedBio(context)) }
@@ -74,9 +78,9 @@ fun SettingsProfileScreen(
     val designerProjects = remember(projects, designerName, designerStaffId, designerUsername) {
         projects.filter { p ->
             val d = p.designer.orEmpty()
-            d.contains(designerName, ignoreCase = true) ||
-            d.contains(designerStaffId, ignoreCase = true) ||
-            d.contains(designerUsername, ignoreCase = true) ||
+            (designerName.isNotBlank() && d.contains(designerName, ignoreCase = true)) ||
+            (currentUserProfile?.staffId?.isNotBlank() == true && d.contains(designerStaffId, ignoreCase = true)) ||
+            (designerUsername.isNotBlank() && d.contains(designerUsername, ignoreCase = true)) ||
             (d.isBlank() && designerRole.contains("Admin", ignoreCase = true))
         }
     }
@@ -1008,11 +1012,11 @@ fun SettingsProfileScreen(
                                 border = androidx.compose.foundation.BorderStroke(1.dp, if (colors.isMonochrome) Color(0xFFD4D4D8) else Color(0xFFEF4444).copy(alpha = 0.4f)),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(42.dp)
+                                    .height(48.dp)
                             ) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.Logout,
-                                    contentDescription = "Sign Out",
+                                    contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -1100,15 +1104,15 @@ fun SettingsProfileScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(
                         onClick = {
-                            val defaultBio = "Lead Art Director & Administrator for SuamiSihat Creative Operations. Directing multi-brand creative assets, packaging dielines, brand identities, and campaign deliverables across SSH, SSC, SSW, SSE, and SST."
+                            val defaultBio = ""
                             tempBio = defaultBio
                             userBio = defaultBio
                             AuthPreferences.saveBio(context, defaultBio)
                             isEditBioDialogOpen = false
-                            Toast.makeText(context, "Bio restored to default", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Bio cleared", Toast.LENGTH_SHORT).show()
                         }
                     ) {
-                        Text("Reset Default", fontSize = 11.sp, color = colors.textSecondary)
+                        Text("Clear bio", fontSize = 11.sp, color = colors.textSecondary)
                     }
                     TextButton(onClick = { isEditBioDialogOpen = false }) {
                         Text("Cancel", fontSize = 12.sp, color = colors.textPrimary)
