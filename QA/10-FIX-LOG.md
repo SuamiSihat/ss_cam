@@ -1,5 +1,24 @@
 # SS-CAM FIX LOG
 
+## Release: v5.2.1 — Enterprise Web Portal Overhaul, Security Hardening & Desktop Sync — 2026-10-15
+
+- **Web Deliverables / Approvals View Live Remediation (`DeliverablesView.svelte`)**:
+  - Resolved uncaught ReferenceError runtime crashes when filtering deliverables by replacing undeclared Svelte runes `hasActiveDeliverableFilters` and `resetAllDeliverableFilters` with canonical `hasActiveFilters` / `resetAllFilters`, adding `$derived` aliases.
+  - Recompiled production client dist (`npm run build:client`) and deployed to Synology NAS Docker (`creative.suamisihat.myds.me`).
+  - Verified live indexing of 520 master deliverables across active production folders with real-time storage metrics (4.11 GB, 227 pending, 291 approved).
+- **Web Management Portal Enterprise Hardening (Phases 1–5)**:
+  - Phase 1 Security: Strict route authorization; short-lived read-only media cookies for images/video/SSE; brute-force rate limiting; salted bcrypt password storage with automatic migration; and MIME-type restrictions on file previews.
+  - Phase 2 Roles & Capabilities: Canonical 7-role authorization architecture (`admin`, `ceo`, `manager`, `designer`, `copywriter`, `clinic`, `viewer`); dynamic capabilities resolution; centralized `routes.ts` routing table; and UI control disabling for forbidden actions.
+  - Phase 3 Fluent 2 Visual Hierarchy: 60:30:10 visual token hierarchy; eliminated 129 legacy occurrences of `#0078D4`; vector `FluentIcons.svelte` replacing emoji and remote CDNs; and 44px minimum touch targets.
+  - Phase 4 Copywriting & Error Handling: Published `QA/copy-guide.md`; sanitized error banners with `getErrorMessage()` (0 raw stack traces); bilingual clinical disclaimers.
+  - Phase 5 Accessibility & Reliability: Accessible `FluentDialog` replacements for native `confirm()`/`alert()`; WCAG 2.1 AA focus traps and keyboard navigation; and HTTP 409 conflict resolution dialogs.
+- **Cross-Platform Synchronization & Desktop Alignment**:
+  - One Project Format: Standardized canonical 5-folder vault hierarchy (`01_BRIEF_ASSETS` … `05_DELIVERABLES`) and status values (`backlog`, `in-progress`, `review`, `revision`, `approved`, `on-hold`) across Windows, Web, Linux, and Android.
+  - Windows Desktop Portal Authentication: Integrated DPAPI-encrypted credential storage in `SettingsPage` (`PortalAuthService.cs`) for authenticated Web Orders and Quick Notes sync.
+  - Windows Desktop Release Build: Recompiled `src/SS-CAM/bin/Release/SS-CAM.exe` (AssemblyVersion 5.2.1.0, 6,349,824 bytes, SHA256: `F13470BF7228D2BB0ED941DD5B08C83133770903677095616499EC91E0461659`).
+  - Source Guardian: 14/14 checks passed (100% compliance).
+  - Automated Tests: 127 Web tests passing (72 unit/DOM, 13 admin, 42 security).
+
 ## Release: v5.2.0 — Enterprise Intelligence, Asset Versioning & Native Linux Build — 2026-10-12
 
 - **Cross-Platform Ecosystem Synchronization (`v5.2.0`)**:

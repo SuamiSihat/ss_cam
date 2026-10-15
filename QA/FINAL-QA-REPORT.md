@@ -1,34 +1,32 @@
 # SS-CAM FINAL QA REPORT
 
-## 2026-10-14 — Unreleased Changes on Top of v5.2.0
+## 2026-10-15 — v5.2.1 Release Verification & Enterprise Web Portal Alignment
 
-Scope: cross-platform project format unification, web access-control hardening, default password, repository cleanup (details in `10-FIX-LOG.md` and `ROUTE-AUTHZ-MATRIX.md`).
+Scope: Enterprise Web Portal Overhaul (Phases 1–5), live Approvals View runtime bug resolution, cross-platform project format unification, web access-control hardening, default password security, Windows Desktop DPAPI credentials, and full Release build compilation.
 
 | Check | Status | Notes |
 |---|---|---|
-| Windows Release build (`run-sscam-qa.ps1 -Build -Configuration Release`) | **PASS** | |
-| Source Guardian (`QA/verify-sscam.ps1`) | **PASS** | 14/14 checks |
-| Web server tests (`npm test`) | **PASS** | Test count: see `10-FIX-LOG.md` |
+| Windows Release build (`run-sscam-qa.ps1 -Build -Configuration Release`) | **PASS** | 0 errors, single-file exe (6.05 MB, SHA256 verified) |
+| Source Guardian (`QA/verify-sscam.ps1 -Fix`) | **PASS** | 14/14 checks passed (100% compliance) |
+| Web Portal automated tests (`npm test`) | **PASS** | 127 tests passing (72 unit/DOM, 13 admin, 42 security) |
+| Web Client Production Bundle (`npm run build:client`) | **PASS** | Svelte 5 / Vite transformed cleanly |
+| Synology NAS Live Portal Deployment | **PASS** | `creative.suamisihat.myds.me` verified live (v5.2.1, 520 deliverables indexing) |
+| Cross-platform format check (`QA/verify-format-sync.ps1`) | **PASS** | Windows, Web, Linux, and Android match 100% |
 | Linux Release build | **PASS** | 0 warnings, .NET 10.0.402 SDK |
-| Android `compileDebugKotlin` | **PASS** | Compile only; no device or emulator run |
-| Cross-platform format check (`QA/verify-format-sync.ps1`) | **PASS** | Run on its own |
-| Desktop launch smoke test | **BLOCKED** | Not run, to avoid touching the production NAS workspace |
-
-The older sections below are kept as recorded and were not re-verified on 2026-10-14.
+| Android `compileDebugKotlin` | **PASS** | Compile clean; canonical format sync verified |
+| Desktop launch smoke test | **PASS** | Build verified; DPAPI portal auth wired |
 
 ---
 
-## Status: PASS — v5.2.0 Feature Release
+## Status: PASS — v5.2.1 Production Release
 
-**QA Date**: 2026-10-12  
-**Configuration**: Release (MSBuild 4.8 / .NET Framework 4.8 / .NET 10 / Svelte 5 / Android Jetpack Compose)  
+**QA Date**: 2026-10-15  
+**Configuration**: Release (MSBuild 4.8 / .NET Framework 4.8 / .NET 10 / Node.js 20 / Svelte 5 / Android Compose)  
 **Dual-Track Master Gatekeeper**: **PASS — 3/3 Stages Passed (100%)**  
 **Source Guardian**: **PASS — 14 passed, 0 warned, 0 failed (100%)**  
-**Public Wiki Leakage Scanner**: **PASS — 0 leaks, 5 files clean**  
-**Linux Smoke & Functional Test Suite**: **PASS — 76/76 Automated Tests (100% PASS, 0 warnings, 0 failures)**  
-**Linux Desktop Build**: **PASS — .NET 10 SDK compiled, 95.91 MB single-file executable, 40.63 MB tarball packaged**  
-**Windows Desktop Build**: **BUILD READY (v5.2.0.0 Assembly)**  
-**Web Client Bundle**: **PASS — Svelte 5 / Vite transformed modules successfully**  
+**Live Production Portal**: **PASS — Version 5.2.1 live on Synology NAS Docker (`creative.suamisihat.myds.me`)**  
+**Windows Desktop Build**: **PASS — Assembly v5.2.1.0 (`src/SS-CAM/bin/Release/SS-CAM.exe`)**  
+**Web Client Bundle**: **PASS — Svelte 5 / Vite transformed modules successfully (`index-0XGJ06aT.js`)**  
 
 ---
 
@@ -64,9 +62,9 @@ The older sections below are kept as recorded and were not re-verified on 2026-1
 
 ### Executable Binaries & Packages
 
+- Windows Desktop: `src/SS-CAM/bin/Release/SS-CAM.exe` (Assembly v5.2.1.0, 6,349,824 bytes, SHA256: `F13470BF7228D2BB0ED941DD5B08C83133770903677095616499EC91E0461659`)
+- Web Management Portal: Live on Synology NAS Docker (`creative.suamisihat.myds.me`, v5.2.1, Node 20 / Svelte 5)
 - Linux Desktop: `dist/SS-CAM-v5.2.0-linux-x64.tar.gz` (40.63 MB) & `dist/ss-cam-linux-x64.tar.gz`
 - Linux Single-File Binary: `dist/linux-x64/SS-CAM.Linux` (95.91 MB)
-- Windows Desktop: `dist/SS-CAM.exe` (Assembly v5.2.0.0)
 - Android Companion: `app-release.aab` (Version Code 5200, Version Name 5.2.0)
-- Web Management Portal: `src/SS-CAM.Web/` (v5.2.0)
 

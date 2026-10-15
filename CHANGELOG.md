@@ -2,64 +2,39 @@
 
 All notable SS-CAM changes are documented here.
 
-## [Unreleased] - Web portal UX polish, accessibility, responsive mobile & data safety (Phase 5)
+## [5.2.1] - 2026-10-15 (Enterprise Web Portal Overhaul, Security Hardening & Desktop Sync)
 
-Details and verification evidence: `QA/FINAL-WEB-PORTAL-REPORT.md` and `QA/PHASE-LOG.md`.
+Details and verification evidence: `QA/FINAL-WEB-PORTAL-REPORT.md`, `QA/FINAL-QA-REPORT.md`, and `QA/PHASE-LOG.md`.
 
-- **Accessible Confirmation Dialogs (T5.1):** Replaced native browser `confirm()` and `alert()` modals with accessible `FluentDialog` across all views. Added confirmation flows for canceling requests, revoking share links, deleting pins, removing subtasks, approving deliverables, and requesting revisions. Project deletion enforces typing the exact project name with warning of permanent file deletion.
-- **Resilient UI States & Offline Detection (T5.2):** Replaced silent failures with inline `FluentErrorBanner` featuring one-click retry across Dashboard, Projects, Deliverables, and Consultation Suite. Added filter-aware empty states with instant "Clear filters" action. Added real-time offline warning indicators for disconnected SSE events and Signage network outages.
-- **Projects & Tasks View Ergonomics (T5.3):** Unified disjointed view buttons into a cohesive segmented view controller. Added keyboard-accessible "Move to..." menu on Kanban cards as an alternative to drag-and-drop. Batch task deletion accurately reports partial failures while preserving remaining tasks.
-- **Project Detail Tabbed Architecture (T5.4):** Organized project management into 5 dedicated tabs: Brief, Copywriting, Deliverables, Comments, and History. Standardized tab layout with one prominent primary action per view.
-- **Priority-Driven Home Dashboard (T5.5):** Refactored Dashboard view to prioritize designer workflow with "My priority queue" (urgent studio tasks and deliverables requiring attention), while collapsing heavy analytics under "Studio performance".
-- **Structured Admin Section Navigation (T5.6):** Redesigned the single monolithic admin view into 5 tabbed sections: People, Companies, Roles & Permissions, Notifications, and System Governance, with accessible tabs and persistent URL hash anchors.
-- **Accessibility & Focus Traps (T5.7):** Added semantic `role="button"`, `tabindex="0"`, Enter/Space keydown handlers, and `aria-label`s across all interactive cards and rows. Icon-only buttons equipped with descriptive `aria-label`s. Added focus trap, escape key dismissal, and `aria-modal="true"` to `NotificationDrawer`. Added `autocomplete` on password inputs, `<h1>` on Reset page, and show/hide password toggle with Sign out on first-login rotation.
-- **Responsive Mobile Layouts (T5.8):** Implemented mobile-first breakpoints down to 390px across `ClientReviewView`, `LoginView`, `ProjectsView`, `TasksView`, and `DeliverablesView`. Ensured all touch targets satisfy the >= 44x44px accessibility standard.
-- **Data Safety File Overwrite Protection (T5.9):** Ingesting files or attachments with conflicting filenames now halts with HTTP 409 (`exists: true`). Client presents a `FluentDialog` allowing designers to choose between "Replace" or "Keep both" (auto-versioned numbered copy). Covered by automated test suite (127 tests passing).
+### Web Management Portal Enterprise Overhaul & Remediation (Phases 1–5)
 
-## [Unreleased] - Web portal plain-language copywriting & brand voice (Phase 4)
+- **Security Hardening (Phase 1):** Mandatory JWT authentication across data endpoints; short-lived, read-only media cookies for images, downloads, and live SSE event streams; unique email/username enforcement preventing look-alike account takeover; legacy plain-text password scrubbing on start-up; forced password rotation with random one-time passwords for new accounts; active session termination on password change, suspension, or role demotion; per-account and per-IP brute-force rate limiting; scoped guest share links with 1–30 day expirations hiding internal staff comments; script execution blocking on SVG/HTML file uploads; directory traversal prevention; Helmet CSP; and sanitization of file paths in server errors.
+- **Role Model & Capabilities (Phase 2):** Canonical 7-role authorization architecture (`admin`, `ceo`, `manager`, `designer`, `copywriter`, `clinic`, `viewer`) with explicit `roleKey` storage and automatic start-up migration; dynamic `capabilities` derivation from `/api/auth/me`; centralized `routes.ts` defining all 12 portal views, navigation groups, mobile dock, and palette actions; client route guards with 404 recovery; and complete stripping/disabling of 403-inducing interactive controls for disallowed roles.
+- **Fluent 2 Design System & Visual Harmony (Phase 3):** Full adoption of the 60:30:10 visual token hierarchy (Porcelain `#FCFAF6` / Charcoal `#1C1C1C`, Prussian Blue `#022057`, Banana `#FCE53D` CTA); complete elimination of all 129 legacy occurrences of `#0078D4`; global `:focus-visible` ring; 44px minimum target heights; standardized `FluentButton`, `FluentCard`, `FluentInput`, `FluentSelect`, `FluentDialog`, and `FluentBadge`; offline vector `FluentIcons.svelte` replacing remote iconify dependencies and emoji glyphs; and unified brand title `SS-CAM Creative Portal`.
+- **Plain-Language Copywriting & Brand Voice (Phase 4):** Published `QA/copy-guide.md` and `client/src/lib/copy.ts`; sanitized user notifications using `getErrorMessage()` (0 raw stack traces, 0 exclamation marks); added bilingual English/Malay clinical labels with regulatory disclaimer; and verified 0 forbidden technical jargon terms in user-facing client strings.
+- **Module UX, Accessibility & Data Safety (Phase 5):** Accessible `FluentDialog` confirmations replacing native browser `confirm()`/`alert()`; inline `FluentErrorBanner` with one-click retry; filter-aware empty states; priority queue dashboard ("My priority queue" + collapsible "Studio performance"); 5-tab project detail (Brief, Copywriting, Deliverables, Comments, History); 5-tab admin view with URL hash routing; WCAG 2.1 AA keyboard navigation, focus traps, and drawer `aria-modal="true"`; mobile-first breakpoints down to 390px with >=44px touch targets and horizontal Kanban snap-scrolling; and HTTP 409 conflict detection with user resolution options ("Replace" / "Keep both" / "Skip").
+- **Approvals & Deliverables Dashboard Live Hardening:** Restored `/deliverables` scanning across project folders; resolved empty-state `$derived` filter rune runtime exception; verified live on Synology NAS Docker (`creative.suamisihat.myds.me`) indexing 520 master deliverables across active campaigns with real-time storage telemetry (4.11 GB, 227 pending, 291 approved) and interactive lightbox zoom/pin annotations.
 
-Details and verification evidence: `QA/PHASE4-COPY-REPORT.md`.
+### Cross-Platform Desktop & Ecosystem Synchronization
 
-- **Voice Guide & String Map (T4.1):** Published `QA/copy-guide.md` and `client/src/lib/copy.ts` defining canonical plain-language terminology and error formatting.
-- **Plain-Language User Interface (T4.2):** Replaced technical jargon across all 13 views, 15 components, and server responses. Sanitized toast messages using `getErrorMessage()` (0 raw `err.message` leaks, 0 exclamation marks). Added bilingual English/Malay labels to Consultation Suite with claims marked for clinical review. Fixed profile labels and password complexity thresholds.
-- **Terminology Gate Passed (T4.3):** Verified 0 forbidden terms (`Vault`, `Ingest`, `Preflight`, `Payload`, `Webhook`, `Log in`, `Logged in`, `Staged`, `RBAC`, `Telemetry`) in user-facing client strings.
+- **Windows Desktop App (.NET Framework 4.8 / WPF):**
+  - Verified clean Release build (`src/SS-CAM/bin/Release/SS-CAM.exe`, 6,349,824 bytes, AssemblyVersion `5.2.1.0`).
+  - SHA256: `F13470BF7228D2BB0ED941DD5B08C83133770903677095616499EC91E0461659`.
+  - Source Guardian verified: 14/14 checks passed (UTF-8 BOM, Fluent 2 `<ui:Button>`, ComboBox MinHeight >= 34/36, zero UI-thread blocking).
+- **One Project Format on Every App:**
+  - Standardized folder hierarchy across Windows, Web, Linux, and Android: `<YYYY>/<YYYYMM>_<Month>/<YYYYMM>_<NNNN>D_<BRAND>_<Title>/` with `01_BRIEF_ASSETS` through `05_DELIVERABLES`.
+  - Canonical project statuses: `backlog`, `in-progress`, `review`, `revision`, `approved`, `on-hold`.
+- **Automated Test Suite:**
+  - 127 automated Web tests passing (72 unit/DOM, 13 admin, 42 security).
+  - Dual-Track Master Gatekeeper verified: 14/14 checks passed (zero tenant/brand leakage in generic Core).
 
-## [Unreleased] - Web portal Fluent 2 design system & visual harmony (Phase 3)
+### Binary & Artifact Integrity
 
-Details and verification evidence: `QA/PHASE3-BRAND-REPORT.md`.
-
-- **Design Token Harmonization (T3.1):** Adopted 60:30:10 palette architecture (Porcelain/Charcoal, Prussian Blue/White, Banana CTA). Removed legacy off-palette themes; moved sub-brand overrides to tenant configuration.
-- **Focus Geometry & Interactive Targets (T3.2):** Established global `:focus-visible` ring and verified 0 unhandled `outline: none` declarations. Enforced 44px minimum interactive target height.
-- **Component Standardization (T3.3):** Updated `FluentButton`, `FluentCard`, `FluentInput`, `FluentSelect`, `FluentDialog`, and `FluentBadge` to Fluent 2 standards.
-- **Complete Elimination of Off-Brand `#0078D4` (T3.4):** Replaced all 129 legacy occurrences of `#0078D4` with semantic theme tokens.
-- **Icon System Consolidation (T3.5):** Unified icons onto offline `FluentIcons.svelte`, eliminating remote iconify dependencies and raw glyphs.
-- **Product Title & Brand Uniformity (T3.6):** Standardized portal title and metadata to `SS-CAM Creative Portal`.
-
-## [Unreleased] - Web portal role model, capabilities & navigation hardening (Phase 2)
-
-Details, evidence and open items: `QA/ROLE-WALKTHROUGH.md` and `QA/ROUTE-AUTHZ-MATRIX.md`.
-
-- **Explicit 7-Role Architecture:** Eliminated substring title matching ("Lead", "Manager", etc.). Permissions are driven by stored `roleKey` (`admin`, `ceo`, `manager`, `designer`, `copywriter`, `clinic`, `viewer`). Roster members without `roleKey` are automatically and idempotently migrated on start-up.
-- **Dynamic Capabilities Derivation:** The server returns explicit `capabilities` booleans at `/api/auth/me` and `/api/auth/login` (`canApproveDeliverables`, `canDeleteProject`, `canManageTeam`, `canReassign`, `canEditCopy`, `canViewConsultation`, `canViewAdmin`, `canViewSignage`, `canManageShareLinks`, `allowedRoutes`).
-- **Unified Route Configuration (`routes.ts`):** Single source of truth defines all 12 portal routes, navigation groups (`Work`, `Create`, `Review`, `Clinic`, `Manage`, `Admin`, `Account`), mobile dock routes, and command palette actions.
-- **Client Route Guard & 404 Recovery:** Unauthorized route access immediately redirects to `#dashboard` with a plain toast message. Unknown routes display a dedicated "Page not found" screen with a Home button.
-- **Control Stripping & Zero 403 Traps:** Interactive controls for server-rejected actions (deliverable approval, project deletion, batch task deletion, team reassign, share link management, and administration) are hidden or cleanly disabled for disallowed roles.
-- **Regression Verification:** Added automated test suite in `server/test/security-tests.js` testing 403 responses across all 7 roles; comprehensive walkthrough matrix published to `QA/ROLE-WALKTHROUGH.md`.
-
-## [Unreleased] - Web portal security hardening (Phase 1)
-
-Details, evidence and open items: `QA/PHASE1-SECURITY-REPORT.md` and `QA/ROUTE-AUTHZ-MATRIX.md`.
-
-- **Sign-in is required for live updates, project files, deliverables, order attachments, company details and clinic tools.** Images, downloads and live updates use a short-lived, read-only cookie set at sign-in.
-- **Accounts are safer.** People can no longer edit someone else's account by choosing a look-alike name. Names, usernames and emails must be unique. Changing your email needs your current password.
-- **Passwords.** New accounts and admin resets get a random one-time password, shown once; the person must choose their own at first sign-in. Passwords are no longer written to staff files, and any left behind are removed at start-up.
-- **Sessions can be ended.** Changing a password, suspending someone, changing their role or signing out ends their sessions. Tokens in web addresses are no longer accepted.
-- **Sign-in limits** per account, per address and per IP; forgot-password is limited; reset links are stored hashed and always use the portal address from settings.
-- **Share links** last 1 to 30 days, can only be managed by the project's designer or a manager, only reach their own project (or single file), and no longer show internal direction, copy or staff comments.
-- **Uploads and files.** Runnable file types are refused; SVG/HTML files cannot run scripts. Archive is admin only and limited to the shared workspace.
-- **Other.** Server errors no longer show file paths; webhook addresses are checked; AI key is sent in a header; email content is escaped; multer upgraded (production audit: 0 vulnerabilities); Docker publishes on this machine only by default.
-
-## [5.2.1] - 2026-10-14 (Cross-Platform Format Sync, Access Control & Cleanup)
+| Component | Target / Platform | Version | Checksum (SHA256) |
+|---|---|---|---|
+| Windows Portable Desktop App | `src/SS-CAM/bin/Release/SS-CAM.exe` | 5.2.1.0 | `F13470BF7228D2BB0ED941DD5B08C83133770903677095616499EC91E0461659` |
+| Web Portal Server & API | `src/SS-CAM.Web/server/` | 5.2.1 | Node.js 20 Express / Helmet / JWT RBAC |
+| Web Client Production Dist | `src/SS-CAM.Web/client/dist/` | 5.2.1 | Svelte 5 / Vite 5 (index-0XGJ06aT.js) |
 
 ### One project format on every app
 

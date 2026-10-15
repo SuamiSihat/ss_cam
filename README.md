@@ -2,13 +2,13 @@
 
 **One place for the creative team's projects, files, tasks and approvals.**
 
-[![Release](https://img.shields.io/badge/release-v5.2.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v5.2.0)
+[![Release](https://img.shields.io/badge/release-v5.2.1-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v5.2.1)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Web%20%7C%20Android%20%7C%20Linux-blue?style=flat-square)](#which-app-should-i-use)
 [![Licence](https://img.shields.io/badge/licence-Internal%20use-orange?style=flat-square)](./installer/EULA.txt)
 
 SS-CAM (SuamiSihat Creative Assets Management) keeps every creative project in a tidy, standard folder on the shared drive and gives the team simple tools to plan the work, write the copy, review the designs and hand the files over. It was built for SuamiSihat Holding's creative team and is used across the group's companies.
 
-> **Latest release:** v5.2.0 (12 October 2026) — file version history and roll-back, "someone else is editing" warnings, and faster approvals on the web. See the [full change history](./CHANGELOG.md).
+> **Latest release:** v5.2.1 (15 October 2026) — Complete enterprise web portal overhaul (security hardening, 7-role RBAC, 60:30:10 Fluent 2 design system, plain language voice, mobile responsiveness, HTTP 409 collision safety), live Approvals dashboard verification, and synchronized Windows desktop Release build. See the [full change history](./CHANGELOG.md).
 
 ---
 
