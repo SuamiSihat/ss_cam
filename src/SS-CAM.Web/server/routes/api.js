@@ -1534,14 +1534,17 @@ router.post('/projects/:id/ingest', authenticateToken, (req, res) => {
     const rawId = req.params.id;
     const id = path.basename(String(rawId)).replace(/[^a-zA-Z0-9_-]/g, '_');
     if (!id || id === '.' || id === '..') return res.status(400).json({ error: 'Invalid note ID.' });
-    const { filename, targetSubfolder, fileData } = req.body;
+    const { filename, targetSubfolder, fileData, overwrite, resolution } = req.body;
     if (!filename || !fileData) {
       return res.status(400).json({ error: 'filename and fileData (base64) are required.' });
     }
     const actor = req.user ? req.user.name : 'Designer';
-    const result = WorkspaceService.ingestFile(id, targetSubfolder, filename, fileData, actor);
+    const result = WorkspaceService.ingestFile(id, targetSubfolder, filename, fileData, actor, { overwrite, resolution });
     res.json(result);
   } catch (err) {
+    if (err.status === 409) {
+      return res.status(409).json({ error: err.message, exists: true, filename: err.filename, folder: err.folder });
+    }
     res.status(err.status || 500).json({ error: err.status ? err.message : 'Could not upload the file.' });
   }
 });
@@ -3406,19 +3409,24 @@ router.post('/orders/:id/attachments', authenticateToken, orderUpload.array('fil
 
     const saved = [];
     const actor = req.user?.name || 'Requester';
+    const { overwrite, resolution } = req.body || {};
+    const options = {
+      overwrite: overwrite === true || overwrite === 'true',
+      resolution: resolution === 'keep_both' || resolution === 'replace' ? resolution : undefined
+    };
 
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const result = OrderService.saveOrderAttachment(id, file.originalname, file.buffer, actor);
+        const result = OrderService.saveOrderAttachment(id, file.originalname, file.buffer, actor, options);
         saved.push(result);
       }
     } else if (req.body.filename && (req.body.fileData || req.body.data)) {
-      const result = OrderService.saveOrderAttachment(id, req.body.filename, req.body.fileData || req.body.data, actor);
+      const result = OrderService.saveOrderAttachment(id, req.body.filename, req.body.fileData || req.body.data, actor, options);
       saved.push(result);
     } else if (Array.isArray(req.body.attachments)) {
       for (const att of req.body.attachments) {
         if (att.filename && (att.fileData || att.data)) {
-          const result = OrderService.saveOrderAttachment(id, att.filename, att.fileData || att.data, actor);
+          const result = OrderService.saveOrderAttachment(id, att.filename, att.fileData || att.data, actor, options);
           saved.push(result);
         }
       }
@@ -3437,8 +3445,11 @@ router.post('/orders/:id/attachments', authenticateToken, orderUpload.array('fil
     SseService.broadcast('order:updated', { order: updated });
     res.json({ success: true, saved, order: updated });
   } catch (err) {
+    if (err.status === 409) {
+      return res.status(409).json({ error: err.message, exists: true, filename: err.filename });
+    }
     console.error('[Orders] uploadAttachments:', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 

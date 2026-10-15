@@ -14,6 +14,7 @@
   import VaultIngesterModal from '$lib/components/features/VaultIngesterModal.svelte';
   import ShareLinkModal from '$lib/components/features/ShareLinkModal.svelte';
   import ProjectVersionTimelineModal from '$lib/components/features/ProjectVersionTimelineModal.svelte';
+  import ProjectHistoryTimeline from '$lib/components/features/ProjectHistoryTimeline.svelte';
   import MarkdownEditor from '$lib/components/markdown/MarkdownEditor.svelte';
 
   interface Props {
@@ -23,7 +24,7 @@
   let { projectId = '' }: Props = $props();
 
   // View state
-  type MainCanvasView = 'brief' | 'copywriting' | 'deliverables' | 'direction';
+  type MainCanvasView = 'brief' | 'copy' | 'deliverables' | 'comments' | 'history';
   let activeCanvasView = $state<MainCanvasView>('brief');
   let inspectorTab = $state<'properties' | 'discussion'>('properties');
   let inspectorOpen = $state<boolean>(true);
@@ -37,6 +38,18 @@
   let selectedDeliverable = $state<DeliverableItem | null>(null);
   let lightboxOpen = $state<boolean>(false);
   let isSubmittingDecision = $state<boolean>(false);
+
+  // Save Brief Primary Action State
+  let isSavingBrief = $state<boolean>(false);
+  async function handleSaveBriefAction() {
+    if (!p) return;
+    isSavingBrief = true;
+    try {
+      await saveMarkdownBrief(currentReadmeBody);
+    } finally {
+      isSavingBrief = false;
+    }
+  }
 
   // Deletion State
   let showDeleteModal = $state<boolean>(false);
@@ -875,34 +888,46 @@
         </div>
       </div>
 
-      <!-- Segmented View Switcher -->
-      <div class="canvas-segmented-nav">
+      <!-- Segmented View Switcher / Tabs -->
+      <div class="canvas-segmented-nav" role="tablist" aria-label="Project sections">
         <button
+          id="tab-brief"
+          role="tab"
+          aria-selected={activeCanvasView === 'brief'}
+          aria-controls="panel-brief"
           class="canvas-nav-item"
           class:active={activeCanvasView === 'brief'}
           onclick={() => (activeCanvasView = 'brief')}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-          <span>Creative Brief</span>
+          <FluentIcons name="file" size={14} />
+          <span>Brief</span>
         </button>
 
         <button
+          id="tab-copy"
+          role="tab"
+          aria-selected={activeCanvasView === 'copy'}
+          aria-controls="panel-copy"
           class="canvas-nav-item"
-          class:active={activeCanvasView === 'copywriting'}
-          onclick={() => (activeCanvasView = 'copywriting')}
+          class:active={activeCanvasView === 'copy'}
+          onclick={() => (activeCanvasView = 'copy')}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          <span>Copywriting Studio</span>
+          <FluentIcons name="edit" size={14} />
+          <span>Copy</span>
           <span class="view-chip">{copyStats.words}w</span>
         </button>
 
         <button
+          id="tab-deliverables"
+          role="tab"
+          aria-selected={activeCanvasView === 'deliverables'}
+          aria-controls="panel-deliverables"
           class="canvas-nav-item"
           class:active={activeCanvasView === 'deliverables'}
           onclick={() => (activeCanvasView = 'deliverables')}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-          <span>Deliverables &amp; Subtasks</span>
+          <FluentIcons name="folder" size={14} />
+          <span>Deliverables</span>
           {#if subtaskStats.total > 0}
             <span class="view-chip">{subtaskStats.completed}/{subtaskStats.total} Done</span>
           {:else if projectStore.activeDeliverables.length > 0}
@@ -911,12 +936,30 @@
         </button>
 
         <button
+          id="tab-comments"
+          role="tab"
+          aria-selected={activeCanvasView === 'comments'}
+          aria-controls="panel-comments"
           class="canvas-nav-item"
-          class:active={activeCanvasView === 'direction'}
-          onclick={() => (activeCanvasView = 'direction')}
+          class:active={activeCanvasView === 'comments'}
+          onclick={() => (activeCanvasView = 'comments')}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.36 19.64 10.63 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
-          <span>Creative Direction</span>
+          <FluentIcons name="comment" size={14} />
+          <span>Comments</span>
+          <span class="view-chip">{projectComments.length}</span>
+        </button>
+
+        <button
+          id="tab-history"
+          role="tab"
+          aria-selected={activeCanvasView === 'history'}
+          aria-controls="panel-history"
+          class="canvas-nav-item"
+          class:active={activeCanvasView === 'history'}
+          onclick={() => (activeCanvasView = 'history')}
+        >
+          <FluentIcons name="history" size={14} />
+          <span>History</span>
         </button>
       </div>
     </header>
@@ -930,29 +973,211 @@
       <!-- ─── LEFT/MAIN CANVAS AREA (68%) ─── -->
       <main class="main-document-canvas">
         {#if activeCanvasView === 'brief'}
-          <!-- Creative Brief Markdown Editor with full toolbar -->
-          <MarkdownEditor
-            title="README.md"
-            saveLabel="Save Brief to NAS"
-            projectId={p.id}
-            bind:value={currentReadmeBody}
-            onSave={saveMarkdownBrief}
-          />
-        {:else if activeCanvasView === 'copywriting'}
-          <!-- Dedicated Copywriting Studio Markdown Editor -->
-          {#if isLoadingCopy}
-            <div class="loading-state">Loading 03_COPYWRITING/COPY.md from NAS…</div>
-          {:else}
+          <div id="panel-brief" role="tabpanel" aria-labelledby="tab-brief" class="tab-panel-container">
+            <div class="tab-primary-bar">
+              <div class="tab-primary-info">
+                <h3 class="tab-primary-title">Creative Brief &amp; Specifications</h3>
+                <p class="tab-primary-desc">Campaign requirements, deliverables scope, and creative visual direction.</p>
+              </div>
+              <FluentButton
+                appearance="cta"
+                size="sm"
+                loading={isSavingBrief}
+                onclick={handleSaveBriefAction}
+              >
+                <FluentIcons name="save" size={14} />
+                <span style="margin-left: 6px;">Save brief</span>
+              </FluentButton>
+            </div>
+
+            <!-- Creative Brief Markdown Editor with full toolbar -->
             <MarkdownEditor
-              title="03_COPYWRITING / COPY.md"
-              saveLabel="Save Copy to NAS"
+              title="README.md"
+              saveLabel="Save brief"
               projectId={p.id}
-              bind:value={currentCopyBody}
-              onSave={saveCopywritingMarkdown}
+              bind:value={currentReadmeBody}
+              onSave={saveMarkdownBrief}
             />
-          {/if}
+
+            <!-- Creative Direction Matrix Panel -->
+            <div class="brief-direction-section">
+              <!-- Creative Direction Panel -->
+          <FluentCard elevated>
+            <div class="form-section-header">
+              <div class="header-titles">
+                <h3>Creative &amp; Visual Direction Matrix</h3>
+                <p>Core visual tone, typography mood, and brand guidelines for designers.</p>
+              </div>
+
+              <div class="header-actions">
+                {#if !isEditingDirection}
+                  <FluentButton appearance="secondary" size="sm" onclick={() => (isEditingDirection = true)}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </svg>
+                    <span style="margin-left: 5px;">Edit Direction</span>
+                  </FluentButton>
+                {:else}
+                  <div class="direction-action-group">
+                    <FluentButton appearance="secondary" size="sm" onclick={() => (isEditingDirection = false)}>
+                      Cancel
+                    </FluentButton>
+                    <FluentButton appearance="primary" size="sm" loading={isSavingDirection} onclick={saveCreativeDirection}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                      </svg>
+                      <span style="margin-left: 5px;">Save Direction</span>
+                    </FluentButton>
+                  </div>
+                {/if}
+              </div>
+            </div>
+
+            {#if !isEditingDirection}
+              <!-- ─── PREVIEW MODE (DEFAULT) ─── -->
+              <div class="direction-preview-grid">
+                <div class="preview-card">
+                  <div class="preview-card-header">
+                    <span class="preview-icon">🎨</span>
+                    <span class="preview-title">Visual Concept / Style Direction</span>
+                  </div>
+                  <div class="preview-card-body">
+                    {#if currentFrontmatter.creative_direction?.visual_concept}
+                      <p class="preview-text highlight-concept">{currentFrontmatter.creative_direction.visual_concept}</p>
+                    {:else}
+                      <p class="preview-empty">No visual concept specified. Click "Edit Direction" to add.</p>
+                    {/if}
+                  </div>
+                </div>
+
+                <div class="preview-card">
+                  <div class="preview-card-header">
+                    <span class="preview-icon">🎯</span>
+                    <span class="preview-title">Primary Color Palette Tokens</span>
+                  </div>
+                  <div class="preview-card-body">
+                    {#if currentFrontmatter.creative_direction?.color_palette}
+                      {@const chips = extractColorChips(currentFrontmatter.creative_direction.color_palette)}
+                      <div class="palette-preview-wrap">
+                        {#if chips.length > 0}
+                          <div class="color-chips-row">
+                            {#each chips as color}
+                              <span class="color-swatch-dot" style="background-color: {color};" title={color}></span>
+                            {/each}
+                          </div>
+                        {/if}
+                        <p class="preview-text font-mono">{currentFrontmatter.creative_direction.color_palette}</p>
+                      </div>
+                    {:else}
+                      <p class="preview-empty">No color palette tokens defined yet.</p>
+                    {/if}
+                  </div>
+                </div>
+
+                <div class="preview-card full-width">
+                  <div class="preview-card-header">
+                    <span class="preview-icon">👥</span>
+                    <span class="preview-title">Target Audience Demographics &amp; Psychology</span>
+                  </div>
+                  <div class="preview-card-body">
+                    {#if currentFrontmatter.creative_direction?.target_audience}
+                      <div class="audience-content">{currentFrontmatter.creative_direction.target_audience}</div>
+                    {:else}
+                      <p class="preview-empty">No target audience profile documented yet. Click "Edit Direction" to add.</p>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+            {:else}
+              <!-- ─── EDIT FORM MODE ─── -->
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label" for="dir-visual-concept">Visual Concept / Style Direction</label>
+                  <input
+                    id="dir-visual-concept"
+                    type="text"
+                    class="form-input"
+                    bind:value={currentFrontmatter.creative_direction!.visual_concept}
+                    placeholder="e.g. Modern Bold Minimalist, Dark Neon Accent"
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label class="form-label" for="dir-color-palette">Primary Color Palette Tokens</label>
+                  <input
+                    id="dir-color-palette"
+                    type="text"
+                    class="form-input"
+                    bind:value={currentFrontmatter.creative_direction!.color_palette}
+                    placeholder="e.g. Prussian Blue #022057, SS Blue #043388, Gold #D4AF37"
+                  />
+                </div>
+
+                <div class="form-field full-width">
+                  <label class="form-label" for="dir-target-audience">Target Audience Demographics &amp; Psychology</label>
+                  <textarea
+                    id="dir-target-audience"
+                    class="form-textarea"
+                    rows="4"
+                    bind:value={currentFrontmatter.creative_direction!.target_audience}
+                    placeholder="Demographics, pain points, desired emotional response..."
+                  ></textarea>
+                </div>
+              </div>
+            {/if}
+          </FluentCard>
+            </div>
+          </div>
+
+        {:else if activeCanvasView === 'copy'}
+          <div id="panel-copy" role="tabpanel" aria-labelledby="tab-copy" class="tab-panel-container">
+            <div class="tab-primary-bar">
+              <div class="tab-primary-info">
+                <h3 class="tab-primary-title">Project Copywriting</h3>
+                <p class="tab-primary-desc">Advertising angles, messaging, and body copy stored in <code>03_COPYWRITING/COPY.md</code>.</p>
+              </div>
+              <FluentButton
+                appearance="cta"
+                size="sm"
+                onclick={() => appState.navigate('copy-studio')}
+              >
+                <FluentIcons name="edit" size={14} />
+                <span style="margin-left: 6px;">Open in Copy Studio</span>
+              </FluentButton>
+            </div>
+
+            <!-- Dedicated Copywriting Studio Markdown Editor -->
+            {#if isLoadingCopy}
+              <div class="loading-state">Loading 03_COPYWRITING/COPY.md…</div>
+            {:else}
+              <MarkdownEditor
+                title="03_COPYWRITING / COPY.md"
+                saveLabel="Save copy"
+                projectId={p.id}
+                bind:value={currentCopyBody}
+                onSave={saveCopywritingMarkdown}
+              />
+            {/if}
+          </div>
+
         {:else if activeCanvasView === 'deliverables'}
-          <!-- Deliverables & Subtasks Section -->
+          <div id="panel-deliverables" role="tabpanel" aria-labelledby="tab-deliverables" class="tab-panel-container">
+            <div class="tab-primary-bar">
+              <div class="tab-primary-info">
+                <h3 class="tab-primary-title">Production Deliverables &amp; Files</h3>
+                <p class="tab-primary-desc">Milestone deliverables, format specifications, progress tracking, and exported assets.</p>
+              </div>
+              <FluentButton
+                appearance="cta"
+                size="sm"
+                onclick={() => (showIngesterModal = true)}
+              >
+                <FluentIcons name="upload" size={14} />
+                <span style="margin-left: 6px;">Upload files</span>
+              </FluentButton>
+            </div>
+
+            <!-- Deliverables & Subtasks Section -->
           <div class="deliverables-gallery-container">
             <div class="subtasks-container-card">
               <div class="subtasks-card-header">
@@ -1165,132 +1390,69 @@
               </div>
             {/if}
           </div>
-        {:else if activeCanvasView === 'direction'}
-          <!-- Creative Direction Panel -->
-          <FluentCard elevated>
-            <div class="form-section-header">
-              <div class="header-titles">
-                <h3>Creative &amp; Visual Direction Matrix</h3>
-                <p>Core visual tone, typography mood, and brand guidelines for designers.</p>
-              </div>
+          </div>
 
-              <div class="header-actions">
-                {#if !isEditingDirection}
-                  <FluentButton appearance="secondary" size="sm" onclick={() => (isEditingDirection = true)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                    </svg>
-                    <span style="margin-left: 5px;">Edit Direction</span>
-                  </FluentButton>
-                {:else}
-                  <div class="direction-action-group">
-                    <FluentButton appearance="secondary" size="sm" onclick={() => (isEditingDirection = false)}>
-                      Cancel
-                    </FluentButton>
-                    <FluentButton appearance="primary" size="sm" loading={isSavingDirection} onclick={saveCreativeDirection}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
-                      </svg>
-                      <span style="margin-left: 5px;">Save Direction</span>
-                    </FluentButton>
-                  </div>
-                {/if}
+        {:else if activeCanvasView === 'comments'}
+          <div id="panel-comments" role="tabpanel" aria-labelledby="tab-comments" class="tab-panel-container">
+            <div class="tab-primary-bar">
+              <div class="tab-primary-info">
+                <h3 class="tab-primary-title">Comments &amp; Feedback</h3>
+                <p class="tab-primary-desc">Threaded discussion, review annotations, and internal team feedback for <strong>{p.jobId || p.title}</strong>.</p>
               </div>
+              <FluentButton
+                appearance="cta"
+                size="sm"
+                onclick={() => {
+                  const ta = document.querySelector('.project-comments-root textarea, .comments-box textarea') as HTMLTextAreaElement | null;
+                  if (ta) {
+                    ta.focus();
+                    ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                }}
+              >
+                <FluentIcons name="comment" size={14} />
+                <span style="margin-left: 6px;">Post feedback</span>
+              </FluentButton>
             </div>
 
-            {#if !isEditingDirection}
-              <!-- ─── PREVIEW MODE (DEFAULT) ─── -->
-              <div class="direction-preview-grid">
-                <div class="preview-card">
-                  <div class="preview-card-header">
-                    <span class="preview-icon">🎨</span>
-                    <span class="preview-title">Visual Concept / Style Direction</span>
-                  </div>
-                  <div class="preview-card-body">
-                    {#if currentFrontmatter.creative_direction?.visual_concept}
-                      <p class="preview-text highlight-concept">{currentFrontmatter.creative_direction.visual_concept}</p>
-                    {:else}
-                      <p class="preview-empty">No visual concept specified. Click "Edit Direction" to add.</p>
-                    {/if}
-                  </div>
-                </div>
+            <ProjectComments
+              projectId={p.id}
+              deliverables={projectStore.activeDeliverables}
+              bind:comments={projectComments}
+            />
+          </div>
 
-                <div class="preview-card">
-                  <div class="preview-card-header">
-                    <span class="preview-icon">🎯</span>
-                    <span class="preview-title">Primary Color Palette Tokens</span>
-                  </div>
-                  <div class="preview-card-body">
-                    {#if currentFrontmatter.creative_direction?.color_palette}
-                      {@const chips = extractColorChips(currentFrontmatter.creative_direction.color_palette)}
-                      <div class="palette-preview-wrap">
-                        {#if chips.length > 0}
-                          <div class="color-chips-row">
-                            {#each chips as color}
-                              <span class="color-swatch-dot" style="background-color: {color};" title={color}></span>
-                            {/each}
-                          </div>
-                        {/if}
-                        <p class="preview-text font-mono">{currentFrontmatter.creative_direction.color_palette}</p>
-                      </div>
-                    {:else}
-                      <p class="preview-empty">No color palette tokens defined yet.</p>
-                    {/if}
-                  </div>
-                </div>
-
-                <div class="preview-card full-width">
-                  <div class="preview-card-header">
-                    <span class="preview-icon">👥</span>
-                    <span class="preview-title">Target Audience Demographics &amp; Psychology</span>
-                  </div>
-                  <div class="preview-card-body">
-                    {#if currentFrontmatter.creative_direction?.target_audience}
-                      <div class="audience-content">{currentFrontmatter.creative_direction.target_audience}</div>
-                    {:else}
-                      <p class="preview-empty">No target audience profile documented yet. Click "Edit Direction" to add.</p>
-                    {/if}
-                  </div>
-                </div>
+        {:else if activeCanvasView === 'history'}
+          <div id="panel-history" role="tabpanel" aria-labelledby="tab-history" class="tab-panel-container">
+            <div class="tab-primary-bar">
+              <div class="tab-primary-info">
+                <h3 class="tab-primary-title">History &amp; Milestones</h3>
+                <p class="tab-primary-desc">Audit-backed revision snapshots, asset changes, and one-click rollback for <strong>{p.jobId || p.title}</strong>.</p>
               </div>
-            {:else}
-              <!-- ─── EDIT FORM MODE ─── -->
-              <div class="form-grid">
-                <div class="form-field">
-                  <label class="form-label" for="dir-visual-concept">Visual Concept / Style Direction</label>
-                  <input
-                    id="dir-visual-concept"
-                    type="text"
-                    class="form-input"
-                    bind:value={currentFrontmatter.creative_direction!.visual_concept}
-                    placeholder="e.g. Modern Bold Minimalist, Dark Neon Accent"
-                  />
-                </div>
+              <FluentButton
+                appearance="cta"
+                size="sm"
+                onclick={() => {
+                  const input = document.querySelector('.history-timeline-root input.capture-input') as HTMLInputElement | null;
+                  if (input) {
+                    input.focus();
+                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                }}
+              >
+                <FluentIcons name="camera" size={14} />
+                <span style="margin-left: 6px;">Capture snapshot</span>
+              </FluentButton>
+            </div>
 
-                <div class="form-field">
-                  <label class="form-label" for="dir-color-palette">Primary Color Palette Tokens</label>
-                  <input
-                    id="dir-color-palette"
-                    type="text"
-                    class="form-input"
-                    bind:value={currentFrontmatter.creative_direction!.color_palette}
-                    placeholder="e.g. Prussian Blue #022057, SS Blue #043388, Gold #D4AF37"
-                  />
-                </div>
-
-                <div class="form-field full-width">
-                  <label class="form-label" for="dir-target-audience">Target Audience Demographics &amp; Psychology</label>
-                  <textarea
-                    id="dir-target-audience"
-                    class="form-textarea"
-                    rows="4"
-                    bind:value={currentFrontmatter.creative_direction!.target_audience}
-                    placeholder="Demographics, pain points, desired emotional response..."
-                  ></textarea>
-                </div>
-              </div>
-            {/if}
-          </FluentCard>
+            <ProjectHistoryTimeline
+              projectId={p.id}
+              projectTitle={p.title || p.name || p.jobId}
+              onRollbackSuccess={async () => {
+                await projectStore.loadProjectById(p.id);
+              }}
+            />
+          </div>
         {/if}
       </main>
 
@@ -2046,6 +2208,50 @@
   .status-revision { background: var(--colorStatusDangerBackground1, #FEF2F2); color: var(--colorStatusDangerForeground1, #B91C1C); border-color: var(--colorStatusDangerBorder1, #FECACA); }
   .status-approved { background: var(--colorStatusSuccessBackground1, #ECFDF5); color: var(--colorStatusSuccessForeground1, #047857); border-color: var(--colorStatusSuccessBorder1, #A7F3D0); }
   .status-done { background: var(--colorStatusSuccessBackground2, #F3E8FF); color: var(--colorStatusSuccessForeground2, #7E22CE); border-color: var(--colorStatusSuccessBorder2, #E9D5FF); }
+
+  /* Tab Panel & Primary Action Bar */
+  .tab-panel-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    gap: 16px;
+  }
+
+  .tab-primary-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 18px;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: var(--radius-md, 8px);
+  }
+
+  .tab-primary-info {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .tab-primary-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .tab-primary-desc {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin: 2px 0 0 0;
+    line-height: 1.4;
+  }
+
+  .brief-direction-section {
+    margin-top: 20px;
+  }
 
   /* Segmented Nav */
   .canvas-segmented-nav {

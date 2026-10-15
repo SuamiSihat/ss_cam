@@ -4,6 +4,7 @@
   import { ApiClient } from '$lib/services/api';
   import { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   interface Props {
@@ -29,6 +30,8 @@
   let generatedShare = $state<any>(null);
   let activeLinks = $state<any[]>([]);
   let isLoadingLinks = $state<boolean>(false);
+  let linkToRevoke = $state<string | null>(null);
+  let isRevokingLink = $state<boolean>(false);
 
   $effect(() => {
     if (open && projectId) {
@@ -92,7 +95,14 @@
     window.open(`https://wa.me/?text=${text}`, '_blank');
   }
 
-  async function handleRevoke(token: string) {
+  function requestRevoke(token: string) {
+    linkToRevoke = token;
+  }
+
+  async function confirmRevoke() {
+    if (!linkToRevoke) return;
+    const token = linkToRevoke;
+    isRevokingLink = true;
     try {
       await ApiClient.revokeShareLink(token);
       appState.addToast('Review link revoked.', 'info');
@@ -100,8 +110,11 @@
       if (generatedShare?.token === token) {
         generatedShare = null;
       }
+      linkToRevoke = null;
     } catch (err: any) {
       appState.addToast(getErrorMessage(err, 'We couldn\'t revoke the review link. Please try again.'), 'error');
+    } finally {
+      isRevokingLink = false;
     }
   }
 
@@ -238,7 +251,7 @@
                     <button class="icon-action-btn" title="Share WhatsApp" onclick={() => shareViaWhatsApp(link.token)}>
                       <FluentIcons name="chat" size={13} />
                     </button>
-                    <button class="revoke-btn" onclick={() => handleRevoke(link.token)}>Revoke</button>
+                    <button class="revoke-btn" onclick={() => requestRevoke(link.token)}>Revoke</button>
                   </div>
                 </div>
               {/each}
@@ -257,6 +270,18 @@
     </div>
   </div>
 {/if}
+
+<FluentDialog
+  open={!!linkToRevoke}
+  title="Revoke review link?"
+  message="Anyone with this link will immediately lose access to review or approve this project. You can generate a new link anytime."
+  confirmLabel="Revoke Link"
+  cancelLabel="Keep Link"
+  confirmAppearance="danger"
+  loading={isRevokingLink}
+  onConfirm={confirmRevoke}
+  onCancel={() => { if (!isRevokingLink) linkToRevoke = null; }}
+/>
 
 <style>
   .share-backdrop {

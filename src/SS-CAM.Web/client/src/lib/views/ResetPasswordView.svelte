@@ -130,7 +130,7 @@
     {:else if isSuccess}
       <div class="success-banner">
         <div class="success-icon"><FluentIcons name="checkmark" size={24} color="var(--color-success)" /></div>
-        <h2>Password successfully updated</h2>
+        <h1 class="success-heading">Password successfully updated</h1>
         <p>Your new password is now active for <strong>{targetUser}</strong>.</p>
         <a href="#login" class="submit-btn" style="text-align: center; text-decoration: none; margin-top: 16px;">
           Sign In Now →
@@ -156,6 +156,7 @@
               class="field-input"
               bind:value={newPassword}
               placeholder="Minimum 10 characters"
+              autocomplete="new-password"
               required
             />
             <button
@@ -187,6 +188,7 @@
             class="field-input"
             bind:value={confirmPassword}
             placeholder="Re-enter new password"
+            autocomplete="new-password"
             required
           />
         </div>

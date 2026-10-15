@@ -29,8 +29,10 @@
   let currentTime = $state('');
   let currentDate = $state('');
   let currentSlide = $state(0);
+  let isOffline = $state(typeof navigator !== 'undefined' ? !navigator.onLine : false);
   let timer: any = null;
   let clockTimer: any = null;
+  let pollTimer: any = null;
 
   const slides = [
     {
@@ -65,6 +67,34 @@
     currentDate = now.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   }
 
+  async function checkConnection() {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      isOffline = true;
+      return;
+    }
+    try {
+      const res = await fetch('/api/clinic/branches/SSC-BSR', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.branch) branch = data.branch;
+        isOffline = false;
+      } else {
+        isOffline = true;
+      }
+    } catch {
+      isOffline = true;
+    }
+  }
+
+  function handleOnline() {
+    isOffline = false;
+    checkConnection();
+  }
+
+  function handleOffline() {
+    isOffline = true;
+  }
+
   onMount(async () => {
     updateClock();
     clockTimer = setInterval(updateClock, 1000);
@@ -74,20 +104,23 @@
       currentSlide = (currentSlide + 1) % slides.length;
     }, 10000);
 
-    try {
-      const res = await fetch('/api/clinic/branches/SSC-BSR');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.branch) branch = data.branch;
-      }
-    } catch {
-      // Use defaults
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
     }
+
+    await checkConnection();
+    pollTimer = setInterval(checkConnection, 30000);
   });
 
   onDestroy(() => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    }
     if (timer) clearInterval(timer);
     if (clockTimer) clearInterval(clockTimer);
+    if (pollTimer) clearInterval(pollTimer);
   });
 </script>
 
@@ -112,6 +145,12 @@
         <a href="#dashboard" class="exit-portal-link" title="Return to SS-CAM Portal">
           ← Return to Portal
         </a>
+      {/if}
+      {#if isOffline}
+        <div class="offline-pill" role="status" aria-live="polite">
+          <span class="offline-dot"></span>
+          <span>Offline Mode • Cached Schedule</span>
+        </div>
       {/if}
       <div class="license-pill">LESEN KKM: {branch.kkmLicense}</div>
       <div class="clock-display">
@@ -354,6 +393,34 @@
     font-weight: 600;
     color: #6DC6EC;
     letter-spacing: 0.5px;
+  }
+
+  .offline-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(239, 68, 68, 0.18);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #FCA5A5;
+    letter-spacing: 0.5px;
+  }
+
+  .offline-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #EF4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+    animation: offlinePulse 1.5s infinite;
+  }
+
+  @keyframes offlinePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
   }
 
   .clock-display {

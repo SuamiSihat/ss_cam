@@ -14,21 +14,25 @@
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
   import FluentBadge from '$lib/components/ui/FluentBadge.svelte';
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
+  import FluentErrorBanner from '$lib/components/ui/FluentErrorBanner.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   type ViewMode = 'graph' | 'kanban' | 'gantt' | 'calendar' | 'table';
 
   let defaultView = $state<ViewMode>(
-    (typeof localStorage !== 'undefined' && (localStorage.getItem('ss_cam_default_project_view') as ViewMode)) || 'graph'
+    (typeof localStorage !== 'undefined' && (localStorage.getItem('ss_cam_default_project_view') as ViewMode)) || 'kanban'
   );
 
   let viewMode = $state<ViewMode>(
     (typeof localStorage !== 'undefined' && (localStorage.getItem('ss_cam_project_view') as ViewMode)) || defaultView
   );
 
+  let isViewMenuOpen = $state<boolean>(false);
+
   let projectToDelete = $state<Project | null>(null);
   let showDeleteModal = $state<boolean>(false);
   let isDeleting = $state<boolean>(false);
+  let deleteConfirmName = $state<string>('');
 
   // Feature 7: Bulk select state
   let bulkMode = $state<boolean>(false);
@@ -112,17 +116,24 @@
 
   function handleDeleteRequest(project: Project) {
     projectToDelete = project;
+    deleteConfirmName = '';
     showDeleteModal = true;
   }
 
   async function confirmDeleteProject() {
     if (!projectToDelete) return;
+    const requiredName = (projectToDelete.title || projectToDelete.jobId || projectToDelete.id).trim();
+    if (deleteConfirmName.trim().toLowerCase() !== requiredName.toLowerCase()) {
+      appState.addToast('Please type the exact project name to confirm deletion.', 'warning');
+      return;
+    }
     isDeleting = true;
     try {
       await ApiClient.deleteProject(projectToDelete.id);
       appState.addToast(`Project ${projectToDelete.jobId || projectToDelete.title} deleted.`, 'success');
       showDeleteModal = false;
       projectToDelete = null;
+      deleteConfirmName = '';
       await projectStore.loadProjects();
       await projectStore.loadDashboard();
     } catch (err: any) {
@@ -143,10 +154,30 @@
     }
     // Clear params after consuming so back-navigation resets default view
     appState.routeParams = {};
+
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.more-views-wrapper')) {
+        isViewMenuOpen = false;
+      }
+    }
+    window.addEventListener('click', handleClickOutside);
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+    };
   });
 </script>
 
 <div class="projects-container">
+  {#if projectStore.errorProjects}
+    <FluentErrorBanner
+      title="Unable to load projects"
+      message={projectStore.errorProjects}
+      retryLabel="Reload Projects"
+      onRetry={() => projectStore.loadProjects()}
+    />
+  {/if}
+
   <!-- View Header & View Switcher -->
   <div class="view-header">
     <div class="header-titles">
@@ -158,22 +189,6 @@
     <div class="view-controls-wrap">
       <!-- Segmented View Mode Switcher -->
       <div class="view-switcher-segmented">
-        <button
-          type="button"
-          class="seg-view-btn"
-          class:is-active={viewMode === 'graph'}
-          onclick={() => setViewMode('graph')}
-          title="Obsidian-style Graph View"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/>
-            <line x1="6" y1="6" x2="12" y2="18" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="18" y1="6" x2="12" y2="18" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="12" y1="18" x2="18" y2="18" stroke="currentColor" stroke-width="1.2"/>
-          </svg>
-          <span>Graph</span>
-        </button>
-
         <button
           type="button"
           class="seg-view-btn"
@@ -190,32 +205,6 @@
         <button
           type="button"
           class="seg-view-btn"
-          class:is-active={viewMode === 'gantt'}
-          onclick={() => setViewMode('gantt')}
-          title="Gantt Timeline Schedule"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M4 5h10v3H4V5zm6 6h10v3H10v-3zm-4 6h12v3H6v-3z"/>
-          </svg>
-          <span>Gantt</span>
-        </button>
-
-        <button
-          type="button"
-          class="seg-view-btn"
-          class:is-active={viewMode === 'calendar'}
-          onclick={() => setViewMode('calendar')}
-          title="Production Calendar"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
-          </svg>
-          <span>Calendar</span>
-        </button>
-
-        <button
-          type="button"
-          class="seg-view-btn"
           class:is-active={viewMode === 'table'}
           onclick={() => setViewMode('table')}
           title="High Density Data Table"
@@ -225,6 +214,55 @@
           </svg>
           <span>Table</span>
         </button>
+
+        <div class="more-views-wrapper">
+          <button
+            type="button"
+            class="seg-view-btn more-views-btn"
+            class:is-active={['graph', 'gantt', 'calendar'].includes(viewMode)}
+            onclick={() => (isViewMenuOpen = !isViewMenuOpen)}
+            aria-haspopup="menu"
+            aria-expanded={isViewMenuOpen}
+            title="Switch View"
+          >
+            <span>View ▾</span>
+          </button>
+
+          {#if isViewMenuOpen}
+            <div class="views-dropdown-menu" role="menu">
+              <button
+                type="button"
+                class="dropdown-item"
+                class:active={viewMode === 'graph'}
+                onclick={() => { setViewMode('graph'); isViewMenuOpen = false; }}
+                role="menuitem"
+              >
+                <FluentIcons name="graph" size={13} />
+                <span style="margin-left: 8px;">Graph View</span>
+              </button>
+              <button
+                type="button"
+                class="dropdown-item"
+                class:active={viewMode === 'gantt'}
+                onclick={() => { setViewMode('gantt'); isViewMenuOpen = false; }}
+                role="menuitem"
+              >
+                <FluentIcons name="gantt" size={13} />
+                <span style="margin-left: 8px;">Gantt Timeline</span>
+              </button>
+              <button
+                type="button"
+                class="dropdown-item"
+                class:active={viewMode === 'calendar'}
+                onclick={() => { setViewMode('calendar'); isViewMenuOpen = false; }}
+                role="menuitem"
+              >
+                <FluentIcons name="calendar" size={13} />
+                <span style="margin-left: 8px;">Calendar</span>
+              </button>
+            </div>
+          {/if}
+        </div>
       </div>
 
       <!-- Save Default View Action Button -->
@@ -265,12 +303,21 @@
           <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
         </svg>
       </div>
-      <h3>No projects found</h3>
-      <p>Try adjusting your filters, or submit a new creative brief to start a production record.</p>
-      <button class="empty-cta-btn" onclick={() => appState.navigate('order-form')}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        New Request
-      </button>
+      {#if projectStore.hasActiveFilters}
+        <h3>No projects match your current filters</h3>
+        <p>Try clearing your search query, status, or brand filters to see all projects.</p>
+        <button type="button" class="empty-clear-btn" onclick={() => projectStore.resetFilters()}>
+          <FluentIcons name="close" size={13} />
+          <span style="margin-left: 6px;">Clear all filters</span>
+        </button>
+      {:else}
+        <h3>No projects found</h3>
+        <p>Submit a new creative request to start a production project on the shared drive.</p>
+        <button class="empty-cta-btn" onclick={() => appState.navigate('order-form')}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          New Request
+        </button>
+      {/if}
     </div>
 
   {:else if viewMode === 'graph'}
@@ -405,7 +452,7 @@
     confirmAppearance="danger"
     loading={isDeleting}
     onConfirm={confirmDeleteProject}
-    onClose={() => { showDeleteModal = false; projectToDelete = null; }}
+    onClose={() => { showDeleteModal = false; projectToDelete = null; deleteConfirmName = ''; }}
   >
     <div class="delete-dialog-body">
       <div class="delete-warning-banner">
@@ -414,7 +461,7 @@
           <span style="margin-left: 6px;">Irreversible action</span>
         </div>
         <p class="warning-text">
-          This will permanently delete the project directory and <strong>all 5 subfolders</strong> on the shared drive:
+          This will permanently delete the project directory and <strong>all 5 subfolders and files</strong> on the shared drive. This action cannot be undone:
         </p>
         <ul class="subfolder-list">
           <li><code>01_BRIEF_ASSETS/</code></li>
@@ -428,6 +475,19 @@
         <div class="delete-target-info">
           <span class="target-label">Target Project:</span>
           <span class="target-val"><strong>{projectToDelete.jobId || projectToDelete.id}</strong> — {projectToDelete.title}</span>
+        </div>
+        <div class="delete-confirm-prompt" style="margin-top: 14px;">
+          <label for="delete-project-name-input" class="confirm-input-label" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">
+            To confirm, type the project name <code>{projectToDelete.title || projectToDelete.jobId || projectToDelete.id}</code> below:
+          </label>
+          <input
+            id="delete-project-name-input"
+            type="text"
+            class="form-input"
+            bind:value={deleteConfirmName}
+            placeholder="Type project name here..."
+            style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid var(--border-stroke); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); font-size: 13px;"
+          />
         </div>
       {/if}
     </div>
@@ -544,6 +604,52 @@
     background: var(--brand-accent);
     color: #FFFFFF;
     box-shadow: 0 1px 3px rgba(0, 120, 212, 0.3);
+  }
+
+  .more-views-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .views-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 100;
+    min-width: 170px;
+    background: var(--surface-card, #FFFFFF);
+    border: 1px solid var(--surface-card-border, #E5E7EB);
+    border-radius: var(--radius-md, 8px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .views-dropdown-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary, #111827);
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--transition-fast);
+  }
+
+  .views-dropdown-menu .dropdown-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .views-dropdown-menu .dropdown-item.active {
+    background: rgba(4, 51, 136, 0.1);
+    color: var(--brand-accent);
+    font-weight: 600;
   }
 
   /* ─── Cards Grid ─── */
@@ -701,6 +807,25 @@
     background: var(--brand-secondary);
     transform: translateY(-1px);
   }
+  .empty-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--surface-card, #FFFFFF);
+    color: var(--text-primary, #111827);
+    border: 1px solid var(--surface-card-border, #E5E7EB);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .empty-clear-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: var(--brand-accent);
+  }
 
   .job-id-wrap {
     display: flex;
@@ -781,5 +906,75 @@
   }
   .target-val {
     color: var(--text-primary, #111827);
+  }
+
+  /* Mobile Responsive Breakpoints (WCAG 2.5.8 touch targets >= 44x44px) */
+  @media (max-width: 768px) {
+    .view-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .view-controls-wrap {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .view-switcher-segmented {
+      flex: 1;
+      justify-content: space-around;
+    }
+    .seg-view-btn {
+      flex: 1;
+      justify-content: center;
+      min-height: 44px;
+      padding: 8px 10px;
+    }
+    .save-default-btn,
+    .default-view-badge {
+      min-height: 44px;
+      box-sizing: border-box;
+    }
+    .filter-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .filter-group {
+      width: 100%;
+      flex-direction: column;
+    }
+    .filter-select,
+    .search-input {
+      width: 100%;
+      min-height: 44px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .projects-container {
+      padding: 12px 10px;
+    }
+    .view-title {
+      font-size: 20px;
+    }
+    .projects-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .project-card-wrapper {
+      width: 100%;
+    }
+    .filter-select,
+    .search-input {
+      font-size: 16px; /* Prevents auto-zoom on iOS mobile */
+    }
+    .empty-cta-btn,
+    .empty-clear-btn {
+      min-height: 44px;
+      width: 100%;
+      justify-content: center;
+    }
   }
 </style>

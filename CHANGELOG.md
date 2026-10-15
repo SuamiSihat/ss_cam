@@ -2,6 +2,39 @@
 
 All notable SS-CAM changes are documented here.
 
+## [Unreleased] - Web portal UX polish, accessibility, responsive mobile & data safety (Phase 5)
+
+Details and verification evidence: `QA/FINAL-WEB-PORTAL-REPORT.md` and `QA/PHASE-LOG.md`.
+
+- **Accessible Confirmation Dialogs (T5.1):** Replaced native browser `confirm()` and `alert()` modals with accessible `FluentDialog` across all views. Added confirmation flows for canceling requests, revoking share links, deleting pins, removing subtasks, approving deliverables, and requesting revisions. Project deletion enforces typing the exact project name with warning of permanent file deletion.
+- **Resilient UI States & Offline Detection (T5.2):** Replaced silent failures with inline `FluentErrorBanner` featuring one-click retry across Dashboard, Projects, Deliverables, and Consultation Suite. Added filter-aware empty states with instant "Clear filters" action. Added real-time offline warning indicators for disconnected SSE events and Signage network outages.
+- **Projects & Tasks View Ergonomics (T5.3):** Unified disjointed view buttons into a cohesive segmented view controller. Added keyboard-accessible "Move to..." menu on Kanban cards as an alternative to drag-and-drop. Batch task deletion accurately reports partial failures while preserving remaining tasks.
+- **Project Detail Tabbed Architecture (T5.4):** Organized project management into 5 dedicated tabs: Brief, Copywriting, Deliverables, Comments, and History. Standardized tab layout with one prominent primary action per view.
+- **Priority-Driven Home Dashboard (T5.5):** Refactored Dashboard view to prioritize designer workflow with "My priority queue" (urgent studio tasks and deliverables requiring attention), while collapsing heavy analytics under "Studio performance".
+- **Structured Admin Section Navigation (T5.6):** Redesigned the single monolithic admin view into 5 tabbed sections: People, Companies, Roles & Permissions, Notifications, and System Governance, with accessible tabs and persistent URL hash anchors.
+- **Accessibility & Focus Traps (T5.7):** Added semantic `role="button"`, `tabindex="0"`, Enter/Space keydown handlers, and `aria-label`s across all interactive cards and rows. Icon-only buttons equipped with descriptive `aria-label`s. Added focus trap, escape key dismissal, and `aria-modal="true"` to `NotificationDrawer`. Added `autocomplete` on password inputs, `<h1>` on Reset page, and show/hide password toggle with Sign out on first-login rotation.
+- **Responsive Mobile Layouts (T5.8):** Implemented mobile-first breakpoints down to 390px across `ClientReviewView`, `LoginView`, `ProjectsView`, `TasksView`, and `DeliverablesView`. Ensured all touch targets satisfy the >= 44x44px accessibility standard.
+- **Data Safety File Overwrite Protection (T5.9):** Ingesting files or attachments with conflicting filenames now halts with HTTP 409 (`exists: true`). Client presents a `FluentDialog` allowing designers to choose between "Replace" or "Keep both" (auto-versioned numbered copy). Covered by automated test suite (127 tests passing).
+
+## [Unreleased] - Web portal plain-language copywriting & brand voice (Phase 4)
+
+Details and verification evidence: `QA/PHASE4-COPY-REPORT.md`.
+
+- **Voice Guide & String Map (T4.1):** Published `QA/copy-guide.md` and `client/src/lib/copy.ts` defining canonical plain-language terminology and error formatting.
+- **Plain-Language User Interface (T4.2):** Replaced technical jargon across all 13 views, 15 components, and server responses. Sanitized toast messages using `getErrorMessage()` (0 raw `err.message` leaks, 0 exclamation marks). Added bilingual English/Malay labels to Consultation Suite with claims marked for clinical review. Fixed profile labels and password complexity thresholds.
+- **Terminology Gate Passed (T4.3):** Verified 0 forbidden terms (`Vault`, `Ingest`, `Preflight`, `Payload`, `Webhook`, `Log in`, `Logged in`, `Staged`, `RBAC`, `Telemetry`) in user-facing client strings.
+
+## [Unreleased] - Web portal Fluent 2 design system & visual harmony (Phase 3)
+
+Details and verification evidence: `QA/PHASE3-BRAND-REPORT.md`.
+
+- **Design Token Harmonization (T3.1):** Adopted 60:30:10 palette architecture (Porcelain/Charcoal, Prussian Blue/White, Banana CTA). Removed legacy off-palette themes; moved sub-brand overrides to tenant configuration.
+- **Focus Geometry & Interactive Targets (T3.2):** Established global `:focus-visible` ring and verified 0 unhandled `outline: none` declarations. Enforced 44px minimum interactive target height.
+- **Component Standardization (T3.3):** Updated `FluentButton`, `FluentCard`, `FluentInput`, `FluentSelect`, `FluentDialog`, and `FluentBadge` to Fluent 2 standards.
+- **Complete Elimination of Off-Brand `#0078D4` (T3.4):** Replaced all 129 legacy occurrences of `#0078D4` with semantic theme tokens.
+- **Icon System Consolidation (T3.5):** Unified icons onto offline `FluentIcons.svelte`, eliminating remote iconify dependencies and raw glyphs.
+- **Product Title & Brand Uniformity (T3.6):** Standardized portal title and metadata to `SS-CAM Creative Portal`.
+
 ## [Unreleased] - Web portal role model, capabilities & navigation hardening (Phase 2)
 
 Details, evidence and open items: `QA/ROLE-WALKTHROUGH.md` and `QA/ROUTE-AUTHZ-MATRIX.md`.

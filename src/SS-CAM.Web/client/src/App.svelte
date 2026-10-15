@@ -488,6 +488,18 @@
         </div>
 
         <div class="header-right">
+          {#if !appState.isOnline}
+            <div class="header-stream-pill is-offline" role="status" aria-live="polite" title="Network offline">
+              <span class="pill-dot offline"></span>
+              <span>Offline</span>
+            </div>
+          {:else if appState.sseStatus === 'reconnecting'}
+            <div class="header-stream-pill is-reconnecting" role="status" aria-live="polite" title="Reconnecting to real-time events...">
+              <span class="pill-dot reconnecting"></span>
+              <span>Reconnecting…</span>
+            </div>
+          {/if}
+
           <button
             class="icon-btn notif-btn"
             onclick={() => (appState.notificationDrawerOpen = !appState.notificationDrawerOpen)}
@@ -572,6 +584,27 @@
           </div>
         </div>
       </header>
+
+      <!-- Global Connectivity / SSE Status Alert -->
+      {#if !appState.isOnline}
+        <div class="offline-global-banner" role="alert">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+            <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+          </svg>
+          <span>You are currently working offline. Cached data is accessible; updates will sync when your network reconnects.</span>
+        </div>
+      {:else if appState.sseStatus === 'reconnecting'}
+        <div class="stream-warning-banner" role="status" aria-live="polite">
+          <span class="stream-pulse-dot"></span>
+          <span>Live update stream interrupted. Reconnecting to shared drive in the background…</span>
+        </div>
+      {/if}
 
       <!-- PAGE CONTENT -->
       <div class="page-body">
@@ -1843,5 +1876,84 @@
     color: var(--text-secondary);
     margin: 0 0 24px 0;
     line-height: 1.5;
+  }
+
+  /* ─── Offline & Stream Status Banners ─── */
+  .offline-global-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: rgba(239, 68, 68, 0.15);
+    border-bottom: 1px solid rgba(239, 68, 68, 0.35);
+    color: #FCA5A5;
+    font-size: 13px;
+    font-weight: 500;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .stream-warning-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    background: rgba(245, 158, 11, 0.12);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+    color: #FCD34D;
+    font-size: 12.5px;
+    font-weight: 500;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .stream-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #F59E0B;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+    animation: pulseDot 1.4s infinite;
+  }
+
+  .header-stream-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  .header-stream-pill.is-offline {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #FCA5A5;
+  }
+
+  .header-stream-pill.is-reconnecting {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #FCD34D;
+  }
+
+  .pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .pill-dot.offline {
+    background: #EF4444;
+  }
+
+  .pill-dot.reconnecting {
+    background: #F59E0B;
+    animation: pulseDot 1.4s infinite;
+  }
+
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.8); }
   }
 </style>

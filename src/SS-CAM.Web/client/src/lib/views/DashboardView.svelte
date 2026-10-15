@@ -6,6 +6,7 @@
   import { ApiClient } from '$lib/services/api';
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentErrorBanner from '$lib/components/ui/FluentErrorBanner.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import DashboardRadar from '$lib/components/features/DashboardRadar.svelte';
   import type { Project, ActivityNotification } from '$lib/types';
@@ -36,6 +37,7 @@
     if (diffHours < 24) return diffHours + ' hour' + (diffHours > 1 ? 's' : '') + ' ago';
     return diffDays + ' day' + (diffDays > 1 ? 's' : '') + ' ago';
   });
+  let showStudioPerformance = $state<boolean>(false);
   let showDeepAnalytics = $state<boolean>(false);
   let myNotifications = $state<ActivityNotification[]>([]);
   let isLoadingPersonal = $state<boolean>(false);
@@ -221,20 +223,29 @@
 </script>
 
 <div class="dashboard-container">
+  {#if projectStore.errorDashboard}
+    <FluentErrorBanner
+      title="Unable to load dashboard metrics"
+      message={projectStore.errorDashboard}
+      retryLabel="Reload Dashboard"
+      onRetry={() => {
+        projectStore.loadDashboard();
+        projectStore.loadProjects();
+        taskStore.loadTasks(true);
+      }}
+    />
+  {/if}
+
   <!-- Board Header with Lens Switcher -->
   <div class="board-header">
     <div class="header-left-col">
       <div class="header-tag">
-        <span class="badge badge-brand">
-          {activeLens === 'studio' ? 'STUDIO OVERVIEW' : 'MY WORKSPACE'}
-        </span>
+        <span class="badge badge-brand">PRODUCTION DESK</span>
         <span class="header-meta">Shared drive live • {currentUserName} ({appState.currentUser?.role})</span>
       </div>
       <h1 class="header-title">Home</h1>
       <p class="header-desc">
-        {activeLens === 'studio' 
-          ? 'Real-time studio health, production velocity, bottleneck aging, and brand portfolio distribution' 
-          : 'Focused view of your active tasks, urgent revision requests, and direct team feedback'}
+        Your priority queue, active deliverables, and studio performance.
       </p>
     </div>
 
@@ -247,83 +258,287 @@
     </div>
     {/if}
 
-    <!-- Lens Switcher & Actions -->
     <div class="header-actions">
-      <!-- Time Horizon Slicing for Studio Lens -->
-      {#if activeLens === 'studio'}
-        <div class="time-horizon-switcher" title="Analytics Time Window">
-          <button
-            type="button"
-            class="horizon-btn"
-            class:active={projectStore.dashboardTimeRange === '30d'}
-            onclick={() => handleTimeRangeChange('30d')}
-          >
-            30D
-          </button>
-          <button
-            type="button"
-            class="horizon-btn"
-            class:active={projectStore.dashboardTimeRange === '90d'}
-            onclick={() => handleTimeRangeChange('90d')}
-          >
-            90D
-          </button>
-          <button
-            type="button"
-            class="horizon-btn"
-            class:active={projectStore.dashboardTimeRange === 'all'}
-            onclick={() => handleTimeRangeChange('all')}
-          >
-            All
-          </button>
-        </div>
-
-        <!-- Brand Filter Dropdown -->
-        <select
-          class="brand-scope-select"
-          value={projectStore.dashboardBrand}
-          onchange={(e) => projectStore.loadDashboard({ brand: (e.target as HTMLSelectElement).value })}
-          title="Filter by Sub-Brand Holding"
-        >
-          <option value="all">All Brands</option>
-          {#each holdingBrands.slice(1) as b}
-            <option value={b}>{b} Holding</option>
-          {/each}
-        </select>
-      {/if}
-
-      <div class="lens-switcher">
-        <button
-          class="lens-btn"
-          class:active={activeLens === 'studio'}
-          onclick={() => (activeLens = 'studio')}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
-          Studio Overview
-        </button>
-        <button
-          class="lens-btn"
-          class:active={activeLens === 'my-workspace'}
-          onclick={() => (activeLens = 'my-workspace')}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-          My Workspace
-          {#if myRevisionItems.length > 0}
-            <span class="lens-alert-pill">{myRevisionItems.length}</span>
-          {/if}
-        </button>
-      </div>
-
-      <FluentButton appearance="secondary" size="sm" onclick={() => { projectStore.loadDashboard(); loadPersonalActivity(); }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-        <span>Refresh</span>
+      <FluentButton appearance="secondary" size="sm" onclick={() => { projectStore.loadDashboard(); loadPersonalActivity(); taskStore.loadTasks(true); }}>
+        <FluentIcons name="refresh" size={14} />
+        <span style="margin-left: 6px;">Refresh</span>
       </FluentButton>
     </div>
   </div>
 
-  <!-- ═══════════ STUDIO EXECUTIVE DECK LENS ═══════════ -->
-  {#if activeLens === 'studio'}
-    <!-- Top 4-KPI Commercial Summary Strip -->
+  <!-- ═══════════ SECTION 1: MY PRIORITY QUEUE (LEAD) ═══════════ -->
+  <section class="priority-queue-section" aria-labelledby="priority-queue-heading">
+    <div class="section-title-bar">
+      <div class="section-title-col">
+        <h2 id="priority-queue-heading" class="section-heading">My priority queue</h2>
+        <p class="section-subheading">Your assigned deliverables, active production tasks, and direct team feedback.</p>
+      </div>
+      {#if myRevisionItems.length > 0}
+        <span class="priority-alert-badge">
+          <FluentIcons name="warning" size={13} color="#EF4444" />
+          <span style="margin-left: 5px;">{myRevisionItems.length} revision{myRevisionItems.length > 1 ? 's' : ''} requiring action</span>
+        </span>
+      {/if}
+    </div>
+
+    <!-- Personal KPI Strips -->
+    <div class="personal-kpi-grid">
+      <div 
+        class="personal-kpi-card highlight-revision"
+        role="button"
+        tabindex="0"
+        aria-label="Filter my revisions requiring action"
+        onclick={() => appState.navigate('projects', { status: 'revision' })}
+        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); appState.navigate('projects', { status: 'revision' }); } }}
+      >
+        <div class="pkpi-meta">
+          <span class="pkpi-icon">
+            <FluentIcons name="warning" size={16} color="#EF4444" />
+          </span>
+          <span class="pkpi-title">Revisions Requiring Action</span>
+        </div>
+        <div class="pkpi-count">{myRevisionItems.length}</div>
+        <span class="pkpi-desc">Deliverables awaiting updates</span>
+      </div>
+
+      <div 
+        class="personal-kpi-card highlight-active"
+        role="button"
+        tabindex="0"
+        aria-label="Filter my deliverables in production"
+        onclick={() => appState.navigate('projects', { status: 'in-progress' })}
+        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); appState.navigate('projects', { status: 'in-progress' }); } }}
+      >
+        <div class="pkpi-meta">
+          <span class="pkpi-icon">
+            <FluentIcons name="bolt" size={16} color="#00CFFF" />
+          </span>
+          <span class="pkpi-title">In Production</span>
+        </div>
+        <div class="pkpi-count">{myActiveItems.length}</div>
+        <span class="pkpi-desc">Current active deliverables</span>
+      </div>
+
+      <div 
+        class="personal-kpi-card highlight-review"
+        role="button"
+        tabindex="0"
+        aria-label="Filter my deliverables under review"
+        onclick={() => appState.navigate('projects', { status: 'review' })}
+        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); appState.navigate('projects', { status: 'review' }); } }}
+      >
+        <div class="pkpi-meta">
+          <span class="pkpi-icon">
+            <FluentIcons name="calendar" size={16} color="#F59E0B" />
+          </span>
+          <span class="pkpi-title">Under Review</span>
+        </div>
+        <div class="pkpi-count">{myReviewItems.length}</div>
+        <span class="pkpi-desc">Awaiting manager sign-off</span>
+      </div>
+    </div>
+
+    <!-- Personal Two-Column Layout -->
+    <div class="my-workspace-grid">
+      <!-- Left: Assigned Projects & Action Queue -->
+      <div class="my-queue-column">
+        <FluentCard elevated>
+          <div class="card-section-header">
+            <div>
+              <h2>My Priority Production Queue</h2>
+              <p>Direct assignments and deliverables under your custody</p>
+            </div>
+          </div>
+
+          {#if myProjects.length === 0}
+            <div class="empty-workspace-state">
+              <div class="empty-icon-box">
+                <FluentIcons name="checkCircle" size={36} color="#10B981" />
+              </div>
+              <p class="empty-title">All tasks cleared</p>
+              <p class="empty-desc">You have no active projects or pending revisions assigned right now.</p>
+            </div>
+          {:else}
+            <div class="project-queue-list">
+              {#each myProjects as proj (proj.id || proj.jobId)}
+                <div 
+                  class="queue-card" 
+                  role="button"
+                  tabindex="0"
+                  aria-label={`Open project ${proj.title}`}
+                  onclick={() => appState.navigate('project-detail', { id: proj.id || proj.jobId })}
+                  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); appState.navigate('project-detail', { id: proj.id || proj.jobId }); } }}
+                >
+                  <div class="queue-card-header">
+                    <div class="queue-id-tag">{proj.jobId || proj.id}</div>
+                    <span class="status-pill status-{proj.status}">{proj.status}</span>
+                  </div>
+                  <h4 class="queue-title">{proj.title}</h4>
+                  <div class="queue-footer">
+                    <span class="queue-brand">Brand: {proj.brand || 'SS'}</span>
+                    {#if proj.subtasks && proj.subtasks.length > 0}
+                      {@const done = proj.completedSubtasksCount !== undefined ? proj.completedSubtasksCount : proj.subtasks.filter((s: any) => ['approved', 'done', 'completed'].includes((s.status || '').toLowerCase())).length}
+                      {@const pts = proj.totalWeight || proj.subtasks.reduce((sum: number, s: any) => sum + (typeof s.weight === 'number' ? s.weight : 1), 0)}
+                      <span class="queue-pts-pill" title="{done}/{proj.subtasks.length} Subtasks Done">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 2px; vertical-align: -1px; display: inline-block;">
+                          <circle cx="12" cy="12" r="9"/>
+                          <circle cx="12" cy="12" r="4"/>
+                        </svg>
+                        {done}/{proj.subtasks.length} Done • {pts} pts
+                      </span>
+                    {/if}
+                    <span class="queue-deadline">
+                      <FluentIcons name="calendar" size={11} />
+                      <span style="margin-left: 3px;">{proj.deadlineDisplay || formatDeadlineDisplay(proj.deadline, proj.status) || 'No deadline'}</span>
+                    </span>
+                    <span class="queue-action-link">Open Workspace →</span>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </FluentCard>
+      </div>
+
+      <!-- Right: Direct Mentions & Discussion Highlights -->
+      <div class="my-activity-column">
+        <FluentCard elevated>
+          <div class="card-section-header">
+            <div>
+              <h2>Mentions &amp; Discussion Feed</h2>
+              <p>Recent collaboration notes directed to you</p>
+            </div>
+          </div>
+
+          {#if myNotifications.length === 0}
+            <div class="empty-workspace-state">
+              <div class="empty-icon-box">
+                <FluentIcons name="chat" size={36} color="rgba(255,255,255,0.2)" />
+              </div>
+              <p class="empty-title">No recent mentions</p>
+              <p class="empty-desc">Team comments mentioning you will appear here.</p>
+            </div>
+          {:else}
+            <div class="personal-activity-list">
+              {#each myNotifications.slice(0, 6) as notif (notif.id)}
+                <div
+                  class="personal-activity-card"
+                  role="button"
+                  tabindex="0"
+                  aria-label={`Open project notification ${notif.title}`}
+                  onclick={() => {
+                    if (notif.route === 'project-detail' && notif.routeId) {
+                      appState.navigate('project-detail', { id: notif.routeId });
+                    }
+                  }}
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      if (notif.route === 'project-detail' && notif.routeId) {
+                        appState.navigate('project-detail', { id: notif.routeId });
+                      }
+                    }
+                  }}
+                >
+                  <div class="pact-header">
+                    <span class="pact-title">{notif.title}</span>
+                    <span class="pact-actor">{notif.actor}</span>
+                  </div>
+                  <p class="pact-message">{notif.message}</p>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </FluentCard>
+      </div>
+  </section>
+
+  <!-- ═══════════ SECTION 2: STUDIO PERFORMANCE (COLLAPSIBLE) ═══════════ -->
+  <section class="studio-performance-section" aria-labelledby="studio-performance-heading">
+    <div class="performance-collapsible-bar">
+      <button
+        type="button"
+        class="performance-toggle-btn"
+        onclick={() => (showStudioPerformance = !showStudioPerformance)}
+        aria-expanded={showStudioPerformance}
+        aria-controls="studio-performance-content"
+      >
+        <div class="perf-toggle-left">
+          <div class="perf-icon-badge">
+            <FluentIcons name="dashboard" size={18} color="var(--brand-primary)" />
+          </div>
+          <div class="perf-title-col">
+            <div class="perf-title-row">
+              <h2 id="studio-performance-heading" class="perf-heading">Studio performance</h2>
+              <span class="perf-pill">{showStudioPerformance ? 'Expanded' : 'Collapsed'}</span>
+            </div>
+            <p class="perf-subtitle">
+              {#if !showStudioPerformance}
+                <span>{kpis.active} in pipeline · {kpis.pendingReview} pending sign-off · {kpis.overdue} overdue · {slaData.avgTurnaroundDays ? `${slaData.avgTurnaroundDays}d avg turnaround` : 'Studio metrics ready'}</span>
+              {:else}
+                Real-time studio health, production velocity, review latency, and brand portfolio distribution.
+              {/if}
+            </p>
+          </div>
+        </div>
+
+        <div class="perf-toggle-right" onclick={(e) => e.stopPropagation()}>
+          {#if showStudioPerformance}
+            <div class="time-horizon-switcher" title="Analytics Time Window">
+              <button
+                type="button"
+                class="horizon-btn"
+                class:active={projectStore.dashboardTimeRange === '30d'}
+                onclick={() => handleTimeRangeChange('30d')}
+              >
+                30D
+              </button>
+              <button
+                type="button"
+                class="horizon-btn"
+                class:active={projectStore.dashboardTimeRange === '90d'}
+                onclick={() => handleTimeRangeChange('90d')}
+              >
+                90D
+              </button>
+              <button
+                type="button"
+                class="horizon-btn"
+                class:active={projectStore.dashboardTimeRange === 'all'}
+                onclick={() => handleTimeRangeChange('all')}
+              >
+                All
+              </button>
+            </div>
+
+            <select
+              class="brand-scope-select"
+              value={projectStore.dashboardBrand}
+              onchange={(e) => projectStore.loadDashboard({ brand: (e.target as HTMLSelectElement).value })}
+              title="Filter by Sub-Brand Holding"
+            >
+              <option value="all">All Brands</option>
+              {#each holdingBrands.slice(1) as b}
+                <option value={b}>{b} Holding</option>
+              {/each}
+            </select>
+          {/if}
+
+          <FluentButton
+            appearance="secondary"
+            size="sm"
+            onclick={() => (showStudioPerformance = !showStudioPerformance)}
+          >
+            <FluentIcons name={showStudioPerformance ? "chevronDown" : "chevronRight"} size={14} />
+            <span style="margin-left: 6px;">{showStudioPerformance ? 'Collapse' : 'Expand'}</span>
+          </FluentButton>
+        </div>
+      </button>
+    </div>
+
+    {#if showStudioPerformance}
+      <div id="studio-performance-content" class="studio-performance-content">
+        <!-- Top 4-KPI Commercial Summary Strip -->
     {#if projectStore.isLoading && !projectStore.dashboardData}
     <div class="kpi-grid commercial-pillars skeleton-kpi-grid">
       {#each [1,2,3,4] as _}
@@ -468,9 +683,14 @@
         </div>
         <div class="friction-items-grid">
           {#each highRevisionProjects as hp}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="friction-item" onclick={() => appState.navigate('project-detail', { id: hp.id })}>
+            <div 
+              class="friction-item" 
+              role="button"
+              tabindex="0"
+              aria-label={`Open high-revision project ${hp.title}`}
+              onclick={() => appState.navigate('project-detail', { id: hp.id })}
+              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); appState.navigate('project-detail', { id: hp.id }); } }}
+            >
               <div class="fitem-left">
                 <span class="fitem-id">{hp.jobId}</span>
                 <span class="fitem-title">{hp.title}</span>
@@ -1028,149 +1248,151 @@
         </div>
       {/if}
     </div>
-
-  <!-- ═══════════ MY WORKSPACE LENS ═══════════ -->
-  {:else}
-    <!-- Personal KPI Strips -->
-    <div class="personal-kpi-grid">
-      <div class="personal-kpi-card highlight-revision">
-        <div class="pkpi-meta">
-          <span class="pkpi-icon">
-            <FluentIcons name="warning" size={16} color="#EF4444" />
-          </span>
-          <span class="pkpi-title">Revisions Requiring Action</span>
-        </div>
-        <div class="pkpi-count">{myRevisionItems.length}</div>
-        <span class="pkpi-desc">Deliverables awaiting updates</span>
       </div>
-
-      <div class="personal-kpi-card highlight-active">
-        <div class="pkpi-meta">
-          <span class="pkpi-icon">
-            <FluentIcons name="bolt" size={16} color="#00CFFF" />
-          </span>
-          <span class="pkpi-title">In Production</span>
-        </div>
-        <div class="pkpi-count">{myActiveItems.length}</div>
-        <span class="pkpi-desc">Current active deliverables</span>
-      </div>
-
-      <div class="personal-kpi-card highlight-review">
-        <div class="pkpi-meta">
-          <span class="pkpi-icon">
-            <FluentIcons name="calendar" size={16} color="#F59E0B" />
-          </span>
-          <span class="pkpi-title">Under Review</span>
-        </div>
-        <div class="pkpi-count">{myReviewItems.length}</div>
-        <span class="pkpi-desc">Awaiting manager sign-off</span>
-      </div>
-    </div>
-
-    <!-- Personal Two-Column Layout -->
-    <div class="my-workspace-grid">
-      <!-- Left: Assigned Projects & Action Queue -->
-      <div class="my-queue-column">
-        <FluentCard elevated>
-          <div class="card-section-header">
-            <div>
-              <h2>My Priority Production Queue</h2>
-              <p>Direct assignments and deliverables under your custody</p>
-            </div>
-          </div>
-
-          {#if myProjects.length === 0}
-            <div class="empty-workspace-state">
-              <div class="empty-icon-box">
-                <FluentIcons name="checkCircle" size={36} color="#10B981" />
-              </div>
-              <p class="empty-title">All tasks cleared</p>
-              <p class="empty-desc">You have no active projects or pending revisions assigned right now.</p>
-            </div>
-          {:else}
-            <div class="project-queue-list">
-              {#each myProjects as proj (proj.id || proj.jobId)}
-                <!-- svelte-ignore a11y_click_events_have_key_events -->
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div class="queue-card" onclick={() => appState.navigate('project-detail', { id: proj.id || proj.jobId })}>
-                  <div class="queue-card-header">
-                    <div class="queue-id-tag">{proj.jobId || proj.id}</div>
-                    <span class="status-pill status-{proj.status}">{proj.status}</span>
-                  </div>
-                  <h4 class="queue-title">{proj.title}</h4>
-                  <div class="queue-footer">
-                    <span class="queue-brand">Brand: {proj.brand || 'SS'}</span>
-                    {#if proj.subtasks && proj.subtasks.length > 0}
-                      {@const done = proj.completedSubtasksCount !== undefined ? proj.completedSubtasksCount : proj.subtasks.filter((s: any) => ['approved', 'done', 'completed'].includes((s.status || '').toLowerCase())).length}
-                      {@const pts = proj.totalWeight || proj.subtasks.reduce((sum: number, s: any) => sum + (typeof s.weight === 'number' ? s.weight : 1), 0)}
-                      <span class="queue-pts-pill" title="{done}/{proj.subtasks.length} Subtasks Done">
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 2px; vertical-align: -1px; display: inline-block;">
-                          <circle cx="12" cy="12" r="9"/>
-                          <circle cx="12" cy="12" r="4"/>
-                        </svg>
-                        {done}/{proj.subtasks.length} Done • {pts} pts
-                      </span>
-                    {/if}
-                    <span class="queue-deadline">
-                      <FluentIcons name="calendar" size={11} />
-                      <span style="margin-left: 3px;">{proj.deadlineDisplay || formatDeadlineDisplay(proj.deadline, proj.status) || 'No deadline'}</span>
-                    </span>
-                    <span class="queue-action-link">Open Workspace →</span>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </FluentCard>
-      </div>
-
-      <!-- Right: Direct Mentions & Discussion Highlights -->
-      <div class="my-activity-column">
-        <FluentCard elevated>
-          <div class="card-section-header">
-            <div>
-              <h2>Mentions &amp; Discussion Feed</h2>
-              <p>Recent collaboration notes directed to you</p>
-            </div>
-          </div>
-
-          {#if myNotifications.length === 0}
-            <div class="empty-workspace-state">
-              <div class="empty-icon-box">
-                <FluentIcons name="chat" size={36} color="rgba(255,255,255,0.2)" />
-              </div>
-              <p class="empty-title">No recent mentions</p>
-              <p class="empty-desc">Team comments mentioning you will appear here.</p>
-            </div>
-          {:else}
-            <div class="personal-activity-list">
-              {#each myNotifications.slice(0, 6) as notif (notif.id)}
-                <!-- svelte-ignore a11y_click_events_have_key_events -->
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="personal-activity-card"
-                  onclick={() => {
-                    if (notif.route === 'project-detail' && notif.routeId) {
-                      appState.navigate('project-detail', { id: notif.routeId });
-                    }
-                  }}
-                >
-                  <div class="pact-header">
-                    <span class="pact-title">{notif.title}</span>
-                    <span class="pact-actor">{notif.actor}</span>
-                  </div>
-                  <p class="pact-message">{notif.message}</p>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </FluentCard>
-      </div>
-    </div>
-  {/if}
+    {/if}
+  </section>
 </div>
 
 <style>
+  .priority-queue-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .section-title-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .section-heading {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .section-subheading {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 2px 0 0 0;
+  }
+
+  .priority-alert-badge {
+    display: inline-flex;
+    align-items: center;
+    background: var(--colorStatusDangerBackground1, #FEF2F2);
+    color: var(--colorStatusDangerForeground1, #B91C1C);
+    border: 1px solid var(--colorStatusDangerBorder1, #FECACA);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm, 6px);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .studio-performance-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .performance-collapsible-bar {
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .performance-collapsible-bar:hover {
+    border-color: var(--brand-primary);
+  }
+
+  .performance-toggle-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 18px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+  }
+
+  .perf-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .perf-icon-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-sm, 6px);
+    background: var(--bg-canvas);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .perf-title-col {
+    min-width: 0;
+  }
+
+  .perf-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .perf-heading {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .perf-pill {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: var(--bg-canvas);
+    color: var(--text-secondary);
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid var(--surface-card-border);
+  }
+
+  .perf-subtitle {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin: 2px 0 0 0;
+    line-height: 1.4;
+  }
+
+  .perf-toggle-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .studio-performance-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    animation: fadeIn 0.2s ease-out;
+  }
+
   .dashboard-container {
     display: flex;
     flex-direction: column;
@@ -2591,6 +2813,16 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    cursor: pointer;
+    transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+  }
+  .personal-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .personal-kpi-card:focus-visible {
+    outline: 2px solid var(--brand-accent);
+    outline-offset: 2px;
   }
   .personal-kpi-card.highlight-revision {
     border-left: 4px solid #EF4444;

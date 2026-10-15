@@ -732,6 +732,90 @@ This is the project brief content.
     }
   });
 
+  // ─── TEST 22B: Data Safety File Overwrite Protection (T5.9) ─────────
+  test('WorkspaceService.ingestFile and OrderService.saveOrderAttachment enforce overwrite confirmation and resolution modes', () => {
+    const OrderService = require('../services/OrderService');
+    const testDir = path.join(__dirname, 'temp-overwrite-safety-workspace');
+    const projectDir = path.join(testDir, '2026', '202608_August', '202608_0099T_SS_Overwrite_Test');
+    fs.mkdirSync(projectDir, { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'README.md'), '---\nstatus: in-progress\n---\n# Overwrite Safety\n', 'utf8');
+
+    const origRoot = WorkspaceService.workspaceRoot;
+    const origConfigRoot = config.WORKSPACE_ROOT;
+    WorkspaceService.workspaceRoot = testDir;
+    config.WORKSPACE_ROOT = testDir;
+    WorkspaceService.isScanning = false;
+    WorkspaceService.scan(true);
+
+    try {
+      const base64Data = Buffer.from('ORIGINAL_CONTENT').toString('base64');
+      const res1 = WorkspaceService.ingestFile('0099T', '02_SOURCE_FILES', 'Logo.ai', base64Data, 'Designer');
+      assert.strictEqual(res1.filename, 'Logo.ai');
+
+      // 1. Ingesting duplicate file without overwrite or resolution throws 409 conflict
+      let threwConflict = false;
+      try {
+        WorkspaceService.ingestFile('0099T', '02_SOURCE_FILES', 'Logo.ai', Buffer.from('NEW_CONTENT').toString('base64'), 'Designer');
+      } catch (err) {
+        threwConflict = true;
+        assert.strictEqual(err.status, 409);
+        assert.strictEqual(err.exists, true);
+        assert.strictEqual(err.filename, 'Logo.ai');
+      }
+      assert.ok(threwConflict, 'Must throw 409 conflict when duplicate file is ingested without overwrite flag');
+
+      // 2. Ingesting with resolution: 'replace' overwrites the existing file
+      const replaceRes = WorkspaceService.ingestFile('0099T', '02_SOURCE_FILES', 'Logo.ai', Buffer.from('REPLACED_CONTENT').toString('base64'), 'Designer', { resolution: 'replace' });
+      assert.strictEqual(replaceRes.filename, 'Logo.ai');
+      const replacedContent = fs.readFileSync(path.join(projectDir, '02_SOURCE_FILES', 'Logo.ai'), 'utf8');
+      assert.strictEqual(replacedContent, 'REPLACED_CONTENT');
+
+      // 3. Ingesting with resolution: 'keep_both' saves with numbered suffix
+      const keepBothRes = WorkspaceService.ingestFile('0099T', '02_SOURCE_FILES', 'Logo.ai', Buffer.from('COPY_CONTENT').toString('base64'), 'Designer', { resolution: 'keep_both' });
+      assert.strictEqual(keepBothRes.filename, 'Logo (1).ai');
+      assert.ok(fs.existsSync(path.join(projectDir, '02_SOURCE_FILES', 'Logo (1).ai')));
+
+      // 4. Test OrderService attachment overwrite safety
+      const order = OrderService.submitOrder({
+        title: 'Safety Test Order',
+        entity: 'SSC',
+        priority: 'tier_2',
+        format: 'digital',
+        copy: 'Detailed copy for safety test',
+        targetDate: '2026-09-30',
+        requester: 'Tester',
+        attachments: [
+          { filename: 'guidelines.pdf', fileData: Buffer.from('PDF_V1').toString('base64') }
+        ]
+      });
+
+      let orderConflict = false;
+      try {
+        OrderService.saveOrderAttachment(order.id, 'guidelines.pdf', Buffer.from('PDF_V2'), 'Tester');
+      } catch (err) {
+        orderConflict = true;
+        assert.strictEqual(err.status, 409);
+        assert.strictEqual(err.exists, true);
+        assert.strictEqual(err.filename, 'guidelines.pdf');
+      }
+      assert.ok(orderConflict, 'OrderService must throw 409 when duplicate attachment is saved without overwrite');
+
+      // Overwrite resolution
+      const attReplaced = OrderService.saveOrderAttachment(order.id, 'guidelines.pdf', Buffer.from('PDF_V2'), 'Tester', { resolution: 'replace' });
+      assert.strictEqual(attReplaced.filename, 'guidelines.pdf');
+
+      // Keep both resolution
+      const attKeepBoth = OrderService.saveOrderAttachment(order.id, 'guidelines.pdf', Buffer.from('PDF_V3'), 'Tester', { resolution: 'keep_both' });
+      assert.strictEqual(attKeepBoth.filename, 'guidelines (1).pdf');
+      assert.ok(fs.existsSync(OrderService.getOrderAttachmentPath(order.id, 'guidelines (1).pdf')));
+    } finally {
+      WorkspaceService.workspaceRoot = origRoot;
+      config.WORKSPACE_ROOT = origConfigRoot;
+      WorkspaceService.scan(true);
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch (e) {}
+    }
+  });
+
   // ─── TEST 23: Tokenized ShareService for Client Reviews ─────────────
   test('ShareService generates, validates, and revokes client review tokens', () => {
     const ShareService = require('../services/ShareService');

@@ -238,6 +238,26 @@
                   </div>
 
                   <div class="card-action-group">
+                    <div class="card-move-container" onclick={(e) => e.stopPropagation()}>
+                      <select
+                        class="card-move-select"
+                        value={p.status}
+                        onchange={async (e) => {
+                          const newStatus = (e.target as HTMLSelectElement).value;
+                          await projectStore.updateProjectStatus(p.id, newStatus);
+                        }}
+                        aria-label={`Move project ${p.jobId || p.id} to another status`}
+                        title="Move to status (Keyboard accessible)"
+                      >
+                        <option value="" disabled>Move to…</option>
+                        {#each columns as c}
+                          <option value={c.id} disabled={p.status === c.id}>
+                            {p.status === c.id ? `✓ ${c.label}` : c.label}
+                          </option>
+                        {/each}
+                      </select>
+                    </div>
+
                     {#if getPriorityBadge(p.priority)}
                       {@const badge = getPriorityBadge(p.priority)}
                       <span
@@ -520,6 +540,30 @@
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+
+  .card-move-container {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .card-move-select {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--surface-card-border, #E5E7EB);
+    color: var(--text-secondary, #6B7280);
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+
+  .card-move-select:hover, .card-move-select:focus {
+    border-color: var(--brand-accent);
+    color: var(--text-primary, #111827);
+    background: rgba(0, 0, 0, 0.08);
   }
 
   .priority-dot-badge {

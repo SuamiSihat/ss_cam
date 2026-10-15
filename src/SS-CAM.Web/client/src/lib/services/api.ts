@@ -71,6 +71,9 @@ export class ApiClient {
         }
         const httpErr: any = new Error(data.error || ApiClient.friendlyStatusMessage(response.status));
         httpErr.status = response.status;
+        if (data && typeof data === 'object') {
+          Object.assign(httpErr, data);
+        }
         throw httpErr;
       }
 
@@ -221,10 +224,16 @@ export class ApiClient {
     });
   }
 
-  static ingestFile(projectId: string, filename: string, targetSubfolder: string, fileData: string): Promise<{ success: boolean; filename: string; folder: string; sizeBytes: number; relPath: string }> {
+  static ingestFile(
+    projectId: string,
+    filename: string,
+    targetSubfolder: string,
+    fileData: string,
+    options?: { overwrite?: boolean; resolution?: 'replace' | 'keep_both' }
+  ): Promise<{ success: boolean; filename: string; folder: string; sizeBytes: number; relPath: string }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/ingest`, {
       method: 'POST',
-      body: JSON.stringify({ filename, targetSubfolder, fileData })
+      body: JSON.stringify({ filename, targetSubfolder, fileData, ...(options || {}) })
     });
   }
 

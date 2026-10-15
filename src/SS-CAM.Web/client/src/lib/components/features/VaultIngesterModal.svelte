@@ -4,6 +4,7 @@
   import { ApiClient } from '$lib/services/api';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
+  import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
 
   interface Props {
     open?: boolean;
@@ -36,6 +37,28 @@
   let isIngesting = $state(false);
   let uploadProgress = $state({ current: 0, total: 0 });
   let fileInputRef: HTMLInputElement | null = $state(null);
+
+  // File overwrite conflict handling
+  let conflictOpen = $state(false);
+  let conflictFile = $state<{ name: string; folder: string } | null>(null);
+  let conflictResolver = $state<((resolution: 'replace' | 'keep_both' | 'skip') => void) | null>(null);
+
+  function promptConflict(name: string, folder: string): Promise<'replace' | 'keep_both' | 'skip'> {
+    conflictFile = { name, folder };
+    conflictOpen = true;
+    return new Promise((resolve) => {
+      conflictResolver = resolve;
+    });
+  }
+
+  function handleConflictChoice(choice: 'replace' | 'keep_both' | 'skip') {
+    conflictOpen = false;
+    if (conflictResolver) {
+      conflictResolver(choice);
+      conflictResolver = null;
+    }
+    conflictFile = null;
+  }
 
   const CANONICAL_FOLDERS = [
     { id: '01_BRIEF_ASSETS', label: '01_BRIEF_ASSETS (Briefs & Guidelines)' },
@@ -137,15 +160,37 @@
 
     for (let i = 0; i < stagedFiles.length; i++) {
       const item = stagedFiles[i];
+      if (item.status === 'done') continue;
       item.status = 'uploading';
       try {
         const base64Data = await fileToBase64(item.file);
-        await ApiClient.ingestFile(projectId, item.name, item.targetFolder, base64Data);
-        item.status = 'done';
-        uploadProgress.current = i + 1;
+        try {
+          await ApiClient.ingestFile(projectId, item.name, item.targetFolder, base64Data);
+          item.status = 'done';
+          uploadProgress.current = i + 1;
+        } catch (err: any) {
+          if (err.status === 409 || err.exists) {
+            const choice = await promptConflict(item.name, item.targetFolder);
+            if (choice === 'skip') {
+              item.status = 'error';
+              item.errorMessage = 'Skipped: file already exists in vault.';
+              continue;
+            }
+            const res = await ApiClient.ingestFile(projectId, item.name, item.targetFolder, base64Data, {
+              resolution: choice
+            });
+            if (choice === 'keep_both' && res.filename) {
+              item.name = res.filename;
+            }
+            item.status = 'done';
+            uploadProgress.current = i + 1;
+          } else {
+            throw err;
+          }
+        }
       } catch (err: any) {
         item.status = 'error';
-        item.errorMessage = err.message;
+        item.errorMessage = err.message || 'Upload failed';
       }
     }
 
@@ -299,6 +344,39 @@
       </div>
     </div>
   </div>
+
+  {#if conflictOpen && conflictFile}
+    <div class="conflict-dialog-container">
+      <FluentDialog
+        open={conflictOpen}
+        title="File Already Exists"
+        cancelText="Skip"
+        onClose={() => handleConflictChoice('skip')}
+      >
+        <div class="conflict-dialog-body">
+          <p class="conflict-text">
+            A file named <strong>{conflictFile.name}</strong> already exists in <code>{conflictFile.folder}</code>.
+          </p>
+          <p class="conflict-sub">
+            Do you want to replace the existing file on the NAS or keep both by creating a numbered copy?
+          </p>
+        </div>
+        {#snippet footer()}
+          <div class="conflict-actions">
+            <FluentButton appearance="subtle" onclick={() => handleConflictChoice('skip')}>
+              Skip
+            </FluentButton>
+            <FluentButton appearance="secondary" onclick={() => handleConflictChoice('keep_both')}>
+              Keep both
+            </FluentButton>
+            <FluentButton appearance="danger" onclick={() => handleConflictChoice('replace')}>
+              Replace
+            </FluentButton>
+          </div>
+        {/snippet}
+      </FluentDialog>
+    </div>
+  {/if}
 {/if}
 
 <style>
@@ -496,4 +574,40 @@
   .canonical-tip { font-size: 11px; color: #64748B; }
   .ingesting-counter { font-size: 12px; font-weight: 700; color: #21A1F7; }
   .footer-actions { display: flex; align-items: center; gap: 10px; }
+
+  /* Conflict Dialog */
+  .conflict-dialog-container :global(.modal-backdrop) {
+    z-index: 2200;
+  }
+  .conflict-dialog-body {
+    padding: 8px 0;
+  }
+  .conflict-text {
+    font-size: 14px;
+    color: var(--text-primary, #ffffff);
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+  .conflict-text strong {
+    color: var(--color-brand-cyan, #00CFFF);
+  }
+  .conflict-text code {
+    font-family: monospace;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .conflict-sub {
+    font-size: 13px;
+    color: var(--text-secondary, #94A3B8);
+    line-height: 1.4;
+    margin: 0;
+  }
+  .conflict-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    width: 100%;
+  }
 </style>

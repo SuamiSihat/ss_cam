@@ -4,6 +4,7 @@
   import { ApiClient } from '$lib/services/api';
   import { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   // ─── Types ─────────────────────────────────────────────────────────────────
@@ -298,6 +299,10 @@
   );
 
   let roster = $state<{ name: string; staffId: string }[]>([]);
+  let orderToCancel = $state<string | null>(null);
+  let isCancellingOrder = $state<boolean>(false);
+  let attachmentToDelete = $state<{ orderId: string; filename: string } | null>(null);
+  let isDeletingAttachment = $state<boolean>(false);
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
   onMount(async () => {
@@ -593,13 +598,22 @@
     }
   }
 
-  async function cancelOrder(id: string) {
+  function requestCancelOrder(id: string) {
+    orderToCancel = id;
+  }
+
+  async function confirmCancelOrder() {
+    if (!orderToCancel) return;
+    isCancellingOrder = true;
     try {
-      await ApiClient.request(`/orders/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      await ApiClient.request(`/orders/${encodeURIComponent(orderToCancel)}`, { method: 'DELETE' });
       appState.addToast('Request cancelled.', 'warning', 'Cancelled');
       await loadOrders();
+      orderToCancel = null;
     } catch (err: any) {
       appState.addToast(getErrorMessage(err, 'We couldn\'t cancel the request. Please try again.'), 'error');
+    } finally {
+      isCancellingOrder = false;
     }
   }
 
@@ -659,16 +673,25 @@
     }
   }
 
-  async function deleteAttachment(orderId: string, filename: string) {
-    if (!confirm(`Remove attachment "${filename}"?`)) return;
+  function requestDeleteAttachment(orderId: string, filename: string) {
+    attachmentToDelete = { orderId, filename };
+  }
+
+  async function confirmDeleteAttachment() {
+    if (!attachmentToDelete) return;
+    const { orderId, filename } = attachmentToDelete;
+    isDeletingAttachment = true;
     try {
       await ApiClient.request(`/orders/${encodeURIComponent(orderId)}/attachments/${encodeURIComponent(filename)}`, {
         method: 'DELETE'
       });
       appState.addToast(`Removed ${filename}.`, 'info');
       await loadOrders();
+      attachmentToDelete = null;
     } catch (err: any) {
       appState.addToast(getErrorMessage(err, 'We couldn\'t remove the attachment. Please try again.'), 'error');
+    } finally {
+      isDeletingAttachment = false;
     }
   }
 
@@ -1476,7 +1499,7 @@
                     {/if}
                   {/if}
                   {#if (isDesigner || canEdit(order)) && order.status !== 'done' && order.status !== 'cancelled'}
-                    <button class="act-btn act-red" onclick={() => cancelOrder(order.id)} title="Cancel Order">Cancel</button>
+                    <button class="act-btn act-red" onclick={() => requestCancelOrder(order.id)} title="Cancel Order">Cancel</button>
                   {/if}
                 </div>
               </td>
@@ -1633,7 +1656,7 @@
                                   <button
                                     type="button"
                                     class="att-act-btn att-del"
-                                    onclick={() => deleteAttachment(order.id, att.filename)}
+                                    onclick={() => requestDeleteAttachment(order.id, att.filename)}
                                     title="Delete attachment" aria-label="Delete attachment"><FluentIcons name="close" size={10} /></button>
                                 {/if}
                               </div>
@@ -1752,6 +1775,42 @@
   </div>
 
 </div>
+
+<!-- Cancel Request Confirmation Dialog -->
+<FluentDialog
+  open={!!orderToCancel}
+  title="Cancel request"
+  confirmText="Cancel request"
+  confirmAppearance="danger"
+  loading={isCancellingOrder}
+  onConfirm={confirmCancelOrder}
+  onClose={() => { orderToCancel = null; }}
+>
+  <div style="padding: 6px 0;">
+    <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-primary);">
+      Are you sure you want to cancel this request? This will mark the request as cancelled.
+    </p>
+  </div>
+</FluentDialog>
+
+<!-- Delete Attachment Confirmation Dialog -->
+<FluentDialog
+  open={!!attachmentToDelete}
+  title="Remove attachment"
+  confirmText="Remove attachment"
+  confirmAppearance="danger"
+  loading={isDeletingAttachment}
+  onConfirm={confirmDeleteAttachment}
+  onClose={() => { attachmentToDelete = null; }}
+>
+  {#if attachmentToDelete}
+    <div style="padding: 6px 0;">
+      <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-primary);">
+        Are you sure you want to remove attachment <strong>{attachmentToDelete.filename}</strong>?
+      </p>
+    </div>
+  {/if}
+</FluentDialog>
 
 <style>
   /* ── Layout ── */

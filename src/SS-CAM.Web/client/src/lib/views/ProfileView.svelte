@@ -487,6 +487,7 @@
             <FluentInput
               label="Current password (needed to change your email)"
               type="password"
+              autocomplete="current-password"
               bind:value={emailPassword}
               placeholder="Enter your current password"
             />
@@ -534,18 +535,21 @@
           <FluentInput
             type="password"
             label="Current Password"
+            autocomplete="current-password"
             bind:value={currentPassword}
             placeholder="Enter current password"
           />
           <FluentInput
             type="password"
             label="New Password"
+            autocomplete="new-password"
             bind:value={newPassword}
             placeholder="Enter new password"
           />
           <FluentInput
             type="password"
             label="Confirm New Password"
+            autocomplete="new-password"
             bind:value={confirmPassword}
             placeholder="Repeat new password"
           />

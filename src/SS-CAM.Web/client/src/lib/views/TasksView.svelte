@@ -47,8 +47,9 @@
     }
   }
 
-  // 5-View Switcher: overview | list | board | gantt | table
+  // View Switcher: list | board | table | gantt | overview
   let viewMode = $state<'overview' | 'list' | 'board' | 'gantt' | 'table'>('list');
+  let isMoreViewsOpen = $state(false);
   
   // Group By: status | workstream | priority
   let groupBy = $state<'status' | 'workstream' | 'priority'>('workstream');
@@ -175,7 +176,16 @@
     };
     window.addEventListener('keydown', onKeydown);
 
+    const onClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.more-views-dropdown-wrap')) {
+        isMoreViewsOpen = false;
+      }
+    };
+    window.addEventListener('click', onClickOutside);
+
     return () => {
+      window.removeEventListener('click', onClickOutside);
       window.removeEventListener('task:created', onTasksChanged);
       window.removeEventListener('task:updated', onTasksChanged);
       window.removeEventListener('task:deleted', onTasksChanged);
@@ -783,16 +793,55 @@
 
   async function handleBatchDeleteConfirmed() {
     if (selectedTaskIds.length === 0) return;
-    const cnt = selectedTaskIds.length;
     const targets = [...selectedTaskIds];
-    try {
-      await Promise.all(targets.map(id => ApiClient.deleteStudioTask(id)));
-      tasks = tasks.filter(t => !targets.includes(t.id));
-      appState.addToast(`Deleted ${cnt} tasks.`, 'info');
+    const total = targets.length;
+    const successfulIds: string[] = [];
+    const failedIds: string[] = [];
+
+    await Promise.all(
+      targets.map(async (id) => {
+        try {
+          await ApiClient.deleteStudioTask(id);
+          successfulIds.push(id);
+        } catch {
+          failedIds.push(id);
+        }
+      })
+    );
+
+    if (successfulIds.length > 0) {
+      tasks = tasks.filter(t => !successfulIds.includes(t.id));
+      selectedTaskIds = selectedTaskIds.filter(id => !successfulIds.includes(id));
+    }
+
+    showBatchDeleteConfirm = false;
+
+    if (failedIds.length === 0) {
+      appState.addToast(`Deleted ${total} tasks.`, 'info');
       selectedTaskIds = [];
-      showBatchDeleteConfirm = false;
+    } else if (successfulIds.length > 0) {
+      appState.addToast(`Deleted ${successfulIds.length} of ${total} tasks. ${failedIds.length} tasks could not be deleted.`, 'warning');
+    } else {
+      appState.addToast('We couldn\'t delete the selected tasks. Please try again.', 'error');
+    }
+  }
+
+  async function handleMoveTask(taskId: string, newStatus: StudioTaskStatus, e?: Event) {
+    if (e) e.stopPropagation();
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.status === newStatus) return;
+
+    const oldStatus = task.status;
+    task.status = newStatus;
+
+    try {
+      const res = await ApiClient.updateStudioTask(task.id, { status: newStatus });
+      handleTaskUpdated(res.task);
+      const colLabel = columns.find(c => c.id === newStatus)?.label || newStatus;
+      appState.addToast(`Moved ${task.id} to ${colLabel}.`, 'success');
     } catch (err: any) {
-      appState.addToast(getErrorMessage(err, 'We couldn\'t delete the tasks. Please try again.'), 'error');
+      task.status = oldStatus;
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the status. Please try again.'), 'error');
     }
   }
 
@@ -907,21 +956,6 @@
   <!-- ═══ 2-TIER TOOLBAR: TIER 1 (VIEW NAVIGATION & CORE TOGGLES) ═══ -->
   <div class="clickup-views-nav">
     <div class="views-tabs-list">
-      {#if layoutMode === 'executive'}
-        <button
-          type="button"
-          class="view-tab"
-          class:active={viewMode === 'overview'}
-          onclick={() => (viewMode = 'overview')}
-        >
-          <FluentIcons name="overview" size={14} />
-          <span>Overview</span>
-          {#if bottleneckTasks.length > 0}
-            <span class="view-tab-alert-dot" title="{bottleneckTasks.length} Bottlenecks Requiring Attention"></span>
-          {/if}
-        </button>
-      {/if}
-
       <button
         type="button"
         class="view-tab"
@@ -942,25 +976,61 @@
         <span>Board</span>
       </button>
 
-      <button
-        type="button"
-        class="view-tab"
-        class:active={viewMode === 'table'}
-        onclick={() => (viewMode = 'table')}
-      >
-        <FluentIcons name="table" size={14} />
-        <span>Table</span>
-      </button>
+      <div class="more-views-dropdown-wrap">
+        <button
+          type="button"
+          class="view-tab more-views-tab"
+          class:active={['table', 'gantt', 'overview'].includes(viewMode)}
+          onclick={() => (isMoreViewsOpen = !isMoreViewsOpen)}
+          aria-haspopup="menu"
+          aria-expanded={isMoreViewsOpen}
+          title="Switch View"
+        >
+          <span>More Views ▾</span>
+        </button>
 
-      <button
-        type="button"
-        class="view-tab timeline-tab"
-        class:active={viewMode === 'gantt'}
-        onclick={() => (viewMode = 'gantt')}
-      >
-        <FluentIcons name="gantt" size={14} />
-        <span>Timeline</span>
-      </button>
+        {#if isMoreViewsOpen}
+          <div class="more-views-popover" role="menu">
+            <button
+              type="button"
+              class="more-view-item"
+              class:active={viewMode === 'table'}
+              onclick={() => { viewMode = 'table'; isMoreViewsOpen = false; }}
+              role="menuitem"
+            >
+              <FluentIcons name="table" size={13} />
+              <span style="margin-left: 8px;">Table</span>
+            </button>
+
+            <button
+              type="button"
+              class="more-view-item"
+              class:active={viewMode === 'gantt'}
+              onclick={() => { viewMode = 'gantt'; isMoreViewsOpen = false; }}
+              role="menuitem"
+            >
+              <FluentIcons name="gantt" size={13} />
+              <span style="margin-left: 8px;">Timeline (Gantt)</span>
+            </button>
+
+            {#if layoutMode === 'executive'}
+              <button
+                type="button"
+                class="more-view-item"
+                class:active={viewMode === 'overview'}
+                onclick={() => { viewMode = 'overview'; isMoreViewsOpen = false; }}
+                role="menuitem"
+              >
+                <FluentIcons name="overview" size={13} />
+                <span style="margin-left: 8px;">Overview</span>
+                {#if bottleneckTasks.length > 0}
+                  <span class="view-tab-alert-dot" title="{bottleneckTasks.length} Bottlenecks Requiring Attention"></span>
+                {/if}
+              </button>
+            {/if}
+          </div>
+        {/if}
+      </div>
     </div>
 
     <!-- Right Controls: Me Mode & Hide Completed Toggles -->
@@ -1753,13 +1823,33 @@
                 role="button"
                 tabindex="0"
               >
-                <!-- Workstream & Priority -->
+                <!-- Workstream & Priority & Keyboard Move -->
                 <div class="card-meta-top">
-                  <span class="ws-tag">{task.workstream || 'General Operations'}</span>
-                  <span class="priority-pill-badge {task.priority || 'medium'}">
-                    <FluentIcons name="flag" size={11} color={pMeta.color} />
-                    <span>{pMeta.label}</span>
-                  </span>
+                  <div class="card-meta-left">
+                    <span class="ws-tag">{task.workstream || 'General Operations'}</span>
+                    <span class="priority-pill-badge {task.priority || 'medium'}">
+                      <FluentIcons name="flag" size={11} color={pMeta.color} />
+                      <span>{pMeta.label}</span>
+                    </span>
+                  </div>
+
+                  <!-- Keyboard-accessible Move to... dropdown -->
+                  <div class="card-move-container" onclick={(e) => e.stopPropagation()}>
+                    <select
+                      class="card-move-select"
+                      value={task.status}
+                      onchange={(e) => handleMoveTask(task.id, (e.target as HTMLSelectElement).value as StudioTaskStatus, e)}
+                      aria-label={`Move task ${task.id} to another status`}
+                      title="Move to status (Keyboard accessible)"
+                    >
+                      <option value="" disabled>Move to…</option>
+                      {#each columns as c}
+                        <option value={c.id} disabled={task.status === c.id}>
+                          {task.status === c.id ? `✓ ${c.label}` : c.label}
+                        </option>
+                      {/each}
+                    </select>
+                  </div>
                 </div>
 
                 <!-- Title -->
@@ -4176,5 +4266,190 @@
     width: 14px;
     height: 14px;
     cursor: pointer;
+  }
+
+  /* View Dropdown & Move To */
+  .more-views-dropdown-wrap {
+    position: relative;
+    display: inline-block;
+  }
+
+  .more-views-tab {
+    cursor: pointer;
+  }
+
+  .more-views-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 100;
+    min-width: 160px;
+    background: var(--surface-card, #FFFFFF);
+    border: 1px solid var(--surface-card-border, #E5E7EB);
+    border-radius: var(--radius-md, 8px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .more-view-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary, #111827);
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--transition-fast);
+  }
+
+  .more-view-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .more-view-item.active {
+    background: rgba(4, 51, 136, 0.1);
+    color: var(--brand-accent);
+    font-weight: 600;
+  }
+
+  .card-meta-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .card-move-container {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .card-move-select {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--surface-card-border, #E5E7EB);
+    color: var(--text-secondary, #6B7280);
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+
+  .card-move-select:hover, .card-move-select:focus {
+    border-color: var(--brand-accent);
+    color: var(--text-primary, #111827);
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  /* Mobile Responsive Breakpoints (WCAG 2.5.8 touch targets >= 44x44px) */
+  @media (max-width: 768px) {
+    .clickup-top-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding: 12px 14px;
+    }
+    .header-right-tools {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .clickup-views-nav {
+      overflow-x: auto;
+      padding: 6px 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .view-tab {
+      min-height: 44px;
+      padding: 8px 12px;
+    }
+    .clickup-add-task-btn,
+    .sync-telemetry-btn {
+      min-height: 44px;
+      box-sizing: border-box;
+    }
+    .tier2-filter-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 8px 12px;
+    }
+    .search-input-field {
+      width: 100%;
+      min-height: 44px;
+      font-size: 14px;
+    }
+    .quick-filter-pill {
+      min-height: 38px;
+      padding: 6px 10px;
+    }
+    .task-tree-node {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .clickup-task-row {
+      min-height: 48px;
+      padding: 8px 10px;
+    }
+    .status-circle-btn {
+      min-width: 28px;
+      min-height: 28px;
+      position: relative;
+    }
+    .status-circle-btn::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .clickup-container {
+      padding: 8px 6px;
+    }
+    .space-name {
+      font-size: 18px;
+    }
+    .ab-layout-pill {
+      width: 100%;
+      justify-content: stretch;
+    }
+    .ab-pill-btn {
+      flex: 1;
+      justify-content: center;
+      min-height: 40px;
+    }
+    .search-input-field {
+      font-size: 16px; /* Prevents auto-zoom on iOS */
+    }
+    .clickup-board-columns {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      gap: 12px;
+      padding-bottom: 14px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .board-column {
+      min-width: 290px;
+      width: 85vw;
+      scroll-snap-align: start;
+      flex-shrink: 0;
+    }
+    .card-move-select {
+      min-height: 32px;
+      font-size: 11px;
+      padding: 4px 8px;
+    }
   }
 </style>

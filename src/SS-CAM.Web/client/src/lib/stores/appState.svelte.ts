@@ -24,6 +24,7 @@ class AppStateStore {
   userMenuOpen = $state<boolean>(false);
   contextDrawerOpen = $state<boolean>(false);
   sseStatus = $state<'connected' | 'reconnecting' | 'disconnected'>('disconnected');
+  isOnline = $state<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
   lastSyncedAt = $state<Date | null>(null);
   liveTasks = $state<any[]>([]);
   activeLiveTasks = $derived(this.liveTasks.filter(t => (t.State || '').toLowerCase() === 'running'));
@@ -31,6 +32,10 @@ class AppStateStore {
 
   constructor() {
     this.applyTheme(this.theme);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => { this.isOnline = true; });
+      window.addEventListener('offline', () => { this.isOnline = false; });
+    }
   }
 
   setTheme(newTheme: ThemeName) {

@@ -93,14 +93,42 @@
       default: return '#94A3B8';
     }
   }
+
+  let drawerEl = $state<HTMLElement | null>(null);
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (!open) return;
+    if (e.key === 'Escape') {
+      close();
+      return;
+    }
+    if (e.key === 'Tab' && drawerEl) {
+      const focusables = drawerEl.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length > 0) {
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeyDown} />
 
 {#if open}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="drawer-backdrop" onclick={close}></div>
 
-  <aside class="notification-drawer" role="dialog" aria-label="Activity Notifications">
+  <aside class="notification-drawer" role="dialog" aria-modal="true" aria-label="Activity Notifications" bind:this={drawerEl}>
     <div class="drawer-header">
       <div class="header-left">
         <FluentIcons name="bell" size={18} color="#00CFFF" />

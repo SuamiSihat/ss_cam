@@ -12,6 +12,7 @@
     Project 
   } from '$lib/types';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentBadge from '$lib/components/ui/FluentBadge.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   interface Props {
@@ -209,9 +210,27 @@
     subtasks = subtasks.map(s => (s.id === subtaskId ? { ...s, completed: !s.completed } : s));
     handleQuickSubtaskSave();
   }
-  function handleDeleteSubtask(subtaskId: string) {
-    subtasks = subtasks.filter(s => s.id !== subtaskId);
-    handleQuickSubtaskSave();
+  let subtaskToDelete = $state<TaskSubtask | null>(null);
+  let isDeletingSubtask = $state<boolean>(false);
+
+  function requestDeleteSubtask(sub: TaskSubtask) {
+    subtaskToDelete = sub;
+  }
+
+  async function confirmDeleteSubtask() {
+    if (!subtaskToDelete) return;
+    const id = subtaskToDelete.id;
+    isDeletingSubtask = true;
+    try {
+      subtasks = subtasks.filter(s => s.id !== id);
+      await handleQuickSubtaskSave();
+      appState.addToast('Subtask removed.', 'info');
+      subtaskToDelete = null;
+    } catch (err: any) {
+      appState.addToast(getErrorMessage(err, 'We couldn\'t remove the subtask. Please try again.'), 'error');
+    } finally {
+      isDeletingSubtask = false;
+    }
   }
   async function handleQuickSubtaskSave() {
     if (!task) return;
@@ -405,9 +424,28 @@
       appState.navigate('project-detail', { id: projectId || task?.jobId });
     }
   }
+  let drawerEl = $state<HTMLElement | null>(null);
   function handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && open) {
+    if (!open) return;
+    if (e.key === 'Escape') {
       closeDrawer();
+      return;
+    }
+    if (e.key === 'Tab' && drawerEl) {
+      const focusables = drawerEl.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length > 0) {
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     }
   }
 </script>
@@ -416,7 +454,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="drawer-backdrop" onclick={closeDrawer}></div>
-  <aside class="task-drawer" role="dialog" aria-label="Task Details">
+  <aside class="task-drawer" role="dialog" aria-modal="true" aria-label="Task Details" bind:this={drawerEl}>
     <!-- ═══ HEADER ═══ -->
     <div class="drawer-header">
       <div class="header-left">
@@ -566,7 +604,7 @@
                 <button
                   type="button"
                   class="delete-subtask-row-btn"
-                  onclick={() => handleDeleteSubtask(sub.id)}
+                  onclick={() => requestDeleteSubtask(sub)}
                   title="Remove subtask"
                   aria-label="Remove subtask"
                 >
@@ -874,7 +912,7 @@
                     <button
                       type="button"
                       class="delete-subtask-btn"
-                      onclick={() => handleDeleteSubtask(sub.id)}
+                      onclick={() => requestDeleteSubtask(sub)}
                       title="Remove subtask"
                       aria-label="Remove subtask"
                     >
@@ -1128,6 +1166,19 @@
     </div>
   </aside>
 {/if}
+
+<FluentDialog
+  open={!!subtaskToDelete}
+  title="Remove subtask?"
+  message={`Are you sure you want to remove "${subtaskToDelete?.title || 'this subtask'}"? This action cannot be undone.`}
+  confirmLabel="Remove Subtask"
+  cancelLabel="Cancel"
+  confirmAppearance="danger"
+  loading={isDeletingSubtask}
+  onConfirm={confirmDeleteSubtask}
+  onCancel={() => { if (!isDeletingSubtask) subtaskToDelete = null; }}
+/>
+
 <style>
   .drawer-backdrop {
     position: fixed;

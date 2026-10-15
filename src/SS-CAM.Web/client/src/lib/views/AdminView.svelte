@@ -1,4 +1,90 @@
-<script lang="ts">
+<!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 3: ROLES & CAPABILITIES MATRIX                                 -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  {#if activeTab === 'roles'}
+    <div id="admin-panel-roles" role="tabpanel" aria-labelledby="admin-tab-roles" class="tab-pane-content">
+      <div class="section-title-wrap">
+        <div>
+          <h2 class="pane-title">Roles &amp; Access Capabilities</h2>
+          <p class="pane-subtitle">
+            Single source of truth for studio capabilities, navigation guard permissions, and action authorities.
+          </p>
+        </div>
+      </div>
+
+      <!-- Roles Cards Grid -->
+      <div class="roles-cards-grid">
+        {#each ROLES_CATALOG as role}
+          {@const assignedCount = users.filter(u => ((u as any).roleKey || '').toLowerCase() === role.key || (u.role || '').toLowerCase().includes(role.key)).length}
+          <FluentCard elevated>
+            <div class="role-card-header">
+              <div class="role-badge-row">
+                <span class="role-key-pill" style="border-left: 3px solid {role.badgeColor};">
+                  {role.name}
+                </span>
+                <span class="role-count-badge">
+                  {assignedCount} member{assignedCount === 1 ? '' : 's'}
+                </span>
+              </div>
+              <span class="role-code-tag"><code>{role.key}</code></span>
+            </div>
+
+            <p class="role-desc">{role.description}</p>
+
+            <div class="role-capabilities-list">
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canApproveDeliverables}>
+                <FluentIcons name={role.capabilities.canApproveDeliverables ? "checkmark" : "close"} size={13} />
+                <span>Approve deliverables</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canDeleteProject}>
+                <FluentIcons name={role.capabilities.canDeleteProject ? "checkmark" : "close"} size={13} />
+                <span>Delete projects</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canManageTeam}>
+                <FluentIcons name={role.capabilities.canManageTeam ? "checkmark" : "close"} size={13} />
+                <span>Manage staff roster</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canReassign}>
+                <FluentIcons name={role.capabilities.canReassign ? "checkmark" : "close"} size={13} />
+                <span>Reassign deliverables</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canEditCopy}>
+                <FluentIcons name={role.capabilities.canEditCopy ? "checkmark" : "close"} size={13} />
+                <span>Edit copywriting</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canViewConsultation}>
+                <FluentIcons name={role.capabilities.canViewConsultation ? "checkmark" : "close"} size={13} />
+                <span>Consultation kit</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canViewAdmin}>
+                <FluentIcons name={role.capabilities.canViewAdmin ? "checkmark" : "close"} size={13} />
+                <span>Admin console</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canViewAuditLog}>
+                <FluentIcons name={role.capabilities.canViewAuditLog ? "checkmark" : "close"} size={13} />
+                <span>View audit logs</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canManageShareLinks}>
+                <FluentIcons name={role.capabilities.canManageShareLinks ? "checkmark" : "close"} size={13} />
+                <span>Manage share links</span>
+              </div>
+            </div>
+
+            <div class="role-pages-row">
+              <span class="role-pages-label">Allowed routes:</span>
+              <div class="role-pages-chips">
+                {#each role.allowedPages as pg}
+                  <span class="role-page-chip">{pg}</span>
+                {/each}
+              </div>
+            </div>
+          </FluentCard>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <script lang="ts">
   import { onMount } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
@@ -10,7 +96,155 @@
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
-  type ActiveTab = 'companies' | 'users' | 'audit' | 'system' | 'webhooks';
+  type ActiveTab = 'people' | 'companies' | 'roles' | 'notifications' | 'system';
+
+  interface RoleDefinition {
+    key: string;
+    name: string;
+    badgeColor: string;
+    description: string;
+    capabilities: {
+      canApproveDeliverables: boolean;
+      canDeleteProject: boolean;
+      canManageTeam: boolean;
+      canReassign: boolean;
+      canEditCopy: boolean;
+      canViewConsultation: boolean;
+      canViewAdmin: boolean;
+      canViewAuditLog: boolean;
+      canManageShareLinks: boolean;
+    };
+    allowedPages: string[];
+  }
+
+  const ROLES_CATALOG: RoleDefinition[] = [
+    {
+      key: 'admin',
+      name: 'Administrator',
+      badgeColor: '#EF4444',
+      description: 'Full studio governance, tenant configuration, staff accounts, system administration, and project archiving.',
+      capabilities: {
+        canApproveDeliverables: true,
+        canDeleteProject: true,
+        canManageTeam: true,
+        canReassign: true,
+        canEditCopy: true,
+        canViewConsultation: true,
+        canViewAdmin: true,
+        canViewAuditLog: true,
+        canManageShareLinks: true
+      },
+      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'consultation', 'team', 'signage', 'admin']
+    },
+    {
+      key: 'ceo',
+      name: 'Executive / CEO',
+      badgeColor: '#8B5CF6',
+      description: 'Executive oversight, strategic brand direction, cross-brand visibility, and studio performance inspection.',
+      capabilities: {
+        canApproveDeliverables: true,
+        canDeleteProject: false,
+        canManageTeam: false,
+        canReassign: false,
+        canEditCopy: true,
+        canViewConsultation: true,
+        canViewAdmin: false,
+        canViewAuditLog: true,
+        canManageShareLinks: true
+      },
+      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'consultation', 'team', 'signage']
+    },
+    {
+      key: 'manager',
+      name: 'Creative Lead / Manager',
+      badgeColor: '#F59E0B',
+      description: 'Creative project leadership, sprint assignments, deliverable sign-offs, and team workload balancing.',
+      capabilities: {
+        canApproveDeliverables: true,
+        canDeleteProject: false,
+        canManageTeam: false,
+        canReassign: true,
+        canEditCopy: true,
+        canViewConsultation: true,
+        canViewAdmin: false,
+        canViewAuditLog: false,
+        canManageShareLinks: true
+      },
+      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'consultation', 'team', 'signage']
+    },
+    {
+      key: 'designer',
+      name: 'Designer',
+      badgeColor: '#0284C7',
+      description: 'Visual asset creation, key visual design, video editing, deliverable staging, and preflight checks.',
+      capabilities: {
+        canApproveDeliverables: false,
+        canDeleteProject: false,
+        canManageTeam: false,
+        canReassign: false,
+        canEditCopy: true,
+        canViewConsultation: false,
+        canViewAdmin: false,
+        canViewAuditLog: false,
+        canManageShareLinks: true
+      },
+      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'team']
+    },
+    {
+      key: 'copywriter',
+      name: 'Copywriter',
+      badgeColor: '#10B981',
+      description: 'Brand messaging, headline drafting, marketing copy, and multi-channel creative storytelling.',
+      capabilities: {
+        canApproveDeliverables: false,
+        canDeleteProject: false,
+        canManageTeam: false,
+        canReassign: false,
+        canEditCopy: true,
+        canViewConsultation: false,
+        canViewAdmin: false,
+        canViewAuditLog: false,
+        canManageShareLinks: false
+      },
+      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'team']
+    },
+    {
+      key: 'clinic',
+      name: 'Clinic Staff / Requester',
+      badgeColor: '#06B6D4',
+      description: 'Franchise branch operations, patient intake, care leaflets, signage playback, and campaign requests.',
+      capabilities: {
+        canApproveDeliverables: false,
+        canDeleteProject: false,
+        canManageTeam: false,
+        canReassign: false,
+        canEditCopy: false,
+        canViewConsultation: true,
+        canViewAdmin: false,
+        canViewAuditLog: false,
+        canManageShareLinks: false
+      },
+      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'deliverables', 'consultation', 'team']
+    },
+    {
+      key: 'viewer',
+      name: 'Viewer / Guest',
+      badgeColor: '#64748B',
+      description: 'Read-only asset inspection, milestone review, and progress observation without edit or sign-off authority.',
+      capabilities: {
+        canApproveDeliverables: false,
+        canDeleteProject: false,
+        canManageTeam: false,
+        canReassign: false,
+        canEditCopy: false,
+        canViewConsultation: false,
+        canViewAdmin: false,
+        canViewAuditLog: false,
+        canManageShareLinks: false
+      },
+      allowedPages: ['dashboard', 'tasks', 'projects', 'deliverables']
+    }
+  ];
   type ViewMode = 'cards' | 'table';
   type LayoutMode = 'minimalist' | 'classic';
 
@@ -19,7 +253,7 @@
     (typeof localStorage !== 'undefined' && (localStorage.getItem(STORED_LAYOUT_KEY) as LayoutMode)) || 'minimalist'
   );
 
-  let activeTab = $state<ActiveTab>('companies');
+  let activeTab = $state<ActiveTab>('people');
   let companyViewMode = $state<ViewMode>(adminLayoutMode === 'minimalist' ? 'table' : 'cards');
 
   function setLayoutMode(mode: LayoutMode) {
@@ -40,6 +274,39 @@
   let newHookEvents = $state<string[]>(['all']);
   let isAddingHook = $state<boolean>(false);
   let isTestingHook = $state<string | null>(null);
+
+  // Generic Confirmation Dialog State
+  let confirmModal = $state<{
+    open: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    confirmAppearance?: 'primary' | 'danger';
+    onConfirm?: () => Promise<void> | void;
+  }>({
+    open: false,
+    title: 'Confirm action',
+    message: '',
+    confirmText: 'Confirm',
+    confirmAppearance: 'danger'
+  });
+
+  function requestConfirmation(
+    title: string,
+    message: string,
+    onConfirm: () => Promise<void> | void,
+    confirmAppearance: 'primary' | 'danger' = 'danger',
+    confirmText: string = 'Confirm'
+  ) {
+    confirmModal = {
+      open: true,
+      title,
+      message,
+      confirmText,
+      confirmAppearance,
+      onConfirm
+    };
+  }
 
   // Default Subsidiaries List Seed
   const DEFAULT_COMPANIES_FALLBACK: Company[] = [
@@ -450,20 +717,24 @@
     }
   }
 
-  async function handleDeleteCompany(comp: Company) {
-    if (!confirm(`Are you sure you want to delete ${comp.name} (${comp.code})? This will remove the entity record.`)) {
-      return;
-    }
-
-    try {
-      const res = await ApiClient.deleteCompany(comp.code);
-      if (res.success) {
-        appState.addToast(`Company ${comp.code} removed.`, 'info');
-        await refreshData();
-      }
-    } catch (err: any) {
-      appState.addToast(getErrorMessage(err, 'We couldn\'t delete this company.'), 'error');
-    }
+  function handleDeleteCompany(comp: Company) {
+    requestConfirmation(
+      'Delete company',
+      `Are you sure you want to delete ${comp.name} (${comp.code})? This will remove the entity record.`,
+      async () => {
+        try {
+          const res = await ApiClient.deleteCompany(comp.code);
+          if (res.success) {
+            appState.addToast(`Company ${comp.code} removed.`, 'info');
+            await refreshData();
+          }
+        } catch (err: any) {
+          appState.addToast(getErrorMessage(err, 'We couldn\'t delete this company.'), 'error');
+        }
+      },
+      'danger',
+      'Delete company'
+    );
   }
 
   function copyToClipboard(text: string, label: string) {
@@ -597,20 +868,24 @@
     }
   }
 
-  async function handleDeleteUser(user: StaffAccount) {
-    if (!confirm(`Are you sure you want to remove staff account ${user.name} (${user.staffId})?`)) {
-      return;
-    }
-
-    try {
-      const res = await ApiClient.deleteUser(user.staffId);
-      if (res.success) {
-        appState.addToast(`Team member ${user.staffId} removed.`, 'info');
-        await refreshData();
-      }
-    } catch (err: any) {
-      appState.addToast(getErrorMessage(err, 'We couldn\'t remove this account.'), 'error');
-    }
+  function handleDeleteUser(user: StaffAccount) {
+    requestConfirmation(
+      'Remove team member',
+      `Are you sure you want to remove account ${user.name} (${user.staffId})?`,
+      async () => {
+        try {
+          const res = await ApiClient.deleteUser(user.staffId);
+          if (res.success) {
+            appState.addToast(`Team member ${user.staffId} removed.`, 'info');
+            await refreshData();
+          }
+        } catch (err: any) {
+          appState.addToast(getErrorMessage(err, 'We couldn\'t remove this account.'), 'error');
+        }
+      },
+      'danger',
+      'Remove account'
+    );
   }
 
   function openPasswordReset(user: StaffAccount) {
@@ -645,19 +920,26 @@
   }
 
   // ─── DEFAULT PASSWORD RESET ─────────────────────────────────────────────────
-  async function handleResetToDefault(user: any) {
+  function handleResetToDefault(user: any) {
     const name = user.name || user.username;
     const username = user.username || user.staffId;
-    if (!confirm('Reset ' + name + "'s password? A one-time temporary password will be shown once. They must choose a new password when they sign in.")) return;
-    try {
-      const res = await ApiClient.request('/users/' + encodeURIComponent(username) + '/reset-to-default', { method: 'POST' });
-      if (res.success) {
-        // The temporary password is shown once and stays until dismissed.
-        appState.addToast(res.message || ('Password reset for ' + name + '.'), 'success', 'Password reset', 0);
-      }
-    } catch (err: any) {
-      appState.addToast(getErrorMessage(err, 'We couldn\'t reset the password. Please try again.'), 'error');
-    }
+    requestConfirmation(
+      'Reset password',
+      `Reset ${name}'s password? A one-time temporary password will be shown once. They must choose a new password when they sign in.`,
+      async () => {
+        try {
+          const res = await ApiClient.request('/users/' + encodeURIComponent(username) + '/reset-to-default', { method: 'POST' });
+          if (res.success) {
+            // The temporary password is shown once and stays until dismissed.
+            appState.addToast(res.message || ('Password reset for ' + name + '.'), 'success', 'Password reset', 0);
+          }
+        } catch (err: any) {
+          appState.addToast(getErrorMessage(err, 'We couldn\'t reset the password. Please try again.'), 'error');
+        }
+      },
+      'danger',
+      'Reset password'
+    );
   }
 
   // ─── LOCKOUT MANAGEMENT ─────────────────────────────────────────────────
@@ -763,16 +1045,23 @@
     }
   }
 
-  async function handleDeleteWebhook(id: string) {
-    if (!confirm('Are you sure you want to remove this notification link?')) return;
-    try {
-      await ApiClient.deleteWebhook(id);
-      appState.addToast('Chat notification link removed.', 'info');
-      const res = await ApiClient.getWebhooks();
-      webhooks = res.webhooks || [];
-    } catch (err: any) {
-      appState.addToast(getErrorMessage(err, 'We couldn\'t delete the notification link.'), 'error');
-    }
+  function handleDeleteWebhook(id: string) {
+    requestConfirmation(
+      'Remove notification link',
+      'Are you sure you want to remove this notification link?',
+      async () => {
+        try {
+          await ApiClient.deleteWebhook(id);
+          appState.addToast('Chat notification link removed.', 'info');
+          const res = await ApiClient.getWebhooks();
+          webhooks = res.webhooks || [];
+        } catch (err: any) {
+          appState.addToast(getErrorMessage(err, 'We couldn\'t delete the notification link.'), 'error');
+        }
+      },
+      'danger',
+      'Remove link'
+    );
   }
 
   async function handleTestWebhook(hook: any) {
@@ -867,12 +1156,25 @@
       <button
         type="button"
         class="stat-ribbon-item"
+        class:active-stat={activeTab === 'people'}
+        onclick={() => (activeTab = 'people')}
+        title="View People & Accounts"
+      >
+        <span class="stat-ribbon-num">{stats.totalUsers}</span>
+        <span class="stat-ribbon-label">People <span class="stat-ribbon-sub">({stats.adminsCount} Admin • {stats.designersCount} Designer)</span></span>
+      </button>
+
+      <div class="stat-ribbon-sep"></div>
+
+      <button
+        type="button"
+        class="stat-ribbon-item"
         class:active-stat={activeTab === 'companies'}
         onclick={() => (activeTab = 'companies')}
         title="View Corporate Entities"
       >
         <span class="stat-ribbon-num">{stats.totalCompanies}</span>
-        <span class="stat-ribbon-label">Entities <span class="stat-ribbon-sub">({stats.activeCompanies} Active)</span></span>
+        <span class="stat-ribbon-label">Companies <span class="stat-ribbon-sub">({stats.activeCompanies} Active)</span></span>
       </button>
 
       <div class="stat-ribbon-sep"></div>
@@ -880,12 +1182,12 @@
       <button
         type="button"
         class="stat-ribbon-item"
-        class:active-stat={activeTab === 'users'}
-        onclick={() => (activeTab = 'users')}
-        title="View Staff Roster"
+        class:active-stat={activeTab === 'roles'}
+        onclick={() => (activeTab = 'roles')}
+        title="View Roles & Permissions"
       >
-        <span class="stat-ribbon-num">{stats.totalUsers}</span>
-        <span class="stat-ribbon-label">Staff <span class="stat-ribbon-sub">({stats.adminsCount} Admin • {stats.designersCount} Designer)</span></span>
+        <span class="stat-ribbon-num">{ROLES_CATALOG.length}</span>
+        <span class="stat-ribbon-label">Roles <span class="stat-ribbon-sub">(Access Matrix)</span></span>
       </button>
 
       <div class="stat-ribbon-sep"></div>
@@ -893,12 +1195,12 @@
       <button
         type="button"
         class="stat-ribbon-item"
-        class:active-stat={activeTab === 'audit'}
-        onclick={() => (activeTab = 'audit')}
-        title="View Security Audit Trail"
+        class:active-stat={activeTab === 'notifications'}
+        onclick={() => (activeTab = 'notifications')}
+        title="View Chat Notifications"
       >
-        <span class="stat-ribbon-num">{stats.totalAuditCount}</span>
-        <span class="stat-ribbon-label">Audit Events <span class="stat-ribbon-sub">(Immutable)</span></span>
+        <span class="stat-ribbon-num">{webhooks.length}</span>
+        <span class="stat-ribbon-label">Notifications <span class="stat-ribbon-sub">(Alert Channels)</span></span>
       </button>
 
       <div class="stat-ribbon-sep"></div>
@@ -908,118 +1210,147 @@
         class="stat-ribbon-item"
         class:active-stat={activeTab === 'system'}
         onclick={() => (activeTab = 'system')}
-        title="View Synology Engine & System Health"
+        title="View System Health & Audit"
       >
         <span class="pulse-dot" style="width: 6px; height: 6px; margin-right: 2px;"></span>
         <span class="stat-ribbon-num">{systemStatus?.cachedProjects ?? 0}</span>
-        <span class="stat-ribbon-label">NAS Projects <span class="stat-ribbon-sub">({systemStatus?.synologyEngine || 'Volume 2 Active'})</span></span>
+        <span class="stat-ribbon-label">System <span class="stat-ribbon-sub">({systemStatus?.synologyEngine || 'Volume 2 Active'})</span></span>
       </button>
     </div>
   {:else}
-    <!-- 4-METRIC EXECUTIVE KPI TELEMETRY STRIP (CLASSIC) -->
+    <!-- 5-METRIC EXECUTIVE KPI TELEMETRY STRIP (CLASSIC) -->
     <div class="kpi-telemetry-deck">
-      <!-- Metric 1: Entities -->
-      <FluentCard hoverLift borderAccent="#21A1F7" onclick={() => (activeTab = 'companies')}>
+      <!-- Metric 1: People -->
+      <FluentCard hoverLift borderAccent="#0284C7" onclick={() => (activeTab = 'people')}>
         <div class="kpi-top">
-          <span class="kpi-label">Registered Entities</span>
-          <span class="kpi-icon-pill" style="background: rgba(33, 161, 247, 0.15); color: #21A1F7;">🏢</span>
-        </div>
-        <div class="kpi-value">{stats.totalCompanies} <span class="kpi-unit">Units</span></div>
-        <div class="kpi-detail">
-          <b>{stats.parentCount} Parent Holding</b> • <b>{stats.activeCompanies} Active</b>
-        </div>
-      </FluentCard>
-
-      <!-- Metric 2: Staff Roster -->
-      <FluentCard hoverLift borderAccent="#0284C7" onclick={() => (activeTab = 'users')}>
-        <div class="kpi-top">
-          <span class="kpi-label">Team Roster</span>
+          <span class="kpi-label">Team &amp; Staff</span>
           <span class="kpi-icon-pill" style="background: rgba(2, 132, 199, 0.15); color: #0284C7;">👥</span>
         </div>
-        <div class="kpi-value">{stats.totalUsers} <span class="kpi-unit">Accounts</span></div>
+        <div class="kpi-value">{stats.totalUsers} <span class="kpi-unit">People</span></div>
         <div class="kpi-detail">
           <span class="text-rose">Admin: {stats.adminsCount}</span> • <span class="text-amber">Mgr: {stats.managersCount}</span> • <span class="text-azure">Designer: {stats.designersCount}</span>
         </div>
       </FluentCard>
 
-      <!-- Metric 3: Audit Volume -->
-      <FluentCard hoverLift borderAccent="#107C41" onclick={() => (activeTab = 'audit')}>
+      <!-- Metric 2: Companies -->
+      <FluentCard hoverLift borderAccent="#21A1F7" onclick={() => (activeTab = 'companies')}>
         <div class="kpi-top">
-          <span class="kpi-label">Security Audit Trail</span>
-          <span class="kpi-icon-pill" style="background: rgba(16, 124, 65, 0.15); color: #107C41;">🛡️</span>
+          <span class="kpi-label">Companies</span>
+          <span class="kpi-icon-pill" style="background: rgba(33, 161, 247, 0.15); color: #21A1F7;">🏢</span>
         </div>
-        <div class="kpi-value">{stats.totalAuditCount} <span class="kpi-unit">Events</span></div>
+        <div class="kpi-value">{stats.totalCompanies} <span class="kpi-unit">Entities</span></div>
         <div class="kpi-detail">
-          <span class="status-dot-green"></span>
-          <span>Immutable JSONL logging active</span>
+          <b>{stats.parentCount} Parent Holding</b> • <b>{stats.activeCompanies} Active</b>
         </div>
       </FluentCard>
 
-      <!-- Metric 4: Storage Engine -->
-      <FluentCard hoverLift borderAccent="#8764B8" onclick={() => (activeTab = 'system')}>
+      <!-- Metric 3: Roles -->
+      <FluentCard hoverLift borderAccent="#8B5CF6" onclick={() => (activeTab = 'roles')}>
         <div class="kpi-top">
-          <span class="kpi-label">Storage Engine</span>
-          <span class="kpi-icon-pill" style="background: rgba(135, 100, 184, 0.15); color: #8764B8;">⚡</span>
+          <span class="kpi-label">Roles &amp; Access</span>
+          <span class="kpi-icon-pill" style="background: rgba(139, 92, 246, 0.15); color: #8B5CF6;">🛡️</span>
         </div>
-        <div class="kpi-value" style="font-size: 20px; padding-top: 4px;">
-          Connected &amp; Live
-        </div>
+        <div class="kpi-value">{ROLES_CATALOG.length} <span class="kpi-unit">Roles</span></div>
         <div class="kpi-detail">
-          <b>{systemStatus?.cachedProjects || 0} Projects Cached</b> • <b>Volume 2 RW</b>
+          <span>Fine-grained capabilities &amp; route guards</span>
+        </div>
+      </FluentCard>
+
+      <!-- Metric 4: Notifications -->
+      <FluentCard hoverLift borderAccent="#F59E0B" onclick={() => (activeTab = 'notifications')}>
+        <div class="kpi-top">
+          <span class="kpi-label">Notifications</span>
+          <span class="kpi-icon-pill" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B;">🔔</span>
+        </div>
+        <div class="kpi-value">{webhooks.length} <span class="kpi-unit">Channels</span></div>
+        <div class="kpi-detail">
+          <span>Discord, Slack, Lark &amp; Teams</span>
+        </div>
+      </FluentCard>
+
+      <!-- Metric 5: System -->
+      <FluentCard hoverLift borderAccent="#107C41" onclick={() => (activeTab = 'system')}>
+        <div class="kpi-top">
+          <span class="kpi-label">System &amp; Audit</span>
+          <span class="kpi-icon-pill" style="background: rgba(16, 124, 65, 0.15); color: #107C41;">⚡</span>
+        </div>
+        <div class="kpi-value" style="font-size: 20px; padding-top: 4px;">Connected</div>
+        <div class="kpi-detail">
+          <b>{systemStatus?.cachedProjects || 0} Projects</b> • <b>{stats.totalAuditCount} Audits</b>
         </div>
       </FluentCard>
     </div>
   {/if}
 
   <!-- ─── SEGMENTED TAB NAVIGATION ─── -->
-  <div class="segmented-tab-bar">
+  <div class="segmented-tab-bar" role="tablist" aria-label="Admin Sections">
     <button
+      id="admin-tab-people"
+      role="tab"
+      aria-selected={activeTab === 'people'}
+      aria-controls="admin-panel-people"
       class="seg-tab-btn"
-      class:active={activeTab === 'companies'}
-      onclick={() => (activeTab = 'companies')}
+      class:active={activeTab === 'people'}
+      onclick={() => (activeTab = 'people')}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
-      <span>{adminLayoutMode === 'minimalist' ? 'Entities' : 'Corporate Directory'}</span>
-      <span class="tab-count-pill">{companies.length}</span>
-    </button>
-
-    <button
-      class="seg-tab-btn"
-      class:active={activeTab === 'users'}
-      onclick={() => (activeTab = 'users')}
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-      <span>{adminLayoutMode === 'minimalist' ? 'Team Roster' : 'People &amp; Roles'}</span>
+      <FluentIcons name="users" size={16} />
+      <span>People</span>
       <span class="tab-count-pill">{users.length}</span>
     </button>
 
     <button
+      id="admin-tab-companies"
+      role="tab"
+      aria-selected={activeTab === 'companies'}
+      aria-controls="admin-panel-companies"
       class="seg-tab-btn"
-      class:active={activeTab === 'audit'}
-      onclick={() => (activeTab = 'audit')}
+      class:active={activeTab === 'companies'}
+      onclick={() => (activeTab = 'companies')}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
-      <span>{adminLayoutMode === 'minimalist' ? 'Audit Trail' : 'Audit Logs'}</span>
-      <span class="tab-count-pill">{auditLogs.length}</span>
+      <FluentIcons name="folder" size={16} />
+      <span>Companies</span>
+      <span class="tab-count-pill">{companies.length}</span>
     </button>
 
     <button
+      id="admin-tab-roles"
+      role="tab"
+      aria-selected={activeTab === 'roles'}
+      aria-controls="admin-panel-roles"
+      class="seg-tab-btn"
+      class:active={activeTab === 'roles'}
+      onclick={() => (activeTab = 'roles')}
+    >
+      <FluentIcons name="lock" size={16} />
+      <span>Roles</span>
+      <span class="tab-count-pill">{ROLES_CATALOG.length}</span>
+    </button>
+
+    <button
+      id="admin-tab-notifications"
+      role="tab"
+      aria-selected={activeTab === 'notifications'}
+      aria-controls="admin-panel-notifications"
+      class="seg-tab-btn"
+      class:active={activeTab === 'notifications'}
+      onclick={() => (activeTab = 'notifications')}
+    >
+      <FluentIcons name="bell" size={16} />
+      <span>Notifications</span>
+      <span class="tab-count-pill">{webhooks.length}</span>
+    </button>
+
+    <button
+      id="admin-tab-system"
+      role="tab"
+      aria-selected={activeTab === 'system'}
+      aria-controls="admin-panel-system"
       class="seg-tab-btn"
       class:active={activeTab === 'system'}
       onclick={() => (activeTab = 'system')}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/></svg>
-      <span>System Health</span>
-    </button>
-
-    <button
-      class="seg-tab-btn"
-      class:active={activeTab === 'webhooks'}
-      onclick={() => (activeTab = 'webhooks')}
-    >
-      <span style="font-size: 14px;">🔔</span>
-      <span>{adminLayoutMode === 'minimalist' ? 'Notifications' : 'Chat Notifications'}</span>
-      <span class="tab-count-pill">{webhooks.length}</span>
+      <FluentIcons name="settings" size={16} />
+      <span>System</span>
     </button>
   </div>
 
@@ -1270,7 +1601,7 @@
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- TAB 2: USER ACCOUNTS & RBAC GOVERNANCE                             -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
-  {#if activeTab === 'users'}
+  {#if activeTab === 'people'}
     <div class="tab-pane-content">
       <!-- Role Distribution Deck (A/B) -->
       {#if adminLayoutMode === 'minimalist'}
@@ -1475,7 +1806,7 @@
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- TAB 3: SECURITY & AUDIT LOGS (DATA ANALYST LEVEL)                 -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
-  {#if activeTab === 'audit'}
+  {#if activeTab === 'system'}
     <div class="tab-pane-content">
       <!-- Deck Action Bar -->
       <div class="deck-action-bar">
@@ -1742,7 +2073,7 @@
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- TAB 5: STUDIO WEBHOOKS & NOTIFICATION ALERTS                      -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
-  {#if activeTab === 'webhooks'}
+  {#if activeTab === 'notifications'}
     <div class="tab-pane-content">
       <!-- Top Action Deck -->
       <div class="deck-action-bar">
@@ -2357,6 +2688,23 @@
       {isUpdatingWorkspace ? 'Switching Mount & Scanning...' : 'Validate & Switch Mount'}
     </FluentButton>
   {/snippet}
+</FluentDialog>
+
+<!-- Generic Confirmation Dialog -->
+<FluentDialog
+  bind:open={confirmModal.open}
+  title={confirmModal.title}
+  confirmText={confirmModal.confirmText}
+  confirmAppearance={confirmModal.confirmAppearance}
+  onConfirm={async () => {
+    if (confirmModal.onConfirm) await confirmModal.onConfirm();
+    confirmModal.open = false;
+  }}
+  onClose={() => { confirmModal.open = false; }}
+>
+  <div style="padding: 10px 0;">
+    <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-primary);">{confirmModal.message}</p>
+  </div>
 </FluentDialog>
 
 <style>

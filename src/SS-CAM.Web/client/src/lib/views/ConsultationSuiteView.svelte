@@ -3,6 +3,7 @@
   import { appState } from '$lib/stores/appState.svelte';
   import copy, { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentErrorBanner from '$lib/components/ui/FluentErrorBanner.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import { ApiClient } from '$lib/services/api';
 
@@ -14,6 +15,28 @@
   let dispatchModalOpen = $state(false);
   let dispatchResult = $state<any>(null);
   let isDispatching = $state(false);
+  let branches = $state<any[]>([]);
+  let isLoadingBranches = $state(false);
+  let branchError = $state<string | null>(null);
+  let selectedBranch = $state('SSC-BSR');
+  let dispatchError = $state<string | null>(null);
+
+  onMount(async () => {
+    await loadBranches();
+  });
+
+  async function loadBranches() {
+    isLoadingBranches = true;
+    branchError = null;
+    try {
+      const res = await ApiClient.request('/clinic/branches');
+      branches = res.branches || [];
+    } catch (err: any) {
+      branchError = getErrorMessage(err, 'We couldn\'t load the clinic branch information. Please try again.');
+    } finally {
+      isLoadingBranches = false;
+    }
+  }
 
   const treatments = {
     eswt: {
@@ -140,6 +163,7 @@
     }
 
     isDispatching = true;
+    dispatchError = null;
     try {
       // Uses the signed-in session: this endpoint handles a patient's name and phone number.
       dispatchResult = await ApiClient.request('/clinic/care-dispatch', {
@@ -148,13 +172,15 @@
           patientName,
           patientPhone,
           protocolId: selectedTreatment,
-          branchCode: 'SSC-BSR',
+          branchCode: selectedBranch,
           followUpDate
         })
       });
       appState.addToast('Panduan penjagaan digital berjaya dijana. / Digital care guide generated.', 'success');
     } catch (e: any) {
-      appState.addToast(getErrorMessage(e, 'We couldn\'t generate the care guide. Please try again.'), 'error');
+      const msg = getErrorMessage(e, 'We couldn\'t generate the care guide. Please try again.');
+      dispatchError = msg;
+      appState.addToast(msg, 'error');
     } finally {
       isDispatching = false;
     }
@@ -162,6 +188,15 @@
 </script>
 
 <div class="consult-suite-view">
+  {#if branchError}
+    <FluentErrorBanner
+      title="Unable to connect to clinic services"
+      message={branchError}
+      retryLabel="Retry Connection"
+      onRetry={loadBranches}
+    />
+  {/if}
+
   <!-- Top Bar -->
   <header class="suite-header">
     <div class="header-titles">
@@ -356,6 +391,15 @@
         </div>
 
         <div class="modal-body">
+          {#if dispatchError}
+            <FluentErrorBanner
+              title="Unable to generate care guide"
+              message={dispatchError}
+              retryLabel="Retry Sending"
+              onRetry={handleDispatchCare}
+            />
+          {/if}
+
           <div class="form-group">
             <label for="pt-name">Nama Penuh Pesakit / Patient Full Name:</label>
             <input id="pt-name" type="text" bind:value={patientName} placeholder="cth: Tuan Ahmad Khairi" class="input-field"/>

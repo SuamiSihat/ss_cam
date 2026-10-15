@@ -29,6 +29,11 @@ class ProjectStore {
   loadingDetail = $state<boolean>(false);
   isSaving = $state<boolean>(false);
 
+  errorProjects = $state<string | null>(null);
+  errorDashboard = $state<string | null>(null);
+  errorDeliverables = $state<string | null>(null);
+  errorDetail = $state<string | null>(null);
+
   dashboardTimeRange = $state<string>('all');
   dashboardBrand = $state<string>('all');
 
@@ -44,6 +49,11 @@ class ProjectStore {
     priority: 'all',
     department: 'all',
     mediaType: 'all'
+  });
+
+  hasActiveFilters = $derived.by(() => {
+    const f = this.activeFilters;
+    return !!(f.query && f.query.trim()) || f.status !== 'all' || f.brand !== 'all' || f.designer !== 'all' || f.priority !== 'all' || f.department !== 'all' || f.mediaType !== 'all';
   });
 
   // Filtered projects computed via Svelte 5 $derived
@@ -135,11 +145,14 @@ class ProjectStore {
     if (!silent && this.projects.length === 0) {
       this.isLoading = true;
     }
+    this.errorProjects = null;
     try {
       const res = await ApiClient.getProjects();
       this.projects = res.projects || [];
     } catch (err: any) {
-      if (!silent) appState.addToast(getErrorMessage(err, 'We couldn\'t load your projects. Please try again.'), 'error');
+      const msg = getErrorMessage(err, 'We couldn\'t load your projects. Please try again.');
+      this.errorProjects = msg;
+      if (!silent) appState.addToast(msg, 'error');
     } finally {
       this.isLoading = false;
     }
@@ -149,6 +162,7 @@ class ProjectStore {
     if (!silent && !this.dashboardData) {
       this.isLoading = true;
     }
+    this.errorDashboard = null;
     if (options?.timeRange) this.dashboardTimeRange = options.timeRange;
     if (options?.brand) this.dashboardBrand = options.brand;
     try {
@@ -157,7 +171,9 @@ class ProjectStore {
         brand: this.dashboardBrand
       });
     } catch (err: any) {
-      if (!silent) appState.addToast(getErrorMessage(err, 'We couldn\'t load the dashboard. Please try again.'), 'error');
+      const msg = getErrorMessage(err, 'We couldn\'t load the dashboard. Please try again.');
+      this.errorDashboard = msg;
+      if (!silent) appState.addToast(msg, 'error');
     } finally {
       this.isLoading = false;
     }
@@ -168,13 +184,16 @@ class ProjectStore {
       this.loadingDetail = true;
       this.isLoading = true;
     }
+    this.errorDetail = null;
     try {
       const res = await ApiClient.getProject(id);
       this.selectedProject = res.project;
       this.activeDeliverables = (res.deliverables || []).filter(isRealDeliverable);
     } catch (err: any) {
+      const msg = getErrorMessage(err, 'We couldn\'t load the project details. Please try again.');
+      this.errorDetail = msg;
       if (!silent) {
-        appState.addToast(getErrorMessage(err, 'We couldn\'t load the project details. Please try again.'), 'error');
+        appState.addToast(msg, 'error');
         this.selectedProject = null;
       }
     } finally {
@@ -187,11 +206,14 @@ class ProjectStore {
     if (!silent && this.deliverables.length === 0) {
       this.isLoading = true;
     }
+    this.errorDeliverables = null;
     try {
       const res = await ApiClient.getDeliverables();
       this.deliverables = (res.deliverables || []).filter(isRealDeliverable);
     } catch (err: any) {
-      if (!silent) appState.addToast(getErrorMessage(err, 'We couldn\'t load the deliverables. Please try again.'), 'error');
+      const msg = getErrorMessage(err, 'We couldn\'t load the deliverables. Please try again.');
+      this.errorDeliverables = msg;
+      if (!silent) appState.addToast(msg, 'error');
     } finally {
       this.isLoading = false;
     }

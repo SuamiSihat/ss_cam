@@ -297,7 +297,7 @@ function listOrderAttachments(orderId) {
  * Save an attachment to an order's NAS folder.
  * Accepts Buffer or base64 data string.
  */
-function saveOrderAttachment(orderId, filename, data, actor = 'Requester') {
+function saveOrderAttachment(orderId, filename, data, actor = 'Requester', options = {}) {
   if (!orderId || typeof orderId !== 'string') throw new Error('Invalid order ID.');
   const safeId = path.basename(orderId);
   const safeFilename = path.basename(filename || 'attachment').replace(/[\/\\:*?"<>|]/g, '_');
@@ -306,7 +306,31 @@ function saveOrderAttachment(orderId, filename, data, actor = 'Requester') {
   if (blocked) throw Object.assign(new Error(blocked), { status: 400 });
 
   const dir = getOrderDir(safeId);
-  const targetPath = path.join(dir, safeFilename);
+  let finalFilename = safeFilename;
+  let targetPath = path.join(dir, finalFilename);
+
+  if (fs.existsSync(targetPath)) {
+    if (options.resolution === 'replace' || options.overwrite === true) {
+      // Explicit overwrite confirmed
+    } else if (options.resolution === 'keep_both') {
+      const ext = path.extname(safeFilename);
+      const nameWithoutExt = path.basename(safeFilename, ext);
+      let counter = 1;
+      let candidate = `${nameWithoutExt} (${counter})${ext}`;
+      while (fs.existsSync(path.join(dir, candidate))) {
+        counter++;
+        candidate = `${nameWithoutExt} (${counter})${ext}`;
+      }
+      finalFilename = candidate;
+      targetPath = path.join(dir, finalFilename);
+    } else {
+      const err = new Error(`An attachment named "${safeFilename}" already exists for this order.`);
+      err.status = 409;
+      err.exists = true;
+      err.filename = safeFilename;
+      throw err;
+    }
+  }
 
   const buffer = Buffer.isBuffer(data)
     ? data
@@ -318,11 +342,11 @@ function saveOrderAttachment(orderId, filename, data, actor = 'Requester') {
   updateOrder(safeId, { attachments });
 
   return {
-    filename: safeFilename,
+    filename: finalFilename,
     size: buffer.length,
     sizeFormatted: formatFileSize(buffer.length),
     uploadedAt: new Date().toISOString(),
-    url: `/api/orders/${encodeURIComponent(safeId)}/attachments/${encodeURIComponent(safeFilename)}`
+    url: `/api/orders/${encodeURIComponent(safeId)}/attachments/${encodeURIComponent(finalFilename)}`
   };
 }
 

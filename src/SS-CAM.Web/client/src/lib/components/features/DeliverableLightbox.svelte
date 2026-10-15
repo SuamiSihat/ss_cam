@@ -3,6 +3,7 @@
   import { appState } from '$lib/stores/appState.svelte';
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import DeliverableAnnotationCanvas from '$lib/components/features/DeliverableAnnotationCanvas.svelte';
   import DeliverableVisualDiffSlider from '$lib/components/features/DeliverableVisualDiffSlider.svelte';
@@ -54,22 +55,26 @@
     }
   }
 
-  async function handleApprove() {
-    if (!deliverable || !onApprove) return;
-    isSubmitting = true;
-    try {
-      await onApprove(deliverable);
-      if (onClose) onClose();
-    } finally {
-      isSubmitting = false;
-    }
+  let confirmDecision = $state<'approved' | 'revision_requested' | null>(null);
+
+  function promptApprove() {
+    confirmDecision = 'approved';
   }
 
-  async function handleRevision() {
-    if (!deliverable || !onRevision) return;
+  function promptRevision() {
+    confirmDecision = 'revision_requested';
+  }
+
+  async function executeConfirmDecision() {
+    if (!deliverable) return;
     isSubmitting = true;
     try {
-      await onRevision(deliverable);
+      if (confirmDecision === 'approved' && onApprove) {
+        await onApprove(deliverable);
+      } else if (confirmDecision === 'revision_requested' && onRevision) {
+        await onRevision(deliverable);
+      }
+      confirmDecision = null;
       if (onClose) onClose();
     } finally {
       isSubmitting = false;
@@ -223,11 +228,11 @@
 
           {#if appState.canApprove()}
             <div class="decision-group">
-              <FluentButton appearance="danger" size="md" style="width: 100%;" loading={isSubmitting} onclick={handleRevision}>
+              <FluentButton appearance="danger" size="md" style="width: 100%;" loading={isSubmitting} onclick={promptRevision}>
                 <FluentIcons name="warning" size={14} />
                 <span style="margin-left: 6px;">Request Revision</span>
               </FluentButton>
-              <FluentButton appearance="success" size="md" style="width: 100%;" loading={isSubmitting} onclick={handleApprove}>
+              <FluentButton appearance="success" size="md" style="width: 100%;" loading={isSubmitting} onclick={promptApprove}>
                 <FluentIcons name="checkCircle" size={14} />
                 <span style="margin-left: 6px;">Approve Deliverable</span>
               </FluentButton>
@@ -242,6 +247,20 @@
     </div>
   </div>
 {/if}
+
+<FluentDialog
+  open={!!confirmDecision}
+  title={confirmDecision === 'approved' ? 'Approve Deliverable?' : 'Request Revision?'}
+  message={confirmDecision === 'approved'
+    ? `Approve "${deliverable?.filename}" as production-ready master deliverable?`
+    : `Flag "${deliverable?.filename}" for revisions? The creative team will be notified.`}
+  confirmLabel={confirmDecision === 'approved' ? 'Approve Deliverable' : 'Request Revision'}
+  cancelLabel="Cancel"
+  confirmAppearance={confirmDecision === 'approved' ? 'success' : 'danger'}
+  loading={isSubmitting}
+  onConfirm={executeConfirmDecision}
+  onCancel={() => { if (!isSubmitting) confirmDecision = null; }}
+/>
 
 <style>
   .lightbox-backdrop {

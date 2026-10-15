@@ -1388,7 +1388,7 @@ class WorkspaceService {
     };
   }
 
-  ingestFile(projectId, targetSubfolder, filename, base64Data, actor = 'Designer') {
+  ingestFile(projectId, targetSubfolder, filename, base64Data, actor = 'Designer', options = {}) {
     const project = this.getProjectById(projectId);
     if (!project) {
       throw new Error(`Project "${projectId}" not found in workspace.`);
@@ -1406,7 +1406,32 @@ class WorkspaceService {
       fs.mkdirSync(targetDir, { recursive: true });
     }
 
-    const targetFilePath = path.join(targetDir, safeFilename);
+    let finalFilename = safeFilename;
+    let targetFilePath = path.join(targetDir, finalFilename);
+
+    if (fs.existsSync(targetFilePath)) {
+      if (options.resolution === 'replace' || options.overwrite === true) {
+        // Explicit overwrite confirmed
+      } else if (options.resolution === 'keep_both') {
+        const ext = path.extname(safeFilename);
+        const nameWithoutExt = path.basename(safeFilename, ext);
+        let counter = 1;
+        let candidate = `${nameWithoutExt} (${counter})${ext}`;
+        while (fs.existsSync(path.join(targetDir, candidate))) {
+          counter++;
+          candidate = `${nameWithoutExt} (${counter})${ext}`;
+        }
+        finalFilename = candidate;
+        targetFilePath = path.join(targetDir, finalFilename);
+      } else {
+        const err = new Error(`A file named "${safeFilename}" already exists in ${safeSubfolder}.`);
+        err.status = 409;
+        err.exists = true;
+        err.filename = safeFilename;
+        err.folder = safeSubfolder;
+        throw err;
+      }
+    }
 
     // Decode base64 data or buffer
     const buffer = Buffer.isBuffer(base64Data) 
@@ -1422,7 +1447,7 @@ class WorkspaceService {
       entityType: 'Deliverable',
       entityId: project.jobId || project.id,
       details: {
-        filename: safeFilename,
+        filename: finalFilename,
         subfolder: safeSubfolder,
         sizeBytes: buffer.length,
         timestamp: new Date().toISOString()
@@ -1434,7 +1459,7 @@ class WorkspaceService {
       const SseService = require('./SseService');
       SseService.broadcast('workspace:updated', {
         projectId: project.id,
-        filename: safeFilename,
+        filename: finalFilename,
         folder: safeSubfolder,
         timestamp: new Date().toISOString()
       });
@@ -1444,7 +1469,7 @@ class WorkspaceService {
 
     return {
       success: true,
-      filename: safeFilename,
+      filename: finalFilename,
       folder: safeSubfolder,
       sizeBytes: buffer.length,
       relPath: path.relative(this.workspaceRoot, targetFilePath).replace(/\\/g, '/')

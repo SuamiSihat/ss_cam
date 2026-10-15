@@ -1,27 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { appState } from '$lib/stores/appState.svelte';
-  import { ApiClient } from '$lib/services/api';
-  import { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
-
-  interface ProjectSnapshot {
-    id: string;
-    timestamp: string;
-    trigger: string;
-    actor: string;
-    revision: number;
-    status: string;
-    note: string;
-    sourceFiles?: Array<{
-      name: string;
-      sizeBytes: number;
-      sizeFormatted: string;
-      ext: string;
-      modifiedAt?: string;
-    }>;
-  }
+  import ProjectHistoryTimeline from '$lib/components/features/ProjectHistoryTimeline.svelte';
 
   interface Props {
     open?: boolean;
@@ -39,69 +19,6 @@
     onRollbackSuccess
   }: Props = $props();
 
-  let snapshots = $state<ProjectSnapshot[]>([]);
-  let isLoading = $state<boolean>(false);
-  let isRollingBack = $state<string | null>(null);
-  let isCapturing = $state<boolean>(false);
-  let customNote = $state<string>('');
-
-  $effect(() => {
-    if (open && projectId) {
-      loadSnapshots();
-    }
-  });
-
-  async function loadSnapshots() {
-    if (!projectId) return;
-    isLoading = true;
-    try {
-      const res = await ApiClient.getProjectSnapshots(projectId);
-      snapshots = res.snapshots || [];
-    } catch (err: any) {
-      console.warn('[VersionTimeline] Failed to load snapshots:', err.message);
-    } finally {
-      isLoading = false;
-    }
-  }
-
-  async function handleCreateSnapshot() {
-    if (!projectId) return;
-    isCapturing = true;
-    try {
-      await ApiClient.createProjectSnapshot(projectId, {
-        trigger: 'MANUAL_USER_SNAPSHOT',
-        note: customNote.trim() || 'Manual studio milestone snapshot'
-      });
-      customNote = '';
-      appState.addToast('Version snapshot captured.', 'success');
-      loadSnapshots();
-    } catch (err: any) {
-      appState.addToast(getErrorMessage(err, 'We couldn\'t capture a snapshot. Please try again.'), 'error');
-    } finally {
-      isCapturing = false;
-    }
-  }
-
-  async function handleRollback(snap: ProjectSnapshot) {
-    if (!projectId || !snap.id) return;
-    const confirmed = confirm(
-      `Are you sure you want to restore Rev ${snap.revision || 'selected'} (${snap.id})?\n\nA backup copy of current files will be created automatically.`
-    );
-    if (!confirmed) return;
-
-    isRollingBack = snap.id;
-    try {
-      const res = await ApiClient.rollbackProject(projectId, snap.id);
-      appState.addToast(res.message || 'Restored earlier project version.', 'success');
-      loadSnapshots();
-      if (onRollbackSuccess) onRollbackSuccess();
-    } catch (err: any) {
-      appState.addToast(getErrorMessage(err, 'We couldn\'t restore this version. Please try again.'), 'error');
-    } finally {
-      isRollingBack = null;
-    }
-  }
-
   function closeModal() {
     open = false;
     if (onClose) onClose();
@@ -113,130 +30,33 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="timeline-backdrop" onclick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
     <div class="timeline-modal">
-      <!-- Header -->
       <div class="timeline-header">
         <div class="header-left">
           <div class="timeline-icon-badge">
-            <FluentIcons name="timeline" size={20} color="#00CFFF" />
+            <FluentIcons name="history" size={20} color="var(--brand-primary)" />
           </div>
           <div>
             <h2 class="modal-title">Creative Version Timeline &amp; Rollback</h2>
             <p class="modal-sub">Audit-backed revision milestones for <b>{projectTitle || projectId}</b>.</p>
           </div>
         </div>
-        <button class="close-btn" onclick={closeModal} title="Close Modal">
+        <button class="close-btn" onclick={closeModal} title="Close Modal" aria-label="Close Modal">
           <FluentIcons name="close" size={16} />
         </button>
       </div>
 
-      <!-- Body -->
       <div class="timeline-body">
-        <!-- Manual Snapshot Creator Bar -->
-        <div class="capture-bar">
-          <input 
-            type="text" 
-            class="capture-input" 
-            placeholder="Add note for this milestone (e.g. Pre-Ramadan campaign final copy)..." 
-            bind:value={customNote}
-          />
-          <FluentButton appearance="primary" size="sm" loading={isCapturing} onclick={handleCreateSnapshot}>
-            <FluentIcons name="camera" size={14} />
-            <span style="margin-left: 6px;">Capture Snapshot</span>
-          </FluentButton>
-        </div>
-
-        <!-- Visual Milestone Tree -->
-        <div class="tree-container">
-          {#if isLoading}
-            <div class="loading-box">Loading revision timeline...</div>
-          {:else if snapshots.length === 0}
-            <div class="empty-box">
-              <FluentIcons name="timeline" size={36} color="rgba(255,255,255,0.2)" />
-              <p style="margin-top: 10px;">No historical snapshots captured yet.</p>
-              <span class="empty-sub">Snapshots are automatically created during client reviews, decisions, and manual saves.</span>
-            </div>
-          {:else}
-            <div class="milestones-list">
-              {#each snapshots as snap, index}
-                <div class="milestone-card {index === 0 ? 'is-latest' : ''}">
-                  <div class="milestone-indicator">
-                    <div class="circle-node">{snap.revision || 1}</div>
-                    {#if index < snapshots.length - 1}
-                      <div class="connector-line"></div>
-                    {/if}
-                  </div>
-
-                  <div class="milestone-content">
-                    <div class="milestone-top">
-                      <div class="rev-tags">
-                        <span class="rev-badge">Rev {snap.revision || 1}</span>
-                        <span class="status-pill status-{snap.status || 'in-progress'}">{snap.status || 'in-progress'}</span>
-                        {#if index === 0}
-                          <span class="latest-tag">CURRENT STATE</span>
-                        {/if}
-                      </div>
-                      <span class="timestamp-meta">{new Date(snap.timestamp).toLocaleString()}</span>
-                    </div>
-
-                    <div class="milestone-note">"{snap.note || 'Milestone checkpoint'}"</div>
-
-                    <div class="milestone-meta-row">
-                      <span class="actor-tag">
-                        <FluentIcons name="user" size={12} />
-                        <span style="margin-left: 4px;">{snap.actor || 'Designer'}</span>
-                      </span>
-                      <span class="trigger-tag">
-                        <FluentIcons name="bolt" size={12} />
-                        <span style="margin-left: 4px;">{snap.trigger || 'SNAPSHOT'}</span>
-                      </span>
-                      <span class="snap-id-tag">{snap.id}</span>
-                    </div>
-
-                    {#if snap.sourceFiles && snap.sourceFiles.length > 0}
-                      <div class="source-files-box">
-                        <div class="source-files-header">
-                          <FluentIcons name="folder" size={12} color="#00CFFF" />
-                          <span>Snapshotted Design Assets ({snap.sourceFiles.length}):</span>
-                        </div>
-                        <div class="source-files-chips">
-                          {#each snap.sourceFiles as sf}
-                            <span class="source-file-chip" title="{sf.name} ({sf.sizeFormatted})">
-                              <span class="file-ext-badge ext-{sf.ext.replace('.', '')}">{sf.ext.toUpperCase()}</span>
-                              <span class="file-name">{sf.name}</span>
-                              <span class="file-size">{sf.sizeFormatted}</span>
-                            </span>
-                          {/each}
-                        </div>
-                      </div>
-                    {/if}
-
-                    {#if index !== 0}
-                      <div class="rollback-action-row">
-                        <button 
-                          class="rollback-btn" 
-                          disabled={isRollingBack === snap.id}
-                          onclick={() => handleRollback(snap)}
-                        >
-                          <FluentIcons name="history" size={13} />
-                          <span style="margin-left: 6px;">{isRollingBack === snap.id ? 'Restoring...' : 'Rollback to this Revision'}</span>
-                        </button>
-                      </div>
-                    {/if}
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
+        <ProjectHistoryTimeline
+          {projectId}
+          {projectTitle}
+          onRollbackSuccess={() => {
+            if (onRollbackSuccess) onRollbackSuccess();
+          }}
+        />
       </div>
 
-      <!-- Footer -->
       <div class="timeline-footer">
-        <span class="security-tip">
-          <FluentIcons name="lock" size={12} color="#00CFFF" />
-          <span style="margin-left: 6px;">Pre-rollback safety backups are created automatically prior to any restoration.</span>
-        </span>
-        <FluentButton appearance="subtle" onclick={closeModal}>Close</FluentButton>
+        <FluentButton appearance="secondary" onclick={closeModal}>Close</FluentButton>
       </div>
     </div>
   </div>
@@ -249,8 +69,8 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(14px);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -266,15 +86,15 @@
 
   .timeline-modal {
     width: 95%;
-    max-width: 780px;
+    max-width: 820px;
     height: 85vh;
-    background: #0F172A;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-card-border);
+    border-radius: var(--radius-lg, 12px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+    box-shadow: var(--shadow-28);
   }
 
   .timeline-header {
@@ -282,209 +102,48 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(15, 23, 42, 0.98);
+    border-bottom: 1px solid var(--surface-card-border);
+    background: var(--surface-card);
   }
 
   .header-left { display: flex; align-items: center; gap: 12px; }
-  .timeline-icon { font-size: 24px; }
-  .modal-title { font-size: 16px; font-weight: 800; color: #F8FAFC; }
-  .modal-sub { font-size: 12px; color: #94A3B8; margin-top: 2px; }
+  .timeline-icon-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm, 6px);
+    background: var(--bg-canvas);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0; }
+  .modal-sub { font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0; }
 
-  .close-btn { background: transparent; border: none; font-size: 16px; color: #94A3B8; cursor: pointer; padding: 4px 8px; }
-  .close-btn:hover { color: #FFF; }
+  .close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .close-btn:hover { color: var(--text-primary); background: var(--bg-canvas); }
 
   .timeline-body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
   }
 
-  .capture-bar {
-    display: flex;
-    gap: 10px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 10px 12px;
-  }
-
-  .capture-input {
-    flex: 1;
-    background: #1E293B;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    padding: 8px 12px;
-    color: #FFF;
-    font-size: 12.5px;
-    outline: none;
-  }
-  .capture-input:focus { border-color: #38BDF8; }
-
-  /* Tree */
-  .tree-container { display: flex; flex-direction: column; gap: 12px; }
-  .loading-box, .empty-box {
-    text-align: center;
-    padding: 40px 20px;
-    color: #64748B;
-    font-size: 13px;
-  }
-  .empty-icon { font-size: 36px; display: block; margin-bottom: 6px; }
-  .empty-sub { font-size: 11px; color: #475569; display: block; margin-top: 4px; }
-
-  .milestones-list { display: flex; flex-direction: column; gap: 0; }
-  .milestone-card {
-    display: flex;
-    gap: 14px;
-    position: relative;
-  }
-
-  .milestone-indicator {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 32px;
-    flex-shrink: 0;
-  }
-
-  .circle-node {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #043388;
-    border: 2px solid #21A1F7;
-    color: #FFF;
-    font-size: 11px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-  }
-
-  .connector-line {
-    flex: 1;
-    width: 2px;
-    background: rgba(255, 255, 255, 0.15);
-    margin: 4px 0;
-    min-height: 40px;
-  }
-
-  .milestone-content {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 10px;
-    padding: 12px 16px;
-    margin-bottom: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .milestone-card.is-latest .milestone-content {
-    border-color: rgba(33, 161, 247, 0.4);
-    background: rgba(33, 161, 247, 0.05);
-  }
-
-  .milestone-top { display: flex; justify-content: space-between; align-items: center; }
-  .rev-tags { display: flex; align-items: center; gap: 8px; }
-  .rev-badge { font-size: 11px; font-weight: 800; background: #043388; color: #FFF; padding: 2px 6px; border-radius: 4px; }
-  .status-pill { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
-  .status-pill.status-approved { background: rgba(16, 185, 129, 0.2); color: #10B981; }
-  .status-pill.status-revision { background: rgba(239, 68, 68, 0.2); color: #EF4444; }
-  .status-pill.status-in-progress { background: rgba(245, 158, 11, 0.2); color: #F59E0B; }
-
-  .latest-tag { font-size: 9px; font-weight: 900; background: #10B981; color: #0F172A; padding: 2px 5px; border-radius: 3px; }
-  .timestamp-meta { font-size: 11px; color: #64748B; }
-
-  .milestone-note { font-size: 13px; color: #F8FAFC; font-weight: 600; font-style: italic; }
-
-  .milestone-meta-row { display: flex; align-items: center; gap: 12px; font-size: 11px; color: #94A3B8; margin-top: 2px; }
-  .snap-id-tag { font-family: monospace; font-size: 10px; color: #64748B; }
-
-  .rollback-action-row { margin-top: 6px; display: flex; justify-content: flex-end; }
-  .rollback-btn {
-    background: transparent;
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    color: #F87171;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .rollback-btn:hover { background: rgba(239, 68, 68, 0.2); }
-
-  /* Source Files Box & Chips */
-  .source-files-box {
-    margin-top: 8px;
-    padding: 8px 10px;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-  }
-  .source-files-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10.5px;
-    font-weight: 700;
-    color: #94A3B8;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .source-files-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .source-file-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    padding: 2px 7px;
-    font-size: 11px;
-    color: #E2E8F0;
-  }
-  .file-ext-badge {
-    font-size: 8.5px;
-    font-weight: 800;
-    padding: 1px 4px;
-    border-radius: 3px;
-    background: #043388;
-    color: #FFF;
-  }
-  .file-ext-badge.ext-psd { background: #31A8FF; color: #001E36; }
-  .file-ext-badge.ext-ai { background: #FF9A00; color: #331500; }
-  .file-ext-badge.ext-afdesign { background: #1B8EF2; color: #FFF; }
-  .file-name {
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 500;
-  }
-  .file-size {
-    font-size: 10px;
-    color: #64748B;
-  }
-
-  /* Footer */
   .timeline-footer {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     padding: 12px 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(11, 17, 33, 0.98);
+    border-top: 1px solid var(--surface-card-border);
+    background: var(--surface-card);
   }
-  .security-tip { font-size: 11px; color: #64748B; }
 </style>

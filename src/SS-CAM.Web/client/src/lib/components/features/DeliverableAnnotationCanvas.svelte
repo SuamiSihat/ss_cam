@@ -4,6 +4,7 @@
   import { appState } from '$lib/stores/appState.svelte';
   import { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   interface AnnotationItem {
@@ -263,19 +264,31 @@
     }
   }
 
-  async function deletePin(pinId: string, e: MouseEvent) {
+  let pinToDelete = $state<{ id: string; number?: number } | null>(null);
+  let isDeletingPin = $state<boolean>(false);
+
+  function requestDeletePin(pin: AnnotationItem, e: MouseEvent) {
     e.stopPropagation();
-    if (reviewToken || !projectId) return;
+    pinToDelete = { id: pin.id, number: pin.annotation?.pinNumber };
+  }
+
+  async function confirmDeletePin() {
+    if (!pinToDelete || reviewToken || !projectId) return;
+    const id = pinToDelete.id;
+    isDeletingPin = true;
     try {
-      await ApiClient.deleteComment(projectId, pinId);
-      annotations = annotations.filter(a => a.id !== pinId);
-      if (selectedPinId === pinId) selectedPinId = null;
+      await ApiClient.deleteComment(projectId, id);
+      annotations = annotations.filter(a => a.id !== id);
+      if (selectedPinId === id) selectedPinId = null;
       if (onAnnotationsCountChange) {
         onAnnotationsCountChange(annotations.length);
       }
       appState.addToast('Comment pin deleted.', 'info');
+      pinToDelete = null;
     } catch (err: any) {
       appState.addToast(getErrorMessage(err, 'We couldn\'t delete the pin. Please try again.'), 'error');
+    } finally {
+      isDeletingPin = false;
     }
   }
 
@@ -437,7 +450,7 @@
                   <button
                     type="button"
                     class="delete-action-btn"
-                    onclick={(e) => deletePin(pin.id, e)}
+                    onclick={(e) => requestDeletePin(pin, e)}
                     title="Delete this pin"
                   >
                     <FluentIcons name="delete" size={13} />
@@ -578,6 +591,18 @@
     </div>
   {/if}
 </div>
+
+<FluentDialog
+  open={!!pinToDelete}
+  title={`Delete comment pin ${pinToDelete?.number ? '#' + pinToDelete.number : ''}?`}
+  message="This pin and its feedback comment will be permanently removed. This cannot be undone."
+  confirmLabel="Delete Pin"
+  cancelLabel="Cancel"
+  confirmAppearance="danger"
+  loading={isDeletingPin}
+  onConfirm={confirmDeletePin}
+  onCancel={() => { if (!isDeletingPin) pinToDelete = null; }}
+/>
 
 <style>
   .annotation-canvas-root {

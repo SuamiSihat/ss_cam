@@ -8,6 +8,8 @@
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
   import FluentBadge from '$lib/components/ui/FluentBadge.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
+  import FluentErrorBanner from '$lib/components/ui/FluentErrorBanner.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import DeliverableLightbox from '$lib/components/features/DeliverableLightbox.svelte';
   import VaultIngesterModal from '$lib/components/features/VaultIngesterModal.svelte';
@@ -222,30 +224,41 @@
   const videoPct = $derived(projectStore.deliverables.length > 0 ? (videoCount / projectStore.deliverables.length) * 100 : 0);
   const docPct = $derived(projectStore.deliverables.length > 0 ? (docCount / projectStore.deliverables.length) * 100 : 0);
 
-  // 1-Click Fast Sign-Off Actions
-  async function handleQuickApprove(e: MouseEvent, d: DeliverableItem) {
+  // Fast Sign-Off Actions with Confirmation
+  let decisionTarget = $state<{
+    deliverable: DeliverableItem;
+    decision: 'approved' | 'revision_requested';
+  } | null>(null);
+  let isSubmittingDecision = $state<boolean>(false);
+
+  function requestQuickDecision(e: MouseEvent, d: DeliverableItem, decision: 'approved' | 'revision_requested') {
     e.stopPropagation();
-    const projId = d.project?.id || d.projectId || d.project?.jobId || d.projectJobId;
-    if (!projId) return;
-    try {
-      await ApiClient.submitDecision(projId, { decision: 'approved', deliverableId: d.id });
-      appState.addToast(`Deliverable "${d.filename}" approved.`, 'success', 'Approval recorded');
-      await projectStore.loadDeliverables();
-    } catch (err: any) {
-      appState.addToast(getErrorMessage(err, 'We couldn\'t record your approval. Please try again.'), 'error');
-    }
+    decisionTarget = { deliverable: d, decision };
   }
 
-  async function handleQuickRevision(e: MouseEvent, d: DeliverableItem) {
-    e.stopPropagation();
-    const projId = d.project?.id || d.projectId || d.project?.jobId || d.projectJobId;
+  async function confirmDecision() {
+    if (!decisionTarget) return;
+    const { deliverable, decision } = decisionTarget;
+    const projId = deliverable.project?.id || deliverable.projectId || deliverable.project?.jobId || deliverable.projectJobId;
     if (!projId) return;
+
+    isSubmittingDecision = true;
     try {
-      await ApiClient.submitDecision(projId, { decision: 'revision_requested', deliverableId: d.id });
-      appState.addToast(`Revision requested for "${d.filename}".`, 'warning', 'Revision requested');
+      await ApiClient.submitDecision(projId, { decision, deliverableId: deliverable.id });
+      if (decision === 'approved') {
+        appState.addToast(`Deliverable "${deliverable.filename}" approved.`, 'success', 'Approval recorded');
+      } else {
+        appState.addToast(`Revision requested for "${deliverable.filename}".`, 'warning', 'Revision requested');
+      }
       await projectStore.loadDeliverables();
+      decisionTarget = null;
     } catch (err: any) {
-      appState.addToast(getErrorMessage(err, 'We couldn\'t request a revision. Please try again.'), 'error');
+      appState.addToast(
+        getErrorMessage(err, decision === 'approved' ? 'We couldn\'t record your approval. Please try again.' : 'We couldn\'t request a revision. Please try again.'),
+        'error'
+      );
+    } finally {
+      isSubmittingDecision = false;
     }
   }
 
@@ -265,9 +278,38 @@
       openShare(d);
     }
   }
+
+  const hasActiveDeliverableFilters = $derived(
+    filterStatus !== 'all' || 
+    (searchQuery && searchQuery.trim() !== '') || 
+    filterBrand !== 'all' || 
+    filterMediaClass !== 'all' || 
+    filterAspectRatio !== 'all' ||
+    filterResolution !== 'all' ||
+    filterReviewState !== 'all'
+  );
+
+  function resetAllDeliverableFilters() {
+    filterStatus = 'all';
+    searchQuery = '';
+    filterBrand = 'all';
+    filterMediaClass = 'all';
+    filterAspectRatio = 'all';
+    filterResolution = 'all';
+    filterReviewState = 'all';
+  }
 </script>
 
 <div class="deliverables-view-container">
+  {#if projectStore.errorDeliverables}
+    <FluentErrorBanner
+      title="Unable to load deliverables"
+      message={projectStore.errorDeliverables}
+      retryLabel="Reload Deliverables"
+      onRetry={() => projectStore.loadDeliverables()}
+    />
+  {/if}
+
   <!-- View Header -->
   <div class="view-header">
     <div class="header-left">
@@ -416,6 +458,7 @@
           class="mode-btn {groupByProject ? 'active' : ''}" 
           onclick={() => groupByProject = true} 
           title="Group by Project Folder"
+          aria-label="Group by Project Folder"
         >
           <FluentIcons name="folder" size={13} />
         </button>
@@ -423,6 +466,7 @@
           class="mode-btn {!groupByProject ? 'active' : ''}" 
           onclick={() => groupByProject = false} 
           title="Flat Asset List"
+          aria-label="Flat Asset List"
         >
           <FluentIcons name="box" size={13} />
         </button>
@@ -430,10 +474,10 @@
 
       <!-- View Mode Toggle -->
       <div class="view-mode-toggle">
-        <button class="mode-btn {viewMode === 'grid' ? 'active' : ''}" onclick={() => viewMode = 'grid'} title="Grid Card View">
+        <button class="mode-btn {viewMode === 'grid' ? 'active' : ''}" onclick={() => viewMode = 'grid'} title="Grid Card View" aria-label="Grid Card View">
           <FluentIcons name="grid" size={13} />
         </button>
-        <button class="mode-btn {viewMode === 'table' ? 'active' : ''}" onclick={() => viewMode = 'table'} title="Metadata Table View">
+        <button class="mode-btn {viewMode === 'table' ? 'active' : ''}" onclick={() => viewMode = 'table'} title="Metadata Table View" aria-label="Metadata Table View">
           <FluentIcons name="table" size={13} />
         </button>
       </div>
@@ -452,11 +496,16 @@
       <div class="empty-icon-box">
         <FluentIcons name="folder" size={36} color="rgba(255,255,255,0.2)" />
       </div>
-      <p class="state-title">No deliverables match the active filter</p>
-      <p class="state-desc">Try clearing your search query or selecting "All Deliverables".</p>
-      <FluentButton appearance="secondary" size="sm" onclick={() => { filterStatus = 'all'; searchQuery = ''; filterBrand = 'all'; filterMediaClass = 'all'; filterAspectRatio = 'all'; }}>
-        Reset Filters
-      </FluentButton>
+      {#if hasActiveDeliverableFilters}
+        <p class="state-title">No deliverables match the active filters</p>
+        <p class="state-desc">Try clearing your search query or resetting filters to view all deliverables.</p>
+        <FluentButton appearance="secondary" size="sm" onclick={resetAllDeliverableFilters}>
+          Clear all filters
+        </FluentButton>
+      {:else}
+        <p class="state-title">No deliverables found</p>
+        <p class="state-desc">No export files or media have been uploaded to projects yet.</p>
+      {/if}
     </div>
   {:else if viewMode === 'grid'}
     {#if groupByProject}
@@ -466,9 +515,15 @@
           {@const isCollapsed = !!collapsedGroups[group.projectId]}
           <div class="project-group-card">
             <!-- Group Header Bar -->
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="group-header" onclick={() => toggleGroup(group.projectId)}>
+            <div 
+              class="group-header" 
+              role="button"
+              tabindex="0"
+              aria-expanded={!isCollapsed}
+              aria-label={`Toggle project folder ${group.title}`}
+              onclick={() => toggleGroup(group.projectId)}
+              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGroup(group.projectId); } }}
+            >
               <div class="group-header-left">
                 <span class="chevron-arrow {isCollapsed ? 'collapsed' : ''}">▾</span>
                 <div class="group-folder-icon">
@@ -483,7 +538,7 @@
                 </span>
               </div>
 
-              <div class="group-header-right" onclick={(e) => e.stopPropagation()}>
+              <div class="group-header-right" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="presentation">
                 <span class="group-meta-summary">
                   <strong>{group.deliverables.length}</strong> file{group.deliverables.length === 1 ? '' : 's'} · {(group.totalSizeBytes / (1024 * 1024)).toFixed(2)} MB · {group.designer}
                 </span>
@@ -492,6 +547,7 @@
                   class="group-action-btn" 
                   onclick={() => appState.navigate('project-detail', { id: group.projectId })}
                   title="Open Project Workspace"
+                  aria-label="Open Project Workspace"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -506,6 +562,7 @@
                   download="{group.jobId}_deliverables.zip"
                   class="group-action-btn"
                   title="Download Project Handover ZIP"
+                  aria-label="Download Project Handover ZIP"
                 >
                   <FluentIcons name="download" size={12} />
                   <span>ZIP</span>
@@ -518,9 +575,14 @@
               <div class="group-content">
                 <div class="deliverables-grid">
                   {#each group.deliverables as d (d.id || d.filename)}
-                    <!-- svelte-ignore a11y_click_events_have_key_events -->
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div class="del-card-wrapper" onclick={() => openLightbox(d)}>
+                    <div 
+                      class="del-card-wrapper" 
+                      role="button"
+                      tabindex="0"
+                      aria-label={`Inspect deliverable ${d.filename}`}
+                      onclick={() => openLightbox(d)}
+                      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(d); } }}
+                    >
                       <div class="del-card">
                         <!-- Preview Box -->
                         <div class="del-preview-box">
@@ -590,8 +652,8 @@
                           </div>
 
                           <!-- Quick Action Bar -->
-                          <div class="del-actions" onclick={(e) => e.stopPropagation()}>
-                            <button class="action-btn-pill" onclick={() => openLightbox(d)} title="Open Fullscreen Inspector">
+                          <div class="del-actions" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="presentation">
+                            <button class="action-btn-pill" onclick={() => openLightbox(d)} title="Open Fullscreen Inspector" aria-label="Open Fullscreen Inspector">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                 <circle cx="12" cy="12" r="3"></circle>
@@ -602,31 +664,31 @@
                             <div class="action-icons-right">
                               {#if appState.canApprove()}
                                 {#if (d.status || 'pending') !== 'approved'}
-                                  <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
+                                  <button class="tool-icon-btn action-approve" title="1-Click Approve Master" aria-label="1-Click Approve Master" onclick={(e) => requestQuickDecision(e, d, 'approved')}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                   </button>
                                 {/if}
                                 {#if (d.status || 'pending') !== 'revision'}
-                                  <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
+                                  <button class="tool-icon-btn action-revision" title="1-Click Request Revision" aria-label="1-Click Request Revision" onclick={(e) => requestQuickDecision(e, d, 'revision_requested')}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                   </button>
                                 {/if}
                               {/if}
                               {#if d.isImage || d.previewType === 'image'}
-                                <button class="tool-icon-btn" title="Smart Social Resizer" onclick={() => openResizer(d)}>
+                                <button class="tool-icon-btn" title="Smart Social Resizer" aria-label="Smart Social Resizer" onclick={() => openResizer(d)}>
                                   <FluentIcons name="vector" size={13} />
                                 </button>
-                                <button class="tool-icon-btn" title="Print check" onclick={() => openPreflight(d)}>
+                                <button class="tool-icon-btn" title="Print check" aria-label="Print check" onclick={() => openPreflight(d)}>
                                   <FluentIcons name="printer" size={13} />
                                 </button>
                               {/if}
                               {#if appState.currentUser?.capabilities?.canManageShareLinks || appState.currentUser?.roleKey === 'admin'}
-                                <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
+                                <button class="tool-icon-btn" title="Quick Copy Client Review Link" aria-label="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
                                   <FluentIcons name="link" size={13} />
                                 </button>
                               {/if}
                               {#if d.downloadUrl}
-                                <a href={d.downloadUrl} download={d.filename} class="tool-icon-btn" title="Download Master File">
+                                <a href={d.downloadUrl} download={d.filename} class="tool-icon-btn" title="Download Master File" aria-label="Download Master File">
                                   <FluentIcons name="download" size={13} />
                                 </a>
                               {/if}
@@ -646,9 +708,14 @@
       <!-- ═══════════ FLAT LIST GRID ═══════════ -->
       <div class="deliverables-grid">
         {#each filteredDeliverables as d (d.id || d.filename)}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="del-card-wrapper" onclick={() => openLightbox(d)}>
+          <div 
+            class="del-card-wrapper" 
+            role="button"
+            tabindex="0"
+            aria-label={`Inspect deliverable ${d.filename}`}
+            onclick={() => openLightbox(d)}
+            onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(d); } }}
+          >
             <div class="del-card">
               <!-- Preview Box -->
               <div class="del-preview-box">
@@ -726,8 +793,8 @@
                 </div>
 
                 <!-- Quick Action Bar -->
-                <div class="del-actions" onclick={(e) => e.stopPropagation()}>
-                  <button class="action-btn-pill" onclick={() => openLightbox(d)} title="Open Fullscreen Inspector">
+                <div class="del-actions" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="presentation">
+                  <button class="action-btn-pill" onclick={() => openLightbox(d)} title="Open Fullscreen Inspector" aria-label="Open Fullscreen Inspector">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                       <circle cx="12" cy="12" r="3"></circle>
@@ -738,31 +805,31 @@
                   <div class="action-icons-right">
                     {#if appState.canApprove()}
                       {#if (d.status || 'pending') !== 'approved'}
-                        <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
+                        <button class="tool-icon-btn action-approve" title="1-Click Approve Master" aria-label="1-Click Approve Master" onclick={(e) => requestQuickDecision(e, d, 'approved')}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </button>
                       {/if}
                       {#if (d.status || 'pending') !== 'revision'}
-                        <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
+                        <button class="tool-icon-btn action-revision" title="1-Click Request Revision" aria-label="1-Click Request Revision" onclick={(e) => requestQuickDecision(e, d, 'revision_requested')}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                       {/if}
                     {/if}
                     {#if d.isImage || d.previewType === 'image'}
-                      <button class="tool-icon-btn" title="Smart Social Resizer" onclick={() => openResizer(d)}>
+                      <button class="tool-icon-btn" title="Smart Social Resizer" aria-label="Smart Social Resizer" onclick={() => openResizer(d)}>
                         <FluentIcons name="vector" size={13} />
                       </button>
-                      <button class="tool-icon-btn" title="Print check" onclick={() => openPreflight(d)}>
+                      <button class="tool-icon-btn" title="Print check" aria-label="Print check" onclick={() => openPreflight(d)}>
                         <FluentIcons name="printer" size={13} />
                       </button>
                     {/if}
                     {#if appState.currentUser?.capabilities?.canManageShareLinks || appState.currentUser?.roleKey === 'admin'}
-                      <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
+                      <button class="tool-icon-btn" title="Quick Copy Client Review Link" aria-label="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
                         <FluentIcons name="link" size={13} />
                       </button>
                     {/if}
                     {#if d.downloadUrl}
-                      <a href={d.downloadUrl} download={d.filename} class="tool-icon-btn" title="Download Master File">
+                      <a href={d.downloadUrl} download={d.filename} class="tool-icon-btn" title="Download Master File" aria-label="Download Master File">
                         <FluentIcons name="download" size={13} />
                       </a>
                     {/if}
@@ -792,7 +859,14 @@
         </thead>
         <tbody>
           {#each filteredDeliverables as d}
-            <tr onclick={() => openLightbox(d)} class="table-row-clickable">
+            <tr 
+              onclick={() => openLightbox(d)} 
+              class="table-row-clickable"
+              role="button"
+              tabindex="0"
+              aria-label={`Inspect deliverable ${d.filename}`}
+              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(d); } }}
+            >
               <td class="table-thumb-col">
                 {#if (d.isImage || d.previewType === 'image') && d.previewUrl}
                   <img src={d.previewUrl} alt={d.filename} class="table-thumb" />
@@ -824,35 +898,35 @@
               <td><span class="ratio-badge">{d.aspectRatioEstimate || 'Auto'}</span></td>
               <td><span class="size-text">{d.sizeBytes ? (d.sizeBytes / (1024 * 1024)).toFixed(2) : '0.00'} MB</span></td>
               <td><span class="status-badge status-{(d.status || 'pending')}">{(d.status || 'pending').toUpperCase()}</span></td>
-              <td style="text-align:right;" onclick={(e) => e.stopPropagation()}>
+              <td style="text-align:right;" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="presentation">
                 <div class="table-actions">
                   {#if appState.canApprove()}
                     {#if (d.status || 'pending') !== 'approved'}
-                      <button class="tool-icon-btn action-approve" title="1-Click Approve Master" onclick={(e) => handleQuickApprove(e, d)}>
+                      <button class="tool-icon-btn action-approve" title="1-Click Approve Master" aria-label="1-Click Approve Master" onclick={(e) => requestQuickDecision(e, d, 'approved')}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
                       </button>
                     {/if}
                     {#if (d.status || 'pending') !== 'revision'}
-                      <button class="tool-icon-btn action-revision" title="1-Click Request Revision" onclick={(e) => handleQuickRevision(e, d)}>
+                      <button class="tool-icon-btn action-revision" title="1-Click Request Revision" aria-label="1-Click Request Revision" onclick={(e) => requestQuickDecision(e, d, 'revision_requested')}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                       </button>
                     {/if}
                   {/if}
                   {#if d.isImage || d.previewType === 'image'}
-                    <button class="tool-icon-btn" title="Social Resizer" onclick={() => openResizer(d)}>
+                    <button class="tool-icon-btn" title="Social Resizer" aria-label="Social Resizer" onclick={() => openResizer(d)}>
                       <FluentIcons name="vector" size={13} />
                     </button>
-                    <button class="tool-icon-btn" title="Print check" onclick={() => openPreflight(d)}>
+                    <button class="tool-icon-btn" title="Print check" aria-label="Print check" onclick={() => openPreflight(d)}>
                       <FluentIcons name="printer" size={13} />
                     </button>
                   {/if}
                   {#if appState.currentUser?.capabilities?.canManageShareLinks || appState.currentUser?.roleKey === 'admin'}
-                    <button class="tool-icon-btn" title="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
+                    <button class="tool-icon-btn" title="Quick Copy Client Review Link" aria-label="Quick Copy Client Review Link" onclick={(e) => handleQuickCopyShareLink(e, d)}>
                       <FluentIcons name="link" size={13} />
                     </button>
                   {/if}
                   {#if d.downloadUrl}
-                    <a href={d.downloadUrl} download={d.filename} class="tool-icon-btn" title="Download Master File">
+                    <a href={d.downloadUrl} download={d.filename} class="tool-icon-btn" title="Download Master File" aria-label="Download Master File">
                       <FluentIcons name="download" size={13} />
                     </a>
                   {/if}
@@ -917,6 +991,20 @@
     projectTitle={preflightTargetDeliverable?.project?.title || preflightTargetDeliverable?.projectTitle}
   />
 </div>
+
+<FluentDialog
+  open={!!decisionTarget}
+  title={decisionTarget?.decision === 'approved' ? 'Approve Deliverable?' : 'Request Revision?'}
+  message={decisionTarget?.decision === 'approved'
+    ? `Approve "${decisionTarget?.deliverable.filename}" as production-ready master deliverable?`
+    : `Flag "${decisionTarget?.deliverable.filename}" for revisions? The creative team will be notified.`}
+  confirmLabel={decisionTarget?.decision === 'approved' ? 'Approve Deliverable' : 'Request Revision'}
+  cancelLabel="Cancel"
+  confirmAppearance={decisionTarget?.decision === 'approved' ? 'success' : 'danger'}
+  loading={isSubmittingDecision}
+  onConfirm={confirmDecision}
+  onCancel={() => { if (!isSubmittingDecision) decisionTarget = null; }}
+/>
 
 <style>
   .deliverables-view-container {
@@ -1824,6 +1912,95 @@
   .status-badge.status-pending { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
   .status-badge.status-revision { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
   .status-badge.status-approved { background: rgba(16, 185, 129, 0.15); color: #10B981; }
-
   .table-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+
+  /* Mobile Responsive Breakpoints (WCAG 2.5.8 touch targets >= 44x44px) */
+  @media (max-width: 768px) {
+    .vault-telemetry-ribbon {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .telemetry-kpi-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .kpi-pill {
+      min-height: 44px;
+      justify-content: center;
+    }
+    .deliverable-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .search-box {
+      width: 100%;
+      min-height: 44px;
+      box-sizing: border-box;
+    }
+    .search-box input {
+      min-height: 44px;
+      font-size: 14px;
+    }
+    .filter-group {
+      width: 100%;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .clean-select {
+      width: 100%;
+      min-height: 44px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .view-mode-toggle {
+      width: 100%;
+      justify-content: space-around;
+    }
+    .mode-btn {
+      flex: 1;
+      justify-content: center;
+      min-height: 44px;
+    }
+    .group-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 12px 14px;
+    }
+    .group-header-right {
+      width: 100%;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .group-action-btn {
+      min-height: 40px;
+      padding: 6px 12px;
+    }
+    .dam-table-card {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .deliverables-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .search-box input,
+    .clean-select {
+      font-size: 16px; /* Prevents auto-zoom on iOS */
+    }
+    .action-btn-pill {
+      min-height: 44px;
+      padding: 6px 14px;
+    }
+    .tool-icon-btn {
+      min-width: 44px;
+      min-height: 44px;
+    }
+  }
 </style>

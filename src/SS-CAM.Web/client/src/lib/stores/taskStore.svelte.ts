@@ -21,6 +21,7 @@ class TaskStore {
   isSaving = $state<boolean>(false);
   isProvisioning = $state<boolean>(false);
   selectedTask = $state<StudioTask | null>(null);
+  errorTasks = $state<string | null>(null);
 
   activeFilters = $state<TaskFilterState>({
     query: '',
@@ -28,6 +29,11 @@ class TaskStore {
     brand: 'all',
     assignee: 'all',
     priority: 'all'
+  });
+
+  hasActiveFilters = $derived.by(() => {
+    const f = this.activeFilters;
+    return !!(f.query && f.query.trim()) || f.status !== 'all' || f.brand !== 'all' || f.assignee !== 'all' || f.priority !== 'all';
   });
 
   // Filtered tasks computed via Svelte 5 $derived.by
@@ -92,14 +98,17 @@ class TaskStore {
     if (!silent && this.tasks.length === 0) {
       this.isLoading = true;
     }
+    this.errorTasks = null;
     try {
       const res = await ApiClient.getStudioTasks();
       if (res && res.success && Array.isArray(res.tasks)) {
         this.tasks = res.tasks;
       }
     } catch (err: any) {
+      const msg = getErrorMessage(err, 'We couldn\'t load your tasks. Please try again.');
+      this.errorTasks = msg;
       if (!silent) {
-        appState.addToast(getErrorMessage(err, 'We couldn\'t load your tasks. Please try again.'), 'error');
+        appState.addToast(msg, 'error');
       }
     } finally {
       this.isLoading = false;

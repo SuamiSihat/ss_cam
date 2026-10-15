@@ -25,6 +25,7 @@
   let username = $state<string>(savedUser || '');
   let password = $state<string>('');
   let showPassword = $state<boolean>(false);
+  let showMustChangePassword = $state<boolean>(false);
   let isLoading = $state<boolean>(false);
   let errorMessage = $state<string | null>(null);
 
@@ -423,17 +424,61 @@
       <p class="forgot-modal-desc">You're using the default password. Please choose your own to continue.</p>
       <div class="form-group">
         <label for="login-new-password" class="field-label">New password</label>
-        <input id="login-new-password" type="password" class="field-input" bind:value={newPassword}
-          autocomplete="new-password" placeholder="At least 10 characters" aria-describedby="login-error-region" />
+        <div class="password-input-wrapper">
+          <input
+            id="login-new-password"
+            type={showMustChangePassword ? 'text' : 'password'}
+            class="field-input"
+            bind:value={newPassword}
+            autocomplete="new-password"
+            placeholder="At least 10 characters"
+            aria-describedby="login-error-region"
+          />
+          <button
+            type="button"
+            class="password-toggle-btn"
+            onclick={() => (showMustChangePassword = !showMustChangePassword)}
+            title={showMustChangePassword ? 'Hide password' : 'Show password'}
+            aria-label={showMustChangePassword ? 'Hide password' : 'Show password'}
+          >
+            {#if showMustChangePassword}
+              <FluentIcons name="eyeOff" size={16} />
+            {:else}
+              <FluentIcons name="eye" size={16} />
+            {/if}
+          </button>
+        </div>
       </div>
       <div class="form-group">
         <label for="login-confirm-password" class="field-label">Confirm new password</label>
-        <input id="login-confirm-password" type="password" class="field-input" bind:value={confirmPassword}
-          autocomplete="new-password" aria-describedby="login-error-region" />
+        <div class="password-input-wrapper">
+          <input
+            id="login-confirm-password"
+            type={showMustChangePassword ? 'text' : 'password'}
+            class="field-input"
+            bind:value={confirmPassword}
+            autocomplete="new-password"
+            placeholder="Repeat new password"
+            aria-describedby="login-error-region"
+          />
+        </div>
       </div>
       <button type="submit" class="submit-btn" disabled={isLoading || !newPassword || !confirmPassword}>
         <span>{isLoading ? 'Saving…' : 'Save and continue'}</span>
       </button>
+
+      <div class="forced-signout-row" style="text-align: center; margin-top: 12px;">
+        <button
+          type="button"
+          class="forgot-link"
+          onclick={() => {
+            mustChange = false;
+            appState.logout();
+          }}
+        >
+          Sign out
+        </button>
+      </div>
     </form>
     {:else}
     <form onsubmit={handleLogin} class="login-form-body">
@@ -931,5 +976,46 @@
     border-top: 1px solid rgba(0, 0, 0, 0.08);
     padding-top: 14px;
     line-height: 1.6;
+  }
+
+  /* Mobile responsive breakpoint (WCAG 2.5.8 touch targets >= 44x44px) */
+  @media (max-width: 480px) {
+    .login-hero-bg {
+      overflow-y: auto;
+      padding: 24px 16px;
+      align-items: flex-start;
+    }
+    .login-card-static {
+      padding: 24px 18px;
+      margin: auto 0;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 100%;
+    }
+    .brand-logo-img {
+      height: 52px;
+    }
+    .portal-heading {
+      font-size: 19px;
+    }
+    .field-input,
+    .field-select {
+      height: 44px;
+      font-size: 16px; /* Prevents auto-zoom on iOS Safari */
+    }
+    .submit-btn {
+      min-height: 48px;
+      font-size: 15px;
+    }
+    .forgot-link {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .forgot-modal-card {
+      padding: 24px 18px;
+      width: 100%;
+      max-width: 95vw;
+    }
   }
 </style>

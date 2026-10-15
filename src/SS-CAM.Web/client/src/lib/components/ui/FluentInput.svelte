@@ -8,6 +8,7 @@
     readonly?: boolean;
     required?: boolean;
     error?: string;
+    autocomplete?: string;
     oninput?: (e: Event) => void;
     onchange?: (e: Event) => void;
     style?: string;
@@ -23,6 +24,7 @@
     readonly = false,
     required = false,
     error,
+    autocomplete,
     oninput,
     onchange,
     style = '',
@@ -44,6 +46,7 @@
     {placeholder}
     {disabled}
     {readonly}
+    {autocomplete}
     bind:value
     {oninput}
     {onchange}

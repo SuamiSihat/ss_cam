@@ -5,6 +5,7 @@
   import { getErrorMessage } from '$lib/copy';
   import type { ProjectComment, DeliverableItem } from '$lib/types';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   interface Props {
@@ -22,6 +23,8 @@
   let filterResolved = $state<'all' | 'unresolved' | 'resolved'>('all');
   let isSubmitting = $state<boolean>(false);
   let isLoading = $state<boolean>(false);
+  let commentToDelete = $state<string | null>(null);
+  let isDeletingComment = $state<boolean>(false);
 
   // Mention dropdown & roster profiles
   let teamMembers = $state<Array<{ username: string; name: string; role: string; staffId: string; avatar?: string; avatarColor?: string }>>([]);
@@ -151,14 +154,22 @@
     }
   }
 
-  async function handleDelete(commentId: string) {
-    if (!confirm('Are you sure you want to delete this comment?')) return;
+  function handleDelete(commentId: string) {
+    commentToDelete = commentId;
+  }
+
+  async function confirmDeleteComment() {
+    if (!commentToDelete) return;
+    isDeletingComment = true;
     try {
-      await ApiClient.deleteComment(projectId, commentId);
-      comments = comments.filter(c => c.id !== commentId);
+      await ApiClient.deleteComment(projectId, commentToDelete);
+      comments = comments.filter(c => c.id !== commentToDelete);
       appState.addToast('Comment deleted.', 'info');
+      commentToDelete = null;
     } catch (err: any) {
       appState.addToast(getErrorMessage(err, 'We couldn\'t delete the comment. Please try again.'), 'error');
+    } finally {
+      isDeletingComment = false;
     }
   }
 
@@ -390,6 +401,20 @@
     </div>
   </div>
 </div>
+
+<FluentDialog
+  open={!!commentToDelete}
+  title="Delete comment"
+  confirmText="Delete"
+  confirmAppearance="danger"
+  loading={isDeletingComment}
+  onConfirm={confirmDeleteComment}
+  onClose={() => { commentToDelete = null; }}
+>
+  <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-primary);">
+    Are you sure you want to delete this comment? This action cannot be undone.
+  </p>
+</FluentDialog>
 
 <style>
   .comments-container {

@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import type { DeliverableItem } from '$lib/types';
   import DeliverableLightbox from '$lib/components/features/DeliverableLightbox.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   let token = $state<string>('');
@@ -91,13 +93,23 @@
     lightboxOpen = true;
   }
 
-  async function handleDecision(decision: 'approved' | 'revision_requested') {
+  let pendingDecision = $state<'approved' | 'revision_requested' | null>(null);
+  let decisionValidationError = $state<string>('');
+
+  function requestDecision(decision: 'approved' | 'revision_requested') {
+    decisionValidationError = '';
     if (!reviewerName.trim()) {
-      alert('Please enter your name before submitting your decision.');
+      decisionValidationError = 'Please enter your full name before submitting your decision.';
       return;
     }
+    pendingDecision = decision;
+  }
 
+  async function confirmDecision() {
+    if (!pendingDecision) return;
+    const decision = pendingDecision;
     isSubmitting = true;
+    decisionValidationError = '';
     try {
       const res = await ApiClient.submitPublicDecision(token, {
         decision,
@@ -111,8 +123,9 @@
         timestamp: new Date().toLocaleString(),
         whatsappUrl: res.whatsappUrl || null
       };
+      pendingDecision = null;
     } catch (err: any) {
-      alert(err?.message || 'We couldn\'t submit your decision. Please try again.');
+      decisionValidationError = getErrorMessage(err, 'We couldn\'t submit your decision. Please try again.');
     } finally {
       isSubmitting = false;
     }
@@ -247,9 +260,14 @@
 
         <div class="deliverables-grid">
           {#each sortedDeliverables as d}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="deliverable-card" onclick={() => openLightbox(d)}>
+            <div 
+              class="deliverable-card" 
+              role="button"
+              tabindex="0"
+              aria-label={`Inspect deliverable ${d.filename}`}
+              onclick={() => openLightbox(d)}
+              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(d); } }}
+            >
               <div class="media-thumb-box">
                 {#if d.isImage}
                   <img
@@ -335,12 +353,18 @@
             <textarea id="decision-comment" class="portal-textarea" rows="3" placeholder="Provide any specific feedback, copy revisions, or sign-off notes..." bind:value={decisionComment}></textarea>
           </div>
 
+          {#if decisionValidationError}
+            <div class="decision-val-error" style="margin-top: 14px; padding: 10px 14px; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; border-radius: 6px; color: #EF4444; font-size: 13px; font-weight: 500;">
+              {decisionValidationError}
+            </div>
+          {/if}
+
           <div class="decision-action-buttons">
-            <FluentButton appearance="secondary" size="lg" loading={isSubmitting} onclick={() => handleDecision('revision_requested')}>
+            <FluentButton appearance="secondary" size="lg" loading={isSubmitting} onclick={() => requestDecision('revision_requested')}>
               <FluentIcons name="warning" size={14} color="#F59E0B" />
               <span style="margin-left: 6px;">Request revisions</span>
             </FluentButton>
-            <FluentButton appearance="primary" size="lg" loading={isSubmitting} onclick={() => handleDecision('approved')}>
+            <FluentButton appearance="primary" size="lg" loading={isSubmitting} onclick={() => requestDecision('approved')}>
               <FluentIcons name="checkCircle" size={14} color="#10B981" />
               <span style="margin-left: 6px;">Approve deliverables</span>
             </FluentButton>
@@ -349,6 +373,29 @@
       {/if}
     {/if}
   </main>
+
+  <!-- Decision Confirmation Dialog -->
+  <FluentDialog
+    open={!!pendingDecision}
+    title={pendingDecision === 'approved' ? 'Approve deliverables' : 'Request revisions'}
+    confirmText={pendingDecision === 'approved' ? 'Confirm approval' : 'Submit request'}
+    confirmAppearance={pendingDecision === 'approved' ? 'success' : 'danger'}
+    loading={isSubmitting}
+    onConfirm={confirmDecision}
+    onClose={() => { pendingDecision = null; }}
+  >
+    <div style="padding: 6px 0;">
+      {#if pendingDecision === 'approved'}
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-primary);">
+          Are you sure you want to record your formal approval for these deliverables?
+        </p>
+      {:else}
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-primary);">
+          Are you sure you want to submit a revision request to the design team?
+        </p>
+      {/if}
+    </div>
+  </FluentDialog>
 
   <!-- Lightbox Modal with Visual Diff Slider & Pin Annotation -->
   {#if selectedDeliverable}
@@ -693,17 +740,141 @@
 
   .back-btn {
     margin-top: 16px;
-    padding: 8px 16px;
+    padding: 10px 16px;
     background: #043388;
     color: #FFF;
     border: none;
     border-radius: 6px;
     font-weight: 700;
     cursor: pointer;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .back-btn:hover {
+    background: #00CFFF;
+    color: #022057;
+  }
+
+  /* Mobile-first touch & responsiveness standards (WCAG 2.5.8 >= 44x44px) */
+  .download-bundle-btn,
+  .sort-toggle-btn,
+  .wa-dispatch-btn {
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .portal-input {
+    min-height: 44px;
+    box-sizing: border-box;
   }
 
   @media (max-width: 768px) {
-    .decision-inputs-grid { grid-template-columns: 1fr; }
-    .decision-action-buttons { flex-direction: column-reverse; }
+    .portal-header {
+      padding: 12px 16px;
+    }
+    .portal-main {
+      padding: 18px 16px 60px;
+      gap: 18px;
+    }
+    .header-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .header-perm-pill {
+      align-self: flex-start;
+    }
+    .section-header-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .header-actions-cluster {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .download-bundle-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 10px 16px;
+    }
+    .sort-control {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .sort-toggle-btn {
+      flex: 1;
+      justify-content: space-between;
+      padding: 10px 14px;
+    }
+    .decision-inputs-grid {
+      grid-template-columns: 1fr;
+    }
+    .decision-action-buttons {
+      flex-direction: column-reverse;
+      width: 100%;
+      gap: 10px;
+    }
+    .decision-action-buttons :global(.fluent-btn) {
+      width: 100%;
+      min-height: 48px;
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .portal-header {
+      padding: 10px 12px;
+    }
+    .portal-main {
+      padding: 14px 12px 50px;
+      gap: 14px;
+    }
+    .brand-row {
+      gap: 8px;
+    }
+    .portal-logo {
+      height: 24px;
+    }
+    .project-hero {
+      padding: 14px 16px;
+    }
+    .project-title {
+      font-size: 18px;
+    }
+    .deliverables-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .deliverable-card {
+      border-radius: 10px;
+    }
+    .media-thumb-box {
+      height: 200px;
+    }
+    .portal-input,
+    .portal-textarea {
+      font-size: 16px; /* Prevents auto-zoom on iOS mobile */
+    }
+    .decision-deck {
+      padding: 16px 14px;
+    }
+    .wa-dispatch-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 12px 16px;
+      min-height: 48px;
+      font-size: 14px;
+    }
+    .back-btn {
+      width: 100%;
+      min-height: 44px;
+      font-size: 14px;
+    }
   }
 </style>
