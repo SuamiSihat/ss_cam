@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { onMount } from 'svelte';
   import DOMPurify from 'dompurify';
   import { projectStore } from '$lib/stores/projectStore.svelte';
@@ -191,7 +191,7 @@
       clearDraft(selectedProject.id || selectedProject.jobId);
       isDirty = false;
       autoSaveStatus = 'idle';
-      appState.addToast(`Copywriting saved to COPY.md on Synology NAS`, 'success', 'Saved');
+      appState.addToast(`Copywriting saved to COPY.md in Studio Vault`, 'success', 'Saved');
       closeCopyEditor();
     } catch (err: any) {
       appState.addToast(`Failed to save copy: ${err.message}`, 'error');
@@ -258,7 +258,7 @@
   <div class="view-header">
     <div>
       <h1 class="view-title">Copywriting &amp; Script Studio</h1>
-      <p class="view-subtitle">Live advertising copy matrix, social platform character limit validators, and Synology NAS <code>COPY.md</code> sync.</p>
+      <p class="view-subtitle">Live advertising copy matrix, social platform character limit validators, and Studio Vault <code>COPY.md</code> sync.</p>
     </div>
     <button class="ai-launch-btn" onclick={() => showAiModal = true}>
       <FluentIcons name="sparkles" size={14} color="#D4AF37" />
@@ -660,7 +660,7 @@
           </FluentButton>
           <FluentButton appearance="primary" loading={isSavingCopy} onclick={handleSaveCopy}>
             <FluentIcons name="save" size={14} />
-            <span style="margin-left: 5px;">Save COPY.md to Synology Vault</span>
+            <span style="margin-left: 5px;">Save COPY.md to Studio Vault</span>
           </FluentButton>
         </div>
       </div>
@@ -1328,7 +1328,7 @@
     font-weight: 800;
     font-size: 10px;
     line-height: 1;
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
   }
 
 </style>

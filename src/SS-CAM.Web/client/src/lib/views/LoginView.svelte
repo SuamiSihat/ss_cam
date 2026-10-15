@@ -411,8 +411,8 @@
       <img src="brand/ss-logomark-full.png" alt="SuamiSihat Logo" class="brand-logo-img" />
     </div>
 
-    <h1 class="portal-heading">SuamiSihat Creative Portal</h1>
-    <p class="portal-subheading">Production Management & Creative Assets System</p>
+    <h1 class="portal-heading">SS-CAM Creative Portal</h1>
+    <p class="portal-subheading">Creative Assets Management & Production System</p>
 
     <div role="alert" aria-live="assertive" aria-atomic="true" id="login-error-region" class={errorMessage ? 'login-error-alert' : 'login-error-hidden'} aria-hidden={errorMessage ? 'false' : 'true'}>
       {#if errorMessage}{errorMessage}{/if}
@@ -719,8 +719,8 @@
 
   .field-select:focus,
   .field-input:focus {
-    border-color: #0078D4;
-    outline: 2px solid #0078D4; /* WCAG 2.4.7: solid focus ring, not invisible box-shadow */
+    border-color: var(--ss-azure);
+    outline: 2px solid var(--ss-azure); /* WCAG 2.4.7: solid focus ring, not invisible box-shadow */
     outline-offset: 2px;
     box-shadow: none;
   }

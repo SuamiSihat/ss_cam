@@ -696,7 +696,7 @@
     font-family: var(--font-mono, monospace);
   }
   .doc-icon {
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
     flex-shrink: 0;
   }
   .doc-title-text {
@@ -743,7 +743,7 @@
   .tool-btn.active {
     background: var(--brand-tint, rgba(0, 120, 212, 0.12));
     border-color: var(--brand-accent, #38BDF8);
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
   }
 
   /* Dropdown Buttons */
@@ -828,17 +828,17 @@
   }
   .dropdown-item:hover {
     background: var(--brand-tint, rgba(0, 120, 212, 0.08));
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
   }
   .dropdown-item svg { flex-shrink: 0; color: var(--text-secondary); }
-  .dropdown-item:hover svg { color: var(--brand-primary, #0078D4); }
+  .dropdown-item:hover svg { color: var(--brand-primary); }
   .item-badge {
     font-weight: 800;
     font-size: 10.5px;
     padding: 1px 5px;
     background: var(--bg-app);
     border-radius: 4px;
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
   }
   .item-info {
     display: flex;
@@ -921,7 +921,7 @@
   }
   .mode-btn.active {
     background: var(--surface-card);
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
   .mode-btn svg { flex-shrink: 0; }
@@ -962,7 +962,7 @@
     outline: none;
     resize: vertical;
     overflow-y: auto;
-    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-family: var(--font-mono);
     font-size: 13px;
     line-height: 1.65;
     background: transparent;

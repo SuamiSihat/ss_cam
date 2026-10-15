@@ -3,6 +3,7 @@
   import type { Project } from '$lib/types';
   import FluentBadge from '$lib/components/ui/FluentBadge.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import { ApiClient } from '$lib/services/api';
 
   interface Props {
@@ -418,7 +419,7 @@
                   "
                   title={isThisDragging
                     ? (hasConflict
-                        ? `⚠️ Deadline lands on ${activeDrag?.conflictReason}! Drag to a working day or release to confirm.`
+                        ? `Deadline lands on ${activeDrag?.conflictReason}! Drag to a working day or release to confirm.`
                         : `Adjusting ${activeDrag?.edge === 'left' ? 'Start Date' : 'Deadline'} (${bar.durationDays}d)`)
                     : `${p.title} (${p.status}) - ${bar.durationDays} day(s) scheduled. Drag edges to resize.`}
                 >
@@ -440,11 +441,11 @@
                     <div class="bar-content-label">
                       <span class="bar-title-text">{p.jobId || p.id}: {p.title}</span>
                       {#if hasConflict}
-                        <span class="conflict-badge">⚠️ {activeDrag?.conflictReason}</span>
+                        <span class="conflict-badge"><FluentIcons name="warning" size={11} color="#EF4444" /> {activeDrag?.conflictReason}</span>
                       {/if}
                       {#if p.subtasks && p.subtasks.length > 0}
                         {@const doneSub = p.subtasks.filter(s => s.status === 'done' || s.isCompleted).length}
-                        <span class="bar-subtask-pill">✓ {doneSub}/{p.subtasks.length}</span>
+                        <span class="bar-subtask-pill"><FluentIcons name="checkmark" size={10} /> {doneSub}/{p.subtasks.length}</span>
                       {/if}
                       <span class="bar-days-pill">{bar.durationDays}d</span>
                     </div>
@@ -591,7 +592,7 @@
     font-family: monospace;
     font-size: 12px;
     font-weight: 800;
-    color: #0078D4;
+    color: var(--ss-azure);
   }
 
   .proj-row-title {
@@ -648,7 +649,7 @@
 
   .day-head-cell.is-today {
     background: rgba(0, 120, 212, 0.12);
-    color: #0078D4;
+    color: var(--ss-azure);
     font-weight: 800;
   }
 
@@ -673,7 +674,7 @@
 
   .timeline-grid-col.is-today {
     background: rgba(0, 120, 212, 0.05);
-    border-right: 1.5px solid #0078D4;
+    border-right: 1.5px solid var(--ss-azure);
   }
 
   /* Schedule Bar */
@@ -808,7 +809,7 @@
 
   .subtask-pill-badge {
     background: var(--bg-card-secondary, #F1F5F9);
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
     font-size: 10px;
     font-weight: 700;
     padding: 1px 5px;

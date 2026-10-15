@@ -3,6 +3,7 @@
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   // ─── Types ─────────────────────────────────────────────────────────────────
   interface OrderAttachment {
@@ -397,10 +398,10 @@
   }
 
   const COMMERCIAL_PRESETS = [
-    { id: 'tiktok_hook', label: '📱 TikTok/Reels Video', channel: 'digital' as const, format: '9_16_video', entity: 'SSE', priority: 'tier_1', prefix: 'TikTok Video Hook - ' },
-    { id: 'meta_feed', label: '🖼️ Meta/IG Promo Post', channel: 'digital' as const, format: '1_1_feed', entity: 'SSE', priority: 'tier_1', prefix: 'Feed Promo Post - ' },
-    { id: 'clinic_print', label: '🏥 Clinic Roll-Up Bunting', channel: 'print' as const, format: 'print_banner_rollup', entity: 'SSC', priority: 'tier_2', prefix: 'Clinic Event Bunting - ' },
-    { id: 'urgent_tactical', label: '🔥 Urgent Tactical Ad', channel: 'digital' as const, format: '9_16_video', entity: 'SSE', priority: 'tier_3', prefix: 'URGENT: Flash Promo - ' }
+    { id: 'tiktok_hook', label: 'TikTok/Reels Video', channel: 'digital' as const, format: '9_16_video', entity: 'SSE', priority: 'tier_1', prefix: 'TikTok Video Hook - ' },
+    { id: 'meta_feed', label: 'Meta/IG Promo Post', channel: 'digital' as const, format: '1_1_feed', entity: 'SSE', priority: 'tier_1', prefix: 'Feed Promo Post - ' },
+    { id: 'clinic_print', label: 'Clinic Roll-Up Bunting', channel: 'print' as const, format: 'print_banner_rollup', entity: 'SSC', priority: 'tier_2', prefix: 'Clinic Event Bunting - ' },
+    { id: 'urgent_tactical', label: 'Urgent Tactical Ad', channel: 'digital' as const, format: '9_16_video', entity: 'SSE', priority: 'tier_3', prefix: 'URGENT: Flash Promo - ' }
   ];
 
   function applyPreset(presetId: string) {
@@ -747,23 +748,23 @@
     const fmt = allFormats.find(f => f.id === order.format);
     const mat = PRINT_MATERIALS.find(m => m.id === (order.material || order.materialType));
     
-    let icon = '📱';
+    let iconName = 'phone';
     if (isPrint) {
-      if (order.format === 'print_label') icon = '🏷️';
-      else if (order.format === 'print_banner_rollup') icon = '🚩';
-      else if (order.format === 'print_posm') icon = '🖼️';
-      else icon = '📦';
+      if (order.format === 'print_label') iconName = 'tag';
+      else if (order.format === 'print_banner_rollup') iconName = 'flag';
+      else if (order.format === 'print_posm') iconName = 'image';
+      else iconName = 'box';
     } else {
-      if (order.format === '16_9_landscape') icon = '🖥️';
-      else if (order.format === '1_1_feed' || order.format === '4_5_portrait') icon = '📸';
-      else if (order.format === 'print_digital') icon = '🌐';
-      else icon = '📱';
+      if (order.format === '16_9_landscape') iconName = 'video';
+      else if (order.format === '1_1_feed' || order.format === '4_5_portrait') iconName = 'camera';
+      else if (order.format === 'print_digital') iconName = 'link';
+      else iconName = 'phone';
     }
 
     return {
       isPrint,
       formatLabel: fmt?.label || order.format?.replace(/_/g, ' ') || 'Deliverable',
-      icon,
+      iconName,
       customSize: order.customSize,
       materialLabel: mat ? mat.label.split('(')[0].trim() : (order.material || order.materialType || null)
     };
@@ -856,13 +857,13 @@
 
             <div class="success-actions">
               {#if editingOrderId}
-                <button type="button" class="btn-primary" onclick={() => { showForm = false; submitSuccess = false; editingOrderId = null; }}>
+                <FluentButton appearance="primary" onclick={() => { showForm = false; submitSuccess = false; editingOrderId = null; }}>
                   Done
-                </button>
+                </FluentButton>
               {:else}
-                <button type="button" class="btn-primary" onclick={() => viewCreatedOrderInQueue(createdOrder?.id)}>
+                <FluentButton appearance="primary" onclick={() => viewCreatedOrderInQueue(createdOrder?.id)}>
                   View in Order Queue →
-                </button>
+                </FluentButton>
                 <button type="button" class="btn-ghost" onclick={submitAnotherOrder}>
                   + Submit Another Request
                 </button>
@@ -1038,7 +1039,7 @@
                   aria-selected={f_channel === 'digital'}
                   onclick={() => switchChannel('digital')}
                 >
-                  <iconify-icon icon="fluent:phone-screen-24-regular" style="font-size:16px;"></iconify-icon>
+                  <FluentIcons name="phone" size={16} />
                   <span>Digital &amp; Social Screen</span>
                 </button>
                 <button
@@ -1048,7 +1049,7 @@
                   aria-selected={f_channel === 'print'}
                   onclick={() => switchChannel('print')}
                 >
-                  <iconify-icon icon="fluent:print-24-regular" style="font-size:16px;"></iconify-icon>
+                  <FluentIcons name="printer" size={16} />
                   <span>Print, Packaging &amp; POSM</span>
                 </button>
               </div>
@@ -1200,7 +1201,7 @@
                 <div class="date-cell">
                   <span class="date-cell-label">1. Created Date</span>
                   <div class="date-readonly-badge" title="Order Creation Date">
-                    <iconify-icon icon="fluent:calendar-add-24-regular" style="font-size:14px; color:var(--text-tertiary);"></iconify-icon>
+                    <FluentIcons name="calendar" size={14} color="var(--text-tertiary)" />
                     <span>{f_createdDate}</span>
                   </div>
                 </div>
@@ -1229,7 +1230,7 @@
                 <div class="date-cell">
                   <span class="date-cell-label">4. Est. Turnaround</span>
                   <div class="duration-badge {f_duration ? 'active' : ''}">
-                    <iconify-icon icon="fluent:timer-24-regular" style="font-size:14px;"></iconify-icon>
+                    <FluentIcons name="clock" size={14} />
                     <span>{f_duration || 'Calculated'}</span>
                   </div>
                 </div>
@@ -1265,7 +1266,7 @@
                   onchange={handleFileInput}
                 />
                 <label for="f-file-input" class="dropzone-label">
-                  <iconify-icon icon="fluent:folder-arrow-up-24-regular" style="font-size:24px; color:var(--brand-accent);"></iconify-icon>
+                  <FluentIcons name="upload" size={24} color="var(--brand-accent)" />
                   <span class="dropzone-text">Click to choose files or drop images, logos, briefs, PDFs here</span>
                   <span class="dropzone-hint">PNG, JPG, WEBP, PDF, DOCX, ZIP • Up to 50 MB per file</span>
                 </label>
@@ -1281,8 +1282,7 @@
                         type="button"
                         class="file-remove-btn"
                         onclick={() => removeSelectedFile(idx)}
-                        title="Remove file"
-                      >✕</button>
+                        title="Remove file" aria-label="Remove file"><FluentIcons name="close" size={10} /></button>
                     </div>
                   {/each}
                 </div>
@@ -1324,18 +1324,14 @@
               <button type="button" class="btn-wiz-back" onclick={goBack}>← Back</button>
               <div class="wiz-right-actions">
                 <button type="button" class="btn-ghost" onclick={() => showForm = false}>Cancel</button>
-                <button
+                <FluentButton
                   type="submit"
-                  class="btn-primary {formValid && !isSubmitting ? '' : 'disabled'}"
+                  appearance="cta"
+                  loading={isSubmitting}
                   disabled={!formValid || isSubmitting}
                 >
-                  {#if isSubmitting}
-                    <span class="spinner" aria-hidden="true"></span>
-                    {editingOrderId ? 'Saving…' : 'Submitting…'}
-                  {:else}
-                    {editingOrderId ? 'Save Changes' : '✓ Submit Request'}
-                  {/if}
-                </button>
+                  {editingOrderId ? (isSubmitting ? 'Saving…' : 'Save Changes') : (isSubmitting ? 'Submitting…' : '✓ Submit Request')}
+                </FluentButton>
               </div>
             </div>
             {/if}
@@ -1428,17 +1424,17 @@
                 <div class="format-cell-cluster">
                   <div class="format-badge-row">
                     <span class="channel-chip {ch.isPrint ? 'chip-print' : 'chip-digital'}">
-                      <span class="channel-icon">{ch.icon}</span>
+                      <span class="channel-icon"><FluentIcons name={ch.iconName} size={13} /></span>
                       <span>{ch.formatLabel}</span>
                     </span>
                   </div>
                   {#if ch.customSize || ch.materialLabel}
                     <div class="format-sub-row">
                       {#if ch.customSize}
-                        <span class="size-chip" title="Custom Dimensions">📐 {ch.customSize}</span>
+                        <span class="size-chip" title="Custom Dimensions"><FluentIcons name="vector" size={11} /> {ch.customSize}</span>
                       {/if}
                       {#if ch.materialLabel}
-                        <span class="mat-chip" title="Print Substrate">🏷️ {ch.materialLabel}</span>
+                        <span class="mat-chip" title="Print Substrate"><FluentIcons name="tag" size={11} /> {ch.materialLabel}</span>
                       {/if}
                     </div>
                   {/if}
@@ -1448,7 +1444,7 @@
                 <div class="date-stack">
                   <span class="meta-cell">{fmtDate(order.deadline || order.targetDate)}</span>
                   {#if order.duration || calculateDuration(order.startDate, order.deadline || order.targetDate)}
-                    <span class="duration-pill" title="Turnaround Duration from Start Date to Deadline">⏱️ {order.duration || calculateDuration(order.startDate, order.deadline || order.targetDate)}</span>
+                    <span class="duration-pill" title="Turnaround Duration from Start Date to Deadline"><FluentIcons name="clock" size={11} /> {order.duration || calculateDuration(order.startDate, order.deadline || order.targetDate)}</span>
                   {/if}
                 </div>
               </td>
@@ -1603,15 +1599,15 @@
                             <div class="att-card" onclick={(e) => e.stopPropagation()}>
                               <div class="att-icon-box">
                                 {#if att.filename.match(/\.(png|jpg|jpeg|webp|gif|svg)$/i)}
-                                  <iconify-icon icon="fluent:image-24-regular" style="color:#0078D4; font-size:20px;"></iconify-icon>
+                                  <FluentIcons name="image" size={20} color="var(--brand-primary)" />
                                 {:else if att.filename.match(/\.pdf$/i)}
-                                  <iconify-icon icon="fluent:document-pdf-24-regular" style="color:#E11D48; font-size:20px;"></iconify-icon>
+                                  <FluentIcons name="pdf" size={20} color="var(--color-danger, #E11D48)" />
                                 {:else if att.filename.match(/\.(mp4|mov|avi|mkv)$/i)}
-                                  <iconify-icon icon="fluent:video-24-regular" style="color:#7C3AED; font-size:20px;"></iconify-icon>
+                                  <FluentIcons name="video" size={20} color="#7C3AED" />
                                 {:else if att.filename.match(/\.(zip|rar|7z|tar|gz)$/i)}
-                                  <iconify-icon icon="fluent:folder-zip-24-regular" style="color:#D97706; font-size:20px;"></iconify-icon>
+                                  <FluentIcons name="folder" size={20} color="#D97706" />
                                 {:else}
-                                  <iconify-icon icon="fluent:document-24-regular" style="color:#64748B; font-size:20px;"></iconify-icon>
+                                  <FluentIcons name="file" size={20} color="var(--text-secondary)" />
                                 {/if}
                               </div>
                               <div class="att-info">
@@ -1637,8 +1633,7 @@
                                     type="button"
                                     class="att-act-btn att-del"
                                     onclick={() => deleteAttachment(order.id, att.filename)}
-                                    title="Delete attachment"
-                                  >✕</button>
+                                    title="Delete attachment" aria-label="Delete attachment"><FluentIcons name="close" size={10} /></button>
                                 {/if}
                               </div>
                             </div>
@@ -3350,7 +3345,7 @@
     font-weight: 800;
     font-size: 10px;
     line-height: 1;
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
   }
   .md-tool-sep {
     display: inline-block;

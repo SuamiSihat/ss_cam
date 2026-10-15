@@ -288,7 +288,7 @@
   }
 
   .cal-day-cell.is-today {
-    border: 1.5px solid #0078D4;
+    border: 1.5px solid var(--ss-azure);
     background: rgba(0, 120, 212, 0.02);
   }
 
@@ -305,7 +305,7 @@
   }
 
   .day-number.today-num {
-    background: #0078D4;
+    background: var(--brand-primary);
     color: #FFFFFF;
     width: 22px;
     height: 22px;
@@ -337,7 +337,7 @@
     text-align: left;
     background: var(--surface-card-subtle, #F3F4F6);
     border: 1px solid var(--surface-card-border, #E5E7EB);
-    border-left: 3px solid #0078D4;
+    border-left: 3px solid var(--ss-azure);
     border-radius: 4px;
     padding: 4px 6px;
     cursor: pointer;
@@ -357,7 +357,7 @@
     font-family: monospace;
     font-size: 10px;
     font-weight: 800;
-    color: #0078D4;
+    color: var(--ss-azure);
   }
 
   .chip-title {

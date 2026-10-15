@@ -13,7 +13,6 @@
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentBadge from '$lib/components/ui/FluentBadge.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
-
   interface Props {
     open: boolean;
     task: StudioTask | null;
@@ -23,7 +22,6 @@
     onUpdated: (task: StudioTask) => void;
     onDeleted?: (taskId: string) => void;
   }
-
   let {
     open = $bindable(false),
     task,
@@ -33,7 +31,6 @@
     onUpdated,
     onDeleted
   }: Props = $props();
-
   // Basic task fields
   let title = $state('');
   let status = $state<StudioTaskStatus>('backlog');
@@ -46,33 +43,27 @@
   let tagsInput = $state('');
   let description = $state('');
   let specs = $state('');
-
   // Decision fields
   let decisionStatus = $state<TaskDecisionStatus>('pending');
   let decisionSummary = $state('');
-
   // Subtasks & Dependencies
   let subtasks = $state<TaskSubtask[]>([]);
   let newSubtaskTitle = $state('');
   let blockedBy = $state<string[]>([]);
   let blocks = $state<string[]>([]);
-
   // Project Catalog Linking
   let projectId = $state<string | undefined>(undefined);
   let projectTitle = $state<string | undefined>(undefined);
   let availableProjects = $state<Project[]>([]);
   let isLoadingProjects = $state(false);
-
   // Gemini AI Assistant & Tabs
   let activeTab = $state<'checklist' | 'specs' | 'ai-assistant' | 'activity'>('checklist');
   let aiChatPrompt = $state('');
   let isAiWorking = $state(false);
   let aiMessages = $state<Array<{ role: 'user' | 'assistant'; text: string; time: string }>>([]);
   let preflightIssues = $state<Array<{ type: 'blocker' | 'warning' | 'info'; message: string }>>([]);
-
   // Comments / Activity
   let newCommentText = $state('');
-
   // Provisioning
   let isSaving = $state(false);
   let isDeleting = $state(false);
@@ -81,7 +72,6 @@
   let showProvisionForm = $state(false);
   let presetType = $state('Graphic & Print Design');
   let provisionDesigner = $state('');
-
   const brandOptions = [
     { code: 'SS', label: 'SuamiSihat (Primary)' },
     { code: 'SSH', label: 'SuamiSihat Holding' },
@@ -90,7 +80,6 @@
     { code: 'SSE', label: 'SuamiSihat E-Commerce' },
     { code: 'SST', label: 'SuamiSihat Technology' }
   ];
-
   const workstreamOptions = [
     'Packaging',
     'Signage',
@@ -101,7 +90,6 @@
     '3D Rendering',
     'General Studio'
   ];
-
   const statusOptions: { id: StudioTaskStatus; label: string; icon: string }[] = [
     { id: 'backlog', label: 'Backlog / Intake', icon: 'file' },
     { id: 'in-progress', label: 'In Progress', icon: 'bolt' },
@@ -109,14 +97,12 @@
     { id: 'done', label: 'Approved & Done', icon: 'checkCircle' },
     { id: 'converted', label: 'NAS Vault Provisioned', icon: 'box' }
   ];
-
   const priorityOptions: { id: ProjectPriority; label: string; color: string }[] = [
     { id: 'urgent', label: 'Urgent (P3)', color: '#EF4444' },
     { id: 'high', label: 'High (P2)', color: '#F97316' },
     { id: 'medium', label: 'Medium (P1)', color: '#0284C7' },
     { id: 'low', label: 'Low', color: '#64748B' }
   ];
-
   const decisionOptions: { id: TaskDecisionStatus; label: string; badge: string; color: string }[] = [
     { id: 'pending', label: 'Pending Evaluation', badge: 'Pending', color: 'var(--text-secondary)' },
     { id: 'in_review', label: 'In Team Review', badge: 'Reviewing', color: '#8B5CF6' },
@@ -124,7 +110,6 @@
     { id: 'changes_requested', label: 'Changes Requested', badge: 'Revisions', color: '#F59E0B' },
     { id: 'rejected', label: 'Rejected / Shelved', badge: 'Rejected', color: '#EF4444' }
   ];
-
   async function loadProjects() {
     if (availableProjects.length > 0) return;
     isLoadingProjects = true;
@@ -139,11 +124,9 @@
       isLoadingProjects = false;
     }
   }
-
   onMount(() => {
     loadProjects();
   });
-
   // Sync state whenever task prop changes
   $effect(() => {
     if (task) {
@@ -172,7 +155,6 @@
       preflightIssues = [];
     }
   });
-
   const assignedMember = $derived.by(() => {
     if (!assignee) return null;
     return staffRoster.find(
@@ -180,18 +162,15 @@
            (s.username && s.username.toLowerCase() === assignee.toLowerCase())
     ) || null;
   });
-
   const otherTasks = $derived.by(() => {
     if (!task) return [];
     return allTasks.filter(t => t.id !== task.id);
   });
-
   // Active blockers: tasks that this task is waiting on that are not completed
   const activeBlockers = $derived.by(() => {
     if (!blockedBy || blockedBy.length === 0) return [];
     return allTasks.filter(t => blockedBy.includes(t.id) && t.status !== 'done' && t.status !== 'converted');
   });
-
   // Subtasks completion calculation
   const subtasksProgress = $derived.by(() => {
     const total = subtasks.length;
@@ -203,17 +182,14 @@
       percent: Math.round((completed / total) * 100)
     };
   });
-
   function closeDrawer() {
     showDeleteConfirm = false;
     open = false;
     if (onClose) onClose();
   }
-
   function close() {
     closeDrawer();
   }
-
   function handleAddSubtask() {
     const t = newSubtaskTitle.trim();
     if (!t) return;
@@ -228,17 +204,14 @@
     newSubtaskTitle = '';
     handleQuickSubtaskSave();
   }
-
   function handleToggleSubtask(subtaskId: string) {
     subtasks = subtasks.map(s => (s.id === subtaskId ? { ...s, completed: !s.completed } : s));
     handleQuickSubtaskSave();
   }
-
   function handleDeleteSubtask(subtaskId: string) {
     subtasks = subtasks.filter(s => s.id !== subtaskId);
     handleQuickSubtaskSave();
   }
-
   async function handleQuickSubtaskSave() {
     if (!task) return;
     try {
@@ -248,7 +221,6 @@
       console.warn('[TaskDetailDrawer] Quick subtask save error:', e.message);
     }
   }
-
   function toggleBlockedBy(otherId: string) {
     if (blockedBy.includes(otherId)) {
       blockedBy = blockedBy.filter(id => id !== otherId);
@@ -256,7 +228,6 @@
       blockedBy = [...blockedBy, otherId];
     }
   }
-
   function toggleBlocks(otherId: string) {
     if (blocks.includes(otherId)) {
       blocks = blocks.filter(id => id !== otherId);
@@ -264,7 +235,6 @@
       blocks = [...blocks, otherId];
     }
   }
-
   function handleSelectProject(e: Event) {
     const target = e.target as HTMLSelectElement;
     const selectedId = target.value;
@@ -279,14 +249,12 @@
       projectTitle = found.title;
     }
   }
-
   async function handleSave() {
     if (!task) return;
     if (!title.trim()) {
       appState.addToast('Task title cannot be empty', 'warning');
       return;
     }
-
     isSaving = true;
     try {
       const selectedMember = assignedMember;
@@ -294,7 +262,6 @@
         .split(',')
         .map(t => t.trim())
         .filter(Boolean);
-
       const res = await ApiClient.updateStudioTask(task.id, {
         title: title.trim(),
         status,
@@ -317,7 +284,6 @@
         projectId,
         projectTitle
       });
-
       appState.addToast(`Saved changes for ${task.id}`, 'success');
       onUpdated(res.task);
     } catch (err: any) {
@@ -326,7 +292,6 @@
       isSaving = false;
     }
   }
-
   async function handleAiAssist(action: string, prompt = '') {
     if (!task) return;
     isAiWorking = true;
@@ -340,20 +305,17 @@
           { role: 'assistant' as const, text: res.reply, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
         ];
       }
-
       if (action === 'subtasks' && res.suggestedSubtasks && res.suggestedSubtasks.length > 0) {
         subtasks = [...subtasks, ...res.suggestedSubtasks];
         await handleQuickSubtaskSave();
         appState.addToast(`Appended ${res.suggestedSubtasks.length} subtasks generated by Gemini!`, 'success');
         activeTab = 'checklist';
       }
-
       if (action === 'specs' && res.suggestedSpecs) {
         specs = res.suggestedSpecs;
         appState.addToast('Drafted production specifications with Gemini!', 'success');
         activeTab = 'specs';
       }
-
       if (action === 'preflight' && res.preflightIssues) {
         preflightIssues = res.preflightIssues;
       }
@@ -363,27 +325,23 @@
       isAiWorking = false;
     }
   }
-
   function handleSendAiChat() {
     if (!aiChatPrompt.trim()) return;
     const p = aiChatPrompt.trim();
     aiChatPrompt = '';
     handleAiAssist('chat', p);
   }
-
   async function handleAddComment() {
     if (!task || !newCommentText.trim()) return;
     const text = newCommentText.trim();
     newCommentText = '';
-
     const newComment = {
       id: `cm-${Date.now()}`,
       author: appState.currentUser?.name || appState.currentUser?.username || 'Staff',
-      authorAvatar: appState.currentUser?.avatarColor || '#0078D4',
+      authorAvatar: appState.currentUser?.avatarColor || '#043388',
       message: text,
       timestamp: new Date().toISOString()
     };
-
     const currentComments = Array.isArray(task.comments) ? [...task.comments, newComment] : [newComment];
     try {
       const res = await ApiClient.updateStudioTask(task.id, { comments: currentComments });
@@ -393,15 +351,12 @@
       appState.addToast(`Failed to post comment: ${err.message}`, 'error');
     }
   }
-
   function handleDeleteClick() {
     showDeleteConfirm = true;
   }
-
   function handleCancelDelete() {
     showDeleteConfirm = false;
   }
-
   async function handleConfirmDelete() {
     if (!task) return;
     isDeleting = true;
@@ -417,11 +372,9 @@
       showDeleteConfirm = false;
     }
   }
-
   async function handleDelete() {
     handleDeleteClick();
   }
-
   async function handleProvision() {
     if (!task) return;
     isProvisioning = true;
@@ -431,7 +384,6 @@
         presetType,
         designer: provisionDesigner || task.assigneeName || 'Design-Studio'
       });
-
       appState.addToast(`Provisioned NAS Project ${res.jobId}!`, 'success', 'NAS Workspace Ready');
       status = 'converted';
       projectId = res.projectId || res.jobId;
@@ -446,28 +398,23 @@
       isProvisioning = false;
     }
   }
-
   function jumpToProject() {
     if (projectId || task?.jobId) {
       closeDrawer();
       appState.navigate('project-detail', { id: projectId || task?.jobId });
     }
   }
-
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape' && open) {
       closeDrawer();
     }
   }
 </script>
-
 <svelte:window onkeydown={handleKeyDown} />
-
 {#if open && task}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="drawer-backdrop" onclick={closeDrawer}></div>
-
   <aside class="task-drawer" role="dialog" aria-label="Task Details">
     <!-- ═══ HEADER ═══ -->
     <div class="drawer-header">
@@ -479,14 +426,12 @@
           {decisionOptions.find(d => d.id === decisionStatus)?.badge || decisionStatus}
         </span>
       </div>
-
       <div class="header-right">
         <button class="close-icon-btn" onclick={closeDrawer} aria-label="Close drawer" title="Close drawer">
           <FluentIcons name="close" size={16} />
         </button>
       </div>
     </div>
-
     <!-- Active Blocker Alert Banner -->
     {#if activeBlockers.length > 0}
       <div class="blocker-alert-banner">
@@ -501,7 +446,6 @@
         </div>
       </div>
     {/if}
-
     <!-- ═══ BODY SCROLL CONTAINER ═══ -->
     <div class="drawer-body">
       <!-- Title Input (Main Task) -->
@@ -515,7 +459,6 @@
           placeholder="Task title or concept overview..."
         />
       </div>
-
       <!-- Quick Stage / Status Strip -->
       <div class="field-group">
         <label class="field-label">WORKSTREAM STAGE</label>
@@ -533,7 +476,6 @@
           {/each}
         </div>
       </div>
-
       <!-- Metadata Grid -->
       <div class="meta-grid">
         <!-- Workstream -->
@@ -545,7 +487,6 @@
             {/each}
           </select>
         </div>
-
         <!-- Priority -->
         <div class="field-group">
           <label for="task-priority-select" class="field-label">PRIORITY</label>
@@ -555,7 +496,6 @@
             {/each}
           </select>
         </div>
-
         <!-- Subsidiary Brand -->
         <div class="field-group">
           <label for="task-brand-select" class="field-label">SUBSIDIARY BRAND</label>
@@ -565,7 +505,6 @@
             {/each}
           </select>
         </div>
-
         <!-- Lead Assignee -->
         <div class="field-group">
           <label for="task-assignee-select" class="field-label">LEAD ASSIGNEE</label>
@@ -579,7 +518,6 @@
           </select>
         </div>
       </div>
-
       <!-- Timeline & Schedule -->
       <div class="field-group">
         <label class="field-label">PRODUCTION TIMELINE</label>
@@ -594,7 +532,6 @@
           </div>
         </div>
       </div>
-
       <!-- ═══ SUBTASKS BREAKDOWN (Create by Return Key) ═══ -->
       <div class="subtasks-detail-card">
         <div class="subtasks-detail-header">
@@ -606,7 +543,6 @@
             {subtasks.filter(s => s.completed).length}/{subtasks.length} Completed
           </span>
         </div>
-
         {#if subtasks.length > 0}
           <div class="subtasks-detail-list">
             {#each subtasks as sub, index (sub.id)}
@@ -631,14 +567,14 @@
                   class="delete-subtask-row-btn"
                   onclick={() => handleDeleteSubtask(sub.id)}
                   title="Remove subtask"
+                  aria-label="Remove subtask"
                 >
-                  ✕
+                  <FluentIcons name="close" size={11} />
                 </button>
               </div>
             {/each}
           </div>
         {/if}
-
         <!-- Add Subtask Quick Input (Press Enter) -->
         <div class="add-subtask-detail-row">
           <span class="add-subtask-icon">＋</span>
@@ -661,7 +597,6 @@
           {/if}
         </div>
       </div>
-
       <!-- Decision State & Sign-Off Summary -->
       <div class="decision-card">
         <div class="decision-card-header">
@@ -686,7 +621,6 @@
           ></textarea>
         </div>
       </div>
-
       <!-- Pipeline Dependencies (Waiting On & Blocks) -->
       <div class="dependencies-card">
         <span class="card-section-title">
@@ -694,7 +628,6 @@
           Pipeline Dependencies
         </span>
         <p class="section-hint">Link prerequisite tasks that must finish before this task can start, or downstream tasks waiting on this deliverable.</p>
-
         <div class="dep-grid">
           <!-- Waiting on -->
           <div class="dep-col">
@@ -708,7 +641,9 @@
                   <span class="dep-chip" class:dep-unfinished={depTask && depTask.status !== 'done'}>
                     <FluentIcons name={depTask?.status === 'done' ? 'checkmark' : 'warning'} size={12} />
                     <span>{depId} {depTask ? `(${depTask.status})` : ''}</span>
-                    <button type="button" class="remove-dep-btn" onclick={() => toggleBlockedBy(depId)}>✕</button>
+                    <button type="button" class="remove-dep-btn" onclick={() => toggleBlockedBy(depId)} aria-label="Remove prerequisite">
+                      <FluentIcons name="close" size={10} />
+                    </button>
                   </span>
                 {/each}
               {/if}
@@ -728,7 +663,6 @@
               </div>
             {/if}
           </div>
-
           <!-- Blocks -->
           <div class="dep-col">
             <span class="dep-header">Blocks (Downstream):</span>
@@ -741,7 +675,9 @@
                   <span class="dep-chip">
                     <FluentIcons name="arrowRight" size={12} />
                     <span>{blockId} {blkTask ? `(${blkTask.title})` : ''}</span>
-                    <button type="button" class="remove-dep-btn" onclick={() => toggleBlocks(blockId)}>✕</button>
+                    <button type="button" class="remove-dep-btn" onclick={() => toggleBlocks(blockId)} aria-label="Remove downstream task">
+                      <FluentIcons name="close" size={10} />
+                    </button>
                   </span>
                 {/each}
               {/if}
@@ -762,7 +698,6 @@
           </div>
         </div>
       </div>
-
       <!-- ═══ NAS PROJECT CATALOG LINKING & BRIDGE ═══ -->
       <div class="bridge-card" class:is-provisioned={status === 'converted' || !!projectId}>
         <div class="bridge-header">
@@ -774,7 +709,6 @@
             <p>Connect this task to an official Synology NAS workspace folder or scaffold a new vault.</p>
           </div>
         </div>
-
         {#if projectId}
           <div class="bridge-details">
             <div class="bridge-meta-row">
@@ -804,11 +738,9 @@
               {/each}
             </select>
           </div>
-
           <div class="bridge-or-divider">
             <span>OR</span>
           </div>
-
           {#if showProvisionForm}
             <div class="provision-form">
               <div class="form-row">
@@ -819,7 +751,6 @@
                   <option value="Social Media Marketing">Social Media Marketing (Carousels &amp; Banners)</option>
                 </select>
               </div>
-
               <div class="form-row">
                 <label for="provision-designer" class="field-label">TARGET DESIGNER DIRECTORY</label>
                 <input
@@ -830,7 +761,6 @@
                   placeholder="Designer folder name (e.g. Harussani)"
                 />
               </div>
-
               <div class="provision-btn-row">
                 <FluentButton
                   appearance="primary"
@@ -859,7 +789,6 @@
           {/if}
         {/if}
       </div>
-
       <!-- ═══ TABBED DETAILED SECTIONS ═══ -->
       <div class="section-tabs-container">
         <div class="tabs-header-strip">
@@ -872,7 +801,6 @@
             <FluentIcons name="list" size={14} />
             <span>Subtasks ({subtasksProgress.completed}/{subtasksProgress.total})</span>
           </button>
-
           <button
             type="button"
             class="tab-strip-btn"
@@ -882,7 +810,6 @@
             <FluentIcons name="file" size={14} />
             <span>Technical Specs</span>
           </button>
-
           <button
             type="button"
             class="tab-strip-btn"
@@ -892,7 +819,6 @@
             <FluentIcons name="sparkles" size={14} />
             <span>Gemini AI Studio</span>
           </button>
-
           <button
             type="button"
             class="tab-strip-btn"
@@ -903,7 +829,6 @@
             <span>Activity &amp; Comments</span>
           </button>
         </div>
-
         <!-- TAB 1: SUBTASKS CHECKLIST -->
         {#if activeTab === 'checklist'}
           <div class="tab-pane">
@@ -914,7 +839,6 @@
                 </div>
                 <span class="progress-text">{subtasksProgress.completed} of {subtasksProgress.total} completed ({subtasksProgress.percent}%)</span>
               </div>
-
               <button
                 type="button"
                 class="ai-suggest-btn"
@@ -925,7 +849,6 @@
                 <span>{isAiWorking ? 'Generating…' : 'AI Generate Subtasks'}</span>
               </button>
             </div>
-
             <!-- List of Subtasks -->
             <div class="subtasks-list">
               {#if subtasks.length === 0}
@@ -952,13 +875,13 @@
                       class="delete-subtask-btn"
                       onclick={() => handleDeleteSubtask(sub.id)}
                       title="Remove subtask"
+                      aria-label="Remove subtask"
                     >
-                      ✕
+                      <FluentIcons name="close" size={11} />
                     </button>
                   </div>
                 {/each}
               {/if}
-
               <!-- Inline Add Subtask -->
               <div class="add-subtask-row">
                 <input
@@ -974,7 +897,6 @@
               </div>
             </div>
           </div>
-
         <!-- TAB 2: TECHNICAL SPECS & NOTES -->
         {:else if activeTab === 'specs'}
           <div class="tab-pane">
@@ -997,7 +919,6 @@
               placeholder="e.g. Dimensions: 150x200mm, 3mm Bleed, Fogra39 CMYK, Spot Pantone Gold..."
             ></textarea>
           </div>
-
         <!-- TAB 3: GEMINI AI ASSISTANT -->
         {:else if activeTab === 'ai-assistant'}
           <div class="tab-pane ai-tab-pane">
@@ -1012,7 +933,6 @@
                 <FluentIcons name="bolt" size={13} />
                 Break down into Subtasks
               </button>
-
               <button
                 type="button"
                 class="ai-action-chip"
@@ -1022,7 +942,6 @@
                 <FluentIcons name="file" size={13} />
                 Draft Technical Dieline Specs
               </button>
-
               <button
                 type="button"
                 class="ai-action-chip"
@@ -1033,7 +952,6 @@
                 Preflight Blocker Check
               </button>
             </div>
-
             <!-- Preflight Audit Output -->
             {#if preflightIssues.length > 0}
               <div class="preflight-card">
@@ -1048,7 +966,6 @@
                 </ul>
               </div>
             {/if}
-
             <!-- AI Chat Conversation Log -->
             <div class="ai-chat-thread">
               {#if aiMessages.length === 0}
@@ -1070,7 +987,6 @@
                 {/each}
               {/if}
             </div>
-
             <!-- Chat Input -->
             <div class="ai-chat-input-bar">
               <input
@@ -1090,7 +1006,6 @@
               </FluentButton>
             </div>
           </div>
-
         <!-- TAB 4: ACTIVITY & COMMENTS -->
         {:else if activeTab === 'activity'}
           <div class="tab-pane">
@@ -1102,7 +1017,7 @@
               {:else}
                 {#each task.comments as comment}
                   <div class="comment-item">
-                    <div class="comment-avatar" style="background: {comment.authorAvatar || '#0078D4'};">
+                    <div class="comment-avatar" style="background: {comment.authorAvatar || '#043388'};">
                       {(comment.author || 'U').substring(0, 2).toUpperCase()}
                     </div>
                     <div class="comment-content">
@@ -1116,7 +1031,6 @@
                 {/each}
               {/if}
             </div>
-
             <!-- Add Comment Input -->
             <div class="add-comment-row">
               <input
@@ -1133,7 +1047,6 @@
           </div>
         {/if}
       </div>
-
       <!-- Description / Concept Brief -->
       <div class="field-group">
         <label for="task-desc-area" class="field-label">CONCEPT BRIEF &amp; OBJECTIVES</label>
@@ -1145,7 +1058,6 @@
           placeholder="Write creative directions, visual concepts, dieline specs, or marketing hooks..."
         ></textarea>
       </div>
-
       <!-- Tags Input -->
       <div class="field-group">
         <label for="task-tags-input" class="field-label">TAGS &amp; LABELS (COMMA SEPARATED)</label>
@@ -1157,7 +1069,6 @@
           placeholder="packaging, 3d, social, promo, tiktok..."
         />
       </div>
-
       <!-- Timestamp Meta -->
       <div class="timestamps-footer">
         <span>Created: {new Date(task.createdAt).toLocaleString()}</span>
@@ -1166,7 +1077,6 @@
         {/if}
       </div>
     </div>
-
     <!-- ═══ FOOTER ACTIONS ═══ -->
     <div class="drawer-footer">
       <div class="footer-left">
@@ -1206,7 +1116,6 @@
           </div>
         {/if}
       </div>
-
       <div class="footer-right">
         <FluentButton appearance="secondary" onclick={closeDrawer} disabled={isSaving || isDeleting}>
           Cancel
@@ -1218,7 +1127,6 @@
     </div>
   </aside>
 {/if}
-
 <style>
   .drawer-backdrop {
     position: fixed;
@@ -1227,7 +1135,6 @@
     backdrop-filter: blur(4px);
     z-index: 1000;
   }
-
   .task-drawer {
     position: fixed;
     top: 0;
@@ -1243,12 +1150,10 @@
     flex-direction: column;
     animation: drawerSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   }
-
   @keyframes drawerSlide {
     from { transform: translateX(100%); }
     to { transform: translateX(0); }
   }
-
   /* ═══ HEADER ═══ */
   .drawer-header {
     display: flex;
@@ -1259,14 +1164,12 @@
     background: var(--surface-card);
     gap: 12px;
   }
-
   .header-left {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
   }
-
   .task-id-badge {
     font-family: monospace;
     font-size: 13px;
@@ -1277,17 +1180,15 @@
     border-radius: 4px;
     border: 1px solid var(--surface-card-border);
   }
-
   .workstream-badge {
     font-size: 11px;
     font-weight: 600;
     padding: 3px 8px;
     border-radius: 4px;
-    background: rgba(0, 120, 212, 0.1);
+    background: var(--brand-tint);
     color: var(--brand-accent);
     border: 1px solid rgba(0, 120, 212, 0.25);
   }
-
   .decision-badge {
     font-size: 11px;
     font-weight: 700;
@@ -1301,7 +1202,6 @@
   .decision-badge.decision-in_review { background: rgba(139, 92, 246, 0.15); color: #8B5CF6; }
   .decision-badge.decision-changes_requested { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
   .decision-badge.decision-rejected { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
-
   .close-icon-btn {
     background: transparent;
     border: none;
@@ -1318,7 +1218,6 @@
     background: var(--surface-card-subtle);
     color: var(--text-primary);
   }
-
   /* Blocker Banner */
   .blocker-alert-banner {
     display: flex;
@@ -1334,7 +1233,6 @@
     font-weight: 600;
     color: #92400E;
   }
-
   /* ═══ BODY ═══ */
   .drawer-body {
     flex: 1;
@@ -1344,7 +1242,6 @@
     flex-direction: column;
     gap: 16px;
   }
-
   .field-label {
     font-size: 11px;
     font-weight: 700;
@@ -1353,25 +1250,21 @@
     margin-bottom: 5px;
     display: block;
   }
-
   .sub-label {
     font-size: 11px;
     color: var(--text-secondary);
     margin-bottom: 4px;
     display: block;
   }
-
   .section-hint {
     font-size: 12px;
     color: var(--text-secondary);
     margin-bottom: 8px;
   }
-
   .title-field-group {
     display: flex;
     flex-direction: column;
   }
-
   .title-input {
     width: 100%;
     min-height: 42px;
@@ -1384,17 +1277,15 @@
     color: var(--text-primary);
   }
   .title-input:focus {
-    outline: none;
     border-color: var(--brand-accent);
+    box-shadow: var(--focus-ring);
   }
-
   /* Status Strip */
   .status-strip {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
   }
-
   .status-btn {
     display: inline-flex;
     align-items: center;
@@ -1415,24 +1306,21 @@
   }
   .status-btn.selected {
     border-color: var(--brand-accent);
-    background: rgba(0, 120, 212, 0.1);
+    background: var(--brand-tint);
     color: var(--brand-accent);
     font-weight: 600;
   }
-
   /* Metadata Grid */
   .meta-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
-
   .timeline-inputs-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
-
   .fluent-select,
   .fluent-date-input,
   .fluent-text-input,
@@ -1461,10 +1349,9 @@
   .fluent-date-input:focus,
   .fluent-text-input:focus,
   .fluent-textarea:focus {
-    outline: none;
     border-color: var(--brand-accent);
+    box-shadow: var(--focus-ring);
   }
-
   /* Decision & Dependencies Cards */
   .decision-card,
   .dependencies-card {
@@ -1476,14 +1363,12 @@
     flex-direction: column;
     gap: 10px;
   }
-
   .decision-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
   }
-
   .card-section-title {
     font-size: 13px;
     font-weight: 700;
@@ -1492,38 +1377,32 @@
     align-items: center;
     gap: 6px;
   }
-
   .dep-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
-
   .dep-col {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-
   .dep-header {
     font-size: 11px;
     font-weight: 600;
     color: var(--text-secondary);
   }
-
   .dep-chips-wrap {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     min-height: 30px;
   }
-
   .dep-empty {
     font-size: 11px;
     color: var(--text-secondary);
     font-style: italic;
   }
-
   .dep-chip {
     display: inline-flex;
     align-items: center;
@@ -1540,7 +1419,6 @@
     background: rgba(245, 158, 11, 0.1);
     color: #B45309;
   }
-
   .remove-dep-btn {
     background: transparent;
     border: none;
@@ -1550,7 +1428,6 @@
     padding: 0 2px;
   }
   .remove-dep-btn:hover { color: var(--color-danger, #EF4444); }
-
   /* Bridge Card */
   .bridge-card {
     background: var(--surface-card-subtle);
@@ -1565,7 +1442,6 @@
     border-color: rgba(16, 185, 129, 0.3);
     background: rgba(16, 185, 129, 0.04);
   }
-
   .bridge-header {
     display: flex;
     align-items: center;
@@ -1582,7 +1458,6 @@
     font-size: 11px;
     color: var(--text-secondary);
   }
-
   .bridge-details {
     display: flex;
     flex-direction: column;
@@ -1605,13 +1480,11 @@
     font-family: monospace;
     font-size: 11px;
   }
-
   .bridge-actions {
     display: flex;
     align-items: center;
     gap: 10px;
   }
-
   .unlink-btn {
     background: transparent;
     border: none;
@@ -1620,7 +1493,6 @@
     cursor: pointer;
     text-decoration: underline;
   }
-
   .bridge-or-divider {
     text-align: center;
     font-size: 10px;
@@ -1639,7 +1511,6 @@
   }
   .bridge-or-divider::before { left: 0; }
   .bridge-or-divider::after { right: 0; }
-
   /* ═══ TABS SECTION ═══ */
   .section-tabs-container {
     display: flex;
@@ -1648,7 +1519,6 @@
     border-top: 1px solid var(--surface-card-border);
     padding-top: 16px;
   }
-
   .tabs-header-strip {
     display: flex;
     gap: 4px;
@@ -1656,7 +1526,6 @@
     padding-bottom: 4px;
     overflow-x: auto;
   }
-
   .tab-strip-btn {
     display: inline-flex;
     align-items: center;
@@ -1677,15 +1546,13 @@
   }
   .tab-strip-btn.active {
     color: var(--brand-accent);
-    background: rgba(0, 120, 212, 0.1);
+    background: var(--brand-tint);
   }
-
   .tab-pane {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
-
   /* Subtasks UI */
   .checklist-header {
     display: flex;
@@ -1693,14 +1560,12 @@
     justify-content: space-between;
     gap: 10px;
   }
-
   .checklist-progress-wrap {
     flex: 1;
     display: flex;
     align-items: center;
     gap: 10px;
   }
-
   .progress-bar-bg {
     flex: 1;
     height: 6px;
@@ -1718,7 +1583,6 @@
     color: var(--text-secondary);
     white-space: nowrap;
   }
-
   .ai-suggest-btn {
     display: inline-flex;
     align-items: center;
@@ -1733,13 +1597,11 @@
     cursor: pointer;
   }
   .ai-suggest-btn:hover { background: rgba(139, 92, 246, 0.2); }
-
   .subtasks-list {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-
   .subtask-item {
     display: flex;
     align-items: center;
@@ -1753,13 +1615,11 @@
     text-decoration: line-through;
     color: var(--text-secondary);
   }
-
   .subtask-checkbox {
     width: 16px;
     height: 16px;
     cursor: pointer;
   }
-
   .subtask-title-input {
     flex: 1;
     background: transparent;
@@ -1768,8 +1628,7 @@
     font-size: 13px;
     font-family: inherit;
   }
-  .subtask-title-input:focus { outline: none; }
-
+  .subtask-title-input:focus { border-bottom: 1px solid var(--brand-accent); box-shadow: var(--focus-ring); }
   .delete-subtask-btn {
     background: transparent;
     border: none;
@@ -1778,7 +1637,6 @@
     padding: 2px 6px;
   }
   .delete-subtask-btn:hover { color: var(--color-danger, #EF4444); }
-
   .add-subtask-row {
     display: flex;
     gap: 8px;
@@ -1804,14 +1662,12 @@
     font-weight: 600;
     cursor: pointer;
   }
-
   /* AI Assistant Tab */
   .ai-chips-bar {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
   }
-
   .ai-action-chip {
     display: inline-flex;
     align-items: center;
@@ -1830,7 +1686,6 @@
     border-color: var(--brand-accent);
     color: var(--brand-accent);
   }
-
   .preflight-card {
     background: rgba(245, 158, 11, 0.08);
     border: 1px solid rgba(245, 158, 11, 0.25);
@@ -1843,7 +1698,6 @@
   .preflight-item.blocker { color: #DC2626; font-weight: 600; }
   .preflight-item.warning { color: #D97706; }
   .preflight-item.info { color: #0284C7; }
-
   .ai-chat-thread {
     min-height: 120px;
     max-height: 240px;
@@ -1867,13 +1721,11 @@
     text-align: center;
     padding: 20px 10px;
   }
-
   .chat-msg-row {
     display: flex;
   }
   .chat-msg-row.user { justify-content: flex-end; }
   .chat-msg-row.assistant { justify-content: flex-start; }
-
   .msg-bubble {
     max-width: 85%;
     padding: 8px 12px;
@@ -1897,7 +1749,6 @@
     margin-bottom: 4px;
     opacity: 0.8;
   }
-
   .ai-chat-input-bar {
     display: flex;
     gap: 8px;
@@ -1912,7 +1763,6 @@
     color: var(--text-primary);
     font-size: 12px;
   }
-
   /* Comments Tab */
   .comments-thread {
     display: flex;
@@ -1950,12 +1800,10 @@
   .author-name { font-weight: 600; color: var(--text-primary); }
   .comment-date { color: var(--text-secondary); }
   .comment-msg { margin: 0; font-size: 12px; color: var(--text-primary); }
-
   .add-comment-row {
     display: flex;
     gap: 8px;
   }
-
   .timestamps-footer {
     display: flex;
     justify-content: space-between;
@@ -1964,7 +1812,6 @@
     padding-top: 8px;
     border-top: 1px solid var(--surface-card-border);
   }
-
   /* ═══ FOOTER ACTIONS ═══ */
   .drawer-footer {
     display: flex;
@@ -1974,13 +1821,11 @@
     border-top: 1px solid var(--surface-card-border);
     background: var(--surface-card);
   }
-
   .footer-right {
     display: flex;
     align-items: center;
     gap: 10px;
   }
-
   .delete-task-btn {
     display: inline-flex;
     align-items: center;
@@ -1999,7 +1844,6 @@
     background: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.25);
   }
-
   .delete-confirm-group {
     display: inline-flex;
     align-items: center;
@@ -2010,13 +1854,11 @@
     border-radius: 6px;
     animation: fadeIn 0.15s ease-out;
   }
-
   .delete-confirm-prompt {
     font-size: 12px;
     font-weight: 600;
     color: var(--color-danger, #EF4444);
   }
-
   .delete-confirm-yes-btn {
     display: inline-flex;
     align-items: center;
@@ -2038,7 +1880,6 @@
     opacity: 0.6;
     cursor: not-allowed;
   }
-
   .delete-confirm-no-btn {
     background: transparent;
     border: 1px solid var(--surface-card-border);

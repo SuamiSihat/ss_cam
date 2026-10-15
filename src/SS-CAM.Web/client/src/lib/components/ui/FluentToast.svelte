@@ -1,5 +1,6 @@
 <script lang="ts">
   import { appState } from '$lib/stores/appState.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 </script>
 
 <div class="toast-container">
@@ -12,7 +13,9 @@
         {/if}
         <div class="toast-message">{toast.message}</div>
       </div>
-      <button class="toast-close" onclick={() => appState.removeToast(toast.id)}>✕</button>
+      <button class="toast-close" onclick={() => appState.removeToast(toast.id)} aria-label="Close notification">
+        <FluentIcons name="close" size={14} />
+      </button>
     </div>
   {/each}
 </div>

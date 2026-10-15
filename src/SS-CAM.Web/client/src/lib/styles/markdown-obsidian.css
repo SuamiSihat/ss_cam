@@ -16,11 +16,9 @@
   border-bottom: none;
 }
 
-[data-theme="metamorphosis"] .markdown-body h1,
-[data-theme="metamorphosis"] .markdown-body h2,
-[data-theme="catppuccin"] .markdown-body h1,
-[data-theme="catppuccin"] .markdown-body h2 {
-  color: #00CFFF; /* Electric Cyan in dark theme */
+[data-theme="dark"] .markdown-body h1,
+[data-theme="dark"] .markdown-body h2 {
+  color: var(--brand-accent);
 }
 
 .markdown-body h3,
@@ -121,19 +119,17 @@
   letter-spacing: 0.2px;
 }
 
-[data-theme="metamorphosis"] .markdown-body th,
-[data-theme="catppuccin"] .markdown-body th {
-  background: #0F172A !important;
-  color: #F8FAFC !important;
-  border-color: #1E293B;
+[data-theme="dark"] .markdown-body th {
+  background: var(--surface-card-subtle) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--surface-card-border);
 }
 
 .markdown-body tr:nth-child(even) {
   background: rgba(0, 0, 0, 0.02);
 }
 
-[data-theme="metamorphosis"] .markdown-body tr:nth-child(even),
-[data-theme="catppuccin"] .markdown-body tr:nth-child(even) {
+[data-theme="dark"] .markdown-body tr:nth-child(even) {
   background: rgba(255, 255, 255, 0.025);
 }
 

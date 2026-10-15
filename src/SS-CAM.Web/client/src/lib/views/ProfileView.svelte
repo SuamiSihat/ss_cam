@@ -21,7 +21,7 @@
   );
   let defaultBrand = $state<string>('SS');
   let avatar = $state<string>('');
-  let avatarColor = $state<string>('#0078D4');
+  let avatarColor = $state<string>('#043388');
   let isSavingProfile = $state<boolean>(false);
 
   // Staff directory list from Synology NAS
@@ -46,7 +46,7 @@
 
   // Avatar presets
   const avatarColors = [
-    { label: 'Brand Blue', hex: '#0078D4' },
+    { label: 'Brand Blue', hex: '#043388' },
     { label: 'Deep Cyan', hex: '#21A1F7' },
     { label: 'Royal Navy', hex: '#106EBE' },
     { label: 'Electric Purple', hex: '#7C3AED' },
@@ -85,9 +85,8 @@
   }
 
   const themes: { id: ThemeName; name: string; desc: string; preview: string }[] = [
-    { id: 'falconia', name: 'Falconia (Light)', desc: 'Official SuamiSihat Clinical Blue Light Theme (60:30:10 Default)', preview: '#F3F4F6' },
-    { id: 'metamorphosis', name: 'Metamorphosis (Dark Glass)', desc: 'Midnight Deep Navy with Electric Cyan Accents', preview: '#080D1F' },
-    { id: 'catppuccin', name: 'Catppuccin (Mocha Dark)', desc: 'Soothing Mocha Dark Palette with Mauve Accents', preview: '#1E1E2E' }
+    { id: 'falconia', name: 'Light (Porcelain)', desc: 'Official SuamiSihat Clinical Blue Light Theme (60:30:10 Default)', preview: '#FCFAF6' },
+    { id: 'dark', name: 'Dark (Slate)', desc: 'Focused dark mode with neutral black canvas and dark surfaces', preview: '#1C1C1C' }
   ];
 
   type ViewMode = 'graph' | 'kanban' | 'gantt' | 'calendar' | 'table';
@@ -124,7 +123,7 @@
       email = appState.currentUser.email || '';
       defaultBrand = appState.currentUser.defaultBrand || 'SS';
       avatar = appState.currentUser.avatarUrl || appState.currentUser.avatar || (typeof localStorage !== 'undefined' ? (localStorage.getItem(`ss_cam_avatar_${staffId}`) || localStorage.getItem('ss_cam_user_avatar') || '') : '');
-      avatarColor = appState.currentUser.avatarColor || '#0078D4';
+      avatarColor = appState.currentUser.avatarColor || '#043388';
     }
   }
 
@@ -249,7 +248,7 @@
         role: role.trim(),
         officialTitle: role.trim(),
         avatar: avatar || '',
-        avatarColor: avatarColor || '#0078D4',
+        avatarColor: avatarColor || '#043388',
         defaultBrand: defaultBrand || 'SS',
         ...(emailChanged ? { currentPassword: emailPassword } : {})
       };
@@ -277,7 +276,7 @@
           role: role.trim(),
           officialTitle: role.trim(),
           avatar: avatar || '',
-          avatarColor: avatarColor || '#0078D4',
+          avatarColor: avatarColor || '#043388',
           defaultBrand: defaultBrand || 'SS',
           ...(res && res.user ? res.user : {})
         };
@@ -287,7 +286,7 @@
         window.dispatchEvent(new CustomEvent('team:updated', { detail: { updatedStaffId: targetStaffId } }));
       }
 
-      appState.addToast('Designer profile and avatar photo saved and synchronized with Synology NAS.', 'success', 'Profile Updated');
+      appState.addToast('Designer profile and avatar photo saved and synchronized with Studio Vault.', 'success', 'Profile Updated');
     } catch (err: any) {
       appState.addToast(`Failed to save profile: ${err.message}`, 'error');
     } finally {
@@ -333,7 +332,7 @@
   <div class="view-header">
     <div class="header-titles">
       <h1 class="view-title">User Profile &amp; Preferences</h1>
-      <p class="view-subtitle">Customize visual themes, workstation preferences, Synology NAS sync paths, and designer identity.</p>
+      <p class="view-subtitle">Customize visual themes, workstation preferences, Studio Vault sync paths, and designer identity.</p>
     </div>
   </div>
 
@@ -424,7 +423,7 @@
         <!-- NAS Directory Selector -->
         {#if staffDirectory.length > 0}
           <div class="form-row">
-            <label class="field-label" for="staff-dir-select">Select Staff Identity (Synology NAS Directory)</label>
+            <label class="field-label" for="staff-dir-select">Select Staff Identity (Studio Directory)</label>
             <select
               id="staff-dir-select"
               class="fluent-select"
@@ -805,7 +804,7 @@
   }
   .role-tier-badge.tier-admin { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
   .role-tier-badge.tier-manager { background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; }
-  .role-tier-badge.tier-designer { background: #EBF4FE; color: #0078D4; border: 1px solid #BFDBFE; font-weight: 700; }
+  .role-tier-badge.tier-designer { background: var(--brand-tint); color: var(--brand-primary); border: 1px solid rgba(4, 51, 136, 0.2); font-weight: 700; }
   .role-tier-badge.tier-copywriter { background: #F5F3FF; color: #7C3AED; border: 1px solid #DDD6FE; font-weight: 700; }
   .remove-photo-btn {
     font-size: 11px;

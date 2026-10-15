@@ -1003,7 +1003,7 @@
           class="clickup-search-input"
         />
         {#if searchQuery}
-          <button type="button" class="clear-btn" onclick={() => (searchQuery = '')}>✕</button>
+          <button type="button" class="clear-btn" onclick={() => (searchQuery = '')} aria-label="Clear search"><FluentIcons name="close" size={11} /></button>
         {:else}
           <kbd class="search-kbd-hint">Ctrl+K</kbd>
         {/if}
@@ -1547,7 +1547,7 @@
                             {#if task.assignee}
                               <div
                                 class="assignee-avatar-circle"
-                                style="background: {task.assigneeAvatarColor || '#0078D4'};"
+                                style="background: {task.assigneeAvatarColor || 'var(--brand-primary, #043388)'};"
                                 title="{task.assigneeName || task.assignee}"
                               >
                                 {(task.assigneeName || task.assignee || 'U').substring(0, 2).toUpperCase()}
@@ -1677,9 +1677,7 @@
                         <button type="button" class="btn-save-inline" onclick={() => handleQuickInlineCreate(group.workstream, sGroup.status, true)}>
                           Save
                         </button>
-                        <button type="button" class="btn-cancel-inline" onclick={() => (inlineCreateParent = null)}>
-                          ✕
-                        </button>
+                        <button type="button" class="btn-cancel-inline" onclick={() => (inlineCreateParent = null)} aria-label="Cancel"><FluentIcons name="close" size={11} /></button>
                       </div>
                     {:else}
                       <button
@@ -1788,7 +1786,7 @@
                 <div class="card-meta-bottom">
                   <div class="card-bottom-assignee">
                     {#if task.assignee}
-                      <div class="assignee-avatar-circle sm" style="background: {task.assigneeAvatarColor || '#0078D4'};" title="{task.assigneeName || task.assignee}">
+                      <div class="assignee-avatar-circle sm" style="background: {task.assigneeAvatarColor || 'var(--brand-primary, #043388)'};" title="{task.assigneeName || task.assignee}">
                         {(task.assigneeName || task.assignee || 'U').substring(0, 2).toUpperCase()}
                       </div>
                       <span class="card-assignee-name">{task.assigneeName || task.assignee}</span>
@@ -1910,7 +1908,7 @@
                     <!-- Assignee -->
                     <span class="tree-cell-assignee">
                       {#if task.assignee}
-                        <div class="assignee-avatar-circle xs" style="background: {task.assigneeAvatarColor || '#0078D4'};">
+                        <div class="assignee-avatar-circle xs" style="background: {task.assigneeAvatarColor || 'var(--brand-primary, #043388)'};">
                           {(task.assigneeName || task.assignee || 'U').substring(0, 1)}
                         </div>
                       {:else}
@@ -2115,7 +2113,7 @@
               <td>
                 {#if task.assignee}
                   <div class="table-assignee-flex">
-                    <div class="assignee-avatar-circle xs" style="background: {task.assigneeAvatarColor || '#0078D4'};">
+                    <div class="assignee-avatar-circle xs" style="background: {task.assigneeAvatarColor || 'var(--brand-primary, #043388)'};">
                       {(task.assigneeName || task.assignee || 'U').substring(0, 2).toUpperCase()}
                     </div>
                     <span class="assignee-full-name">{task.assigneeName || task.assignee}</span>
@@ -2240,7 +2238,7 @@
     min-height: calc(100vh - 60px);
     background: var(--surface-card);
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--font-family);
   }
 
   /* ═══ 1. TOP SUB-HEADER ═════════════════════════════════════════ */
@@ -2321,7 +2319,7 @@
   }
   .ab-pill-btn.active {
     background: var(--surface-card);
-    color: #0078D4;
+    color: var(--ss-azure);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
@@ -2343,7 +2341,7 @@
   .sync-telemetry-btn:hover:not(:disabled) {
     background: var(--surface-card-subtle);
     color: var(--text-primary);
-    border-color: #0078D4;
+    border-color: var(--ss-azure);
   }
   .sync-telemetry-btn:disabled {
     opacity: 0.6;
@@ -2362,7 +2360,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #0078D4;
+    background: var(--brand-primary);
     color: #FFF;
     border: none;
     border-radius: 6px;
@@ -2420,7 +2418,7 @@
     color: var(--text-primary);
   }
   .view-tab.active {
-    color: var(--brand-accent, #0078D4);
+    color: var(--brand-accent);
     font-weight: 600;
   }
   .view-tab.active::after {
@@ -2430,7 +2428,7 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--brand-accent, #0078D4);
+    background: var(--brand-accent);
   }
   .view-tab.timeline-tab.active {
     color: #EF4444;
@@ -2493,8 +2491,8 @@
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .clickup-search-box:focus-within {
-    border-color: #0078D4;
-    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.15);
+    border-color: var(--ss-azure);
+    box-shadow: var(--focus-ring);
   }
   .clickup-search-input {
     border: none;
@@ -2533,13 +2531,13 @@
     transition: all 0.15s ease;
   }
   .clickup-filter-pill:hover {
-    border-color: #0078D4;
+    border-color: var(--ss-azure);
     color: var(--text-primary);
   }
   .clickup-filter-pill:focus {
     outline: none;
-    border-color: #0078D4;
-    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.15);
+    border-color: var(--ss-azure);
+    box-shadow: var(--focus-ring);
   }
 
   .me-mode-btn {
@@ -2558,13 +2556,13 @@
     transition: all 0.15s ease;
   }
   .me-mode-btn:hover {
-    border-color: #0078D4;
+    border-color: var(--ss-azure);
     color: var(--text-primary);
   }
   .me-mode-btn.active {
-    background: rgba(0, 120, 212, 0.1);
-    border-color: #0078D4;
-    color: #0078D4;
+    background: var(--brand-tint);
+    border-color: var(--ss-azure);
+    color: var(--ss-azure);
     font-weight: 600;
   }
 
@@ -3021,7 +3019,7 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: #0078D4;
+    background: var(--brand-primary);
     color: #FFF;
     font-size: 10px;
     font-weight: 700;
@@ -3403,9 +3401,9 @@
     transition: all 0.12s ease;
   }
   .micro-action-btn:hover {
-    border-color: #0078D4;
-    color: #0078D4;
-    background: rgba(0, 120, 212, 0.08);
+    border-color: var(--ss-azure);
+    color: var(--ss-azure);
+    background: var(--brand-tint);
   }
   .micro-action-btn.advance:hover {
     border-color: #10B981;
@@ -3448,7 +3446,7 @@
   }
   .nested-subtask-input:focus {
     background: var(--surface-card);
-    box-shadow: 0 0 0 1px #0284C7;
+    box-shadow: var(--focus-ring);
   }
   .nested-subtask-quick-add {
     display: flex;
@@ -3469,7 +3467,7 @@
   }
   .subtask-quick-input:focus {
     background: var(--surface-card);
-    box-shadow: 0 0 0 1px #0284C7;
+    box-shadow: var(--focus-ring);
   }
   .subtask-quick-input::placeholder {
     color: var(--text-tertiary, #94A3B8);
@@ -3517,7 +3515,7 @@
     padding: 4px 10px;
     border-radius: 4px;
     border: none;
-    background: #0078D4;
+    background: var(--brand-primary);
     color: #FFF;
     font-size: 11px;
     font-weight: 600;
@@ -3598,8 +3596,8 @@
     font-weight: 600;
     padding: 2px 6px;
     border-radius: 3px;
-    background: rgba(0, 120, 212, 0.08);
-    color: #0078D4;
+    background: var(--brand-tint);
+    color: var(--brand-primary);
   }
 
   /* Priority color-coded badges */
@@ -4163,7 +4161,7 @@
     width: 24px;
     height: 24px;
     border: 3px solid var(--surface-card-border);
-    border-top-color: #0078D4;
+    border-top-color: var(--brand-primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }

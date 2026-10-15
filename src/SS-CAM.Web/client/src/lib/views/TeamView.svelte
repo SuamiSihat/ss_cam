@@ -547,7 +547,7 @@
       {#each filteredTeam as member (member.staffId || member.username)}
         {@const w = member.workload || { total: 0, active: 0, inProgress: 0, inReview: 0, revision: 0, overdue: 0, completed: 0, capacityPercent: 0 }}
         {@const roles = parseRoles(member.role, member.roles)}
-        {@const avatarBg = member.avatarColor || '#0078D4'}
+        {@const avatarBg = member.avatarColor || '#043388'}
         {@const isCurrentUser = Boolean(appState.currentUser && (
           (member.staffId && appState.currentUser.staffId && member.staffId.toLowerCase() === appState.currentUser.staffId.toLowerCase()) ||
           (member.username && appState.currentUser.username && member.username.toLowerCase() === appState.currentUser.username.toLowerCase()) ||
@@ -1312,7 +1312,8 @@
   }
 
   .sort-select {
-    height: 34px;
+    height: 36px;
+    min-height: 36px;
     padding: 0 10px;
     border: 1px solid var(--surface-card-border);
     border-radius: var(--radius-md, 8px);
@@ -1320,8 +1321,11 @@
     color: var(--text-primary);
     font-size: 12.5px;
     font-weight: 600;
-    outline: none;
     cursor: pointer;
+  }
+  .sort-select:focus-visible {
+    outline: 2px solid var(--ss-azure);
+    outline-offset: 2px;
   }
 
   .filter-summary-row {
@@ -1437,7 +1441,7 @@
     border: 1px solid var(--surface-card-border);
     padding: 1px 6px;
     border-radius: 4px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 700;
     color: var(--text-secondary);
@@ -1680,7 +1684,7 @@
   }
 
   .chip-job {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 800;
     color: var(--text-primary);
@@ -1958,17 +1962,22 @@
   }
 
   .reassign-field { display: flex; flex-direction: column; gap: 6px; }
-  .field-label { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; }
+  .field-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
   .field-input, .field-select {
-    background: #1E293B;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
+    background: var(--surface-card-subtle);
+    border: 1px solid var(--surface-card-border);
+    border-radius: var(--radius-md, 6px);
     padding: 8px 12px;
-    color: #FFF;
+    color: var(--text-primary);
     font-size: 13px;
+    min-height: 36px;
     outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .field-input:focus, .field-select:focus { border-color: #38BDF8; }
+  .field-input:focus, .field-select:focus {
+    border-color: var(--ss-azure);
+    box-shadow: var(--focus-ring);
+  }
 
   .reassign-footer {
     display: flex;
@@ -2082,7 +2091,7 @@
     border-bottom: none;
   }
   .discipline-table code {
-    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-mono);
     font-weight: 700;
     background: rgba(255, 255, 255, 0.08);
     padding: 2px 6px;

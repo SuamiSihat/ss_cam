@@ -5,6 +5,7 @@
   import { appState } from '$lib/stores/appState.svelte';
   import type { Project } from '$lib/types';
   import FluentBadge from '$lib/components/ui/FluentBadge.svelte';
+  import FluentIcons, { type IconName } from '$lib/components/ui/FluentIcons.svelte';
 
   interface Props {
     projects: Project[];
@@ -14,13 +15,13 @@
 
   let { projects, isAdminUser = false, onDelete }: Props = $props();
 
-  const columns = [
-    { id: 'backlog', label: 'Backlog', icon: '📝', color: '#6B7280', hint: 'Ideation & briefs queued' },
-    { id: 'in-progress', label: 'In Progress', icon: '⚡', color: '#0284C7', hint: 'Active design production' },
-    { id: 'review', label: 'Review Queue', icon: '🔍', color: '#8764B8', hint: 'Awaiting manager / lead sign-off' },
-    { id: 'revision', label: 'Revision Required', icon: '⚠️', color: '#D97706', hint: 'Feedback & changes pending' },
-    { id: 'done', label: 'Approved & Done', icon: '✅', color: '#107C41', hint: 'Final deliverables signed off' },
-    { id: 'on-hold', label: 'On Hold / Queued', icon: '⏸️', color: '#64748B', hint: 'Paused, archived or blocked projects' }
+  const columns: { id: string; label: string; icon: IconName; color: string; hint: string }[] = [
+    { id: 'backlog', label: 'Backlog', icon: 'file', color: '#6B7280', hint: 'Ideation & briefs queued' },
+    { id: 'in-progress', label: 'In Progress', icon: 'bolt', color: 'var(--ss-azure)', hint: 'Active design production' },
+    { id: 'review', label: 'Review Queue', icon: 'search', color: '#8764B8', hint: 'Awaiting manager / lead sign-off' },
+    { id: 'revision', label: 'Revision Required', icon: 'warning', color: '#D97706', hint: 'Feedback & changes pending' },
+    { id: 'done', label: 'Approved & Done', icon: 'checkmark', color: '#107C41', hint: 'Final deliverables signed off' },
+    { id: 'on-hold', label: 'On Hold / Queued', icon: 'clock', color: '#64748B', hint: 'Paused, archived or blocked projects' }
   ];
 
   let draggedProjectId = $state<string | null>(null);
@@ -163,7 +164,7 @@
       avatar = appState.currentUser.avatar;
     }
 
-    const avatarColor = member?.avatarColor || (isCurrentUser ? appState.currentUser?.avatarColor : null) || '#0078D4';
+    const avatarColor = member?.avatarColor || (isCurrentUser ? appState.currentUser?.avatarColor : null) || '#043388';
     const displayName = member?.name || raw;
     const initial = displayName.charAt(0).toUpperCase();
 
@@ -192,7 +193,7 @@
         <!-- Column Header -->
         <div class="column-header" style="border-top-color: {col.color};">
           <div class="col-title-wrap">
-            <span class="col-icon">{col.icon}</span>
+            <span class="col-icon"><FluentIcons name={col.icon} size={15} color={col.color} /></span>
             <h3 class="col-title">{col.label}</h3>
             <span class="col-count-pill" style="background: {col.color}1A; color: {col.color};">
               {colProjects.length}
@@ -382,7 +383,7 @@
 
   .kanban-column.is-drag-over {
     background: rgba(0, 120, 212, 0.08);
-    border-color: #0078D4;
+    border-color: var(--ss-azure);
     box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
   }
 
@@ -505,7 +506,7 @@
     font-family: monospace;
     font-size: 12px;
     font-weight: 800;
-    color: #0078D4;
+    color: var(--ss-azure);
     text-decoration: none;
     cursor: pointer;
   }
@@ -562,7 +563,7 @@
   }
 
   .card-project-title:hover {
-    color: var(--brand-accent, #0078D4);
+    color: var(--brand-accent);
     text-decoration: underline;
   }
 
@@ -694,5 +695,9 @@
     color: var(--text-primary, #111827);
     outline: none;
     cursor: pointer;
+  }
+  .status-select-native:focus {
+    box-shadow: var(--focus-ring);
+    border-radius: 4px;
   }
 </style>

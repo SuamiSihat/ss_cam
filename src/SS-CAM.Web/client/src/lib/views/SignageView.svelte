@@ -267,7 +267,7 @@
     padding: 0;
     overflow: hidden;
     background-color: #020C1F;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--font-family);
   }
 
   .signage-kiosk {

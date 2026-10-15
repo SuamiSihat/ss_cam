@@ -1,0 +1,312 @@
+{
+  "login": [
+    {
+      "tag": "INPUT",
+      "id": "login-username-field",
+      "class": "field-input svelte-3r1yak",
+      "text": "",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "INPUT",
+      "id": "login-password-field",
+      "class": "field-input svelte-3r1yak",
+      "text": "",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "class": "eye-btn svelte-3r1yak",
+      "text": "Show password",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "INPUT",
+      "id": "",
+      "class": "fluent-checkbox svelte-3r1yak",
+      "text": "on",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "class": "forgot-link svelte-3r1yak",
+      "text": "Forgot password?",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "BODY",
+      "id": "",
+      "class": "",
+      "text": "SS-CAM Creative Portal\n\nCreati",
+      "outline": "rgb(25, 25, 26) none 3px",
+      "outlineOffset": "0px",
+      "boxShadow": "none",
+      "hasVisibleFocus": false
+    }
+  ],
+  "dashboard": [
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse active",
+      "text": "Home",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "My tasks",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "Projects",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "New request",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "Copy studio",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "Approvals\n1",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    }
+  ],
+  "tasks": [
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "Home",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse active",
+      "text": "My tasks",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "Projects",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "New request",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "Copy studio",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "Approvals",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    }
+  ],
+  "projects": [
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "Home",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "My tasks",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse active",
+      "text": "Projects",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "New request",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "Copy studio",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "class": "nav-link svelte-gevyse",
+      "text": "Approvals\n1",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    }
+  ],
+  "dialog": [
+    {
+      "tag": "TEXTAREA",
+      "id": "",
+      "class": "clickup-description-input svelte-f5n0y2",
+      "text": "",
+      "outline": "rgb(33, 161, 247) solid 2px",
+      "outlineOffset": "2px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "class": "attribute-chip-btn status-chip svelte-f5n0y2",
+      "text": "BACKLOG",
+      "outline": "rgba(32, 147, 225, 0.95) solid 2px",
+      "outlineOffset": "1px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "class": "attribute-chip-btn has-value svelte-f5n0y2",
+      "text": "H\nHarussani (Me)",
+      "outline": "rgb(32, 151, 230) solid 2px",
+      "outlineOffset": "1px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "class": "attribute-chip-btn  svelte-f5n0y2",
+      "text": "Due date",
+      "outline": "rgba(32, 147, 225, 0.95) solid 2px",
+      "outlineOffset": "1px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "class": "attribute-chip-btn  svelte-f5n0y2",
+      "text": "Normal",
+      "outline": "rgba(33, 154, 236, 0.973) solid 2px",
+      "outlineOffset": "1px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "class": "attribute-chip-btn  svelte-f5n0y2",
+      "text": "Tags",
+      "outline": "rgba(32, 147, 225, 0.95) solid 2px",
+      "outlineOffset": "1px",
+      "boxShadow": "none",
+      "hasVisibleFocus": true
+    }
+  ]
+}

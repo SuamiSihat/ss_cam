@@ -972,7 +972,6 @@
   /* Video Stream & Proofing Overlays */
   .base-video {
     background: #000000;
-    outline: none;
   }
 
   .video-proofing-bar {

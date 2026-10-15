@@ -390,7 +390,7 @@
     font-weight: 700;
     cursor: pointer;
   }
-  .report-dl-btn:hover { background: #0078D4; }
+  .report-dl-btn:hover { background: var(--brand-secondary); }
 
   @media (max-width: 600px) {
     .metrics-grid { grid-template-columns: 1fr; }

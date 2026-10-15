@@ -135,7 +135,7 @@
       avatar = appState.currentUser?.avatarUrl || appState.currentUser?.avatar;
     }
 
-    const avatarColor = member?.avatarColor || (isCurrentUser ? appState.currentUser?.avatarColor : null) || '#0078D4';
+    const avatarColor = member?.avatarColor || (isCurrentUser ? appState.currentUser?.avatarColor : null) || '#043388';
     const displayName = member?.name || raw;
     const initial = displayName.charAt(0).toUpperCase();
 
@@ -392,13 +392,13 @@
   }
 
   .th-sortable:hover {
-    color: var(--brand-accent, #0078D4);
+    color: var(--brand-accent);
   }
 
   .sort-arrow {
     font-size: 10px;
     margin-left: 4px;
-    color: #0078D4;
+    color: var(--ss-azure);
   }
 
   .table-row-item {
@@ -420,7 +420,7 @@
   .td-job-id {
     font-family: monospace;
     font-weight: 800;
-    color: #0078D4;
+    color: var(--ss-azure);
     font-size: 12.5px;
     white-space: nowrap;
   }
@@ -635,9 +635,9 @@
   }
 
   .btn-action-open:hover {
-    background: #0078D4;
+    background: var(--brand-primary);
     color: #FFFFFF;
-    border-color: #0078D4;
+    border-color: var(--ss-azure);
   }
 
   .btn-action-delete {

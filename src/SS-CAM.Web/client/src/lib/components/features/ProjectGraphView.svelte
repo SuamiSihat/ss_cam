@@ -125,7 +125,7 @@
   let allEdges: HierarchyEdge[] = [];
 
   const statusColors: Record<string, string> = {
-    'in-progress': '#0078D4',
+    'in-progress': '#21A1F7',
     'review': '#F59E0B',
     'revision': '#EF4444',
     'approved': '#10B981',
@@ -149,7 +149,7 @@
   const brandColors: Record<string, string> = {
     SSH: '#022057',
     SS: '#043388',
-    SSC: '#0078D4',
+    SSC: '#21A1F7',
     SSW: '#10B981',
     SSE: '#F59E0B',
     SST: '#8B5CF6'

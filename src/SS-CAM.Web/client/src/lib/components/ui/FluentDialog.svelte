@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import FluentButton from './FluentButton.svelte';
+  import FluentIcons from './FluentIcons.svelte';
 
   interface Props {
     open?: boolean;
@@ -28,6 +29,31 @@
     footer
   }: Props = $props();
 
+  let dialogElement: HTMLDivElement | null = $state(null);
+  let previousActiveElement: HTMLElement | null = $state(null);
+  const titleId = `dialog-title-${Math.random().toString(36).slice(2, 9)}`;
+
+  $effect(() => {
+    if (open) {
+      previousActiveElement = (typeof document !== 'undefined' ? document.activeElement : null) as HTMLElement | null;
+      setTimeout(() => {
+        if (dialogElement) {
+          const focusable = dialogElement.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable.length > 0) {
+            focusable[0].focus();
+          } else {
+            dialogElement.focus();
+          }
+        }
+      }, 40);
+    } else if (previousActiveElement) {
+      previousActiveElement.focus();
+      previousActiveElement = null;
+    }
+  });
+
   function handleBackdropClick(e: MouseEvent) {
     if (e.target === e.currentTarget && onClose) {
       onClose();
@@ -35,8 +61,32 @@
   }
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && open && onClose) {
+    if (!open) return;
+    if (e.key === 'Escape' && onClose) {
+      e.stopPropagation();
       onClose();
+      return;
+    }
+
+    if (e.key === 'Tab' && dialogElement) {
+      const focusable = dialogElement.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     }
   }
 </script>
@@ -47,10 +97,19 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="modal-backdrop" onclick={handleBackdropClick}>
-    <div class="modal-dialog" role="dialog" aria-modal="true">
+    <div
+      bind:this={dialogElement}
+      class="modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      tabindex="-1"
+    >
       <div class="modal-header">
-        <h3 class="modal-title">{title}</h3>
-        <button class="close-btn" onclick={onClose} aria-label="Close">✕</button>
+        <h3 id={titleId} class="modal-title">{title}</h3>
+        <button class="close-btn" onclick={onClose} aria-label="Close dialog" type="button">
+          <FluentIcons name="close" size={16} />
+        </button>
       </div>
 
       <div class="modal-body">
@@ -101,6 +160,11 @@
     flex-direction: column;
     overflow: hidden;
     animation: scaleUp 0.15s ease-out;
+    outline: none;
+  }
+  .modal-dialog:focus-visible {
+    outline: 2px solid var(--ss-azure);
+    outline-offset: 2px;
   }
 
   .modal-header {
@@ -121,14 +185,22 @@
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    font-size: 14px;
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
   }
   .close-btn:hover {
     background: var(--surface-card-hover);
     color: var(--text-primary);
+  }
+  .close-btn:focus-visible {
+    outline: var(--focus-outline, 2px solid var(--ss-azure));
+    outline-offset: 2px;
   }
 
   .modal-body {

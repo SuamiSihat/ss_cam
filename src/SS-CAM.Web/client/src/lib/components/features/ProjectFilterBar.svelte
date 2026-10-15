@@ -1,5 +1,6 @@
 <script lang="ts">
   import { projectStore } from '$lib/stores/projectStore.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   const brands = ['all', 'SS', 'SSH', 'SSC', 'SSW', 'SSE', 'SST'];
   const statuses = [
@@ -57,7 +58,9 @@
       oninput={handleSearchInput}
     />
     {#if searchQuery}
-      <button type="button" class="clear-search-btn" onclick={handleClearSearch} title="Clear search">✕</button>
+      <button type="button" class="clear-search-btn" onclick={handleClearSearch} title="Clear search" aria-label="Clear search">
+        <FluentIcons name="close" size={12} />
+      </button>
     {/if}
   </div>
 
@@ -212,7 +215,8 @@
     transition: border-color 0.15s ease;
   }
   .search-box:focus-within {
-    border-color: var(--brand-accent, #0078D4);
+    border-color: var(--brand-accent);
+    box-shadow: var(--focus-ring);
   }
   .search-icon {
     color: var(--text-tertiary);
@@ -278,7 +282,8 @@
     border-color: var(--text-tertiary);
   }
   .filter-select:focus {
-    border-color: var(--brand-accent, #0078D4);
+    border-color: var(--brand-accent);
+    box-shadow: var(--focus-ring);
   }
 
   .sort-actions {
@@ -324,7 +329,7 @@
   }
   .sort-pill-btn.active {
     background: var(--surface-card, #FFFFFF);
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
     border-color: var(--surface-card-border, #E2E8F0);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
     font-weight: 600;

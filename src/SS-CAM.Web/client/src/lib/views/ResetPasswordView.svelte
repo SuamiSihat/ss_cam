@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   let token = $state<string>('');
   let isVerifying = $state<boolean>(true);
@@ -107,7 +108,7 @@
         </svg>
       </div>
       <h2 class="reset-title">Create New Password</h2>
-      <p class="reset-subtitle">SS-CAM Creative Assets Management</p>
+      <p class="reset-subtitle">SS-CAM Creative Portal</p>
     </div>
 
     {#if isVerifying}
@@ -117,7 +118,7 @@
       </div>
     {:else if !isValid}
       <div class="error-banner" role="alert">
-        <div class="error-icon">⚠️</div>
+        <div class="error-icon"><FluentIcons name="warning" size={24} color="var(--color-danger)" /></div>
         <div class="error-text">
           <strong>Link Expired or Invalid</strong>
           <p>{verifyError}</p>
@@ -128,7 +129,7 @@
       </div>
     {:else if isSuccess}
       <div class="success-banner">
-        <div class="success-icon">✅</div>
+        <div class="success-icon"><FluentIcons name="checkmark" size={24} color="var(--color-success)" /></div>
         <h3>Password Successfully Changed!</h3>
         <p>Your new password is now active for <strong>{targetUser}</strong>.</p>
         <a href="#login" class="submit-btn" style="text-align: center; text-decoration: none; margin-top: 16px;">
@@ -162,8 +163,13 @@
               class="eye-btn"
               onclick={() => (showPassword = !showPassword)}
               title="Toggle visibility"
+              aria-label="Toggle password visibility"
             >
-              {showPassword ? '🙈' : '👁️'}
+              {#if showPassword}
+                <FluentIcons name="eyeOff" size={16} />
+              {:else}
+                <FluentIcons name="eye" size={16} />
+              {/if}
             </button>
           </div>
           {#if newPassword}

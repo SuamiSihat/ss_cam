@@ -4,6 +4,7 @@
   import { appState } from '$lib/stores/appState.svelte';
   import type { ProjectComment, DeliverableItem } from '$lib/types';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   interface Props {
     projectId: string;
@@ -44,7 +45,7 @@
           role: u.role,
           staffId: u.staffId,
           avatar: u.avatar || '',
-          avatarColor: u.avatarColor || '#0078D4'
+          avatarColor: u.avatarColor || '#043388'
         }));
       }
     } catch (e) {
@@ -275,9 +276,7 @@
                 </div>
 
                 {#if appState.currentUser?.capabilities?.canDeleteProject || appState.currentUser?.roleKey === 'admin' || appState.currentUser?.name === comment.author}
-                  <button class="btn-delete" onclick={() => handleDelete(comment.id)} title="Delete comment" aria-label="Delete comment">
-                    ✕
-                  </button>
+                  <button class="btn-delete" onclick={() => handleDelete(comment.id)} title="Delete comment" aria-label="Delete comment"><FluentIcons name="close" size={11} /></button>
                 {/if}
               </div>
 
@@ -286,7 +285,7 @@
                 {@const matchedDeliv = deliverables.find(d => d.id === comment.deliverableId)}
                 <div class="comment-deliverable-row">
                   <span class="deliverable-tag" title={matchedDeliv?.filename || (matchedDeliv as any)?.name || comment.deliverableId}>
-                    🎯 {matchedDeliv?.filename || (matchedDeliv as any)?.name || comment.deliverableId}
+                    <FluentIcons name="target" size={11} /> {matchedDeliv?.filename || (matchedDeliv as any)?.name || comment.deliverableId}
                   </span>
                 </div>
               {/if}
@@ -486,11 +485,11 @@
     transition: border-color 0.14s ease;
   }
   .filter-select:hover {
-    border-color: var(--brand-accent, #0078D4);
+    border-color: var(--brand-accent);
   }
   .filter-select:focus {
     border-color: var(--brand-primary, #043388);
-    box-shadow: 0 0 0 2px rgba(4, 51, 136, 0.15);
+    box-shadow: var(--focus-ring);
   }
 
   .filter-actions-row {
@@ -559,7 +558,7 @@
   }
   .refresh-btn:hover {
     color: var(--brand-primary, #043388);
-    border-color: var(--brand-accent, #0078D4);
+    border-color: var(--brand-accent);
     background: var(--surface-card);
   }
 
@@ -856,7 +855,7 @@
     transition: border-color 0.14s ease;
   }
   .deliverable-link-select:hover {
-    border-color: var(--brand-accent, #0078D4);
+    border-color: var(--brand-accent);
   }
   .deliverable-link-select:focus {
     border-color: var(--brand-primary, #043388);
@@ -886,7 +885,7 @@
   }
   .composer-textarea:focus {
     border-color: var(--brand-accent);
-    box-shadow: 0 0 0 3px rgba(33, 161, 247, 0.15);
+    box-shadow: var(--focus-ring);
   }
 
   .composer-footer {

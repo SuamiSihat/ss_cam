@@ -2,7 +2,7 @@
  * Core Type Definitions for SS-CAM Web Management Portal (Svelte 5)
  */
 
-export type ThemeName = 'falconia' | 'metamorphosis' | 'catppuccin';
+export type ThemeName = 'falconia' | 'dark';
 
 export type RoleKey = 'admin' | 'ceo' | 'manager' | 'designer' | 'copywriter' | 'clinic' | 'viewer';
 

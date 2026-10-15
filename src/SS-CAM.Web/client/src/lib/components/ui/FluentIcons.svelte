@@ -79,6 +79,8 @@
     | 'paperclip'
     | 'moreHorizontal'
     | 'minimize'
+    | 'phone'
+    | 'windows'
     | 'milestone';
 
   interface Props {
@@ -318,6 +320,14 @@
   {:else if name === 'minimize'}
     <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
       <path d="M12.5 7.5a.75.75 0 0 1 .75-.75h3.25a.75.75 0 0 1 0 1.5h-1.69l3.47 3.47a.75.75 0 1 1-1.06 1.06L14.75 9.31v1.69a.75.75 0 0 1-1.5 0V7.75a.75.75 0 0 1-.75-.25zM7.5 12.5a.75.75 0 0 1-.75.75H3.5a.75.75 0 0 1 0-1.5h1.69L1.72 8.28a.75.75 0 1 1 1.06-1.06l3.47 3.47V9a.75.75 0 0 1 1.5 0v3.25a.75.75 0 0 1-.25.25z"/>
+    </svg>
+  {:else if name === 'phone'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M6 3.5A2.5 2.5 0 0 1 8.5 1h3A2.5 2.5 0 0 1 14 3.5v13a2.5 2.5 0 0 1-2.5 2.5h-3A2.5 2.5 0 0 1 6 16.5v-13zm2.5-1A1.5 1.5 0 0 0 7 3.5v13A1.5 1.5 0 0 0 8.5 18h3a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 11.5 2.5h-3zM10 15a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z"/>
+    </svg>
+  {:else if name === 'windows'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M2.5 3.38L8.75 2.5v6.56H2.5V3.38zm0 7.37h6.25V17.5L2.5 16.62v-5.87zm7.5-8.37L17.5 1.25v7.81H10V2.38zm7.5 8.37v7.81l-7.5-1.13v-6.68h7.5z"/>
     </svg>
   {:else if name === 'milestone'}
     <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">

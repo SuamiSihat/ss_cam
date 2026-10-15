@@ -569,7 +569,7 @@
     try {
       const hash = p.versionHash || null;
       const res = await ApiClient.updateBrief(p.id, newBody, hash);
-      appState.addToast('Creative Brief saved to Synology NAS (README.md)', 'success');
+      appState.addToast('Creative Brief saved to Studio Vault (README.md)', 'success');
       currentReadmeBody = newBody;
       if (projectStore.selectedProject) {
         projectStore.selectedProject.readmeBody = newBody;
@@ -689,7 +689,7 @@
   {#if projectStore.loadingDetail}
     <div class="loading-state">
       <div class="loading-spinner"></div>
-      <p>Loading project workspace from Synology NAS…</p>
+      <p>Loading project workspace from Studio Vault…</p>
     </div>
   {:else if !p}
     <div class="empty-state">
@@ -956,7 +956,7 @@
             <div class="subtasks-container-card">
               <div class="subtasks-card-header">
                 <div class="subtasks-header-left">
-                  <FluentIcons name="checkbox" size={20} color="var(--brand-primary, #0078D4)" />
+                  <FluentIcons name="checkbox" size={20} color="var(--brand-primary)" />
                   <div>
                     <h3 class="subtasks-section-title">Production Deliverables Pipeline</h3>
                     <span class="subtasks-section-subtitle">
@@ -1066,7 +1066,7 @@
             <div class="gallery-header" style="margin-top: 28px;">
               <div class="gallery-title-group">
                 <h3>Production Output Assets</h3>
-                <span class="gallery-subtitle">Found in <code>05_DELIVERABLES/</code>, <code>04_Production/</code>, or <code>04_Export_Packages/</code> on Synology NAS</span>
+                <span class="gallery-subtitle">Found in <code>05_DELIVERABLES/</code>, <code>04_Production/</code>, or <code>04_Export_Packages/</code> in Studio Vault</span>
               </div>
             </div>
 
@@ -1485,7 +1485,7 @@
           <div class="subtasks-column-header">
             <div class="subtasks-header-title-row">
               <div class="subtasks-title-badge-group">
-                <FluentIcons name="checkbox" size={16} color="var(--brand-primary, #0078D4)" />
+                <FluentIcons name="checkbox" size={16} color="var(--brand-primary)" />
                 <h3 class="subtasks-column-title">Production Deliverables</h3>
               </div>
               <button
@@ -1591,7 +1591,7 @@
                             {#if matched.isImage || matched.previewType === 'image'}
                               <img src={matched.previewUrl} alt={matched.filename} loading="lazy" />
                             {:else if matched.isVideo || matched.previewType === 'video'}
-                              <FluentIcons name="video" size={14} color="#0078D4" />
+                              <FluentIcons name="video" size={14} color="var(--ss-azure)" />
                             {:else if matched.isPdf || matched.previewType === 'pdf'}
                               <FluentIcons name="file" size={14} color="#EF4444" />
                             {:else}
@@ -1701,7 +1701,7 @@
             <span style="margin-left: 6px;">Irreversible Filesystem Operation</span>
           </div>
           <p class="warning-text">
-            This will permanently delete the project folder and <strong>all 5 subdirectories</strong> on Synology NAS storage:
+            This will permanently delete the project folder and <strong>all 5 subdirectories</strong> in Studio Vault storage:
           </p>
           <ul class="subfolder-list">
             <li><code>01_BRIEF_ASSETS/</code></li>
@@ -1959,8 +1959,8 @@
 
   .action-btn-clean:hover, .action-btn-clean.active {
     background: var(--surface-card-subtle, #F8FAFC);
-    color: var(--brand-primary, #0078D4);
-    border-color: var(--brand-accent, #0078D4);
+    color: var(--brand-primary);
+    border-color: var(--brand-accent);
   }
 
   .action-btn-clean.icon-only {
@@ -2010,7 +2010,7 @@
 
   .more-dropdown-item:hover {
     background: var(--brand-tint, rgba(0, 120, 212, 0.08));
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
   }
 
   .more-dropdown-item.item-danger {
@@ -2277,7 +2277,7 @@
     transition: border-color 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
   }
   .prop-manager-select:hover:not(:disabled) {
-    border-color: var(--brand-accent, #0078D4);
+    border-color: var(--brand-accent);
     background-color: var(--surface-card);
   }
   .prop-manager-select:focus {
@@ -2535,11 +2535,11 @@
     transition: all 0.15s ease;
   }
   .del-overlay-btn.btn-preview {
-    background: #0078D4;
+    background: var(--brand-primary);
     color: #FFFFFF;
   }
   .del-overlay-btn.btn-preview:hover {
-    background: #106EBE;
+    background: var(--brand-secondary);
     transform: translateY(-1px);
   }
   .del-overlay-btn.btn-download {
@@ -2571,9 +2571,9 @@
     transition: all 0.12s ease;
   }
   .del-inline-dl-btn:hover {
-    background: var(--brand-primary, #0078D4);
+    background: var(--brand-primary);
     color: #FFFFFF;
-    border-color: var(--brand-primary, #0078D4);
+    border-color: var(--brand-primary);
   }
 
   .status-tag {
@@ -2895,7 +2895,7 @@
   }
 
   .btn-subtask-action.primary {
-    background: var(--brand-primary, #0078D4);
+    background: var(--brand-primary);
     color: #FFFFFF;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
@@ -2932,7 +2932,7 @@
 
   .subtasks-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--brand-primary, #0078D4) 0%, #10B981 100%);
+    background: linear-gradient(90deg, var(--brand-primary) 0%, #10B981 100%);
     border-radius: 999px;
     transition: width 0.3s ease;
   }
@@ -3185,7 +3185,7 @@
     border-radius: 12px;
     font-size: 11px;
     font-weight: 600;
-    background: var(--brand-primary, #0078D4);
+    background: var(--brand-primary);
     color: #FFFFFF;
     border: none;
     cursor: pointer;
@@ -3226,7 +3226,7 @@
 
   .subtasks-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--brand-primary, #0078D4), #10B981);
+    background: linear-gradient(90deg, var(--brand-primary), #10B981);
     border-radius: 2px;
     transition: width 0.3s ease;
   }
@@ -3281,7 +3281,7 @@
   .st-id-tag {
     font-size: 10px;
     font-weight: 800;
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
     background: rgba(0, 120, 212, 0.12);
     padding: 2px 6px;
     border-radius: 4px;
@@ -3484,9 +3484,9 @@
     transition: all 0.12s ease;
   }
   .st-btn-media-action:hover {
-    background: var(--brand-primary, #0078D4);
+    background: var(--brand-primary);
     color: #FFFFFF;
-    border-color: var(--brand-primary, #0078D4);
+    border-color: var(--brand-primary);
     transform: scale(1.04);
   }
 
@@ -3532,7 +3532,7 @@
   .btn-preset-mini {
     background: transparent;
     border: none;
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -3583,7 +3583,7 @@
     box-sizing: border-box;
   }
   .form-input:focus, .form-select:focus {
-    border-color: var(--brand-primary, #0078D4);
-    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+    border-color: var(--brand-primary);
+    box-shadow: var(--focus-ring);
   }
 </style>

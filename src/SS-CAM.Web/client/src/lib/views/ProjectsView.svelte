@@ -254,7 +254,7 @@
   {#if projectStore.isLoading && projectStore.projects.length === 0}
     <div class="loading-box">
       <div class="loading-spinner-orbit"></div>
-      <span>Syncing Projects with Synology NAS Workspace...</span>
+      <span>Syncing Projects with Studio Workspace...</span>
     </div>
   {:else if projectStore.filteredProjects.length === 0}
     <div class="empty-box">
@@ -308,7 +308,9 @@
       {/each}
     </div>
     {#if isBulkUpdating}<span class="bulk-spinner">Updating…</span>{/if}
-    <button type="button" class="bulk-cancel-btn" onclick={toggleBulkMode}>✕ Cancel</button>
+    <button type="button" class="bulk-cancel-btn" onclick={toggleBulkMode}>
+      <FluentIcons name="close" size={12} /> Cancel
+    </button>
   </div>
   {/if}
 
@@ -411,7 +413,7 @@
           <span style="margin-left: 6px;">Irreversible Filesystem Operation</span>
         </div>
         <p class="warning-text">
-          This will permanently delete the project directory and <strong>all 5 subfolders</strong> on Synology NAS:
+          This will permanently delete the project directory and <strong>all 5 subfolders</strong> in Studio Vault:
         </p>
         <ul class="subfolder-list">
           <li><code>01_BRIEF_ASSETS/</code></li>
@@ -499,8 +501,8 @@
 
   .save-default-btn:hover {
     background: rgba(0, 120, 212, 0.08);
-    border-color: #0078D4;
-    color: #0078D4;
+    border-color: var(--ss-azure);
+    color: var(--ss-azure);
   }
 
   .default-view-badge {
@@ -538,7 +540,7 @@
   }
 
   .seg-view-btn.is-active {
-    background: var(--brand-accent, #0078D4);
+    background: var(--brand-accent);
     color: #FFFFFF;
     box-shadow: 0 1px 3px rgba(0, 120, 212, 0.3);
   }
@@ -565,7 +567,7 @@
     font-family: monospace;
     font-weight: 800;
     font-size: 13px;
-    color: var(--brand-accent, #0078D4);
+    color: var(--brand-accent);
   }
 
   .badges-row {
@@ -586,7 +588,7 @@
   }
 
   .project-card-title:hover {
-    color: var(--brand-accent, #0078D4);
+    color: var(--brand-accent);
     text-decoration: underline;
   }
 
@@ -644,7 +646,7 @@
     width: 28px;
     height: 28px;
     border: 3px solid rgba(0, 120, 212, 0.2);
-    border-top-color: #0078D4;
+    border-top-color: var(--ss-azure);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }

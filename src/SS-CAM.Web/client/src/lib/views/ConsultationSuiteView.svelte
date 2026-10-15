@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import { ApiClient } from '$lib/services/api';
 
   let selectedTreatment = $state<'eswt' | 'trt' | 'pe_ed'>('eswt');
@@ -16,7 +17,7 @@
   const treatments = {
     eswt: {
       id: 'eswt',
-      name: 'Terapi Gelombang Kejutan (ESWT)',
+      name: 'Terapi Gelombang Kejutan (ESWT) / Shockwave Therapy',
       title: 'Pemulihan Vaskularisasi & Pengaliran Darah Mikro',
       description: 'Gelombang akustik berintensiti rendah merangsang faktor pertumbuhan salur darah (VEGF), menguraikan plak mikroskopik dan membina kapilari darah baharu secara semulajadi.',
       phases: [
@@ -25,34 +26,34 @@
           title: 'Fasa 1: Penilaian Asas & Rangsangan Selular (Minggu 1-2)',
           highlight: 'Memulakan pengaktifan metabolik tisu tanpa kesakitan.',
           details: 'Sesi 1 & 2 dimulakan pada paras tenaga terkawal (0.09 mJ/mm²). Sel endotelium mula dirangsang untuk melepaskan molekul nitrik oksida (NO).',
-          metric: '20% Pengaktifan Tisu'
+          metric: 'Pengaktifan Tisu Asas / Tissue Activation'
         },
         {
           phase: 2,
           title: 'Fasa 2: Neovaskularisasi & Pembentukan Kapilari (Minggu 3-6)',
           highlight: 'Pembentukan jaringan salur darah mikro baharu (Angiogenesis).',
           details: 'Peningkatan aliran darah oksigen ke tisu spons korpus kavernosum. Pesakit mula merasakan peningkatan kekerapan respons ereksi pagi semulajadi.',
-          metric: '55% Peningkatan Perfusi Vaskular'
+          metric: 'Perfusi Vaskular Bertambah / Enhanced Perfusion'
         },
         {
           phase: 3,
           title: 'Fasa 3: Pengukuhan Struktur & Ketahanan Maksimum (Minggu 7-10)',
           highlight: 'Penyatuan serat kolagen dan pemulihan elastisiti tisu.',
           details: 'Ketegangan dan daya tahan ereksi mencapai paras optimum yang stabil. Tempoh latensi pemulihan berkurangan dengan ketara.',
-          metric: '85% Kestabilan Prestasi'
+          metric: 'Kestabilan Prestasi Tisu / Tissue Stability'
         },
         {
           phase: 4,
           title: 'Fasa 4: Penyelenggaraan Jangka Panjang & Vitaliti Puncak (Minggu 12+)',
           highlight: 'Kekalkan hasil jangka masa panjang secara berterusan.',
           details: 'Semakan berkala setiap 6 bulan bersama bimbingan senaman lantai pelvis bagi mengekalkan vaskularisasi yang sihat sepanjang hayat.',
-          metric: '100% Pencapaian Sasaran Klinikal'
+          metric: 'Sasaran Klinikal Dicapai / Clinical Target Achieved'
         }
       ]
     },
     trt: {
       id: 'trt',
-      name: 'Terapi Penggantian Testosteron (TRT)',
+      name: 'Terapi Penggantian Testosteron (TRT) / Hormone Therapy',
       title: 'Pengoptimuman Profil Hormon & Kesejahteraan Metabolik',
       description: 'Pelan rawatan perubatan berasaskan ujian darah klinikal bagi memulihkan paras hormon testosteron bio-identikal ke paras fisiologi lelaki aktif.',
       phases: [
@@ -61,34 +62,34 @@
           title: 'Fasa 1: Ujian Profil Darah & Penentuan Dos (Minggu 1-2)',
           highlight: 'Penetapan dos selamat berasaskan Total T, Free T, PSA & Hct.',
           details: 'Penyelaras klinikal memeriksa fungsi hati, buah pinggang dan kepekatan sel darah merah sebelum memulakan suntikan formulasi terpilih.',
-          metric: 'Penetapan Titik Asas (Baseline)'
+          metric: 'Penetapan Titik Asas / Baseline Established'
         },
         {
           phase: 2,
           title: 'Fasa 2: Lonjakan Tenaga & Kualiti Tidur (Minggu 3-6)',
           highlight: 'Penurunan rasa letih kronik dan kejelasan mental meningkat.',
           details: 'Paras androgen mula stabil. Pesakit melaporkan tidur nyenyak, mood positif, dan motivasi kerja harian yang jauh lebih bertenaga.',
-          metric: '60% Peningkatan Stamina Harian'
+          metric: 'Peningkatan Stamina & Tenaga / Energy Recovery'
         },
         {
           phase: 3,
           title: 'Fasa 3: Pengurangan Lemak Viseral & Komposisi Otot (Minggu 7-10)',
           highlight: 'Metabolisme lipid meningkat dan pembentukan jisim otot tanpa lemak.',
           details: 'Sensitiviti insulin bertambah baik. Pembakaran lemak di bahagian perut lebih efektif apabila digandingkan dengan senaman rintangan asas.',
-          metric: '80% Transformasi Komposisi Badan'
+          metric: 'Peningkatan Komposisi Badan / Composition Progress'
         },
         {
           phase: 4,
           title: 'Fasa 4: Pemantauan Darah 12-Minggu & Penyelenggaraan (Minggu 12+)',
           highlight: 'Ujian darah susulan wajib bagi menjamin keselamatan kardiovaskular.',
           details: 'Semakan semula paras hematokrit dan lipid darah bagi memastikan paras hormon kekal dalam zon terapeutik optimum yang selamat.',
-          metric: '100% Keseimbangan Endokrin'
+          metric: 'Keseimbangan Endokrin Optimum / Optimal Balance'
         }
       ]
     },
     pe_ed: {
       id: 'pe_ed',
-      name: 'Rehabilitasi Prestasi Lelaki (PE/ED)',
+      name: 'Rehabilitasi Prestasi Lelaki / Men\'s Health (PE/ED)',
       title: 'Pendekatan Klinikal Bersepadu & Kawalan Neuromuskular',
       description: 'Gabungan terapi fisioterapi lantai pelvis, modulasi neuro-sensori dan sokongan formulasi klinikal berdaftar KKM bagi memulihkan kawalan dan keyakinan intim.',
       phases: [
@@ -97,28 +98,28 @@
           title: 'Fasa 1: Pemetaan Sensori & Kekuatan Otot Pelvis (Minggu 1-2)',
           highlight: 'Mengenal pasti otot bulbocavernosus dan reflex ejakulasi.',
           details: 'Doktor menguji ambang kepekaan saraf dan melatih teknik pengecutan otot dasar panggul yang betul.',
-          metric: '25% Kesedaran Neuromuskular'
+          metric: 'Kesedaran Neuromuskular / Neuromuscular Awareness'
         },
         {
           phase: 2,
           title: 'Fasa 2: Kawalan Ambang & Pernafasan Rangsangan (Minggu 3-6)',
           highlight: 'Meningkatkan tempoh latensi intravaginal (IELT) secara bertahap.',
           details: 'Latihan teknik desensitisasi berperingkat dan kawalan ritma degupan jantung bagi mengelakkan lonjakan saraf simpatetik terlalu awal.',
-          metric: '60% Peningkatan Kawalan Masa'
+          metric: 'Peningkatan Kawalan Masa / Latency Control'
         },
         {
           phase: 3,
           title: 'Fasa 3: Pengukuhan Respons Ereksi Berterusan (Minggu 7-10)',
           highlight: 'Mengekalkan ketegangan tanpa keresahan prestasi (Performance Anxiety).',
           details: 'Kombinasi aliran darah vaskular yang kuat dan ketenangan psikologi menghasilkan kepuasan bersama pasangan secara konsisten.',
-          metric: '85% Keyakinan Diri Puncak'
+          metric: 'Pengukuhan Keyakinan Diri / Confidence Established'
         },
         {
           phase: 4,
           title: 'Fasa 4: Kestabilan Spontan Seumur Hidup (Minggu 12+)',
           highlight: 'Keupayaan mengawal respon seksual secara automatik.',
           details: 'Hasil rawatan kekal berakar dalam memori otot dan sistem saraf tanpa perlu bergantung kepada ubat dos tinggi secara berterusan.',
-          metric: '100% Kawalan Prestasi Mantap'
+          metric: 'Kawalan Prestasi Mantap / Consistent Control'
         }
       ]
     }
@@ -168,7 +169,7 @@
 
     <div class="header-actions">
       <FluentButton appearance="primary" onclick={() => (dispatchModalOpen = true)}>
-        📱 Hantar Panduan Selepas Rawatan (WhatsApp)
+        <FluentIcons name="phone" size={15} /> Hantar Panduan Selepas Rawatan / Send Guide (WhatsApp)
       </FluentButton>
     </div>
   </header>
@@ -343,7 +344,7 @@
       <div class="modal-dialog">
         <div class="modal-head">
           <h3 class="modal-title">Hantar Panduan Selepas Rawatan ke WhatsApp Pesakit</h3>
-          <button class="modal-close" onclick={() => (dispatchModalOpen = false)}>✕</button>
+          <button class="modal-close" onclick={() => (dispatchModalOpen = false)} aria-label="Close dialog"><FluentIcons name="close" size={16} /></button>
         </div>
 
         <div class="modal-body">
@@ -740,6 +741,7 @@
 
   .input-field:focus {
     border-color: #21A1F7;
+    box-shadow: var(--focus-ring);
   }
 
   .dispatch-result-box {

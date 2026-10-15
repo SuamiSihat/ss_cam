@@ -377,10 +377,13 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
     padding: 8px 10px;
-    color: #38BDF8;
+    color: var(--ss-azure);
     font-size: 12px;
-    font-family: monospace;
-    outline: none;
+    font-family: var(--font-mono, monospace);
+  }
+  .share-url-box:focus-visible {
+    outline: 2px solid var(--ss-azure);
+    outline-offset: 2px;
   }
 
   .copy-btn {
@@ -394,7 +397,7 @@
     cursor: pointer;
     transition: background 0.15s;
   }
-  .copy-btn:hover { background: #0078D4; }
+  .copy-btn:hover { background: var(--brand-secondary); }
 
   .share-quick-btns { display: flex; gap: 10px; }
   .whatsapp-btn {

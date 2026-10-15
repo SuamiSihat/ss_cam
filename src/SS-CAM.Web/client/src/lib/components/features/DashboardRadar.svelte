@@ -360,9 +360,9 @@
         <div class="tooltip-desc">{hMeta.whatItMeasures}</div>
         <div class="tooltip-footer">
           {#if hSkill.actual >= hSkill.target}
-            <span class="status-good">✓ Good: Fast sign-off, zero dieline/script delays.</span>
+            <span class="status-good"><FluentIcons name="checkmark" size={13} color="var(--color-success)" /> Good: Fast sign-off, zero dieline/script delays.</span>
           {:else}
-            <span class="status-gap">⚠ Attention: Revision risk; Lead preflight review advised.</span>
+            <span class="status-gap"><FluentIcons name="warning" size={13} color="var(--color-danger)" /> Attention: Revision risk; Lead preflight review advised.</span>
           {/if}
         </div>
       </div>
@@ -584,8 +584,8 @@
                 </td>
                 <td class="target-cell">{s.target}%</td>
                 <td>{m.whatItMeasures}</td>
-                <td class="good-cell">✓ {m.whatIsGood}</td>
-                <td class="bad-cell">✕ {m.whatIsBad}</td>
+                <td class="good-cell"><FluentIcons name="checkmark" size={13} color="var(--color-success)" /> {m.whatIsGood}</td>
+                <td class="bad-cell"><FluentIcons name="close" size={13} color="var(--color-danger)" /> {m.whatIsBad}</td>
               </tr>
             {/each}
           </tbody>

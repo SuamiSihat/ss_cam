@@ -6,6 +6,7 @@
   import FluentToast from '$lib/components/ui/FluentToast.svelte';
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import DashboardView from '$lib/views/DashboardView.svelte';
   import TasksView from '$lib/views/TasksView.svelte';
   import ProjectsView from '$lib/views/ProjectsView.svelte';
@@ -316,8 +317,8 @@
               class:is-reconnecting={appState.sseStatus === 'reconnecting'}
               onclick={() => (appState.studioDrawerOpen = !appState.studioDrawerOpen)}
               title={appState.activeLiveTasks.length > 0
-                ? `${appState.activeLiveTasks.length} active studio session(s) · Live Synced with Synology Vault`
-                : appState.sseStatus === 'connected' ? 'Studio idle · Live Synced with Synology Vault' : 'Reconnecting to Synology Vault...'}
+                ? `${appState.activeLiveTasks.length} active studio session(s) · Live Synced with Studio Vault`
+                : appState.sseStatus === 'connected' ? 'Studio idle · Live Synced with Studio Vault' : 'Reconnecting to Studio Vault...'}
               aria-expanded={appState.studioDrawerOpen}
             >
               <span class="studio-pulse-dot" class:pulsing={appState.activeLiveTasks.length > 0} class:dot-reconnect={appState.sseStatus === 'reconnecting'}></span>
@@ -342,8 +343,8 @@
               class:is-reconnecting={appState.sseStatus === 'reconnecting'}
               onclick={() => (appState.studioDrawerOpen = !appState.studioDrawerOpen)}
               title={appState.activeLiveTasks.length > 0
-                ? `${appState.activeLiveTasks.length} active studio session(s) · Live Synced with Synology Vault`
-                : appState.sseStatus === 'connected' ? 'Studio idle · Live Synced with Synology Vault' : 'Reconnecting to Synology Vault...'}
+                ? `${appState.activeLiveTasks.length} active studio session(s) · Live Synced with Studio Vault`
+                : appState.sseStatus === 'connected' ? 'Studio idle · Live Synced with Studio Vault' : 'Reconnecting to Studio Vault...'}
               aria-expanded={appState.studioDrawerOpen}
             >
               <span class="studio-pulse-dot" class:pulsing={appState.activeLiveTasks.length > 0} class:dot-reconnect={appState.sseStatus === 'reconnecting'}></span>
@@ -681,7 +682,7 @@
     <div class="download-modal-content">
       <div class="download-platform-card">
         <div class="platform-header">
-          <div class="platform-icon win-icon">🪟</div>
+          <div class="platform-icon win-icon"><FluentIcons name="windows" size={24} color="#00ADEF" /></div>
           <div class="platform-meta">
             <div class="platform-title">Windows Desktop Application</div>
             <div class="platform-desc">Single-file portable .exe with Fluent 2 Mica design (~5.6 MB)</div>
@@ -704,7 +705,7 @@
 
       <div class="download-platform-card">
         <div class="platform-header">
-          <div class="platform-icon android-icon">📱</div>
+          <div class="platform-icon android-icon"><FluentIcons name="phone" size={24} color="#3DDC84" /></div>
           <div class="platform-meta">
             <div class="platform-title">Android Mobile Studio Companion</div>
             <div class="platform-desc">Jetpack Compose native app with 2×2 Bento KPI & live ICY radio</div>
@@ -762,7 +763,7 @@
         <div class="platform-header">
           <div class="platform-icon web-icon">🌐</div>
           <div class="platform-meta">
-            <div class="platform-title">Synology NAS Docker Web Portal</div>
+            <div class="platform-title">Studio Web Portal</div>
             <div class="platform-desc">Live production portal hosted on NAS (Docker Compose)</div>
           </div>
         </div>
@@ -1374,7 +1375,7 @@
     border-radius: 4px;
   }
   .studio-task-jump-btn:hover {
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
     background: var(--brand-tint, rgba(0,120,212,0.1));
   }
   .studio-flyout-footer {
@@ -1397,7 +1398,7 @@
   }
   .studio-flyout-footer-btn:hover {
     background: var(--brand-tint, rgba(0,120,212,0.08));
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
     border-color: var(--brand-accent, #38BDF8);
   }
 

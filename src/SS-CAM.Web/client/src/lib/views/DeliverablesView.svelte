@@ -271,7 +271,7 @@
   <div class="view-header">
     <div class="header-left">
       <div class="header-tag">
-        <span class="badge-accent">Synology Vault</span>
+        <span class="badge-accent">Studio Vault</span>
         <span class="header-meta">{projectStore.deliverables.length} Master Outputs</span>
       </div>
       <h1 class="view-title">Deliverables &amp; Reviews</h1>
@@ -364,7 +364,9 @@
         oninput={handleSearchChange}
       />
       {#if rawSearchInput}
-        <button class="clear-search" onclick={handleClearSearch} title="Clear search">✕</button>
+        <button class="clear-search" onclick={handleClearSearch} title="Clear search" aria-label="Clear search">
+          <FluentIcons name="close" size={12} />
+        </button>
       {/if}
       <kbd class="search-kbd" title="Press Ctrl+K to quick filter">Ctrl K</kbd>
     </div>
@@ -441,7 +443,7 @@
   {#if projectStore.isLoading && projectStore.deliverables.length === 0}
     <div class="state-card">
       <div class="spinner-large"></div>
-      <p class="state-title">Scanning Synology Vault Deliverables...</p>
+      <p class="state-title">Scanning Studio Vault Deliverables...</p>
       <p class="state-desc">Indexing high-resolution renders, mockups, and PDFs from active campaigns.</p>
     </div>
   {:else if filteredDeliverables.length === 0}
@@ -469,7 +471,7 @@
               <div class="group-header-left">
                 <span class="chevron-arrow {isCollapsed ? 'collapsed' : ''}">▾</span>
                 <div class="group-folder-icon">
-                  <FluentIcons name="folder" size={15} color="var(--brand-accent, #0078D4)" />
+                  <FluentIcons name="folder" size={15} color="var(--brand-accent)" />
                 </div>
                 <span class="group-job-badge">{group.jobId}</span>
                 <span class="group-brand-badge">{group.brand}</span>
@@ -1013,8 +1015,8 @@
 
   .kpi-pill.active {
     background: var(--brand-tint, rgba(0, 120, 212, 0.08));
-    border-color: var(--brand-accent, #0078D4);
-    color: var(--brand-primary, #0078D4);
+    border-color: var(--brand-accent);
+    color: var(--brand-primary);
   }
 
   .kpi-count {
@@ -1087,7 +1089,7 @@
     border-radius: 50%;
     display: inline-block;
   }
-  .img-dot { background: #0078D4; }
+  .img-dot { background: var(--ss-azure); }
   .vid-dot { background: #7C3AED; }
   .doc-dot { background: #DC2626; }
 
@@ -1104,7 +1106,7 @@
     height: 100%;
     transition: width 0.3s ease;
   }
-  .img-fill { background: #0078D4; }
+  .img-fill { background: var(--ss-azure); }
   .vid-fill { background: #7C3AED; }
   .doc-fill { background: #DC2626; }
 
@@ -1253,7 +1255,7 @@
   .mode-btn:hover { color: var(--text-primary); }
   .mode-btn.active {
     background: var(--brand-tint, rgba(0, 120, 212, 0.1));
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
     border: 1px solid rgba(0, 120, 212, 0.2);
   }
 
@@ -1323,7 +1325,7 @@
     font-family: var(--font-mono, monospace);
     font-size: 11px;
     font-weight: 800;
-    color: var(--brand-accent, #0078D4);
+    color: var(--brand-accent);
     background: var(--brand-tint, rgba(0, 120, 212, 0.1));
     padding: 1px 5px;
     border-radius: 4px;
@@ -1388,8 +1390,8 @@
   }
   .group-action-btn:hover {
     background: var(--brand-tint, rgba(0, 120, 212, 0.1));
-    color: var(--brand-primary, #0078D4);
-    border-color: var(--brand-accent, #0078D4);
+    color: var(--brand-primary);
+    border-color: var(--brand-accent);
   }
 
   .group-content {
@@ -1421,7 +1423,7 @@
   .del-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-    border-color: var(--brand-accent, #0078D4);
+    border-color: var(--brand-accent);
   }
 
   .del-preview-box {
@@ -1559,7 +1561,7 @@
   .job-tag {
     font-family: var(--font-mono, monospace);
     font-weight: 700;
-    color: var(--brand-accent, #0078D4);
+    color: var(--brand-accent);
     background: var(--brand-tint, rgba(0, 120, 212, 0.08));
     padding: 1px 5px;
     border-radius: 4px;
@@ -1624,14 +1626,14 @@
     border-radius: 6px;
     font-size: 11px;
     font-weight: 600;
-    color: var(--brand-primary, #0078D4);
+    color: var(--brand-primary);
     background: var(--brand-tint, rgba(0, 120, 212, 0.08));
     border: 1px solid rgba(0, 120, 212, 0.2);
     cursor: pointer;
     transition: all 0.12s;
   }
   .action-btn-pill:hover {
-    background: var(--brand-primary, #0078D4);
+    background: var(--brand-primary);
     color: #FFFFFF;
   }
 

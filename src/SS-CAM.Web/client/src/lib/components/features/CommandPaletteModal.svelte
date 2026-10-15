@@ -175,7 +175,7 @@
   });
 
   const SYSTEM_ACTIONS: QuickAction[] = [
-    { type: 'action', id: 'act-theme', label: 'Toggle Theme (Falconia / Metamorphosis)', icon: 'colorPalette', category: 'System', execute: () => toggleTheme() },
+    { type: 'action', id: 'act-theme', label: 'Toggle Light / Dark Theme', icon: 'colorPalette', category: 'System', execute: () => toggleTheme() },
     { type: 'action', id: 'act-rescan', label: 'Refresh projects', icon: 'history', category: 'System', execute: () => rescanVault() },
     { type: 'action', id: 'act-download', label: 'Download SS-CAM desktop app', icon: 'download', category: 'Ecosystem', execute: () => window.open('https://suamisihat.github.io/ss_cam/', '_blank') },
   ];
@@ -184,12 +184,10 @@
 
   function toggleTheme() {
     const current = document.documentElement.getAttribute('data-theme') || 'falconia';
-    const validThemes = ['falconia', 'metamorphosis', 'catppuccin'] as const;
-    const idx = validThemes.indexOf(current as any);
-    const next = validThemes[(idx + 1) % validThemes.length];
+    const next: 'falconia' | 'dark' = current === 'dark' ? 'falconia' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
-    appState.setTheme(next as any);
-    appState.addToast(`Theme switched to ${next.charAt(0).toUpperCase() + next.slice(1)}`, 'info');
+    appState.setTheme(next);
+    appState.addToast(`Theme switched to ${next === 'dark' ? 'Dark' : 'Light'}`, 'info');
   }
 
   function rescanVault() {

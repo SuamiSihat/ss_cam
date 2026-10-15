@@ -147,7 +147,7 @@
       <div class="state-card loading-card">
         <div class="spinner"></div>
         <h2>Loading Campaign Review Workspace...</h2>
-        <p>Connecting to secure SuamiSihat Synology NAS vault.</p>
+        <p>Connecting to secure Studio Vault.</p>
       </div>
 
     {:else if errorMsg}
@@ -379,7 +379,7 @@
     scroll-behavior: smooth;
     background: #090D16;
     color: #F8FAFC;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--font-family);
     display: flex;
     flex-direction: column;
   }
@@ -457,7 +457,7 @@
 
   .hero-tags { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .brand-tag { font-size: 11px; font-weight: 800; background: #043388; color: #FFF; padding: 2px 6px; border-radius: 4px; }
-  .job-id { font-size: 13px; font-weight: 800; font-family: monospace; color: #38BDF8; }
+  .job-id { font-size: 13px; font-weight: 800; font-family: var(--font-mono); color: #38BDF8; }
   .rev-tag { font-size: 11px; font-weight: 700; background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 4px; }
 
   .project-title { font-size: 22px; font-weight: 800; color: #FFF; margin: 4px 0; }

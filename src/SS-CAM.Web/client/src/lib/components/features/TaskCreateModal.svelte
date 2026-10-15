@@ -487,7 +487,7 @@
                       <span>General Operations</span>
                     </div>
                     {#if workstream === 'General Operations'}
-                      <FluentIcons name="checkmark" size={13} color="var(--brand-primary, #0084FF)" />
+                      <FluentIcons name="checkmark" size={13} color="var(--brand-primary)" />
                     {/if}
                   </button>
 
@@ -525,7 +525,7 @@
                         <span>{ws.name}</span>
                       </div>
                       {#if workstream === ws.name}
-                        <FluentIcons name="checkmark" size={13} color="var(--brand-primary, #0084FF)" />
+                        <FluentIcons name="checkmark" size={13} color="var(--brand-primary)" />
                       {:else if ws.count > 0}
                         <span class="picker-count-badge">{ws.count}</span>
                       {/if}
@@ -587,7 +587,7 @@
                         <span>{tt.label}</span>
                       </div>
                       {#if taskType === tt.id}
-                        <FluentIcons name="checkmark" size={13} color="var(--brand-primary, #0084FF)" />
+                        <FluentIcons name="checkmark" size={13} color="var(--brand-primary)" />
                       {/if}
                     </button>
                   {/each}
@@ -648,7 +648,7 @@
                       <span>{st.label}</span>
                     </div>
                     {#if status === st.id}
-                      <FluentIcons name="checkmark" size={13} color="var(--brand-primary, #0084FF)" />
+                      <FluentIcons name="checkmark" size={13} color="var(--brand-primary)" />
                     {/if}
                   </button>
                 {/each}
@@ -803,7 +803,7 @@
                     class="date-input-tab {dateTab === 'due' ? 'active-tab' : ''}"
                     onclick={() => dateTab = 'due'}
                   >
-                    <FluentIcons name="calendar" size={13} color="var(--brand-primary, #0084FF)" />
+                    <FluentIcons name="calendar" size={13} color="var(--brand-primary)" />
                     <span>{dueDate ? dueDate : 'Due date'}</span>
                   </button>
                 </div>
@@ -965,7 +965,7 @@
                       <span>{pr.label}</span>
                     </div>
                     {#if priority === pr.id}
-                      <FluentIcons name="checkmark" size={13} color="var(--brand-primary, #0084FF)" />
+                      <FluentIcons name="checkmark" size={13} color="var(--brand-primary)" />
                     {/if}
                   </button>
                 {/each}
@@ -1009,7 +1009,7 @@
                     {#each tags as t}
                       <span class="tag-bubble">
                         #{t}
-                        <button type="button" class="tag-remove" onclick={() => removeTag(t)}>✕</button>
+                        <button type="button" class="tag-remove" onclick={() => removeTag(t)} aria-label="Remove tag"><FluentIcons name="close" size={10} /></button>
                       </span>
                     {/each}
                   </div>
@@ -1049,7 +1049,7 @@
                         <span>{b.label}</span>
                       </div>
                       {#if brand === b.code}
-                        <FluentIcons name="checkmark" size={13} color="var(--brand-primary, #0084FF)" />
+                        <FluentIcons name="checkmark" size={13} color="var(--brand-primary)" />
                       {/if}
                     </button>
                   {/each}
@@ -1069,7 +1069,7 @@
                         <span>{d.label}</span>
                       </div>
                       {#if decisionStatus === d.id}
-                        <FluentIcons name="checkmark" size={13} color="var(--brand-primary, #0084FF)" />
+                        <FluentIcons name="checkmark" size={13} color="var(--brand-primary)" />
                       {/if}
                     </button>
                   {/each}
@@ -1114,8 +1114,8 @@
                         onkeydown={(e) => handleSubtaskInputKeydown(e, index)}
                         placeholder="Subtask name... (press Return to add next)"
                       />
-                      <button type="button" class="subtask-delete-btn" onclick={() => removeSubtask(index)} title="Remove subtask">
-                        ✕
+                      <button type="button" class="subtask-delete-btn" onclick={() => removeSubtask(index)} title="Remove subtask" aria-label="Remove subtask">
+                        <FluentIcons name="close" size={10} />
                       </button>
                     </div>
                   {/each}
@@ -1294,7 +1294,7 @@
     left: 0;
     right: 0;
     height: 2px;
-    background-color: var(--brand-primary, #0084FF);
+    background-color: var(--brand-primary);
     border-radius: 2px 2px 0 0;
   }
 
@@ -1383,7 +1383,7 @@
   }
 
   .subheader-pill-btn.selected {
-    border-color: var(--brand-primary, #0084FF);
+    border-color: var(--brand-primary);
     box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.15);
   }
 
@@ -1408,13 +1408,18 @@
     background: transparent;
     font-size: 21px;
     font-weight: 600;
-    color: var(--text-primary, #0F172A);
-    padding: 4px 0;
+    color: var(--text-primary);
+    padding: 4px 6px;
     font-family: inherit;
+    border-radius: 4px;
+  }
+  .clickup-title-input:focus-visible {
+    outline: 2px solid var(--ss-azure);
+    outline-offset: 2px;
   }
 
   .clickup-title-input::placeholder {
-    color: var(--text-tertiary, #94A3B8);
+    color: var(--text-tertiary);
     font-weight: 500;
   }
 
@@ -1424,15 +1429,20 @@
     outline: none;
     background: transparent;
     font-size: 13.5px;
-    color: var(--text-primary, #334155);
+    color: var(--text-primary);
     font-family: inherit;
     line-height: 1.5;
     resize: none;
-    padding: 0;
+    padding: 6px;
+    border-radius: 4px;
+  }
+  .clickup-description-input:focus-visible {
+    outline: 2px solid var(--ss-azure);
+    outline-offset: 2px;
   }
 
   .clickup-description-input::placeholder {
-    color: var(--text-tertiary, #94A3B8);
+    color: var(--text-tertiary);
   }
 
   /* ─── ATTRIBUTE CHIPS ROW (Pill Buttons) ─── */
@@ -1595,7 +1605,7 @@
 
   .subtask-inline-edit:focus {
     background: var(--surface-card-subtle, #F8FAFC);
-    box-shadow: 0 0 0 1px #0284C7;
+    box-shadow: var(--focus-ring);
   }
 
   .subtask-delete-btn {
@@ -1714,7 +1724,7 @@
   .primary-create-btn {
     height: 100%;
     padding: 0 14px;
-    background-color: var(--brand-primary, #0084FF);
+    background-color: var(--brand-primary);
     border: none;
     border-radius: 6px 0 0 6px;
     color: #FFFFFF;
@@ -1737,7 +1747,7 @@
     height: 100%;
     width: 24px;
     padding: 0;
-    background-color: var(--brand-primary, #0084FF);
+    background-color: var(--brand-primary);
     border: none;
     border-left: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: 0 6px 6px 0;
@@ -1971,7 +1981,7 @@
 
   /* Tags menu */
   .tag-add-btn {
-    background: var(--brand-primary, #0084FF);
+    background: var(--brand-primary);
     border: none;
     border-radius: 4px;
     color: #FFFFFF;
@@ -2021,7 +2031,7 @@
     display: inline-block;
     padding: 1px 5px;
     background: rgba(0, 132, 255, 0.1);
-    color: var(--brand-primary, #0084FF);
+    color: var(--brand-primary);
     font-weight: 700;
     font-size: 10px;
     border-radius: 3px;
@@ -2205,7 +2215,7 @@
   }
 
   .cal-day-cell.is-selected:not(.is-today-red) {
-    background-color: var(--brand-primary, #0084FF);
+    background-color: var(--brand-primary);
     color: #FFFFFF;
     font-weight: 600;
   }
@@ -2232,7 +2242,7 @@
   }
 
   .date-done-btn {
-    background: var(--brand-primary, #0084FF);
+    background: var(--brand-primary);
     border: none;
     border-radius: 5px;
     color: #FFFFFF;

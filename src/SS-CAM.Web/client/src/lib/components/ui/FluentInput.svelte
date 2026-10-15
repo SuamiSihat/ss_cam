@@ -62,11 +62,10 @@
   }
 
   .fluent-label {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 600;
     color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: normal;
   }
 
   .req-star {
@@ -76,25 +75,32 @@
 
   .fluent-input {
     width: 100%;
-    padding: 8px 12px;
+    min-height: 44px;
+    padding: 10px 14px;
     font-family: var(--font-family);
-    font-size: 13px;
+    font-size: 13.5px;
     color: var(--text-primary);
     background: var(--surface-card);
     border: 1px solid var(--surface-card-border);
     border-radius: var(--radius-md);
-    outline: none;
     transition: all var(--transition-fast);
   }
 
   .fluent-input:focus {
+    outline: none;
     border-color: var(--brand-accent);
-    box-shadow: 0 0 0 2px var(--brand-tint);
+    box-shadow: var(--focus-ring);
+  }
+
+  .fluent-input:focus-visible {
+    outline: var(--focus-outline, 2px solid var(--ss-azure));
+    outline-offset: 2px;
   }
 
   .fluent-input:disabled {
     background: var(--surface-card-subtle);
     color: var(--text-tertiary);
+    opacity: var(--disabled-opacity, 0.45);
     cursor: not-allowed;
   }
 

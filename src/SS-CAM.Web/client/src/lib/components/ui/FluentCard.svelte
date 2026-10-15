@@ -16,7 +16,7 @@
     elevated = false,
     hoverLift = false,
     borderAccent,
-    padding = '18px',
+    padding = '24px',
     style = '',
     class: className = '',
     onclick,

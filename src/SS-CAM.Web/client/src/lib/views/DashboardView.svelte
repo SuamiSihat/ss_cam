@@ -204,7 +204,7 @@
   const brandColors: Record<string, string> = {
     SSH: '#022057',
     SS: '#043388',
-    SSC: '#0078D4',
+    SSC: '#21A1F7',
     SSW: '#10B981',
     SSE: '#F59E0B',
     SST: '#8B5CF6'
@@ -228,7 +228,7 @@
         <span class="badge badge-brand">
           {activeLens === 'studio' ? 'EXECUTIVE BOARD DECK' : 'PERSONAL CREATIVE DESK'}
         </span>
-        <span class="header-meta">Synology Vault Live • {currentUserName} ({appState.currentUser?.role})</span>
+        <span class="header-meta">Studio Vault Live • {currentUserName} ({appState.currentUser?.role})</span>
       </div>
       <h1 class="header-title">
         {activeLens === 'studio' ? 'Creative Operations & Studio Performance' : 'My Production Workspace'}

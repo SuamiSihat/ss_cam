@@ -633,7 +633,7 @@
   }
   .out-action-btn:hover { background: rgba(255, 255, 255, 0.15); }
   .insert-btn { background: #043388; border-color: #21A1F7; color: #FFF; }
-  .insert-btn:hover { background: #0078D4; }
+  .insert-btn:hover { background: var(--brand-secondary); }
 
   .output-viewport {
     flex: 1;

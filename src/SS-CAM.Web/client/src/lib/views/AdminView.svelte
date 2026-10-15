@@ -7,6 +7,7 @@
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   type ActiveTab = 'companies' | 'users' | 'audit' | 'system' | 'webhooks';
   type ViewMode = 'cards' | 'table';
@@ -299,7 +300,7 @@
     roles: ['Designer'],
     department: 'Creative Production',
     defaultBrand: 'SSH',
-    avatarColor: '#0078D4',
+    avatarColor: '#043388',
     active: true,
     password: ''
   });
@@ -509,7 +510,7 @@
       roles: ['Designer'],
       department: 'Creative Production',
       defaultBrand: 'SSH',
-      avatarColor: '#0078D4',
+      avatarColor: '#043388',
       active: true,
       password: ''
     };
@@ -1092,7 +1093,7 @@
             class="seg-pill-btn"
             class:active={selectedHoldingFilter === comp.code}
             onclick={() => (selectedHoldingFilter = comp.code)}
-            style="border-left: 3px solid {comp.color || '#0078D4'};"
+            style="border-left: 3px solid {comp.color || 'var(--brand-primary, #043388)'};"
           >
             <span style="font-weight: 700;">{comp.code}</span>
             <span style="font-size: 11px; opacity: 0.85;">{comp.shortName || comp.name}</span>
@@ -1372,7 +1373,7 @@
                   </td>
                   <td>
                     <div class="user-name-cell">
-                      <div class="user-avatar-mini" style="background: {u.avatarColor || '#0078D4'};">
+                      <div class="user-avatar-mini" style="background: {u.avatarColor || 'var(--brand-primary, #043388)'};">
                         {(u.name || 'D').charAt(0)}
                       </div>
                       <div class="name-details">
@@ -1652,7 +1653,7 @@
                   class="edit-inline-btn"
                   onclick={openWorkspaceModal}
                   title="Edit Root Path"
-                  style="background: transparent; border: none; cursor: pointer; color: #0078D4; font-size: 12px; display: inline-flex; align-items: center; padding: 2px 6px; border-radius: 4px; font-weight: 600;"
+                  style="background: transparent; border: none; cursor: pointer; color: var(--ss-azure); font-size: 12px; display: inline-flex; align-items: center; padding: 2px 6px; border-radius: 4px; font-weight: 600;"
                 >
                   Edit ↗
                 </button>
@@ -2249,7 +2250,7 @@
         class="seg-pill-btn"
         class:active={selectedWorkspaceUnit === 'Creative-Team'}
         onclick={() => (selectedWorkspaceUnit = 'Creative-Team')}
-        style="border-left: 3px solid #0078D4;"
+        style="border-left: 3px solid var(--ss-azure);"
       >
         [CT] Creative-Team
       </button>
@@ -2290,10 +2291,16 @@
               onclick={() => (newWorkspacePath = cand.path)}
             >
               <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-                <span style="font-size: 16px;">{cand.accessible ? '📁' : '⚠️'}</span>
+                <span style="display: inline-flex; align-items: center;">
+                  {#if cand.accessible}
+                    <FluentIcons name="folder" size={16} />
+                  {:else}
+                    <FluentIcons name="warning" size={16} color="var(--color-danger)" />
+                  {/if}
+                </span>
                 <div style="min-width: 0; text-align: left;">
                   <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
-                    <span style="font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 4px; background: {cand.badgeColor || '#0078D4'}; color: #FFF;">
+                    <span style="font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 4px; background: {cand.badgeColor || 'var(--brand-primary, #043388)'}; color: #FFF;">
                       {cand.unitCode || 'CT'}
                     </span>
                     <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">
@@ -2305,9 +2312,9 @@
                   </div>
                   <div style="font-size: 11px; color: var(--text-secondary, #6B7280); margin-top: 2px;">
                     {#if cand.accessible}
-                      <span style="color: #107C41; font-weight: 600;">✓ Accessible</span> ({cand.itemCount} items detected)
+                      <span style="color: #107C41; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><FluentIcons name="checkmark" size={12} color="#107C41" /> Accessible</span> ({cand.itemCount} items detected)
                     {:else}
-                      <span style="color: #EF4444; font-weight: 500;">✗ Not mounted on this host</span>
+                      <span style="color: #EF4444; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;"><FluentIcons name="close" size={12} color="#EF4444" /> Not mounted on this host</span>
                     {/if}
                   </div>
                 </div>
@@ -2484,7 +2491,7 @@
   }
 
   .ab-pill-btn.active {
-    background: var(--brand-accent, #0078D4);
+    background: var(--brand-accent);
     color: #FFFFFF;
     font-weight: 700;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
@@ -2803,7 +2810,8 @@
     outline: none;
   }
   .fluent-search-input:focus {
-    border-color: var(--brand-accent, #21A1F7);
+    border-color: var(--brand-accent);
+    box-shadow: var(--focus-ring);
   }
 
   .fluent-select-filter {
@@ -2815,6 +2823,10 @@
     font-size: 12.5px;
     outline: none;
     cursor: pointer;
+  }
+  .fluent-select-filter:focus {
+    border-color: var(--brand-accent);
+    box-shadow: var(--focus-ring);
   }
 
   .view-mode-toggle {
@@ -3111,9 +3123,9 @@
   }
   .dot-admin { background: #EF4444; }
   .dot-manager { background: #D97706; }
-  .dot-designer { background: #0078D4; }
+  .dot-designer { background: var(--ss-azure); }
   .dot-copywriter { background: #7C3AED; }
-  .dot-user { background: #0078D4; }
+  .dot-user { background: var(--ss-azure); }
 
   .distribution-bar-track {
     height: 10px;
@@ -3130,9 +3142,9 @@
   }
   .bar-admin { background: #EF4444; }
   .bar-manager { background: #D97706; }
-  .bar-designer { background: #0078D4; }
+  .bar-designer { background: var(--ss-azure); }
   .bar-copywriter { background: #7C3AED; }
-  .bar-user { background: #0078D4; }
+  .bar-user { background: var(--ss-azure); }
 
   /* ─── Fluent Data Table ─── */
   .table-container-card {
@@ -3347,9 +3359,9 @@
   }
   .role-admin { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
   .role-manager { background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; }
-  .role-designer { background: #EBF4FE; color: #0078D4; border: 1px solid #BFDBFE; font-weight: 700; }
+  .role-designer { background: var(--brand-tint); color: var(--brand-primary); border: 1px solid rgba(4, 51, 136, 0.2); font-weight: 700; }
   .role-copywriter { background: #F5F3FF; color: #7C3AED; border: 1px solid #DDD6FE; font-weight: 700; }
-  .role-user { background: #EBF4FE; color: #0078D4; border: 1px solid #BFDBFE; font-weight: 700; }
+  .role-user { background: var(--brand-tint); color: var(--brand-primary); border: 1px solid rgba(4, 51, 136, 0.2); font-weight: 700; }
 
   .dept-text { font-size: 12px; color: var(--text-secondary); }
   .brand-tag {
@@ -3667,7 +3679,8 @@
   .field-input:focus,
   .field-select:focus,
   .field-textarea:focus {
-    border-color: var(--brand-accent, #21A1F7);
+    border-color: var(--brand-accent);
+    box-shadow: var(--focus-ring);
   }
 
   .color-picker-row {
@@ -3816,11 +3829,11 @@
     background: var(--surface-card, #FFFFFF);
   }
   .workspace-cand-card:hover {
-    border-color: #0078D4 !important;
+    border-color: var(--ss-azure) !important;
     background: rgba(0, 120, 212, 0.04) !important;
   }
   .workspace-cand-card.is-selected {
-    border-color: #0078D4 !important;
+    border-color: var(--ss-azure) !important;
     background: rgba(0, 120, 212, 0.08) !important;
   }
   .workspace-cand-card.is-active {
@@ -3839,7 +3852,7 @@
     color: #0284C7;
   }
   .selected-badge {
-    background: #0078D4;
+    background: var(--brand-primary);
     color: #FFFFFF;
   }
 
