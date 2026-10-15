@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import copy, { getErrorMessage } from '$lib/copy';
   import type { ThemeName, User } from '$lib/types';
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
@@ -286,9 +287,9 @@
         window.dispatchEvent(new CustomEvent('team:updated', { detail: { updatedStaffId: targetStaffId } }));
       }
 
-      appState.addToast('Designer profile and avatar photo saved and synchronized with Studio Vault.', 'success', 'Profile Updated');
+      appState.addToast('Profile saved.', 'success', 'Profile updated');
     } catch (err: any) {
-      appState.addToast(`Failed to save profile: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t save your profile. Please try again.'), 'error');
     } finally {
       isSavingProfile = false;
     }
@@ -300,12 +301,16 @@
       localStorage.setItem('ss_cam_default_project_view', mode);
       localStorage.setItem('ss_cam_project_view', mode);
     }
-    appState.addToast(`Default Project Manager view set to ${mode.toUpperCase()}`, 'success');
+    appState.addToast(`Default project view set to ${mode.toUpperCase()}.`, 'success');
   }
 
   async function handlePasswordChange() {
     if (!newPassword || newPassword !== confirmPassword) {
-      appState.addToast('Passwords do not match or are empty', 'error');
+      appState.addToast(copy.error.passwordMismatch, 'error');
+      return;
+    }
+    if (newPassword.length < 10) {
+      appState.addToast(copy.error.passwordTooShort, 'error');
       return;
     }
 
@@ -318,7 +323,7 @@
       newPassword = '';
       confirmPassword = '';
     } catch (err: any) {
-      appState.addToast(`Couldn't update your password. ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update your password. Please try again.'), 'error');
     } finally {
       isSavingPassword = false;
     }
@@ -331,22 +336,22 @@
   <!-- Page Header -->
   <div class="view-header">
     <div class="header-titles">
-      <h1 class="view-title">User Profile &amp; Preferences</h1>
-      <p class="view-subtitle">Customize visual themes, workstation preferences, Studio Vault sync paths, and designer identity.</p>
+      <h1 class="view-title">Profile</h1>
+      <p class="view-subtitle">Customize visual themes, workstation preferences, and identity.</p>
     </div>
   </div>
 
   <div class="profile-grid">
     <!-- ═══════════ LEFT COLUMN: PROFILE IDENTITY & SECURITY ═══════════ -->
     <div class="profile-col">
-      <!-- Designer Profile Card -->
+      <!-- Profile Card -->
       <FluentCard elevated padding="20px">
         <div class="card-section-header">
           <div class="section-icon-badge">
             <FluentIcons name="user" size={16} color="#21A1F7" />
           </div>
           <div>
-            <h3 class="card-title">Designer Profile</h3>
+            <h3 class="card-title">Profile</h3>
             <p class="card-desc">Your identity across SS-CAM Web Portal &amp; Desktop App</p>
           </div>
         </div>
@@ -379,7 +384,7 @@
           </div>
 
           <div class="avatar-hero-info">
-            <h2 class="hero-name">{fullName || 'Designer Name'}</h2>
+            <h2 class="hero-name">{fullName || 'Your name'}</h2>
             <div class="hero-meta">{department || 'Creative Production'} · {role || 'Head of Creative'}</div>
             <div class="hero-staff-chip">
               <span class="staff-id-tag">Staff ID: {staffId || 'SS0004'}</span>
@@ -521,7 +526,7 @@
           </div>
           <div>
             <h3 class="card-title">Account Security &amp; Password</h3>
-            <p class="card-desc">Logged in as <b>{appState.currentUser?.name || 'User'}</b> ({appState.currentUser?.role || ''})</p>
+            <p class="card-desc">Signed in as <b>{appState.currentUser?.name || 'User'}</b> ({appState.currentUser?.role || ''})</p>
           </div>
         </div>
 

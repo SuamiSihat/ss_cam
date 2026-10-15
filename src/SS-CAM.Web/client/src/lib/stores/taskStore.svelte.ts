@@ -5,6 +5,7 @@
 import type { StudioTask, StudioTaskStatus, ProjectPriority } from '$lib/types';
 import { ApiClient } from '$lib/services/api';
 import { appState } from './appState.svelte';
+import { getErrorMessage } from '$lib/copy';
 
 export interface TaskFilterState {
   query: string;
@@ -98,7 +99,7 @@ class TaskStore {
       }
     } catch (err: any) {
       if (!silent) {
-        appState.addToast(`Failed to load studio tasks: ${err.message}`, 'error');
+        appState.addToast(getErrorMessage(err, 'We couldn\'t load your tasks. Please try again.'), 'error');
       }
     } finally {
       this.isLoading = false;
@@ -111,12 +112,12 @@ class TaskStore {
       const res = await ApiClient.createStudioTask(data);
       if (res && res.success && res.task) {
         this.tasks = [res.task, ...this.tasks];
-        appState.addToast(`Studio Task ${res.task.id} created!`, 'success');
+        appState.addToast(`Task ${res.task.id} created.`, 'success');
         return res.task;
       }
       return null;
     } catch (err: any) {
-      appState.addToast(`Could not create task: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t create the task. Please try again.'), 'error');
       return null;
     } finally {
       this.isSaving = false;
@@ -135,12 +136,12 @@ class TaskStore {
         if (this.selectedTask && this.selectedTask.id === id) {
           this.selectedTask = res.task;
         }
-        appState.addToast(`Task ${res.task.id} updated`, 'success');
+        appState.addToast(`Task ${res.task.id} updated.`, 'success');
         return res.task;
       }
       return null;
     } catch (err: any) {
-      appState.addToast(`Failed to update task: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the task. Please try again.'), 'error');
       return null;
     } finally {
       this.isSaving = false;
@@ -155,11 +156,11 @@ class TaskStore {
 
     try {
       await ApiClient.updateStudioTask(id, { status: newStatus });
-      appState.addToast(`Task moved to ${newStatus.replace('-', ' ')}`, 'info');
+      appState.addToast(`Task moved to ${newStatus.replace('-', ' ')}.`, 'info');
       return true;
     } catch (err: any) {
       task.status = oldStatus;
-      appState.addToast(`Could not move task: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t move the task. Please try again.'), 'error');
       return false;
     }
   }
@@ -171,10 +172,10 @@ class TaskStore {
       if (this.selectedTask && this.selectedTask.id === id) {
         this.selectedTask = null;
       }
-      appState.addToast(`Task ${id} deleted`, 'info');
+      appState.addToast(`Task ${id} deleted.`, 'info');
       return true;
     } catch (err: any) {
-      appState.addToast(`Failed to delete task: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t delete the task. Please try again.'), 'error');
       return false;
     }
   }
@@ -192,12 +193,12 @@ class TaskStore {
         if (this.selectedTask && this.selectedTask.id === id && res.task) {
           this.selectedTask = res.task;
         }
-        appState.addToast(`🚀 NAS Workspace Provisioned! Job ID: ${res.jobId}`, 'success', 'Bridge Complete', 6000);
+        appState.addToast(`Project ${res.jobId} created on shared drive.`, 'success');
         return res;
       }
       throw new Error(res?.message || 'Provisioning failed');
     } catch (err: any) {
-      appState.addToast(`Failed to provision workspace: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t create the project folder. Please try again.'), 'error');
       return null;
     } finally {
       this.isProvisioning = false;

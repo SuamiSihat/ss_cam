@@ -150,7 +150,7 @@
     }
 
     isIngesting = false;
-    appState.addToast(`Vault Ingest Complete (${uploadProgress.current}/${uploadProgress.total} files stored)`, 'success');
+    appState.addToast(`Upload complete (${uploadProgress.current}/${uploadProgress.total} files stored).`, 'success');
     
     // Refresh project details and deliverable queue
     projectStore.loadProjects();
@@ -185,8 +185,8 @@
             <FluentIcons name="upload" size={20} color="#00CFFF" />
           </div>
           <div>
-            <h2 class="modal-title">Drag &amp; Drop Vault Ingester</h2>
-            <p class="modal-sub">Auto-routes incoming creative assets into canonical folders on Synology NAS (<code>{projectId || 'Project'}</code>).</p>
+            <h2 class="modal-title">Upload files</h2>
+            <p class="modal-sub">Automatically routes incoming files into standard folders on the shared drive (<code>{projectId || 'Project'}</code>).</p>
           </div>
         </div>
         {#if !isIngesting}
@@ -225,7 +225,7 @@
       {#if stagedFiles.length > 0}
         <div class="staged-section">
           <div class="staged-header">
-            <span>Staged Assets for Ingestion ({stagedFiles.length} files)</span>
+            <span>Selected files ({stagedFiles.length} files)</span>
             <button class="clear-all-btn" onclick={() => stagedFiles = []} disabled={isIngesting}>Clear All</button>
           </div>
 
@@ -279,7 +279,7 @@
           {#if isIngesting}
             <span class="ingesting-counter">Uploading {uploadProgress.current} / {uploadProgress.total}...</span>
           {:else}
-            <span class="canonical-tip">Canonical Synology Vault Protocol active.</span>
+            <span class="canonical-tip">Files are organized into standard folders.</span>
           {/if}
         </div>
         <div class="footer-actions">
@@ -293,7 +293,7 @@
             onclick={startBatchIngestion}
           >
             <FluentIcons name="upload" size={14} />
-            <span style="margin-left: 6px;">Ingest &amp; Auto-Sort ({stagedFiles.length} files)</span>
+            <span style="margin-left: 6px;">Upload files ({stagedFiles.length} files)</span>
           </FluentButton>
         </div>
       </div>

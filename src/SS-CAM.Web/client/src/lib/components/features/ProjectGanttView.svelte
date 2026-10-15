@@ -5,6 +5,7 @@
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
 
   interface Props {
     projects: Project[];
@@ -310,12 +311,12 @@
             deadline: endStr,
             duration: durStr
           });
-          appState.addToast(`Updated ${project.jobId || project.title} schedule: ${startStr} → ${endStr} (${durStr})`, 'success');
+          appState.addToast(`Updated ${project.jobId || project.title} schedule: ${startStr} → ${endStr} (${durStr}).`, 'success');
         } catch (err: any) {
           project.created = origCreated;
           project.deadline = origDeadline;
           project.duration = origDuration;
-          appState.addToast(`Failed to update timeline: ${err?.message || err}`, 'error');
+          appState.addToast(getErrorMessage(err, 'We couldn\'t update the schedule. Please try again.'), 'error');
         }
       }
 

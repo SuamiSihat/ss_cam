@@ -62,7 +62,7 @@
     const pw = newPassword;
     if (!pw) return 0;
     let score = 0;
-    if (pw.length >= 8) score += 25;
+    if (pw.length >= 10) score += 25;
     if (/[A-Z]/.test(pw)) score += 25;
     if (/[0-9]/.test(pw)) score += 25;
     if (/[^A-Za-z0-9]/.test(pw)) score += 25;
@@ -89,10 +89,10 @@
         isSuccess = true;
         appState.addToast('Password reset successfully. You can now sign in.', 'success');
       } else {
-        submitError = res.message || 'Failed to reset password.';
+        submitError = res.message || 'Failed to reset password. Please try again.';
       }
     } catch (err: any) {
-      submitError = err.message || 'Error occurred while resetting password.';
+      submitError = 'Unable to reset password. Please try again or request a new link.';
     } finally {
       isSubmitting = false;
     }
@@ -103,11 +103,11 @@
   <div class="reset-card">
     <div class="reset-header">
       <div class="reset-brand-mark">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ss-azure)" stroke-width="2">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
         </svg>
       </div>
-      <h2 class="reset-title">Create New Password</h2>
+      <h1 class="reset-title">Reset password</h1>
       <p class="reset-subtitle">SS-CAM Creative Portal</p>
     </div>
 
@@ -130,7 +130,7 @@
     {:else if isSuccess}
       <div class="success-banner">
         <div class="success-icon"><FluentIcons name="checkmark" size={24} color="var(--color-success)" /></div>
-        <h3>Password Successfully Changed!</h3>
+        <h2>Password successfully updated</h2>
         <p>Your new password is now active for <strong>{targetUser}</strong>.</p>
         <a href="#login" class="submit-btn" style="text-align: center; text-decoration: none; margin-top: 16px;">
           Sign In Now →

@@ -150,7 +150,7 @@ router.post('/auth/login', (req, res) => {
   const { username, password } = req.body || {};
 
   if (!username || typeof username !== 'string') {
-    return res.status(400).json({ error: 'Username is required' });
+    return res.status(400).json({ error: 'Username is required.' });
   }
   if (password !== undefined && typeof password !== 'string') {
     return res.status(400).json({ error: SIGN_IN_FAILED });
@@ -375,7 +375,7 @@ router.post('/auth/clear-lockout', authenticateToken, requireRole('admin'), (req
   try {
     const { username } = req.body;
     if (!username || typeof username !== 'string') {
-      return res.status(400).json({ error: 'username is required.' });
+      return res.status(400).json({ error: 'Username is required.' });
     }
     const targetUser = username.toLowerCase().trim();
     // Clears the account's counters for every address, so the person can retry immediately.
@@ -629,7 +629,7 @@ router.post('/tasks', authenticateToken, (req, res) => {
     // If projectId provided, create project-linked subtask
     if (req.body.projectId) {
       const { projectId, name, title, status, weight, channel, specs, notes, deliverableId, linkedFile } = req.body;
-      if (!name && !title) return res.status(400).json({ error: 'Task name/title is required' });
+      if (!name && !title) return res.status(400).json({ error: 'Task title is required.' });
       const task = TaskService.createTask(projectId, {
         name: name || title,
         role: req.body.role,
@@ -739,7 +739,7 @@ router.get('/studio-tasks', authenticateToken, (req, res) => {
 router.get('/studio-tasks/:id', authenticateToken, (req, res) => {
   try {
     const task = TaskService.getStudioTaskById(req.params.id);
-    if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
+    if (!task) return res.status(404).json({ success: false, error: 'Task not found.' });
     res.json({ success: true, task });
   } catch (err) {
     console.error('[API:StudioTasks:GET:id] Error:', err.message);
@@ -810,7 +810,7 @@ router.post('/studio-tasks/:id/provision', authenticateToken, (req, res) => {
 router.post('/studio-tasks/:id/ai-assist', authenticateToken, async (req, res) => {
   try {
     const task = TaskService.getStudioTaskById(req.params.id);
-    if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
+    if (!task) return res.status(404).json({ success: false, error: 'Task not found.' });
 
     const { action = 'chat', prompt = '' } = req.body;
     let reply = '';
@@ -1180,7 +1180,7 @@ router.get('/projects/:id', authenticateToken, (req, res) => {
   try {
     const project = WorkspaceService.getProjectById(req.params.id);
     if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ error: 'Project not found.' });
     }
 
     const deliverables = DeliverableService.getProjectDeliverables(project.fullPath);
@@ -1234,24 +1234,24 @@ router.get(['/projects/:id/export', '/projects/:id/export/zip'], authenticateMed
 function serveProjectAsset(project, rawPath, req, res, allowFile = () => true) {
   const send = (filePath) => {
     if (!allowFile(filePath)) {
-      return res.status(403).send('Access denied');
+      return res.status(403).send('Access denied.');
     }
     applySafeFileHeaders(req, res, filePath);
     return res.sendFile(filePath);
   };
   try {
     if (!project || !project.fullPath) {
-      return res.status(404).send('Project not found');
+      return res.status(404).send('Project not found.');
     }
 
     if (!rawPath || typeof rawPath !== 'string') {
-      return res.status(400).send('Asset path query parameter required');
+      return res.status(400).send('File path is required.');
     }
 
     // Clean and normalize the requested relative path
     let cleanRelPath = rawPath.replace(/\0/g, '').replace(/\\+/g, '/').replace(/^\/+/, '').trim();
     if (!cleanRelPath) {
-      return res.status(400).send('Invalid asset path');
+      return res.status(400).send('Invalid file path.');
     }
 
     const projectRoot = path.resolve(project.fullPath);
@@ -1263,7 +1263,7 @@ function serveProjectAsset(project, rawPath, req, res, allowFile = () => true) {
     // Security check: Must reside inside project.fullPath
     if (!targetPath.startsWith(rootWithSep) && targetPath !== projectRoot) {
       console.warn(`[API] /projects/:id/asset Path traversal attempt blocked: ${targetPath}`);
-      return res.status(403).send('Access denied: Path traversal detected');
+      return res.status(403).send('Access denied.');
     }
 
     // This route is public (brief images, client review), so never serve hidden files
@@ -1273,7 +1273,7 @@ function serveProjectAsset(project, rawPath, req, res, allowFile = () => true) {
     if (relSegments.some(seg => seg.startsWith('.')) ||
         BLOCKED_ASSET_EXTENSIONS.includes(path.extname(targetPath).toLowerCase())) {
       console.warn(`[API] /projects/:id/asset Blocked non-asset file request: ${targetPath}`);
-      return res.status(403).send('Access denied');
+      return res.status(403).send('Access denied.');
     }
 
     // 1. Direct path match
@@ -1327,7 +1327,7 @@ function serveProjectAsset(project, rawPath, req, res, allowFile = () => true) {
       return send(foundPath);
     }
 
-    return res.status(404).send(`Asset file not found: ${filename}`);
+    return res.status(404).send(`File not found: ${filename}.`);
   } catch (err) {
     console.error('[API] project asset error:', err);
     res.status(500).send('Could not load this file.');

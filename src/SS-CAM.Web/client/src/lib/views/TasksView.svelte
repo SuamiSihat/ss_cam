@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import type { 
     StudioTask, 
     StudioTaskStatus, 
@@ -132,7 +133,7 @@
       }
     } catch (err: any) {
       console.warn('[TasksView] loadTasks error:', err.message);
-      appState.addToast(`Failed to load tasks: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t load your tasks. Please try again.'), 'error');
     } finally {
       isLoading = false;
     }
@@ -385,9 +386,9 @@
         assigneeAvatarColor: '#0284C7'
       });
       handleTaskCreated(res.task);
-      appState.addToast(`Created task "${t}" in ${workstream}`, 'success');
+      appState.addToast(`Created task "${t}" in ${workstream}.`, 'success');
     } catch (err: any) {
-      appState.addToast(`Failed to create task: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t create the task. Please try again.'), 'error');
     }
   }
 
@@ -401,7 +402,7 @@
       handleTaskUpdated(res.task);
     } catch (err: any) {
       task.status = old;
-      appState.addToast(`Failed to update status: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the status. Please try again.'), 'error');
     }
   }
 
@@ -416,7 +417,7 @@
     };
     const nextStatus = transitions[task.status] || 'in-progress';
     await handleInlineStatusChange(task, nextStatus);
-    appState.addToast(`Moved "${task.title}" to ${nextStatus.toUpperCase()}`, 'info');
+    appState.addToast(`Moved "${task.title}" to ${nextStatus}.`, 'info');
   }
 
   // 1-Click Hover Micro-Action: Assign to current user
@@ -432,9 +433,9 @@
         assigneeAvatarColor: '#0284C7'
       });
       handleTaskUpdated(res.task);
-      appState.addToast(`Assigned to ${fullName}`, 'success');
+      appState.addToast(`Assigned to ${fullName}.`, 'success');
     } catch (err: any) {
-      appState.addToast(`Failed to assign: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t assign the task. Please try again.'), 'error');
     }
   }
 
@@ -447,9 +448,9 @@
     try {
       const res = await ApiClient.updateStudioTask(task.id, { dueDate: iso });
       handleTaskUpdated(res.task);
-      appState.addToast(`Due date bumped to ${formatDateShort(iso)}`, 'info');
+      appState.addToast(`Due date bumped to ${formatDateShort(iso)}.`, 'info');
     } catch (err: any) {
-      appState.addToast(`Failed to set due date: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t set the due date. Please try again.'), 'error');
     }
   }
 
@@ -507,7 +508,7 @@
     priorityFilter = 'urgent';
     hideCompleted = true;
     viewMode = 'list';
-    appState.addToast(`Filtered to high-priority deliverables`, 'info');
+    appState.addToast('Filtered to high-priority deliverables.', 'info');
   }
 
   // Inline Subtask Toggle
@@ -767,11 +768,11 @@
     try {
       await Promise.all(targets.map(id => ApiClient.updateStudioTask(id, { status: newStatus })));
       tasks = tasks.map(t => targets.includes(t.id) ? { ...t, status: newStatus } : t);
-      appState.addToast(`Updated ${targets.length} tasks to ${newStatus}`, 'success');
+      appState.addToast(`Updated ${targets.length} tasks to ${newStatus}.`, 'success');
       selectedTaskIds = [];
       showBatchDeleteConfirm = false;
     } catch (err: any) {
-      appState.addToast(`Failed batch update: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the tasks. Please try again.'), 'error');
     }
   }
 
@@ -787,11 +788,11 @@
     try {
       await Promise.all(targets.map(id => ApiClient.deleteStudioTask(id)));
       tasks = tasks.filter(t => !targets.includes(t.id));
-      appState.addToast(`Deleted ${cnt} tasks`, 'info');
+      appState.addToast(`Deleted ${cnt} tasks.`, 'info');
       selectedTaskIds = [];
       showBatchDeleteConfirm = false;
     } catch (err: any) {
-      appState.addToast(`Failed to delete tasks: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t delete the tasks. Please try again.'), 'error');
     }
   }
 
@@ -831,10 +832,10 @@
     try {
       const res = await ApiClient.updateStudioTask(task.id, { status: newStatus });
       handleTaskUpdated(res.task);
-      appState.addToast(`Moved ${task.id} to ${newStatus}`, 'success');
+      appState.addToast(`Moved ${task.id} to ${newStatus}.`, 'success');
     } catch (err: any) {
       task.status = oldStatus;
-      appState.addToast(`Failed to update status: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the status. Please try again.'), 'error');
     } finally {
       draggedTaskId = null;
     }
@@ -847,7 +848,7 @@
     <div class="header-left-cluster">
       <div class="space-title-dropdown">
         <span class="space-icon-dot"></span>
-        <h1 class="space-name">Workspace Tasks &amp; Deliverables</h1>
+        <h1 class="space-name">My tasks</h1>
         <span class="task-count-pill">{filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}</span>
       </div>
     </div>
@@ -870,14 +871,14 @@
           class="ab-pill-btn"
           class:active={layoutMode === 'executive'}
           onclick={() => setLayoutMode('executive')}
-          title="Executive View (B): Full operational metrics, KPI telemetry deck, workstream matrix"
+          title="Executive view (B): Operational metrics, KPI performance deck, and workstream matrix"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           <span>Executive (B)</span>
         </button>
       </div>
 
-      <!-- Sync Live Telemetry Button -->
+      <!-- Sync Live Performance Button -->
       <button
         type="button"
         class="sync-telemetry-btn"

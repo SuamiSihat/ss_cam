@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import type { StudioTask, StudioTaskStatus, ProjectPriority, TaskDecisionStatus } from '$lib/types';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
@@ -369,12 +370,12 @@
         description: description.trim()
       });
 
-      appState.addToast(`Task "${title.trim()}" created successfully`, 'success', 'Task Created');
+      appState.addToast(`Task "${title.trim()}" created.`, 'success');
       onCreated(res.task);
       handleReset();
       handleClose();
     } catch (err: any) {
-      appState.addToast(`Failed to create task: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t create the task. Please try again.'), 'error');
     } finally {
       isSubmitting = false;
     }
@@ -758,7 +759,7 @@
                       </div>
                       <div class="staff-text-col">
                         <span class="staff-title">Gemini Studio Agent</span>
-                        <span class="staff-sub">Creative Automation &amp; Preflight</span>
+                        <span class="staff-sub">Creative automation &amp; print check</span>
                       </div>
                     </div>
                   </button>

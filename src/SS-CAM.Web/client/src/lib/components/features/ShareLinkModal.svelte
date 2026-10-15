@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
@@ -61,10 +62,10 @@
         note
       });
       generatedShare = res.share;
-      appState.addToast('Client review link generated!', 'success');
+      appState.addToast('Review link generated.', 'success');
       loadActiveLinks();
     } catch (err: any) {
-      appState.addToast(`Failed to generate link: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t create the review link. Please try again.'), 'error');
     } finally {
       isGenerating = false;
     }
@@ -79,7 +80,7 @@
     const url = getShareUrl(token);
     try {
       await navigator.clipboard.writeText(url);
-      appState.addToast('Review link copied to clipboard!', 'success');
+      appState.addToast('Review link copied to clipboard.', 'success');
     } catch (err) {
       appState.addToast(url, 'info');
     }
@@ -87,7 +88,7 @@
 
   function shareViaWhatsApp(token: string) {
     const url = getShareUrl(token);
-    const text = encodeURIComponent(`Salam, sila semak dan sahkan draf kreatif untuk ${projectTitle || 'projek ini'} di portal rasmi SuamiSihat CAM:\n\n${url}`);
+    const text = encodeURIComponent(`Salam, sila semak dan sahkan draf kreatif untuk ${projectTitle || 'projek ini'}:\n\n${url}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   }
 
@@ -100,7 +101,7 @@
         generatedShare = null;
       }
     } catch (err: any) {
-      appState.addToast(`Failed to revoke link: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t revoke the review link. Please try again.'), 'error');
     }
   }
 

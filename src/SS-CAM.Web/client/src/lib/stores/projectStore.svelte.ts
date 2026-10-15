@@ -4,6 +4,7 @@
 import type { Project, DeliverableItem, FilterState, DashboardData } from '$lib/types';
 import { ApiClient } from '$lib/services/api';
 import { appState } from './appState.svelte';
+import { getErrorMessage } from '$lib/copy';
 
 export function isRealDeliverable(d: DeliverableItem): boolean {
   if (!d || !d.filename) return false;
@@ -138,7 +139,7 @@ class ProjectStore {
       const res = await ApiClient.getProjects();
       this.projects = res.projects || [];
     } catch (err: any) {
-      if (!silent) appState.addToast(`Failed to load projects: ${err.message}`, 'error');
+      if (!silent) appState.addToast(getErrorMessage(err, 'We couldn\'t load your projects. Please try again.'), 'error');
     } finally {
       this.isLoading = false;
     }
@@ -156,7 +157,7 @@ class ProjectStore {
         brand: this.dashboardBrand
       });
     } catch (err: any) {
-      if (!silent) appState.addToast(`Failed to load dashboard: ${err.message}`, 'error');
+      if (!silent) appState.addToast(getErrorMessage(err, 'We couldn\'t load the dashboard. Please try again.'), 'error');
     } finally {
       this.isLoading = false;
     }
@@ -173,7 +174,7 @@ class ProjectStore {
       this.activeDeliverables = (res.deliverables || []).filter(isRealDeliverable);
     } catch (err: any) {
       if (!silent) {
-        appState.addToast(`Failed to load project details: ${err.message}`, 'error');
+        appState.addToast(getErrorMessage(err, 'We couldn\'t load the project details. Please try again.'), 'error');
         this.selectedProject = null;
       }
     } finally {
@@ -190,7 +191,7 @@ class ProjectStore {
       const res = await ApiClient.getDeliverables();
       this.deliverables = (res.deliverables || []).filter(isRealDeliverable);
     } catch (err: any) {
-      if (!silent) appState.addToast(`Failed to load deliverables: ${err.message}`, 'error');
+      if (!silent) appState.addToast(getErrorMessage(err, 'We couldn\'t load the deliverables. Please try again.'), 'error');
     } finally {
       this.isLoading = false;
     }
@@ -203,11 +204,11 @@ class ProjectStore {
     project.status = newStatus as any;
     try {
       await ApiClient.updateProject(project.id, { status: newStatus });
-      appState.addToast(`Project ${project.jobId || project.title} moved to ${newStatus.replace('-', ' ')}`, 'success');
+      appState.addToast(`Project ${project.jobId || project.title} moved to ${newStatus.replace('-', ' ')}.`, 'success');
       await this.loadProjects();
     } catch (err: any) {
       project.status = oldStatus;
-      appState.addToast(`Failed to update status: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the project status. Please try again.'), 'error');
     }
   }
 

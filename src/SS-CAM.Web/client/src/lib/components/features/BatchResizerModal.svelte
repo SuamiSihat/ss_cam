@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
+  import { getErrorMessage } from '$lib/copy';
   import type { DeliverableItem } from '$lib/types';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons, { type IconName } from '$lib/components/ui/FluentIcons.svelte';
@@ -122,13 +123,13 @@
     a.href = dataUrl;
     a.download = `${deliverable.filename.replace(/\.[^/.]+$/, '')}_${presetId}.png`;
     a.click();
-    appState.addToast(`Downloaded ${presetId} format!`, 'success');
+    appState.addToast(`Downloaded ${presetId} format.`, 'success');
   }
 
   async function downloadBatchZip() {
     const selectedPresets = presets.filter(p => p.selected && renderedPreviews[p.id]);
     if (selectedPresets.length === 0) {
-      appState.addToast('Please select at least one format preset', 'warning');
+      appState.addToast('Please select at least one format preset.', 'warning');
       return;
     }
 
@@ -138,10 +139,10 @@
         downloadSingle(preset.id);
         await new Promise(r => setTimeout(r, 150));
       }
-      appState.addToast('Batch social package exported!', 'success');
+      appState.addToast('Batch formats downloaded.', 'success');
       closeModal();
     } catch (err: any) {
-      appState.addToast(`Export error: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, "We couldn't export the files. Please try again."), 'error');
     } finally {
       isGeneratingZip = false;
     }

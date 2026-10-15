@@ -226,13 +226,11 @@
     <div class="header-left-col">
       <div class="header-tag">
         <span class="badge badge-brand">
-          {activeLens === 'studio' ? 'EXECUTIVE BOARD DECK' : 'PERSONAL CREATIVE DESK'}
+          {activeLens === 'studio' ? 'STUDIO OVERVIEW' : 'MY WORKSPACE'}
         </span>
-        <span class="header-meta">Studio Vault Live • {currentUserName} ({appState.currentUser?.role})</span>
+        <span class="header-meta">Shared drive live • {currentUserName} ({appState.currentUser?.role})</span>
       </div>
-      <h1 class="header-title">
-        {activeLens === 'studio' ? 'Creative Operations & Studio Performance' : 'My Production Workspace'}
-      </h1>
+      <h1 class="header-title">Home</h1>
       <p class="header-desc">
         {activeLens === 'studio' 
           ? 'Real-time studio health, production velocity, bottleneck aging, and brand portfolio distribution' 
@@ -924,7 +922,7 @@
       </FluentCard>
     </div>
 
-    <!-- Collapsible Advanced Studio Telemetry & SLA Accordion -->
+    <!-- Collapsible Advanced Studio Performance & SLA Accordion -->
     <div class="deep-analytics-accordion">
       <button
         type="button"
@@ -934,10 +932,10 @@
       >
         <div class="deep-toggle-left">
           <FluentIcons name="chart" size={16} />
-          <span>Advanced Studio Telemetry &amp; SLA Metrics</span>
+          <span>Advanced Studio Performance &amp; SLA Metrics</span>
         </div>
         <div class="deep-toggle-right">
-          <span class="deep-toggle-hint">{showDeepAnalytics ? 'Hide Advanced Metrics' : 'Show Competency Radar & 4 SLA Metrics'}</span>
+          <span class="deep-toggle-hint">{showDeepAnalytics ? 'Hide Advanced Metrics' : 'Show Competency Radar & 4 Performance Metrics'}</span>
           <svg class="deep-chevron" class:open={showDeepAnalytics} width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
             <path d="M7 10l5 5 5-5z"/>
           </svg>

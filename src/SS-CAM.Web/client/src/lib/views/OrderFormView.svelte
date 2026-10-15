@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
@@ -585,20 +586,20 @@
         method: 'PATCH',
         body: JSON.stringify({ status }),
       });
-      appState.addToast('Order status updated.', 'success');
+      appState.addToast('Request status updated.', 'success');
       await loadOrders();
     } catch (err: any) {
-      appState.addToast(err.message || 'Update failed.', 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the request status. Please try again.'), 'error');
     }
   }
 
   async function cancelOrder(id: string) {
     try {
       await ApiClient.request(`/orders/${encodeURIComponent(id)}`, { method: 'DELETE' });
-      appState.addToast('Order has been cancelled.', 'warning', 'Cancelled');
+      appState.addToast('Request cancelled.', 'warning', 'Cancelled');
       await loadOrders();
     } catch (err: any) {
-      appState.addToast(err.message || 'Cancellation failed.', 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t cancel the request. Please try again.'), 'error');
     }
   }
 
@@ -608,10 +609,10 @@
         method: 'PATCH',
         body: JSON.stringify({ assignedTo: designerName || null }),
       });
-      appState.addToast(designerName ? `Assigned order to ${designerName}.` : 'Cleared designer assignment.', 'success');
+      appState.addToast(designerName ? `Assigned request to ${designerName}.` : 'Cleared team member assignment.', 'success');
       await loadOrders();
     } catch (err: any) {
-      appState.addToast(err.message || 'Assignment failed.', 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t assign the request. Please try again.'), 'error');
     }
   }
 
@@ -622,10 +623,10 @@
         method: 'PATCH',
         body: JSON.stringify({ projectId: projId.trim() }),
       });
-      appState.addToast(`Linked order to project ${projId.trim()}.`, 'success');
+      appState.addToast(`Linked request to project ${projId.trim()}.`, 'success');
       await loadOrders();
     } catch (err: any) {
-      appState.addToast(err.message || 'Linking failed.', 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t link the project. Please try again.'), 'error');
     }
   }
 
@@ -637,7 +638,7 @@
 
     for (const file of files) {
       if (file.size > 50 * 1024 * 1024) {
-        appState.addToast(`${file.name} exceeds 50MB limit`, 'warning');
+        appState.addToast(`${file.name} exceeds the 50 MB limit.`, 'warning');
         continue;
       }
       const reader = new FileReader();
@@ -648,10 +649,10 @@
             method: 'POST',
             body: JSON.stringify({ filename: file.name, fileData })
           });
-          appState.addToast(`Uploaded ${file.name} to order NAS folder`, 'success');
+          appState.addToast(`Uploaded ${file.name}.`, 'success');
           await loadOrders();
         } catch (err: any) {
-          appState.addToast(err.message || 'Upload failed', 'error');
+          appState.addToast(getErrorMessage(err, 'Upload failed. Please try again.'), 'error');
         }
       };
       reader.readAsDataURL(file);
@@ -659,7 +660,7 @@
   }
 
   async function deleteAttachment(orderId: string, filename: string) {
-    if (!confirm(`Remove attachment "${filename}" from NAS _Orders folder?`)) return;
+    if (!confirm(`Remove attachment "${filename}"?`)) return;
     try {
       await ApiClient.request(`/orders/${encodeURIComponent(orderId)}/attachments/${encodeURIComponent(filename)}`, {
         method: 'DELETE'
@@ -667,7 +668,7 @@
       appState.addToast(`Removed ${filename}.`, 'info');
       await loadOrders();
     } catch (err: any) {
-      appState.addToast(err.message || 'Failed to remove attachment', 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t remove the attachment. Please try again.'), 'error');
     }
   }
 
@@ -681,10 +682,10 @@
         method: 'POST',
         body: JSON.stringify({ projectId })
       });
-      appState.addToast(`Successfully ingested ${res.count} attachments into project ${projectId} (${res.destination})!`, 'success', 'Files Ingested');
+      appState.addToast(`Uploaded ${res.count} attachments into project ${projectId}.`, 'success', 'Files uploaded');
       await loadOrders();
     } catch (err: any) {
-      appState.addToast(err.message || 'Ingestion failed.', 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t upload the files. Please try again.'), 'error');
     }
   }
 
@@ -692,7 +693,7 @@
     const uncPath = order.nasPath || `\\\\SSNAS\\Creative-Team\\_Orders\\${order.id}`;
     try {
       await navigator.clipboard.writeText(uncPath);
-      appState.addToast(`Copied NAS folder path: ${uncPath}`, 'success');
+      appState.addToast(`Copied folder path: ${uncPath}`, 'success');
     } catch {
       appState.addToast(uncPath, 'info');
     }
@@ -712,7 +713,7 @@
       (order.attachmentNote ? `\n--- ASSET REFERENCES ---\n${order.attachmentNote}\n` : '');
     try {
       await navigator.clipboard.writeText(text);
-      appState.addToast('Copied brief & script to clipboard!', 'success');
+      appState.addToast('Copied brief and script to clipboard.', 'success');
     } catch {
       appState.addToast('Unable to access clipboard.', 'warning');
     }
@@ -780,7 +781,7 @@
   <div class="page-header">
     <div class="page-header-text">
       <div class="page-kicker">Creative Operations</div>
-      <h1 class="page-title">Order Requests</h1>
+      <h1 class="page-title">New request</h1>
       <p class="page-desc">
         Intake creative briefs, ad copy requirements, and campaign requests.
         Structured submission pipeline with SLA priority windows.
@@ -1247,15 +1248,15 @@
                 class="input"
                 type="text"
                 bind:value={f_attachmentNote}
-                placeholder="\\SSNAS\Creative-Team\... or drive.google.com/..."
+                placeholder="Shared drive path or drive.google.com/..."
               />
             </div>
 
             <!-- 7. File Attachments (shown in Step 2) -->
             <div class="field">
               <label class="field-label" for="f-file-input">
-                Upload Reference Files / Assets (NAS Temporary Vault)
-                <span class="optional-label">Optional • Stored in \\SSNAS\_Orders</span>
+                Upload Reference Files / Assets (Temporary Shared Drive)
+                <span class="optional-label">Optional • Stored in shared drive</span>
               </label>
               <div class="file-dropzone">
                 <input

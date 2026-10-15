@@ -187,11 +187,11 @@
     const next: 'falconia' | 'dark' = current === 'dark' ? 'falconia' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     appState.setTheme(next);
-    appState.addToast(`Theme switched to ${next === 'dark' ? 'Dark' : 'Light'}`, 'info');
+    appState.addToast(`Theme switched to ${next === 'dark' ? 'Dark' : 'Light'}.`, 'info');
   }
 
   function rescanVault() {
-    appState.addToast('Rescanning Synology NAS workspace...', 'info');
+    appState.addToast('Rescanning shared drive...', 'info');
     projectStore.loadProjects();
     projectStore.loadDashboard();
   }
@@ -305,7 +305,7 @@
     const valueToCopy = isShift ? `var(${cssVar})` : code;
     try {
       await navigator.clipboard.writeText(valueToCopy);
-      appState.addToast(`Copied ${valueToCopy} (${name}) to clipboard`, 'success');
+      appState.addToast(`Copied ${valueToCopy} (${name}) to clipboard.`, 'success');
     } catch {
       appState.addToast(`Value: ${valueToCopy}`, 'info');
     }
@@ -314,7 +314,7 @@
   async function copyHook(hook: CopyHook) {
     try {
       await navigator.clipboard.writeText(hook.copyText);
-      appState.addToast(`Copied Hook: "${hook.title}" to clipboard!`, 'success', 'Marketing Hook Copied');
+      appState.addToast(`Copied "${hook.title}" to clipboard.`, 'success', 'Marketing hook copied');
     } catch {
       appState.addToast(hook.copyText, 'info');
     }

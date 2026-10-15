@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
@@ -73,7 +74,7 @@
 
   async function handleGenerateHooks() {
     if (!productInput.trim()) {
-      appState.addToast('Please enter a product or campaign topic', 'warning');
+      appState.addToast('Please enter a product or campaign topic.', 'warning');
       return;
     }
     isGenerating = true;
@@ -87,13 +88,13 @@
         language: languageInput
       });
       generatedOutput = res.hooks;
-      appState.addToast('Viral hooks composed!', 'success');
+      appState.addToast('Viral hooks generated.', 'success');
     } catch (err: any) {
       if (!aiStatus.configured) {
         activeTab = 'settings';
         appState.addToast("The AI assistant isn't set up yet. Ask an admin to add the AI key.", 'info');
       } else {
-        appState.addToast(`Generation failed: ${err.message}`, 'error');
+        appState.addToast(getErrorMessage(err, "We couldn't generate hooks. Please try again."), 'error');
       }
     } finally {
       isGenerating = false;
@@ -102,7 +103,7 @@
 
   async function handleGenerateScript() {
     if (!productInput.trim()) {
-      appState.addToast('Please enter a product or campaign topic', 'warning');
+      appState.addToast('Please enter a product or campaign topic.', 'warning');
       return;
     }
     isGenerating = true;
@@ -116,13 +117,13 @@
         language: languageInput
       });
       generatedOutput = res.script;
-      appState.addToast('Advertising script generated!', 'success');
+      appState.addToast('Advertising script generated.', 'success');
     } catch (err: any) {
       if (!aiStatus.configured) {
         activeTab = 'settings';
         appState.addToast("The AI assistant isn't set up yet. Ask an admin to add the AI key.", 'info');
       } else {
-        appState.addToast(`Generation failed: ${err.message}`, 'error');
+        appState.addToast(getErrorMessage(err, "We couldn't generate the script. Please try again."), 'error');
       }
     } finally {
       isGenerating = false;
@@ -131,7 +132,7 @@
 
   async function handleGenerateImagePrompts() {
     if (!productInput.trim()) {
-      appState.addToast('Please enter a product name for image prompts', 'warning');
+      appState.addToast('Please enter a product name for image prompts.', 'warning');
       return;
     }
     isGenerating = true;
@@ -144,13 +145,13 @@
         brandColors: imageColors
       });
       generatedOutput = res.prompts;
-      appState.addToast('Commercial photography prompts generated!', 'success');
+      appState.addToast('Commercial photography prompts generated.', 'success');
     } catch (err: any) {
       if (!aiStatus.configured) {
         activeTab = 'settings';
         appState.addToast("The AI assistant isn't set up yet. Ask an admin to add the AI key.", 'info');
       } else {
-        appState.addToast(`Generation failed: ${err.message}`, 'error');
+        appState.addToast(getErrorMessage(err, "We couldn't generate image prompts. Please try again."), 'error');
       }
     } finally {
       isGenerating = false;
@@ -161,7 +162,7 @@
     try {
       const res = await ApiClient.formatUltraPrompt({
         brand: selectedBrand,
-        title: productInput || projectTitle || 'SuamiSihat Creative Campaign',
+        title: productInput || projectTitle || 'Creative Campaign',
         audience: audienceInput,
         goal: 'High-conversion direct response marketing asset generation'
       });
@@ -175,9 +176,9 @@
     if (!generatedOutput) return;
     try {
       await navigator.clipboard.writeText(generatedOutput);
-      appState.addToast('Copied to clipboard!', 'success');
+      appState.addToast('Copied to clipboard.', 'success');
     } catch (e) {
-      appState.addToast('Could not copy automatically', 'info');
+      appState.addToast('Could not copy automatically.', 'info');
     }
   }
 
@@ -185,7 +186,7 @@
     if (!generatedOutput) return;
     if (onInsertCopy) {
       onInsertCopy(`\n\n## Gemini AI Generated Content\n\n${generatedOutput}\n`);
-      appState.addToast('Inserted into COPY.md editor!', 'success');
+      appState.addToast('Inserted into copy editor.', 'success');
       closeModal();
     }
   }
@@ -196,10 +197,10 @@
       const res = await ApiClient.saveAiConfig({ apiKey: newApiKey, preferredModel: newModel });
       aiStatus = res.status;
       newApiKey = '';
-      appState.addToast('Gemini API configuration saved!', 'success');
+      appState.addToast('AI configuration saved.', 'success');
       activeTab = 'hooks';
     } catch (err: any) {
-      appState.addToast(`Failed to save settings: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, "We couldn't save settings. Please try again."), 'error');
     } finally {
       isSavingSettings = false;
     }
@@ -224,7 +225,7 @@
           </div>
           <div>
             <div class="title-row">
-              <h2 class="modal-title">SuamiSihat Creative AI Studio</h2>
+              <h2 class="modal-title">Creative AI Studio</h2>
               <span class="model-badge {aiStatus.configured ? 'ready' : 'required'}">
                 <span class="status-dot"></span>
                 {aiStatus.configured ? aiStatus.preferredModel : 'API Key Required'}
@@ -405,7 +406,7 @@
                 {:else if activeTab === 'ultra_prompt'}
                   <div class="ultra-info-box">
                     <span class="info-title">How to use with Gemini Ultra:</span>
-                    <p class="info-desc">Click "Copy Full Prompt" below, open your Gemini Ultra web session, and paste. It includes full SuamiSihat brand guidelines.</p>
+                    <p class="info-desc">Click "Copy Full Prompt" below, open your Gemini Ultra web session, and paste. It includes full brand guidelines.</p>
                   </div>
                   <div class="btn-block">
                     <a href="https://gemini.google.com" target="_blank" rel="noreferrer" class="gemini-web-link">
@@ -430,7 +431,7 @@
                     {#if onInsertCopy}
                       <button class="out-action-btn insert-btn" onclick={handleInsertIntoCopy}>
                         <FluentIcons name="edit" size={13} />
-                        <span style="margin-left: 4px;">Insert to COPY.md</span>
+                        <span style="margin-left: 4px;">Insert to copy editor</span>
                       </button>
                     {/if}
                   </div>
@@ -459,7 +460,7 @@
 
       <!-- Footer -->
       <div class="ai-footer">
-        <span class="footer-tip">Powered by Google Gemini 1.5 Pro/Flash · SuamiSihat Brand Copywriting Engine</span>
+        <span class="footer-tip">Powered by Google Gemini 1.5 Pro/Flash · Brand Copywriting Engine</span>
         <FluentButton appearance="subtle" onclick={closeModal}>Close</FluentButton>
       </div>
     </div>

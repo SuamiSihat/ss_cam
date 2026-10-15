@@ -93,7 +93,7 @@
 
   async function handleDecision(decision: 'approved' | 'revision_requested') {
     if (!reviewerName.trim()) {
-      alert('Please enter your Name before submitting your decision.');
+      alert('Please enter your name before submitting your decision.');
       return;
     }
 
@@ -112,7 +112,7 @@
         whatsappUrl: res.whatsappUrl || null
       };
     } catch (err: any) {
-      alert(`Decision submission failed: ${err.message}`);
+      alert(err?.message || 'We couldn\'t submit your decision. Please try again.');
     } finally {
       isSubmitting = false;
     }
@@ -146,8 +146,8 @@
     {#if isLoading}
       <div class="state-card loading-card">
         <div class="spinner"></div>
-        <h2>Loading Campaign Review Workspace...</h2>
-        <p>Connecting to secure Studio Vault.</p>
+        <h2>Loading campaign review...</h2>
+        <p>Connecting to secure shared drive.</p>
       </div>
 
     {:else if errorMsg}
@@ -155,9 +155,9 @@
         <div class="state-icon">
           <FluentIcons name="warning" size={32} color="#F59E0B" />
         </div>
-        <h2>Review Link Expired or Invalid</h2>
+        <h2>Review link expired or invalid</h2>
         <p>{errorMsg}</p>
-        <span class="error-hint">Please contact your SuamiSihat Creative Account Lead to request a new review link.</span>
+        <span class="error-hint">Please contact your project lead to request a new review link.</span>
       </div>
 
     {:else if submittedResult}
@@ -169,9 +169,9 @@
             color={submittedResult.decision === 'approved' ? '#10B981' : '#F59E0B'}
           />
         </div>
-        <h2>Decision Recorded Successfully</h2>
+        <h2>Decision recorded</h2>
         <p>
-          Thank you, <b>{submittedResult.reviewer}</b>. Your feedback has been logged in the SuamiSihat master audit ledger.
+          Thank you, <b>{submittedResult.reviewer}</b>. Your feedback has been recorded in the project ledger.
         </p>
         <div class="decision-receipt">
           <div class="receipt-row"><span>Status:</span> <b>{submittedResult.decision.toUpperCase()}</b></div>
@@ -181,7 +181,7 @@
 
         {#if submittedResult.whatsappUrl}
           <div class="wa-dispatch-box">
-            <p class="wa-dispatch-hint">Notify Lead Creative (Harussani) of your sign-off decision via WhatsApp:</p>
+            <p class="wa-dispatch-hint">Notify the creative lead of your decision via WhatsApp:</p>
             <a
               href={submittedResult.whatsappUrl}
               target="_blank"
@@ -191,7 +191,7 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.072-1.047-.063-.263-.087-.605-.205-1.028-.393-1.808-.802-2.986-2.616-3.076-2.736-.089-.12-0.73-0.971-.73-1.852 0-.882.463-1.316.627-1.492.164-.176.357-.22.477-.22.12 0 .24 0 .344.006.111.006.26-.042.406.31.15.362.513 1.25.558 1.341.045.091.075.197.015.317-.06.12-.09.196-.179.301-.089.106-.188.236-.269.317-.09.09-.184.188-.079.368.106.18.47 0.776 1.009 1.256.694.618 1.279.81 1.46.899.18.09.286.075.391-.045.105-.12.45-.525.57-.705.12-.18.24-.15.405-.09.165.06 1.05.495 1.23.585.18.09.3.135.345.21.045.075.045.435-.099.84z"/>
               </svg>
-              <span>Notify Lead Creative via WhatsApp</span>
+              <span>Notify creative lead via WhatsApp</span>
             </a>
           </div>
         {/if}
@@ -217,8 +217,8 @@
       <section class="deliverables-section">
         <div class="section-header-row">
           <div class="header-titles">
-            <h2 class="section-title">Creative Deliverables for Review ({sortedDeliverables.length})</h2>
-            <span class="section-hint">Click any asset to inspect in full resolution, drop markup pins, or compare versions.</span>
+            <h2 class="section-title">Deliverables for review ({sortedDeliverables.length})</h2>
+            <span class="section-hint">Click any deliverable to view in full resolution, add comments, or compare versions.</span>
           </div>
           <div class="header-actions-cluster">
             <a
@@ -228,7 +228,7 @@
               title="Download all deliverables in a single compressed .zip file"
             >
               <FluentIcons name="download" size={13} />
-              <span>Download All Deliverables (.zip)</span>
+              <span>Download all deliverables (.zip)</span>
             </a>
             <div class="sort-control">
               <span class="sort-label">Sort:</span>
@@ -286,7 +286,7 @@
                 {:else}
                   <div class="pdf-thumb-box">
                     <FluentIcons name="folder" size={24} color="#21A1F7" />
-                    <span style="margin-top: 4px;">Master Asset</span>
+                    <span style="margin-top: 4px;">Deliverable</span>
                   </div>
                 {/if}
               </div>
@@ -313,36 +313,36 @@
               <FluentIcons name="edit" size={18} color="#21A1F7" />
             </div>
             <div>
-              <h3 class="deck-title">Client Sign-Off &amp; Decision</h3>
-              <p class="deck-sub">Enter your details to formally approve or request design revisions.</p>
+              <h3 class="deck-title">Client approval</h3>
+              <p class="deck-sub">Enter your details to approve or request revisions.</p>
             </div>
           </div>
 
           <div class="decision-inputs-grid">
             <div class="input-col">
-              <label class="input-label" for="reviewer-name">Your Full Name *</label>
+              <label class="input-label" for="reviewer-name">Your full name *</label>
               <input id="reviewer-name" type="text" class="portal-input" placeholder="e.g. Dato' Roslan / Sarah Chen" bind:value={reviewerName} />
             </div>
 
             <div class="input-col">
-              <label class="input-label" for="reviewer-org">Organization / Department (Optional)</label>
+              <label class="input-label" for="reviewer-org">Organization or department (optional)</label>
               <input id="reviewer-org" type="text" class="portal-input" placeholder="e.g. Marketing Directorate" bind:value={reviewerOrg} />
             </div>
           </div>
 
           <div class="input-col" style="margin-top: 12px;">
-            <label class="input-label" for="decision-comment">Comments &amp; Revision Notes (Optional)</label>
+            <label class="input-label" for="decision-comment">Comments and revision notes (optional)</label>
             <textarea id="decision-comment" class="portal-textarea" rows="3" placeholder="Provide any specific feedback, copy revisions, or sign-off notes..." bind:value={decisionComment}></textarea>
           </div>
 
           <div class="decision-action-buttons">
             <FluentButton appearance="secondary" size="lg" loading={isSubmitting} onclick={() => handleDecision('revision_requested')}>
               <FluentIcons name="warning" size={14} color="#F59E0B" />
-              <span style="margin-left: 6px;">Request Revisions</span>
+              <span style="margin-left: 6px;">Request revisions</span>
             </FluentButton>
             <FluentButton appearance="primary" size="lg" loading={isSubmitting} onclick={() => handleDecision('approved')}>
               <FluentIcons name="checkCircle" size={14} color="#10B981" />
-              <span style="margin-left: 6px;">Approve &amp; Sign-Off Deliverables</span>
+              <span style="margin-left: 6px;">Approve deliverables</span>
             </FluentButton>
           </div>
         </section>

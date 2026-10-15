@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
+  import { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
@@ -233,12 +234,12 @@
         if (onAnnotationsCountChange) {
           onAnnotationsCountChange(annotations.length);
         }
-        appState.addToast(`Feedback Pin #${pendingPin.pinNumber} posted`, 'success');
+        appState.addToast(`Comment pin #${pendingPin.pinNumber} posted.`, 'success');
       }
       pendingPin = null;
       newPinContent = '';
     } catch (err: any) {
-      appState.addToast(`Failed to save feedback pin: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t save the comment pin. Please try again.'), 'error');
     } finally {
       isSavingPin = false;
     }
@@ -256,9 +257,9 @@
       const newStatus = !pin.resolved;
       await ApiClient.resolveComment(projectId, pin.id, newStatus);
       pin.resolved = newStatus;
-      appState.addToast(newStatus ? `Pin #${pin.annotation?.pinNumber || ''} marked resolved` : 'Pin reopened', 'info');
+      appState.addToast(newStatus ? `Pin #${pin.annotation?.pinNumber || ''} marked as resolved.` : 'Pin reopened.', 'info');
     } catch (err: any) {
-      appState.addToast(`Failed to update pin: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the pin. Please try again.'), 'error');
     }
   }
 
@@ -272,9 +273,9 @@
       if (onAnnotationsCountChange) {
         onAnnotationsCountChange(annotations.length);
       }
-      appState.addToast('Feedback pin deleted', 'info');
+      appState.addToast('Comment pin deleted.', 'info');
     } catch (err: any) {
-      appState.addToast(`Failed to delete pin: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t delete the pin. Please try again.'), 'error');
     }
   }
 

@@ -3,6 +3,7 @@
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import type { Project } from '$lib/types';
   import ProjectFilterBar from '$lib/components/features/ProjectFilterBar.svelte';
   import ProjectKanbanView from '$lib/components/features/ProjectKanbanView.svelte';
@@ -59,11 +60,11 @@
     try {
       await Promise.all(ids.map(id => ApiClient.updateProject(id, { status } as any)));
       await projectStore.loadProjects(true);
-      appState.addToast(`${ids.length} project${ids.length > 1 ? 's' : ''} set to "${status}"`, 'success', 'Bulk Update');
+      appState.addToast(`${ids.length} project${ids.length > 1 ? 's' : ''} set to "${status}".`, 'success', 'Bulk update');
       selectedIds = new Set();
       bulkMode = false;
     } catch (err: any) {
-      appState.addToast(`Bulk update failed: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'Bulk update failed. Please try again.'), 'error');
     } finally {
       isBulkUpdating = false;
     }
@@ -75,9 +76,9 @@
     try {
       await ApiClient.updateProject(id, { status } as any);
       await projectStore.loadProjects(true);
-      appState.addToast(`Status → "${status}"`, 'success');
+      appState.addToast(`Status updated to "${status}".`, 'success');
     } catch (err: any) {
-      appState.addToast(`Update failed: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the project status. Please try again.'), 'error');
     }
   }
 
@@ -106,7 +107,7 @@
       calendar: 'Calendar View',
       table: 'Data Table'
     };
-    appState.addToast(`Saved ${viewLabels[viewMode]} as your default opening view.`, 'success');
+    appState.addToast(`Saved ${viewLabels[viewMode]} as your default view.`, 'success');
   }
 
   function handleDeleteRequest(project: Project) {
@@ -119,13 +120,13 @@
     isDeleting = true;
     try {
       await ApiClient.deleteProject(projectToDelete.id);
-      appState.addToast(`Project ${projectToDelete.jobId || projectToDelete.title} deleted successfully.`, 'success');
+      appState.addToast(`Project ${projectToDelete.jobId || projectToDelete.title} deleted.`, 'success');
       showDeleteModal = false;
       projectToDelete = null;
       await projectStore.loadProjects();
       await projectStore.loadDashboard();
     } catch (err: any) {
-      appState.addToast(`Failed to delete project: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t delete the project. Please try again.'), 'error');
     } finally {
       isDeleting = false;
     }
@@ -149,8 +150,8 @@
   <!-- View Header & View Switcher -->
   <div class="view-header">
     <div class="header-titles">
-      <h1 class="view-title">Project Catalog</h1>
-      <p class="view-subtitle">Browse workspace creative assets, campaign folders, briefs, and production schedules</p>
+      <h1 class="view-title">Projects</h1>
+      <p class="view-subtitle">Browse creative assets, campaign folders, briefs, and schedules.</p>
     </div>
 
     <!-- View Controls & Default Action -->
@@ -410,10 +411,10 @@
       <div class="delete-warning-banner">
         <div class="warning-title">
           <FluentIcons name="warning" size={16} color="#EF4444" />
-          <span style="margin-left: 6px;">Irreversible Filesystem Operation</span>
+          <span style="margin-left: 6px;">Irreversible action</span>
         </div>
         <p class="warning-text">
-          This will permanently delete the project directory and <strong>all 5 subfolders</strong> in Studio Vault:
+          This will permanently delete the project directory and <strong>all 5 subfolders</strong> on the shared drive:
         </p>
         <ul class="subfolder-list">
           <li><code>01_BRIEF_ASSETS/</code></li>

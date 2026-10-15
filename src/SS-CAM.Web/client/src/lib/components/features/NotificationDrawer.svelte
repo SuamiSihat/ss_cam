@@ -54,7 +54,7 @@
   function markAllRead() {
     notifications = notifications.map(n => ({ ...n, unread: false }));
     appState.notificationCount = 0;
-    appState.addToast('All notifications marked as read', 'info');
+    appState.addToast('All notifications marked as read.', 'info');
   }
 
   function formatTime(iso: string): string {

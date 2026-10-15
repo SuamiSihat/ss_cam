@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
+  import { getErrorMessage } from '$lib/copy';
   import type { ProjectComment, DeliverableItem } from '$lib/types';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
@@ -60,7 +61,7 @@
       const res = await ApiClient.getComments(projectId);
       comments = res.comments || [];
     } catch (err: any) {
-      appState.addToast(`Failed to load comments: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t load the comments. Please try again.'), 'error');
     } finally {
       isLoading = false;
     }
@@ -129,10 +130,10 @@
         if (onCommentAdded) onCommentAdded(res.comment);
         newCommentText = '';
         selectedDeliverableTag = '';
-        appState.addToast('Comment posted to project NAS thread', 'success');
+        appState.addToast('Comment posted.', 'success');
       }
     } catch (err: any) {
-      appState.addToast(`Failed to post comment: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t post your comment. Please try again.'), 'error');
     } finally {
       isSubmitting = false;
     }
@@ -144,9 +145,9 @@
       await ApiClient.resolveComment(projectId, comment.id, targetState);
       comment.resolved = targetState;
       comments = [...comments];
-      appState.addToast(targetState ? 'Thread marked as resolved' : 'Thread reopened', 'info');
+      appState.addToast(targetState ? 'Marked as resolved.' : 'Comment reopened.', 'info');
     } catch (err: any) {
-      appState.addToast(`Failed to update comment: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the comment. Please try again.'), 'error');
     }
   }
 
@@ -155,9 +156,9 @@
     try {
       await ApiClient.deleteComment(projectId, commentId);
       comments = comments.filter(c => c.id !== commentId);
-      appState.addToast('Comment deleted', 'info');
+      appState.addToast('Comment deleted.', 'info');
     } catch (err: any) {
-      appState.addToast(`Failed to delete comment: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t delete the comment. Please try again.'), 'error');
     }
   }
 

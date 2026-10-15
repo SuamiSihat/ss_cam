@@ -86,7 +86,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Preflight Certificate — ${deliverable.filename}</title>
+  <title>Print Check Report — ${deliverable.filename}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0D1117; color: #F0F6FC; padding: 30px; }
     .card { background: #161B22; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; max-width: 600px; margin: 0 auto; }
@@ -102,14 +102,14 @@
 </head>
 <body>
   <div class="card">
-    <h1>SuamiSihat Print Preflight Certificate</h1>
+    <h1>Print Check Report</h1>
     <p>Asset: <b>${deliverable.filename}</b></p>
     <div class="row"><span class="label">Target Preset:</span><span>${selectedPreset.name} (${selectedPreset.widthCm}×${selectedPreset.heightCm} cm)</span></div>
     <div class="row"><span class="label">Pixel Dimensions:</span><span>${imgNaturalWidth} × ${imgNaturalHeight} px</span></div>
     <div class="row"><span class="label">Calculated DPI:</span><span><b>${preflightMetrics.avgDpi} DPI</b> (Recommended: ${selectedPreset.recommendedDpi} DPI)</span></div>
     <div class="row"><span class="label">Aspect Ratio Fit:</span><span>Deviation ${preflightMetrics.ratioDiff}%</span></div>
     <div class="row"><span class="label">Verdict:</span><span class="badge badge-${preflightMetrics.status}">${preflightMetrics.status.toUpperCase()}</span></div>
-    <div class="footer">Generated on ${new Date().toLocaleString()} · SuamiSihat Creative Studio Production Engine</div>
+    <div class="footer">Generated on ${new Date().toLocaleString()} · Creative Assets Management</div>
   </div>
 </body>
 </html>`;
@@ -118,10 +118,10 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Preflight_${deliverable.filename.replace(/\.[^/.]+$/, "")}.html`;
+    a.download = `Print_Check_${deliverable.filename.replace(/\.[^/.]+$/, "")}.html`;
     a.click();
     URL.revokeObjectURL(url);
-    appState.addToast('Preflight certificate downloaded!', 'success');
+    appState.addToast('Print check report downloaded.', 'success');
   }
 
   function closeModal() {
@@ -142,8 +142,8 @@
             <FluentIcons name="printer" size={20} color="#00CFFF" />
           </div>
           <div>
-            <h2 class="modal-title">Production Print &amp; POSM Preflight Validator</h2>
-            <p class="modal-sub">DPI resolution check, physical dimension fit, and color space guard.</p>
+            <h2 class="modal-title">Print check</h2>
+            <p class="modal-sub">Check resolution, physical dimensions, and color settings before printing.</p>
           </div>
         </div>
         <button class="close-btn" onclick={closeModal} title="Close Modal">
@@ -155,7 +155,7 @@
       <div class="preflight-body">
         <!-- Target Preset Selector -->
         <div class="preset-card">
-          <label class="section-label" for="print-preset-select">Select Physical Print Target Standard</label>
+          <label class="section-label" for="print-preset-select">Select print format</label>
           <select id="print-preset-select" class="preset-select" bind:value={selectedPresetId}>
             {#each PRESETS as p}
               <option value={p.id}>{p.name} — {p.widthCm}×{p.heightCm} cm ({p.category})</option>
@@ -196,9 +196,9 @@
           </div>
         </div>
 
-        <!-- Print Vendor Preflight Checklist -->
+        <!-- Print Vendor Checklist -->
         <div class="checklist-card">
-          <h3 class="checklist-title">Vendor Fabrication Preflight Checklist</h3>
+          <h3 class="checklist-title">Vendor print checklist</h3>
           <div class="checks-list">
             <div class="check-item">
               <span class="check-icon">
@@ -241,7 +241,7 @@
       <div class="preflight-footer">
         <button class="report-dl-btn" onclick={downloadReport}>
           <FluentIcons name="download" size={14} />
-          <span style="margin-left: 6px;">Download Preflight Certificate</span>
+          <span style="margin-left: 6px;">Download print check report</span>
         </button>
         <FluentButton appearance="subtle" onclick={closeModal}>Close</FluentButton>
       </div>

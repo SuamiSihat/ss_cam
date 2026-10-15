@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
@@ -72,10 +73,10 @@
         note: customNote.trim() || 'Manual studio milestone snapshot'
       });
       customNote = '';
-      appState.addToast('Version snapshot captured!', 'success');
+      appState.addToast('Version snapshot captured.', 'success');
       loadSnapshots();
     } catch (err: any) {
-      appState.addToast(`Failed to capture snapshot: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t capture a snapshot. Please try again.'), 'error');
     } finally {
       isCapturing = false;
     }
@@ -84,18 +85,18 @@
   async function handleRollback(snap: ProjectSnapshot) {
     if (!projectId || !snap.id) return;
     const confirmed = confirm(
-      `Are you sure you want to rollback to Rev ${snap.revision || 'selected'} (${snap.id})?\n\nA backup copy of current files will be created automatically.`
+      `Are you sure you want to restore Rev ${snap.revision || 'selected'} (${snap.id})?\n\nA backup copy of current files will be created automatically.`
     );
     if (!confirmed) return;
 
     isRollingBack = snap.id;
     try {
       const res = await ApiClient.rollbackProject(projectId, snap.id);
-      appState.addToast(res.message || 'Project rolled back successfully!', 'success');
+      appState.addToast(res.message || 'Restored earlier project version.', 'success');
       loadSnapshots();
       if (onRollbackSuccess) onRollbackSuccess();
     } catch (err: any) {
-      appState.addToast(`Rollback failed: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t restore this version. Please try again.'), 'error');
     } finally {
       isRollingBack = null;
     }

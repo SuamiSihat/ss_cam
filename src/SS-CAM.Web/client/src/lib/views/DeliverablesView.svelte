@@ -3,6 +3,7 @@
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import type { DeliverableItem } from '$lib/types';
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
   import FluentBadge from '$lib/components/ui/FluentBadge.svelte';
@@ -228,10 +229,10 @@
     if (!projId) return;
     try {
       await ApiClient.submitDecision(projId, { decision: 'approved', deliverableId: d.id });
-      appState.addToast(`Deliverable "${d.filename}" approved!`, 'success', 'Sign-Off Recorded');
+      appState.addToast(`Deliverable "${d.filename}" approved.`, 'success', 'Approval recorded');
       await projectStore.loadDeliverables();
     } catch (err: any) {
-      appState.addToast(err?.message || 'Failed to record approval', 'critical', 'Approval Error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t record your approval. Please try again.'), 'error');
     }
   }
 
@@ -241,10 +242,10 @@
     if (!projId) return;
     try {
       await ApiClient.submitDecision(projId, { decision: 'revision_requested', deliverableId: d.id });
-      appState.addToast(`Revision requested for "${d.filename}"`, 'warning', 'Revision Logged');
+      appState.addToast(`Revision requested for "${d.filename}".`, 'warning', 'Revision requested');
       await projectStore.loadDeliverables();
     } catch (err: any) {
-      appState.addToast(err?.message || 'Failed to record revision', 'critical', 'Revision Error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t request a revision. Please try again.'), 'error');
     }
   }
 
@@ -256,7 +257,7 @@
       const res = await ApiClient.getOrCreateProjectShare(projId);
       if (res && res.shareUrl) {
         await navigator.clipboard.writeText(res.shareUrl);
-        appState.addToast('Client review link copied to clipboard!', 'success', 'Share Link');
+        appState.addToast('Client review link copied to clipboard.', 'success', 'Share link');
       } else {
         openShare(d);
       }
@@ -271,11 +272,11 @@
   <div class="view-header">
     <div class="header-left">
       <div class="header-tag">
-        <span class="badge-accent">Studio Vault</span>
-        <span class="header-meta">{projectStore.deliverables.length} Master Outputs</span>
+        <span class="badge-accent">Shared drive</span>
+        <span class="header-meta">{projectStore.deliverables.length} Deliverables</span>
       </div>
-      <h1 class="view-title">Deliverables &amp; Reviews</h1>
-      <p class="view-subtitle">Inspect, approve, and sign off creative outputs across marketing campaigns in real time.</p>
+      <h1 class="view-title">Approvals</h1>
+      <p class="view-subtitle">Review, approve, and request revisions on deliverables across projects.</p>
     </div>
 
     <div class="header-actions">
@@ -292,7 +293,7 @@
           <polyline points="17 8 12 3 7 8"></polyline>
           <line x1="12" y1="3" x2="12" y2="15"></line>
         </svg>
-        <span style="margin-left: 5px;">Ingest Deliverables</span>
+        <span style="margin-left: 5px;">Upload deliverables</span>
       </FluentButton>
 
       <FluentButton appearance="secondary" size="sm" onclick={() => projectStore.loadDeliverables()}>
@@ -308,7 +309,7 @@
   <div class="vault-telemetry-ribbon">
     <div class="telemetry-kpi-group">
       <button class="kpi-pill {filterStatus === 'all' ? 'active' : ''}" onclick={() => filterStatus = 'all'} title="View all deliverables">
-        <span class="kpi-label">All Masters</span>
+        <span class="kpi-label">All</span>
         <span class="kpi-count">{projectStore.deliverables.length}</span>
         <span class="kpi-footprint-badge">{formattedTotalStorage}</span>
       </button>
@@ -443,7 +444,7 @@
   {#if projectStore.isLoading && projectStore.deliverables.length === 0}
     <div class="state-card">
       <div class="spinner-large"></div>
-      <p class="state-title">Scanning Studio Vault Deliverables...</p>
+      <p class="state-title">Scanning shared drive deliverables...</p>
       <p class="state-desc">Indexing high-resolution renders, mockups, and PDFs from active campaigns.</p>
     </div>
   {:else if filteredDeliverables.length === 0}
@@ -615,7 +616,7 @@
                                 <button class="tool-icon-btn" title="Smart Social Resizer" onclick={() => openResizer(d)}>
                                   <FluentIcons name="vector" size={13} />
                                 </button>
-                                <button class="tool-icon-btn" title="Print Preflight Validator" onclick={() => openPreflight(d)}>
+                                <button class="tool-icon-btn" title="Print check" onclick={() => openPreflight(d)}>
                                   <FluentIcons name="printer" size={13} />
                                 </button>
                               {/if}
@@ -751,7 +752,7 @@
                       <button class="tool-icon-btn" title="Smart Social Resizer" onclick={() => openResizer(d)}>
                         <FluentIcons name="vector" size={13} />
                       </button>
-                      <button class="tool-icon-btn" title="Print Preflight Validator" onclick={() => openPreflight(d)}>
+                      <button class="tool-icon-btn" title="Print check" onclick={() => openPreflight(d)}>
                         <FluentIcons name="printer" size={13} />
                       </button>
                     {/if}
@@ -841,7 +842,7 @@
                     <button class="tool-icon-btn" title="Social Resizer" onclick={() => openResizer(d)}>
                       <FluentIcons name="vector" size={13} />
                     </button>
-                    <button class="tool-icon-btn" title="Print Preflight" onclick={() => openPreflight(d)}>
+                    <button class="tool-icon-btn" title="Print check" onclick={() => openPreflight(d)}>
                       <FluentIcons name="printer" size={13} />
                     </button>
                   {/if}
@@ -873,7 +874,7 @@
       const projId = d.project?.id || d.projectId || d.project?.jobId || d.projectJobId;
       if (projId) {
         await ApiClient.submitDecision(projId, { decision: 'approved', deliverableId: d.id });
-        appState.addToast(`Deliverable "${d.filename}" approved!`, 'success', 'Sign-Off Recorded');
+        appState.addToast(`Deliverable "${d.filename}" approved.`, 'success', 'Approval recorded');
         await projectStore.loadDeliverables();
       }
     }}
@@ -881,7 +882,7 @@
       const projId = d.project?.id || d.projectId || d.project?.jobId || d.projectJobId;
       if (projId) {
         await ApiClient.submitDecision(projId, { decision: 'revision_requested', deliverableId: d.id });
-        appState.addToast(`Revision requested for "${d.filename}"`, 'warning', 'Revision Logged');
+        appState.addToast(`Revision requested for "${d.filename}".`, 'warning', 'Revision requested');
         await projectStore.loadDeliverables();
       }
     }}

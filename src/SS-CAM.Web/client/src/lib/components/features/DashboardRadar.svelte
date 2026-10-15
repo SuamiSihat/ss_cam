@@ -130,7 +130,7 @@
       whatItMeasures: 'Studio execution capability and output quality in this design domain.',
       whatIsGood: 'Output meets or exceeds benchmark quality with zero major revisions.',
       whatIsBad: 'Multiple revision cycles or delays required to reach production readiness.',
-      actionAdvice: 'Focus on adherence to design guidelines and preflight checklists.'
+      actionAdvice: 'Focus on adherence to design guidelines and print checklists.'
     }
   );
 
@@ -152,7 +152,7 @@
       whatItMeasures: 'Studio execution capability in this domain.',
       whatIsGood: 'Meets quarterly benchmark with clean handoff.',
       whatIsBad: 'Trailing benchmark with revision risk.',
-      actionAdvice: 'Follow standard preflight procedures.'
+      actionAdvice: 'Follow standard print check procedures.'
     };
   }
 </script>
@@ -362,7 +362,7 @@
           {#if hSkill.actual >= hSkill.target}
             <span class="status-good"><FluentIcons name="checkmark" size={13} color="var(--color-success)" /> Good: Fast sign-off, zero dieline/script delays.</span>
           {:else}
-            <span class="status-gap"><FluentIcons name="warning" size={13} color="var(--color-danger)" /> Attention: Revision risk; Lead preflight review advised.</span>
+            <span class="status-gap"><FluentIcons name="warning" size={13} color="var(--color-danger)" /> Attention: Revision risk; Lead review advised.</span>
           {/if}
         </div>
       </div>
@@ -554,7 +554,7 @@
           <div class="rule-header">🔴 Green Inside Blue (Skill Gap / Bottleneck)</div>
           <p>
             When the solid green polygon is <strong>visibly inside</strong> the dashed blue boundary, this discipline is an
-            operational bottleneck. Expect higher revision cycles, delay risks, or required lead preflight reviews.
+            operational bottleneck. Expect higher revision cycles, delay risks, or required lead reviews.
           </p>
         </div>
       </div>

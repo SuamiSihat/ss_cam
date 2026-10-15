@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
+  import copy, { getErrorMessage } from '$lib/copy';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import { ApiClient } from '$lib/services/api';
@@ -18,35 +19,36 @@
     eswt: {
       id: 'eswt',
       name: 'Terapi Gelombang Kejutan (ESWT) / Shockwave Therapy',
-      title: 'Pemulihan Vaskularisasi & Pengaliran Darah Mikro',
-      description: 'Gelombang akustik berintensiti rendah merangsang faktor pertumbuhan salur darah (VEGF), menguraikan plak mikroskopik dan membina kapilari darah baharu secara semulajadi.',
+      title: 'Pemulihan Vaskularisasi & Pengaliran Darah Mikro / Vascular & Microcirculation Recovery',
+      description: 'Gelombang akustik berintensiti rendah merangsang faktor pertumbuhan salur darah (VEGF), menguraikan plak mikroskopik dan menyokong pembentukan kapilari darah baharu secara semulajadi.',
       phases: [
         {
           phase: 1,
-          title: 'Fasa 1: Penilaian Asas & Rangsangan Selular (Minggu 1-2)',
+          title: 'Fasa 1: Penilaian Asas & Rangsangan Selular (Minggu 1-2) / Phase 1: Baseline & Cellular Activation',
           highlight: 'Memulakan pengaktifan metabolik tisu tanpa kesakitan.',
           details: 'Sesi 1 & 2 dimulakan pada paras tenaga terkawal (0.09 mJ/mm²). Sel endotelium mula dirangsang untuk melepaskan molekul nitrik oksida (NO).',
           metric: 'Pengaktifan Tisu Asas / Tissue Activation'
         },
         {
           phase: 2,
-          title: 'Fasa 2: Neovaskularisasi & Pembentukan Kapilari (Minggu 3-6)',
+          title: 'Fasa 2: Neovaskularisasi & Pembentukan Kapilari (Minggu 3-6) / Phase 2: Neovascularization',
           highlight: 'Pembentukan jaringan salur darah mikro baharu (Angiogenesis).',
-          details: 'Peningkatan aliran darah oksigen ke tisu spons korpus kavernosum. Pesakit mula merasakan peningkatan kekerapan respons ereksi pagi semulajadi.',
+          details: 'Peningkatan aliran darah oksigen ke tisu spons korpus kavernosum bagi menyokong respons ereksi semulajadi.',
           metric: 'Perfusi Vaskular Bertambah / Enhanced Perfusion'
         },
         {
           phase: 3,
-          title: 'Fasa 3: Pengukuhan Struktur & Ketahanan Maksimum (Minggu 7-10)',
+          title: 'Fasa 3: Pengukuhan Struktur & Ketahanan (Minggu 7-10) / Phase 3: Structural Strengthening',
           highlight: 'Penyatuan serat kolagen dan pemulihan elastisiti tisu.',
-          details: 'Ketegangan dan daya tahan ereksi mencapai paras optimum yang stabil. Tempoh latensi pemulihan berkurangan dengan ketara.',
+          details: 'Ketegangan dan daya tahan ereksi mencapai kestabilan yang optimum dengan pengurangan tempoh latensi pemulihan.',
           metric: 'Kestabilan Prestasi Tisu / Tissue Stability'
         },
         {
           phase: 4,
-          title: 'Fasa 4: Penyelenggaraan Jangka Panjang & Vitaliti Puncak (Minggu 12+)',
-          highlight: 'Kekalkan hasil jangka masa panjang secara berterusan.',
-          details: 'Semakan berkala setiap 6 bulan bersama bimbingan senaman lantai pelvis bagi mengekalkan vaskularisasi yang sihat sepanjang hayat.',
+          title: 'Fasa 4: Penyelenggaraan Jangka Panjang (Minggu 12+) / Phase 4: Long-Term Maintenance',
+          highlight: 'Mengekalkan tahap kesihatan vaskular secara berterusan.',
+          // copy review needed: removed absolute claim 'sepanjang hayat'
+          details: 'Semakan berkala setiap 6 bulan bersama bimbingan senaman lantai pelvis bagi menyokong kesihatan vaskular berterusan.',
           metric: 'Sasaran Klinikal Dicapai / Clinical Target Achieved'
         }
       ]
@@ -54,35 +56,35 @@
     trt: {
       id: 'trt',
       name: 'Terapi Penggantian Testosteron (TRT) / Hormone Therapy',
-      title: 'Pengoptimuman Profil Hormon & Kesejahteraan Metabolik',
-      description: 'Pelan rawatan perubatan berasaskan ujian darah klinikal bagi memulihkan paras hormon testosteron bio-identikal ke paras fisiologi lelaki aktif.',
+      title: 'Pengoptimuman Profil Hormon & Kesejahteraan Metabolik / Hormone Profile Optimization',
+      description: 'Pelan rawatan perubatan berasaskan ujian darah klinikal bagi mengoptimumkan paras hormon testosteron ke paras fisiologi lelaki aktif.',
       phases: [
         {
           phase: 1,
-          title: 'Fasa 1: Ujian Profil Darah & Penentuan Dos (Minggu 1-2)',
+          title: 'Fasa 1: Ujian Profil Darah & Penentuan Dos (Minggu 1-2) / Phase 1: Blood Profile & Dosing',
           highlight: 'Penetapan dos selamat berasaskan Total T, Free T, PSA & Hct.',
-          details: 'Penyelaras klinikal memeriksa fungsi hati, buah pinggang dan kepekatan sel darah merah sebelum memulakan suntikan formulasi terpilih.',
+          details: 'Penyelaras klinikal memeriksa fungsi hati, buah pinggang dan kepekatan sel darah merah sebelum memulakan pelan rawatan.',
           metric: 'Penetapan Titik Asas / Baseline Established'
         },
         {
           phase: 2,
-          title: 'Fasa 2: Lonjakan Tenaga & Kualiti Tidur (Minggu 3-6)',
+          title: 'Fasa 2: Pemulihan Tenaga & Kualiti Tidur (Minggu 3-6) / Phase 2: Energy & Sleep Recovery',
           highlight: 'Penurunan rasa letih kronik dan kejelasan mental meningkat.',
-          details: 'Paras androgen mula stabil. Pesakit melaporkan tidur nyenyak, mood positif, dan motivasi kerja harian yang jauh lebih bertenaga.',
+          details: 'Paras androgen mula stabil. Pesakit melaporkan tidur lebih lena, mood positif, dan tenaga harian yang lebih konsisten.',
           metric: 'Peningkatan Stamina & Tenaga / Energy Recovery'
         },
         {
           phase: 3,
-          title: 'Fasa 3: Pengurangan Lemak Viseral & Komposisi Otot (Minggu 7-10)',
+          title: 'Fasa 3: Pengurangan Lemak Viseral & Komposisi Otot (Minggu 7-10) / Phase 3: Body Composition',
           highlight: 'Metabolisme lipid meningkat dan pembentukan jisim otot tanpa lemak.',
-          details: 'Sensitiviti insulin bertambah baik. Pembakaran lemak di bahagian perut lebih efektif apabila digandingkan dengan senaman rintangan asas.',
+          details: 'Sensitiviti insulin bertambah baik. Pengurangan lemak viseral lebih efektif apabila digandingkan dengan senaman asas.',
           metric: 'Peningkatan Komposisi Badan / Composition Progress'
         },
         {
           phase: 4,
-          title: 'Fasa 4: Pemantauan Darah 12-Minggu & Penyelenggaraan (Minggu 12+)',
-          highlight: 'Ujian darah susulan wajib bagi menjamin keselamatan kardiovaskular.',
-          details: 'Semakan semula paras hematokrit dan lipid darah bagi memastikan paras hormon kekal dalam zon terapeutik optimum yang selamat.',
+          title: 'Fasa 4: Pemantauan Darah 12-Minggu & Penyelenggaraan (Minggu 12+) / Phase 4: 12-Week Monitoring',
+          highlight: 'Ujian darah susulan bagi memantau keselamatan kardiovaskular.',
+          details: 'Semakan semula paras hematokrit dan lipid darah bagi memastikan paras hormon kekal dalam zon terapeutik selamat.',
           metric: 'Keseimbangan Endokrin Optimum / Optimal Balance'
         }
       ]
@@ -90,35 +92,38 @@
     pe_ed: {
       id: 'pe_ed',
       name: 'Rehabilitasi Prestasi Lelaki / Men\'s Health (PE/ED)',
-      title: 'Pendekatan Klinikal Bersepadu & Kawalan Neuromuskular',
-      description: 'Gabungan terapi fisioterapi lantai pelvis, modulasi neuro-sensori dan sokongan formulasi klinikal berdaftar KKM bagi memulihkan kawalan dan keyakinan intim.',
+      title: 'Pendekatan Klinikal Bersepadu & Kawalan Neuromuskular / Integrated Clinical Approach',
+      description: 'Gabungan fisioterapi lantai pelvis, modulasi neuro-sensori dan sokongan klinikal berdaftar KKM bagi memulihkan kawalan dan keyakinan intim.',
       phases: [
         {
           phase: 1,
-          title: 'Fasa 1: Pemetaan Sensori & Kekuatan Otot Pelvis (Minggu 1-2)',
-          highlight: 'Mengenal pasti otot bulbocavernosus dan reflex ejakulasi.',
+          title: 'Fasa 1: Pemetaan Sensori & Kekuatan Otot Pelvis (Minggu 1-2) / Phase 1: Sensory Mapping',
+          highlight: 'Mengenal pasti otot bulbocavernosus dan kawalan reflex.',
           details: 'Doktor menguji ambang kepekaan saraf dan melatih teknik pengecutan otot dasar panggul yang betul.',
           metric: 'Kesedaran Neuromuskular / Neuromuscular Awareness'
         },
         {
           phase: 2,
-          title: 'Fasa 2: Kawalan Ambang & Pernafasan Rangsangan (Minggu 3-6)',
-          highlight: 'Meningkatkan tempoh latensi intravaginal (IELT) secara bertahap.',
-          details: 'Latihan teknik desensitisasi berperingkat dan kawalan ritma degupan jantung bagi mengelakkan lonjakan saraf simpatetik terlalu awal.',
+          title: 'Fasa 2: Kawalan Ambang & Pernafasan (Minggu 3-6) / Phase 2: Threshold & Breathing Control',
+          highlight: 'Meningkatkan kawalan ambang rangsangan secara bertahap.',
+          details: 'Latihan teknik desensitisasi berperingkat dan kawalan ritma pernafasan bagi mengelakkan lonjakan saraf terlalu awal.',
           metric: 'Peningkatan Kawalan Masa / Latency Control'
         },
         {
           phase: 3,
-          title: 'Fasa 3: Pengukuhan Respons Ereksi Berterusan (Minggu 7-10)',
+          title: 'Fasa 3: Pengukuhan Respons Ereksi Berterusan (Minggu 7-10) / Phase 3: Response Strengthening',
           highlight: 'Mengekalkan ketegangan tanpa keresahan prestasi (Performance Anxiety).',
-          details: 'Kombinasi aliran darah vaskular yang kuat dan ketenangan psikologi menghasilkan kepuasan bersama pasangan secara konsisten.',
+          // copy review needed: adjusted absolute claim 'kepuasan secara konsisten'
+          details: 'Kombinasi aliran darah vaskular yang lancar dan ketenangan psikologi menyokong kestabilan tindak balas intim.',
           metric: 'Pengukuhan Keyakinan Diri / Confidence Established'
         },
         {
           phase: 4,
-          title: 'Fasa 4: Kestabilan Spontan Seumur Hidup (Minggu 12+)',
-          highlight: 'Keupayaan mengawal respon seksual secara automatik.',
-          details: 'Hasil rawatan kekal berakar dalam memori otot dan sistem saraf tanpa perlu bergantung kepada ubat dos tinggi secara berterusan.',
+          title: 'Fasa 4: Penyelenggaraan & Kestabilan Lanjutan (Minggu 12+) / Phase 4: Long-Term Stability',
+          // copy review needed: adjusted claim 'secara automatik' and 'seumur hidup'
+          highlight: 'Kawalan respon seksual yang lebih terlatih dan konsisten.',
+          // copy review needed: adjusted absolute claim 'tanpa perlu bergantung kepada ubat'
+          details: 'Hasil rawatan diperkukuh melalui memori otot dan latihan neuromuskular dengan sokongan bimbingan klinikal.',
           metric: 'Kawalan Prestasi Mantap / Consistent Control'
         }
       ]
@@ -130,7 +135,7 @@
 
   async function handleDispatchCare() {
     if (!patientName.trim()) {
-      appState.addToast('Sila masukkan nama pesakit.', 'warning');
+      appState.addToast('Sila masukkan nama pesakit. / Please enter patient name.', 'warning');
       return;
     }
 
@@ -147,9 +152,9 @@
           followUpDate
         })
       });
-      appState.addToast('Panduan penjagaan digital berjaya dijana!', 'success');
+      appState.addToast('Panduan penjagaan digital berjaya dijana. / Digital care guide generated.', 'success');
     } catch (e: any) {
-      appState.addToast(e.message, 'error');
+      appState.addToast(getErrorMessage(e, 'We couldn\'t generate the care guide. Please try again.'), 'error');
     } finally {
       isDispatching = false;
     }
@@ -161,8 +166,11 @@
   <header class="suite-header">
     <div class="header-titles">
       <div class="suite-pill">IN-CLINIC CONSULTATION SUITE • MODUL BILIK DOKTOR</div>
-      <h1 class="suite-title">Kit Visual Konsultasi Pesakit & Standardisasi Prosedur</h1>
+      <h1 class="suite-title">Consultation kit</h1>
       <p class="suite-desc">
+        Interactive anatomical simulation and clinical recovery phases to help patients understand treatment plans with clarity and transparency.
+      </p>
+      <p class="suite-desc" style="margin-top: 4px; font-size: 13px; opacity: 0.85;">
         Rajah anatomi interaktif dan simulasi fasa pemulihan bagi membantu pesakit memahami pelan rawatan klinikal secara saintifik dan telus.
       </p>
     </div>
@@ -183,8 +191,8 @@
     >
       <span class="tab-icon">⚡</span>
       <div class="tab-meta">
-        <div class="tab-label">Terapi ESWT Shockwave</div>
-        <div class="tab-sub">Neovaskularisasi & Aliran Darah</div>
+        <div class="tab-label">Terapi ESWT / Shockwave</div>
+        <div class="tab-sub">Neovaskularisasi &amp; Aliran Darah / Blood Flow</div>
       </div>
     </button>
 
@@ -195,8 +203,8 @@
     >
       <span class="tab-icon">🩸</span>
       <div class="tab-meta">
-        <div class="tab-label">Terapi TRT Hormon</div>
-        <div class="tab-sub">Pengoptimuman Profil Darah</div>
+        <div class="tab-label">Terapi TRT / Hormone</div>
+        <div class="tab-sub">Pengoptimuman Profil Darah / Blood Profile</div>
       </div>
     </button>
 
@@ -207,8 +215,8 @@
     >
       <span class="tab-icon">🎯</span>
       <div class="tab-meta">
-        <div class="tab-label">Rehabilitasi PE/ED</div>
-        <div class="tab-sub">Kawalan Neuromuskular Pelvis</div>
+        <div class="tab-label">Rehabilitasi PE/ED / Men's Health</div>
+        <div class="tab-sub">Kawalan Pelvis / Neuromuscular Control</div>
       </div>
     </button>
   </div>
@@ -217,7 +225,7 @@
   <div class="suite-stage-grid">
     <!-- Visual Anatomy Simulation Screen -->
     <div class="visual-canvas-card">
-      <div class="canvas-top-tag">SIMULASI ANATOMI & MEKANISME TINDAKAN</div>
+      <div class="canvas-top-tag">SIMULASI ANATOMI &amp; MEKANISME TINDAKAN / ANATOMY SIMULATION</div>
       <h2 class="canvas-treatment-title">{activeTreatment.title}</h2>
       <p class="canvas-treatment-desc">{activeTreatment.description}</p>
 
@@ -287,8 +295,8 @@
     <!-- 4-Phase Recovery Timeline Tracker -->
     <div class="phase-timeline-card">
       <div class="timeline-header">
-        <span class="th-badge">PELAN RAWATAN & SASARAN PESAKIT</span>
-        <h3 class="th-title">4 Fasa Kemajuan Klinikal</h3>
+        <span class="th-badge">PELAN RAWATAN &amp; SASARAN / TREATMENT PLAN &amp; TARGETS</span>
+        <h3 class="th-title">4 Fasa Kemajuan Klinikal / 4 Clinical Progress Phases</h3>
       </div>
 
       <!-- Phase Selector Pills -->
@@ -299,7 +307,7 @@
             class:selected={selectedPhase === p.phase}
             onclick={() => (selectedPhase = p.phase)}
           >
-            Fasa {p.phase}
+            Fasa {p.phase} / Phase {p.phase}
           </button>
         {/each}
       </div>
@@ -315,9 +323,9 @@
       <!-- Interactive Range Slider -->
       <div class="slider-wrapper">
         <div class="slider-labels">
-          <span>Minggu 1</span>
-          <span>Minggu 6</span>
-          <span>Minggu 12+</span>
+          <span>Minggu 1 / Wk 1</span>
+          <span>Minggu 6 / Wk 6</span>
+          <span>Minggu 12+ / Wk 12+</span>
         </div>
         <input
           type="range"
@@ -332,7 +340,7 @@
       <div class="doctor-tip-box">
         <span class="tip-icon">💡</span>
         <span class="tip-text">
-          Tunjukkan fasa ini kepada pesakit semasa konsultasi bagi menetapkan jangkaan pemulihan yang realistik dan meningkatkan kepatuhan rawatan (*treatment adherence*).
+          Tunjukkan fasa ini kepada pesakit semasa konsultasi bagi menetapkan jangkaan pemulihan yang realistik dan menyokong kepatuhan rawatan (*treatment adherence*). / Share this timeline with the patient to establish realistic expectations and support treatment adherence.
         </span>
       </div>
     </div>
@@ -343,29 +351,29 @@
     <div class="modal-backdrop">
       <div class="modal-dialog">
         <div class="modal-head">
-          <h3 class="modal-title">Hantar Panduan Selepas Rawatan ke WhatsApp Pesakit</h3>
+          <h3 class="modal-title">Hantar Panduan Selepas Rawatan / Send Post-Care Guide (WhatsApp)</h3>
           <button class="modal-close" onclick={() => (dispatchModalOpen = false)} aria-label="Close dialog"><FluentIcons name="close" size={16} /></button>
         </div>
 
         <div class="modal-body">
           <div class="form-group">
-            <label for="pt-name">Nama Penuh Pesakit:</label>
+            <label for="pt-name">Nama Penuh Pesakit / Patient Full Name:</label>
             <input id="pt-name" type="text" bind:value={patientName} placeholder="cth: Tuan Ahmad Khairi" class="input-field"/>
           </div>
 
           <div class="form-group">
-            <label for="pt-phone">Nombor Telefon WhatsApp:</label>
+            <label for="pt-phone">Nombor Telefon WhatsApp / WhatsApp Phone Number:</label>
             <input id="pt-phone" type="tel" bind:value={patientPhone} placeholder="cth: 0123456789" class="input-field"/>
           </div>
 
           <div class="form-group">
-            <label for="pt-date">Tarikh Temujanji Susulan (Pilihan):</label>
+            <label for="pt-date">Tarikh Temujanji Susulan (Pilihan) / Follow-Up Date (Optional):</label>
             <input id="pt-date" type="text" bind:value={followUpDate} placeholder="cth: 15 Oktober 2026, 11:00 AM" class="input-field"/>
           </div>
 
           {#if dispatchResult}
             <div class="dispatch-result-box">
-              <div class="dr-title">Mesej WhatsApp Bersedia untuk Dihantar:</div>
+              <div class="dr-title">Mesej WhatsApp Bersedia untuk Dihantar / Ready to Send:</div>
               <pre class="dr-preview">{dispatchResult.messageText}</pre>
               <a
                 href={dispatchResult.whatsappUrl}
@@ -373,16 +381,16 @@
                 rel="noreferrer"
                 class="wa-jump-link"
               >
-                👉 Buka WhatsApp &amp; Hantar Mesej Sekarang ↗
+                👉 Buka WhatsApp &amp; Hantar Mesej / Open WhatsApp &amp; Send Message ↗
               </a>
             </div>
           {/if}
         </div>
 
         <div class="modal-foot">
-          <FluentButton appearance="secondary" onclick={() => (dispatchModalOpen = false)}>Tutup</FluentButton>
+          <FluentButton appearance="secondary" onclick={() => (dispatchModalOpen = false)}>Tutup / Close</FluentButton>
           <FluentButton appearance="primary" onclick={handleDispatchCare} disabled={isDispatching}>
-            {isDispatching ? 'Menjana...' : 'Jana Pautan WhatsApp'}
+            {isDispatching ? 'Menjana / Generating...' : 'Jana Pautan WhatsApp / Generate WhatsApp Link'}
           </FluentButton>
         </div>
       </div>

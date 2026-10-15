@@ -308,7 +308,7 @@
         <div class="nav-spacer"></div>
 
         <!-- ═══ LIVE STUDIO PULSE (Above Download Badge) ═══ -->
-        <div class="sidebar-pulse-container studio-pulse-container" class:rail-pulse-container={isRail} role="region" aria-label="Studio Activity & Vault Sync">
+        <div class="sidebar-pulse-container studio-pulse-container" class:rail-pulse-container={isRail} role="region" aria-label="Studio activity & shared drive sync">
           {#if !isRail}
             <button
               type="button"
@@ -317,8 +317,8 @@
               class:is-reconnecting={appState.sseStatus === 'reconnecting'}
               onclick={() => (appState.studioDrawerOpen = !appState.studioDrawerOpen)}
               title={appState.activeLiveTasks.length > 0
-                ? `${appState.activeLiveTasks.length} active studio session(s) · Live Synced with Studio Vault`
-                : appState.sseStatus === 'connected' ? 'Studio idle · Live Synced with Studio Vault' : 'Reconnecting to Studio Vault...'}
+                ? `${appState.activeLiveTasks.length} active studio session(s) · Live synced with shared drive`
+                : appState.sseStatus === 'connected' ? 'Studio idle · Live synced with shared drive' : 'Reconnecting to shared drive...'}
               aria-expanded={appState.studioDrawerOpen}
             >
               <span class="studio-pulse-dot" class:pulsing={appState.activeLiveTasks.length > 0} class:dot-reconnect={appState.sseStatus === 'reconnecting'}></span>
@@ -328,7 +328,7 @@
                 {:else if appState.activeLiveTasks.length > 0}
                   <strong>{appState.activeLiveTasks.length}</strong> in Studio · Synced
                 {:else}
-                  Studio Idle · Synced
+                  Studio idle · Synced
                 {/if}
               </span>
               <svg class="studio-pulse-chevron" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" class:open={appState.studioDrawerOpen}>
@@ -343,8 +343,8 @@
               class:is-reconnecting={appState.sseStatus === 'reconnecting'}
               onclick={() => (appState.studioDrawerOpen = !appState.studioDrawerOpen)}
               title={appState.activeLiveTasks.length > 0
-                ? `${appState.activeLiveTasks.length} active studio session(s) · Live Synced with Studio Vault`
-                : appState.sseStatus === 'connected' ? 'Studio idle · Live Synced with Studio Vault' : 'Reconnecting to Studio Vault...'}
+                ? `${appState.activeLiveTasks.length} active studio session(s) · Live synced with shared drive`
+                : appState.sseStatus === 'connected' ? 'Studio idle · Live synced with shared drive' : 'Reconnecting to shared drive...'}
               aria-expanded={appState.studioDrawerOpen}
             >
               <span class="studio-pulse-dot" class:pulsing={appState.activeLiveTasks.length > 0} class:dot-reconnect={appState.sseStatus === 'reconnecting'}></span>
@@ -751,7 +751,7 @@
             class="copy-cmd-btn"
             onclick={() => {
               navigator.clipboard.writeText('curl -fsSL https://raw.githubusercontent.com/SuamiSihat/ss_cam/SS-Master/installer/install-linux.sh | sudo bash');
-              appState.addToast('Linux terminal installer command copied!', 'success');
+              appState.addToast('Linux installer command copied to clipboard.', 'success');
             }}
           >
             Copy Command

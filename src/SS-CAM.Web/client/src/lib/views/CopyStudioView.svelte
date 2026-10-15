@@ -3,6 +3,7 @@
   import DOMPurify from 'dompurify';
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
+  import copy, { getErrorMessage } from '$lib/copy';
   import { ApiClient } from '$lib/services/api';
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
@@ -191,10 +192,10 @@
       clearDraft(selectedProject.id || selectedProject.jobId);
       isDirty = false;
       autoSaveStatus = 'idle';
-      appState.addToast(`Copywriting saved to COPY.md in Studio Vault`, 'success', 'Saved');
+      appState.addToast('Copywriting saved to COPY.md.', 'success', 'Saved');
       closeCopyEditor();
     } catch (err: any) {
-      appState.addToast(`Failed to save copy: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t save the copy. Please try again.'), 'error');
     } finally {
       isSavingCopy = false;
     }
@@ -226,7 +227,7 @@
     }
 
     navigator.clipboard.writeText(text);
-    appState.addToast('Copy framework copied to clipboard!', 'success');
+    appState.addToast('Copy framework copied to clipboard.', 'success');
   }
 
   function getCharStatus(current: number, max: number) {
@@ -257,8 +258,8 @@
   <!-- View Header -->
   <div class="view-header">
     <div>
-      <h1 class="view-title">Copywriting &amp; Script Studio</h1>
-      <p class="view-subtitle">Live advertising copy matrix, social platform character limit validators, and Studio Vault <code>COPY.md</code> sync.</p>
+      <h1 class="view-title">Copy studio</h1>
+      <p class="view-subtitle">Live advertising copy matrix, social platform character limit validators, and shared drive <code>COPY.md</code> sync.</p>
     </div>
     <button class="ai-launch-btn" onclick={() => showAiModal = true}>
       <FluentIcons name="sparkles" size={14} color="#D4AF37" />
@@ -660,7 +661,7 @@
           </FluentButton>
           <FluentButton appearance="primary" loading={isSavingCopy} onclick={handleSaveCopy}>
             <FluentIcons name="save" size={14} />
-            <span style="margin-left: 5px;">Save COPY.md to Studio Vault</span>
+            <span style="margin-left: 5px;">Save COPY.md to shared drive</span>
           </FluentButton>
         </div>
       </div>

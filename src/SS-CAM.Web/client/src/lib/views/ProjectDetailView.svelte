@@ -3,6 +3,7 @@
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import { appState } from '$lib/stores/appState.svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import type { DeliverableItem, ProjectFrontmatter, ProjectComment } from '$lib/types';
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
@@ -53,13 +54,13 @@
     isDeleting = true;
     try {
       await ApiClient.deleteProject(p.id);
-      appState.addToast(`Project ${p.jobId || p.title} and subfolders deleted successfully.`, 'success');
+      appState.addToast(`Project ${p.jobId || p.title} and subfolders deleted.`, 'success');
       showDeleteModal = false;
       await projectStore.loadProjects();
       await projectStore.loadDashboard();
       appState.navigate('projects');
     } catch (err: any) {
-      appState.addToast(`Failed to delete project: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t delete the project. Please try again.'), 'error');
     } finally {
       isDeleting = false;
     }
@@ -199,10 +200,10 @@
       if (projectStore.selectedProject) {
         projectStore.selectedProject.manager = newManager;
       }
-      appState.addToast(`Reviewer updated to ${newManager === 'Unassigned' ? 'Unassigned' : newManager}`, 'success');
+      appState.addToast(`Reviewer updated to ${newManager === 'Unassigned' ? 'Unassigned' : newManager}.`, 'success');
       await projectStore.loadProjectDetail(p.id);
     } catch (err: any) {
-      appState.addToast(`Failed to update reviewer: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the reviewer. Please try again.'), 'error');
       selectedManager = p.manager || 'Unassigned';
     } finally {
       isUpdatingManager = false;
@@ -339,7 +340,7 @@
     if (!p) return;
     const name = subtaskForm.name.trim();
     if (!name) {
-      appState.addToast('Deliverable / subtask name is required', 'warning');
+      appState.addToast('Task name is required.', 'warning');
       return;
     }
     const id = (subtaskForm.id.trim() || getNextSubtaskId()).toUpperCase();
@@ -365,7 +366,7 @@
       });
     } else {
       if (currentList.some(st => String(st.id).toUpperCase() === id)) {
-        appState.addToast(`Subtask with ID "${id}" already exists. Please choose a unique ID.`, 'warning');
+        appState.addToast(`Task ID "${id}" already exists. Please choose a unique ID.`, 'warning');
         return;
       }
       updatedList = [
@@ -390,9 +391,9 @@
         projectStore.selectedProject.subtasks = updatedList;
       }
       showSubtaskModal = false;
-      appState.addToast(editingSubtaskId ? 'Subtask updated successfully' : 'Deliverable / subtask added', 'success');
+      appState.addToast(editingSubtaskId ? 'Task updated.' : 'Task added.', 'success');
     } catch (err: any) {
-      appState.addToast(`Failed to save subtask: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t save the task. Please try again.'), 'error');
     } finally {
       isSavingSubtask = false;
     }
@@ -409,9 +410,9 @@
       if (projectStore.selectedProject) {
         projectStore.selectedProject.subtasks = updatedList;
       }
-      appState.addToast('Deliverable / subtask removed', 'success');
+      appState.addToast('Task removed.', 'success');
     } catch (err: any) {
-      appState.addToast(`Failed to remove subtask: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t remove the task. Please try again.'), 'error');
     }
   }
 
@@ -449,9 +450,9 @@
       if (projectStore.selectedProject) {
         projectStore.selectedProject.subtasks = merged;
       }
-      appState.addToast(`Generated ${generated.length} standard deliverable subtasks!`, 'success');
+      appState.addToast(`Generated ${generated.length} standard tasks.`, 'success');
     } catch (err: any) {
-      appState.addToast(`Failed to generate subtasks: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t generate the tasks. Please try again.'), 'error');
     }
   }
 
@@ -484,9 +485,9 @@
       if (projectStore.selectedProject) {
         projectStore.selectedProject.subtasks = updatedSubtasks;
       }
-      appState.addToast('Subtask status updated', 'success');
+      appState.addToast('Task status updated.', 'success');
     } catch (err: any) {
-      appState.addToast(`Failed to update subtask: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the task status. Please try again.'), 'error');
       await projectStore.loadProjectDetail(p.id);
     }
   }
@@ -524,7 +525,7 @@
       // Timeout errors need explicit cleanup.
       if (err.message?.includes('timed out')) {
         projectStore.loadingDetail = false;
-        appState.addToast(err.message, 'error');
+        appState.addToast('Loading the project timed out. Please try again.', 'error');
       }
     }
     if (projectStore.selectedProject) {
@@ -569,7 +570,7 @@
     try {
       const hash = p.versionHash || null;
       const res = await ApiClient.updateBrief(p.id, newBody, hash);
-      appState.addToast('Creative Brief saved to Studio Vault (README.md)', 'success');
+      appState.addToast('Creative brief saved to README.md.', 'success');
       currentReadmeBody = newBody;
       if (projectStore.selectedProject) {
         projectStore.selectedProject.readmeBody = newBody;
@@ -580,7 +581,7 @@
         }
       }
     } catch (err: any) {
-      appState.addToast(`Failed to save brief: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t save the brief. Please try again.'), 'error');
     }
   }
 
@@ -588,13 +589,13 @@
     if (!p) return;
     try {
       const res = await ApiClient.updateCopywritingMarkdown(p.id, newBody);
-      appState.addToast('Copywriting saved to NAS (03_COPYWRITING/COPY.md)', 'success');
+      appState.addToast('Copywriting saved to COPY.md.', 'success');
       currentCopyBody = newBody;
       if (res.copywriting?.stats) {
         copyStats = res.copywriting.stats;
       }
     } catch (err: any) {
-      appState.addToast(`Failed to save copy: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t save the copy. Please try again.'), 'error');
     }
   }
 
@@ -612,10 +613,10 @@
       if (res?.creativeDirection && p) {
         p.creativeDirection = res.creativeDirection;
       }
-      appState.addToast('Creative direction saved to README.md', 'success');
+      appState.addToast('Creative direction saved to README.md.', 'success');
       isEditingDirection = false;
     } catch (err: any) {
-      appState.addToast(`Failed to save creative direction: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t save creative direction. Please try again.'), 'error');
     } finally {
       isSavingDirection = false;
     }
@@ -629,9 +630,9 @@
       if (projectStore.selectedProject) {
         projectStore.selectedProject.status = newStatus as any;
       }
-      appState.addToast(`Project status updated to ${newStatus.toUpperCase()}`, 'info');
+      appState.addToast(`Project status updated to ${newStatus}.`, 'info');
     } catch (err: any) {
-      appState.addToast(`Failed to update status: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t update the project status. Please try again.'), 'error');
     }
   }
 
@@ -644,12 +645,12 @@
         comment: decision === 'approved' ? 'Formal manager approval via portal.' : 'Revisions requested on creative deliverables.'
       });
       appState.addToast(
-        decision === 'approved' ? 'Project Approved & Signed Off' : 'Revision Requested recorded in audit log',
+        decision === 'approved' ? 'Project approved and signed off.' : 'Revision requested.',
         decision === 'approved' ? 'success' : 'warning'
       );
       await loadProject(p.id);
     } catch (err: any) {
-      appState.addToast(`Decision failed: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t record your decision. Please try again.'), 'error');
     } finally {
       isSubmittingDecision = false;
     }
@@ -689,14 +690,14 @@
   {#if projectStore.loadingDetail}
     <div class="loading-state">
       <div class="loading-spinner"></div>
-      <p>Loading project workspace from Studio Vault…</p>
+      <p>Loading project workspace from shared drive…</p>
     </div>
   {:else if !p}
     <div class="empty-state">
       <h3>Project not found</h3>
       <p>The requested creative directory does not exist or has been moved.</p>
       <FluentButton appearance="primary" onclick={() => appState.navigate('projects')}>
-        Return to Catalog
+        Return to projects
       </FluentButton>
     </div>
   {:else}
@@ -775,10 +776,10 @@
             <button
               class="action-btn-clean"
               onclick={() => (showIngesterModal = true)}
-              title="Ingest raw files or deliverables to NAS"
+              title="Upload files or deliverables to shared drive"
             >
               <FluentIcons name="upload" size={13} />
-              <span>Ingest</span>
+              <span>Upload files</span>
             </button>
 
             {#if appState.currentUser?.capabilities?.canManageShareLinks || appState.currentUser?.roleKey === 'admin'}
@@ -1065,8 +1066,8 @@
 
             <div class="gallery-header" style="margin-top: 28px;">
               <div class="gallery-title-group">
-                <h3>Production Output Assets</h3>
-                <span class="gallery-subtitle">Found in <code>05_DELIVERABLES/</code>, <code>04_Production/</code>, or <code>04_Export_Packages/</code> in Studio Vault</span>
+                <h3>Deliverables</h3>
+                <span class="gallery-subtitle">Found in <code>05_DELIVERABLES/</code>, <code>04_Production/</code>, or <code>04_Export_Packages/</code> on the shared drive</span>
               </div>
             </div>
 
@@ -1674,12 +1675,12 @@
       onClose={() => (lightboxOpen = false)}
       onApprove={async (d) => {
         await ApiClient.submitDecision(p.id, { decision: 'approved', deliverableId: d.id });
-        appState.addToast(`Deliverable ${d.filename} approved`, 'success');
+        appState.addToast(`Deliverable ${d.filename} approved.`, 'success');
         await loadProject(p.id);
       }}
       onRevision={async (d) => {
         await ApiClient.submitDecision(p.id, { decision: 'revision_requested', deliverableId: d.id });
-        appState.addToast(`Revision requested for ${d.filename}`, 'warning');
+        appState.addToast(`Revision requested for ${d.filename}.`, 'warning');
         await loadProject(p.id);
       }}
     />
@@ -1698,10 +1699,10 @@
         <div class="delete-warning-banner">
           <div class="warning-title">
             <FluentIcons name="warning" size={16} color="#EF4444" />
-            <span style="margin-left: 6px;">Irreversible Filesystem Operation</span>
+            <span style="margin-left: 6px;">Irreversible action</span>
           </div>
           <p class="warning-text">
-            This will permanently delete the project folder and <strong>all 5 subdirectories</strong> in Studio Vault storage:
+            This will permanently delete the project folder and <strong>all 5 subdirectories</strong> on the shared drive:
           </p>
           <ul class="subfolder-list">
             <li><code>01_BRIEF_ASSETS/</code></li>

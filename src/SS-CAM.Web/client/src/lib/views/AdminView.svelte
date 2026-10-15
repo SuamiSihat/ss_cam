@@ -4,6 +4,7 @@
   import { appState } from '$lib/stores/appState.svelte';
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import type { Company, StaffAccount } from '$lib/types';
+  import copy, { getErrorMessage } from '$lib/copy';
   import FluentCard from '$lib/components/ui/FluentCard.svelte';
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
@@ -368,7 +369,7 @@
         await projectStore.loadDashboard();
       }
     } catch (err: any) {
-      appState.addToast(`Workspace switch error: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t switch the workspace. Please try again.'), 'error');
     } finally {
       isUpdatingWorkspace = false;
     }
@@ -398,7 +399,7 @@
       lastRefreshed = new Date();
     } catch (err: any) {
       companies = DEFAULT_COMPANIES_FALLBACK;
-      appState.addToast(`Admin telemetry load error: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t load system details. Please refresh.'), 'error');
     } finally {
       isLoading = false;
     }
@@ -438,12 +439,12 @@
     try {
       const res = await ApiClient.saveCompany(editingCompany);
       if (res.success) {
-        appState.addToast(`Company "${res.company.name}" saved successfully!`, 'success');
+        appState.addToast(`Company "${res.company.name}" saved.`, 'success');
         showEditModal = false;
         await refreshData();
       }
     } catch (err: any) {
-      appState.addToast(`Save error: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t save the company details.'), 'error');
     } finally {
       isSaving = false;
     }
@@ -461,13 +462,13 @@
         await refreshData();
       }
     } catch (err: any) {
-      appState.addToast(`Delete error: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t delete this company.'), 'error');
     }
   }
 
   function copyToClipboard(text: string, label: string) {
     navigator.clipboard.writeText(text);
-    appState.addToast(`${label} copied to clipboard!`, 'info');
+    appState.addToast(`${label} copied to clipboard.`, 'info');
   }
 
   function copyTroubleshootingReport() {
@@ -478,7 +479,7 @@
     const report = [
       `### SS-CAM Administration Diagnostic Snapshot`,
       `- **Generated**: ${new Date().toISOString()}`,
-      `- **Synology Vault**: \`${systemStatus?.workspaceRoot || '\\\\SSNAS\\Creative-Team'}\` (${systemStatus?.workspaceExists ? 'Mounted & Active' : 'Disconnected / Unreachable'})`,
+      `- **Shared Drive**: \`${systemStatus?.workspaceRoot || '\\\\SSNAS\\Creative-Team'}\` (${systemStatus?.workspaceExists ? 'Connected & Active' : 'Disconnected / Unreachable'})`,
       `- **Mount Engine**: ${systemStatus?.synologyEngine || (systemStatus?.workspaceExists ? 'Mounted & Active' : 'Offline')}`,
       `- **Volume RW**: ${systemStatus?.workspaceExists ? 'Volume 2 RW Active' : 'Pending Mount'}`,
       `- **Project Cache**: ${systemStatus?.cachedProjects ?? 0} production projects indexed`,
@@ -493,7 +494,7 @@
     ].join('\n');
 
     navigator.clipboard.writeText(report);
-    appState.addToast('Troubleshooting diagnostic report copied to clipboard!', 'success');
+    appState.addToast('Diagnostic report copied to clipboard.', 'success');
   }
 
   // ─── USER & STAFF HANDLERS ──────────────────────────────────────────
@@ -563,7 +564,7 @@
       if (isEditingUser) {
         const res = await ApiClient.updateStaffMember(editingUser.staffId!, editingUser);
         if (res.success || res.member) {
-          appState.addToast(`Staff account ${editingUser.name} updated!`, 'success');
+          appState.addToast(`Team member ${editingUser.name} updated.`, 'success');
           showUserModal = false;
           if (
             editingUser.staffId?.toLowerCase() === appState.currentUser?.staffId?.toLowerCase() ||
@@ -590,7 +591,7 @@
         }
       }
     } catch (err: any) {
-      appState.addToast(`User save error: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t save this account. Please try again.'), 'error');
     } finally {
       isSavingUser = false;
     }
@@ -604,11 +605,11 @@
     try {
       const res = await ApiClient.deleteUser(user.staffId);
       if (res.success) {
-        appState.addToast(`Staff account ${user.staffId} removed.`, 'info');
+        appState.addToast(`Team member ${user.staffId} removed.`, 'info');
         await refreshData();
       }
     } catch (err: any) {
-      appState.addToast(`Delete error: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t remove this account.'), 'error');
     }
   }
 
@@ -633,11 +634,11 @@
     try {
       const res = await ApiClient.resetUserPassword(resetTargetUser.username || resetTargetUser.staffId, resetNewPassword);
       if (res.success) {
-        appState.addToast(`Password reset for ${resetTargetUser.name}!`, 'success');
+        appState.addToast(`Password reset for ${resetTargetUser.name}.`, 'success');
         showPasswordModal = false;
       }
     } catch (err: any) {
-      appState.addToast(`Password reset error: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t reset the password. Please try again.'), 'error');
     } finally {
       isResettingPassword = false;
     }
@@ -655,7 +656,7 @@
         appState.addToast(res.message || ('Password reset for ' + name + '.'), 'success', 'Password reset', 0);
       }
     } catch (err: any) {
-      appState.addToast("Couldn't reset the password. " + err.message, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t reset the password. Please try again.'), 'error');
     }
   }
 
@@ -668,10 +669,10 @@
         body: JSON.stringify({ username })
       });
       if (res.success) {
-        appState.addToast('Lockout cleared for ' + (user.name || username) + '. They can retry login immediately.', 'success');
+        appState.addToast('Lockout cleared for ' + (user.name || username) + '. They can sign in immediately.', 'success');
       }
     } catch (err: any) {
-      appState.addToast('Could not clear lockout: ' + err.message, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t clear the lockout. Please try again.'), 'error');
     }
   }
 
@@ -702,7 +703,7 @@
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    appState.addToast('Audit logs exported to CSV successfully.', 'success');
+    appState.addToast('Audit logs exported to CSV.', 'success');
   }
 
   function viewLogDetails(log: any) {
@@ -735,10 +736,10 @@
     return 'info';
   }
 
-  // ─── WEBHOOK HANDLERS ───
+  // ─── NOTIFICATION LINK HANDLERS ───
   async function handleAddWebhook() {
     if (!newHookUrl.trim()) {
-      appState.addToast('Please enter a valid webhook URL.', 'warning');
+      appState.addToast('Please enter a valid notification URL.', 'warning');
       return;
     }
 
@@ -750,27 +751,27 @@
         serviceType: newHookType,
         events: newHookEvents
       });
-      appState.addToast('Webhook registered successfully!', 'success');
+      appState.addToast('Chat notification link saved.', 'success');
       newHookName = '';
       newHookUrl = '';
       const res = await ApiClient.getWebhooks();
       webhooks = res.webhooks || [];
     } catch (err: any) {
-      appState.addToast(`Failed to add webhook: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t add the notification link. Please try again.'), 'error');
     } finally {
       isAddingHook = false;
     }
   }
 
   async function handleDeleteWebhook(id: string) {
-    if (!confirm('Are you sure you want to remove this webhook?')) return;
+    if (!confirm('Are you sure you want to remove this notification link?')) return;
     try {
       await ApiClient.deleteWebhook(id);
-      appState.addToast('Webhook removed.', 'info');
+      appState.addToast('Chat notification link removed.', 'info');
       const res = await ApiClient.getWebhooks();
       webhooks = res.webhooks || [];
     } catch (err: any) {
-      appState.addToast(`Failed to delete webhook: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t delete the notification link.'), 'error');
     }
   }
 
@@ -779,12 +780,12 @@
     try {
       const res = await ApiClient.testWebhook({ url: hook.url, serviceType: hook.serviceType });
       if (res.success) {
-        appState.addToast(`Test ping dispatched to ${hook.name}!`, 'success');
+        appState.addToast(`Test notification sent to ${hook.name}.`, 'success');
       }
       const hookList = await ApiClient.getWebhooks();
       webhooks = hookList.webhooks || [];
     } catch (err: any) {
-      appState.addToast(`Webhook ping failed: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'Notification test failed. Please check the URL.'), 'error');
     } finally {
       isTestingHook = null;
     }
@@ -799,26 +800,26 @@
         <div class="header-tag-row">
           <span class="live-pulse-indicator">
             <span class="pulse-dot"></span>
-            <span>{systemStatus?.workspaceExists ? 'Synology Vault Mounted' : 'Storage Syncing'}</span>
+            <span>{systemStatus?.workspaceExists ? 'Shared drive connected' : 'Storage syncing'}</span>
           </span>
           <span class="header-timestamp">Synced {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         </div>
-        <h1 class="view-title">Administration &amp; Governance</h1>
+        <h1 class="view-title">Administration</h1>
         <p class="view-subtitle">
-          Holding registry, creative team roster, security audit ledger, and Synology NAS engine.
+          Company settings, team roster, audit ledger, and storage status.
         </p>
       {:else}
         <div class="header-tag-row">
           <span class="command-badge">EXECUTIVE GOVERNANCE</span>
           <span class="live-pulse-indicator">
             <span class="pulse-dot"></span>
-            <span>Synology Vault Connected</span>
+            <span>Shared drive connected</span>
           </span>
           <span class="header-timestamp">Last updated: {lastRefreshed.toLocaleTimeString()}</span>
         </div>
-        <h1 class="view-title">Corporate Governance &amp; Administrative Intelligence</h1>
+        <h1 class="view-title">Administration</h1>
         <p class="view-subtitle">
-          Holding entity hierarchy, subsidiary registry, role-based access control (RBAC), and Synology NAS runtime telemetry
+          Company settings, team roster, roles and permissions, and storage performance.
         </p>
       {/if}
     </div>
@@ -831,7 +832,7 @@
           class="ab-pill-btn"
           class:active={adminLayoutMode === 'minimalist'}
           onclick={() => setLayoutMode('minimalist')}
-          title="Minimalist Studio mode: Compact telemetry ribbon, table-first density, low visual noise"
+          title="Minimalist view: Compact performance summary, table-first density, low visual noise"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
           <span>Minimalist</span>
@@ -841,7 +842,7 @@
           class="ab-pill-btn"
           class:active={adminLayoutMode === 'classic'}
           onclick={() => setLayoutMode('classic')}
-          title="Classic Detailed mode: 4-card telemetry deck, multi-tier badges, graphical RBAC distribution"
+          title="Classic view: 4-card summary, badges, role distribution"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           <span>Classic</span>
@@ -932,7 +933,7 @@
       <!-- Metric 2: Staff Roster -->
       <FluentCard hoverLift borderAccent="#0284C7" onclick={() => (activeTab = 'users')}>
         <div class="kpi-top">
-          <span class="kpi-label">Staff Personnel Roster</span>
+          <span class="kpi-label">Team Roster</span>
           <span class="kpi-icon-pill" style="background: rgba(2, 132, 199, 0.15); color: #0284C7;">👥</span>
         </div>
         <div class="kpi-value">{stats.totalUsers} <span class="kpi-unit">Accounts</span></div>
@@ -954,14 +955,14 @@
         </div>
       </FluentCard>
 
-      <!-- Metric 4: Synology Vault -->
+      <!-- Metric 4: Storage Engine -->
       <FluentCard hoverLift borderAccent="#8764B8" onclick={() => (activeTab = 'system')}>
         <div class="kpi-top">
-          <span class="kpi-label">Synology NAS Engine</span>
+          <span class="kpi-label">Storage Engine</span>
           <span class="kpi-icon-pill" style="background: rgba(135, 100, 184, 0.15); color: #8764B8;">⚡</span>
         </div>
         <div class="kpi-value" style="font-size: 20px; padding-top: 4px;">
-          Mounted &amp; Live
+          Connected &amp; Live
         </div>
         <div class="kpi-detail">
           <b>{systemStatus?.cachedProjects || 0} Projects Cached</b> • <b>Volume 2 RW</b>
@@ -988,7 +989,7 @@
       onclick={() => (activeTab = 'users')}
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-      <span>{adminLayoutMode === 'minimalist' ? 'Team Roster' : 'User Accounts & RBAC'}</span>
+      <span>{adminLayoutMode === 'minimalist' ? 'Team Roster' : 'People &amp; Roles'}</span>
       <span class="tab-count-pill">{users.length}</span>
     </button>
 
@@ -998,7 +999,7 @@
       onclick={() => (activeTab = 'audit')}
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
-      <span>{adminLayoutMode === 'minimalist' ? 'Audit Trail' : 'Security Audit Logs'}</span>
+      <span>{adminLayoutMode === 'minimalist' ? 'Audit Trail' : 'Audit Logs'}</span>
       <span class="tab-count-pill">{auditLogs.length}</span>
     </button>
 
@@ -1008,7 +1009,7 @@
       onclick={() => (activeTab = 'system')}
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/></svg>
-      <span>{adminLayoutMode === 'minimalist' ? 'System Health' : 'Synology Runtime Telemetry'}</span>
+      <span>System Health</span>
     </button>
 
     <button
@@ -1017,7 +1018,7 @@
       onclick={() => (activeTab = 'webhooks')}
     >
       <span style="font-size: 14px;">🔔</span>
-      <span>{adminLayoutMode === 'minimalist' ? 'Webhooks' : 'Webhooks &amp; Alerts'}</span>
+      <span>{adminLayoutMode === 'minimalist' ? 'Notifications' : 'Chat Notifications'}</span>
       <span class="tab-count-pill">{webhooks.length}</span>
     </button>
   </div>
@@ -1283,12 +1284,12 @@
         <div class="rbac-distribution-card">
           <div class="rbac-deck-header">
             <div class="rbac-deck-titles">
-              <span class="rbac-deck-tag">RBAC ARCHITECTURE</span>
-              <h3 class="rbac-deck-title">Canonical Role &amp; Permission Tier Distribution</h3>
+              <span class="rbac-deck-tag">ROLES AND PERMISSIONS</span>
+              <h3 class="rbac-deck-title">Role and permission distribution</h3>
             </div>
             <div class="rbac-legend">
               <div class="legend-item"><span class="legend-dot dot-admin"></span><b>Admin ({stats.adminsCount})</b> - Full Governance</div>
-              <div class="legend-item"><span class="legend-dot dot-manager"></span><b>Manager ({stats.managersCount})</b> - Review &amp; Sign-Off</div>
+              <div class="legend-item"><span class="legend-dot dot-manager"></span><b>Manager ({stats.managersCount})</b> - Approvals</div>
               <div class="legend-item"><span class="legend-dot dot-designer"></span><b>Designer ({stats.designersCount})</b> - Creative Production</div>
               <div class="legend-item"><span class="legend-dot dot-copywriter"></span><b>Copywriter ({stats.copywritersCount})</b> - Script &amp; Copy</div>
             </div>
@@ -1307,9 +1308,9 @@
       <!-- Action & Filter Bar -->
       <div class="deck-action-bar">
         <div>
-          <h2 class="deck-title">Creative Team Staff Roster & Credentials</h2>
+          <h2 class="deck-title">Team Roster &amp; Credentials</h2>
           <p class="deck-desc">
-            Manage authenticated user accounts, multi-role assignments, departmental affiliations, and security credentials.
+            Manage user accounts, role assignments, departmental affiliations, and security credentials.
           </p>
         </div>
 
@@ -1555,7 +1556,7 @@
                     <code class="target-mono">{log.entityId || log.target || '-'}</code>
                   </td>
                   <td style="text-align: right;">
-                    <button class="inspect-btn" onclick={() => viewLogDetails(log)} title="Inspect JSON Payload">
+                    <button class="inspect-btn" onclick={() => viewLogDetails(log)} title="View details">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                     </button>
                   </td>
@@ -1601,7 +1602,7 @@
 
         <div class="troubleshoot-metric-grid">
           <div class="troubleshoot-box">
-            <span class="t-label">Synology Vault</span>
+            <span class="t-label">Shared drive</span>
             <span class="t-val text-green">
               <span class="pulse-dot" style="width: 6px; height: 6px;"></span>
               {systemStatus?.synologyEngine || (systemStatus?.workspaceExists ? 'Mounted & Active' : 'Offline / Unreachable')}
@@ -1631,15 +1632,15 @@
                 📂
               </div>
               <div>
-                <h3 class="telemetry-card-title">Synology NAS Storage Mount</h3>
-                <p class="telemetry-card-sub">SMB workspace share connectivity and file sync</p>
+                <h3 class="telemetry-card-title">Shared drive storage</h3>
+                <p class="telemetry-card-sub">Workspace storage connectivity and file sync</p>
               </div>
             </div>
-            <FluentButton appearance="secondary" onclick={openWorkspaceModal} title="Change Synology NAS Workspace Root Path">
+            <FluentButton appearance="secondary" onclick={openWorkspaceModal} title="Change Shared Drive Path">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
                 <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
               </svg>
-              Change Mount Path
+              Change Storage Path
             </FluentButton>
           </div>
 
@@ -1726,7 +1727,7 @@
                 projectStore.loadProjects();
                 projectStore.loadDashboard();
                 refreshData();
-                appState.addToast('Workspace re-indexed successfully.', 'success');
+                appState.addToast('Workspace re-indexed.', 'success');
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 5px;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
@@ -1746,47 +1747,47 @@
       <!-- Top Action Deck -->
       <div class="deck-action-bar">
         <div>
-          <h2 class="deck-title">Studio Notification Webhooks &amp; Bot Alert Gateways</h2>
+          <h2 class="deck-title">Chat Notification Links &amp; Bot Alert Gateways</h2>
           <p class="deck-desc">
             Broadcast real-time deliverable approvals, client revision requests, and deadline alerts directly to Discord channels, Slack, Telegram, or WhatsApp bots.
           </p>
         </div>
       </div>
 
-      <!-- Register New Webhook Card -->
+      <!-- Register New Notification Link Card -->
       <FluentCard elevated style="margin-bottom: 20px;">
-        <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 800;">➕ Register New Studio Webhook</h3>
+        <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 800;">➕ Add New Chat Notification Link</h3>
         <div style="display: grid; grid-template-columns: 1.2fr 2fr 1fr auto; gap: 12px; align-items: flex-end;">
           <div>
-            <label class="field-label" for="new-webhook-name">Bot / Channel Name</label>
+            <label class="field-label" for="new-webhook-name">Channel or Bot Name</label>
             <input id="new-webhook-name" type="text" class="field-input" placeholder="e.g. Creative Discord #alerts" bind:value={newHookName} />
           </div>
           <div>
-            <label class="field-label" for="new-webhook-url">Target Webhook URL</label>
+            <label class="field-label" for="new-webhook-url">Notification Link (URL)</label>
             <input id="new-webhook-url" type="url" class="field-input" placeholder="https://discord.com/api/webhooks/..." bind:value={newHookUrl} />
           </div>
           <div>
             <label class="field-label" for="new-webhook-type">Service Type</label>
             <select id="new-webhook-type" class="field-input" bind:value={newHookType}>
-              <option value="discord">Discord Webhook</option>
-              <option value="slack">Slack Incoming Webhook</option>
+              <option value="discord">Discord</option>
+              <option value="slack">Slack</option>
               <option value="telegram">Telegram Bot</option>
               <option value="generic">Generic / WhatsApp Gateway</option>
             </select>
           </div>
           <FluentButton appearance="primary" loading={isAddingHook} onclick={handleAddWebhook}>
-            Register Webhook
+            Add Notification Link
           </FluentButton>
         </div>
       </FluentCard>
 
-      <!-- Active Webhooks List -->
+      <!-- Active Notification Links List -->
       <div style="display: flex; flex-direction: column; gap: 12px;">
         {#if webhooks.length === 0}
           <div style="text-align: center; padding: 40px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
             <span style="font-size: 32px; display: block; margin-bottom: 6px;">🔔</span>
-            <span style="font-weight: 700; color: #FFF;">No Webhooks Configured</span>
-            <p style="font-size: 12px; color: #94A3B8; margin-top: 4px;">Register a Discord or Slack webhook above to receive live notifications on team deliverables and client sign-offs.</p>
+            <span style="font-weight: 700; color: #FFF;">No Chat Notification Links Configured</span>
+            <p style="font-size: 12px; color: #94A3B8; margin-top: 4px;">Add a Discord or Slack notification link above to receive live notifications on team deliverables and client approvals.</p>
           </div>
         {:else}
           {#each webhooks as hook}
@@ -1810,10 +1811,10 @@
 
                 <div style="display: flex; gap: 8px;">
                   <FluentButton appearance="secondary" size="xs" loading={isTestingHook === hook.id} onclick={() => handleTestWebhook(hook)}>
-                    🔔 Test Ping
+                    🔔 Test Link
                   </FluentButton>
                   <FluentButton appearance="danger" size="xs" onclick={() => handleDeleteWebhook(hook.id)}>
-                    🗑 Remove
+                    🗑 Delete
                   </FluentButton>
                 </div>
               </div>
@@ -2032,7 +2033,7 @@
       </div>
 
       <div class="form-group">
-        <label class="field-label">Login Username</label>
+        <label class="field-label">Username</label>
         <input
           type="text"
           class="field-input"
@@ -2044,7 +2045,7 @@
 
     <div class="form-row-2">
       <div class="form-group">
-        <label class="field-label">Personnel Full Name</label>
+        <label class="field-label">Full Name</label>
         <input
           type="text"
           class="field-input"
@@ -2054,7 +2055,7 @@
       </div>
 
       <div class="form-group">
-        <label class="field-label">Official Job Title / Designation</label>
+        <label class="field-label">Job Title</label>
         <input
           type="text"
           class="field-input"
@@ -2208,7 +2209,7 @@
       </div>
 
       <div class="form-group" style="margin-top: 12px;">
-        <label class="field-label">Raw JSON Payload</label>
+        <label class="field-label">Details</label>
         <pre class="json-inspector">{JSON.stringify(selectedLogDetail, null, 2)}</pre>
       </div>
     </div>
@@ -2216,7 +2217,7 @@
 
   {#snippet footer()}
     <FluentButton appearance="primary" onclick={() => (showLogDetailModal = false)}>
-      Close Inspector
+      Close
     </FluentButton>
   {/snippet}
 </FluentDialog>
@@ -2226,7 +2227,7 @@
 <!-- ══════════════════════════════════════════════════════════════════ -->
 <FluentDialog
   open={showWorkspaceModal}
-  title="Change Synology NAS Storage Mount Path"
+  title="Change Shared Drive Path"
   onclose={() => (showWorkspaceModal = false)}
 >
   <div class="modal-form-body">

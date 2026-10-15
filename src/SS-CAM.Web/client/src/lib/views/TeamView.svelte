@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { ApiClient } from '$lib/services/api';
+  import { getErrorMessage } from '$lib/copy';
   import { appState } from '$lib/stores/appState.svelte';
   import { projectStore } from '$lib/stores/projectStore.svelte';
   import type { TeamMember } from '$lib/types';
@@ -38,7 +39,7 @@
 
   async function handleConfirmReassign() {
     if (!reassignProjectData || !reassignTargetDesigner) {
-      appState.addToast('Please select a target designer to reassign to.', 'warning');
+      appState.addToast('Please select a team member to reassign to.', 'warning');
       return;
     }
 
@@ -48,12 +49,12 @@
         newDesigner: reassignTargetDesigner,
         reason: reassignReason
       });
-      appState.addToast(`Project ${reassignProjectData.jobId || ''} reassigned to ${reassignTargetDesigner}!`, 'success');
+      appState.addToast(`Project ${reassignProjectData.jobId || ''} reassigned to ${reassignTargetDesigner}.`, 'success');
       showReassignModal = false;
       await loadTeam(true);
       await projectStore.loadProjects();
     } catch (err: any) {
-      appState.addToast(`Reassignment failed: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t reassign the project. Please try again.'), 'error');
     } finally {
       isReassigning = false;
     }
@@ -92,7 +93,7 @@
     } catch (err: any) {
       console.error('[TeamView] Failed to load team directory:', err);
       if (!silent) teamMembers = [];
-      appState.addToast(`Failed to load team: ${err.message}`, 'error');
+      appState.addToast(getErrorMessage(err, 'We couldn\'t load the team roster. Please try again.'), 'error');
     } finally {
       isLoading = false;
       isRefreshing = false;
@@ -247,7 +248,7 @@
 
   function copyStaffId(staffId: string) {
     navigator.clipboard.writeText(staffId);
-    appState.addToast(`Staff ID ${staffId} copied to clipboard`, 'success');
+    appState.addToast(`Staff ID ${staffId} copied to clipboard.`, 'success');
   }
 </script>
 
@@ -258,13 +259,13 @@
       <div class="hero-tag">
         <span class="live-pulse-badge">
           <span class="pulse-dot"></span>
-          REALTIME TELEMETRY
+          STUDIO PERFORMANCE
         </span>
-        <span class="hero-meta">Synology NAS Vault • Synced {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+        <span class="hero-meta">Shared drive • Synced {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
       </div>
-      <h1 class="hero-title">Team Directory & Studio Workload</h1>
+      <h1 class="hero-title">Team</h1>
       <p class="hero-subtitle">
-        Creative personnel capacity, real-time task allocations, bottleneck detection, and active project dispatching.
+        Team capacity, active task allocations, and project assignments.
       </p>
     </div>
 
@@ -282,7 +283,7 @@
         appearance="secondary"
         onclick={() => loadTeam(true)}
         disabled={isRefreshing}
-        title="Sync live team data from Synology Vault"
+        title="Sync live team data from shared drive"
       >
         <svg
           width="14"
