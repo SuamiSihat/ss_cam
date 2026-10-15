@@ -167,6 +167,14 @@ export interface DeliverableItem {
   isImage: boolean;
   isVideo: boolean;
   isPdf: boolean;
+  isAudio?: boolean;
+  extension?: string;
+  folder?: string;
+  folderLabel?: string;
+  isDeliverable?: boolean;
+  sizeFormatted?: string;
+  version?: number;
+  streamUrl?: string | null;
   status: 'pending' | 'approved' | 'revision';
   revisionCount: number;
   project?: {
@@ -183,6 +191,7 @@ export interface DeliverableItem {
 export interface Project {
   id?: string;
   jobId: string;
+  folderName?: string;
   title: string;
   brand: string;
   designer: string;

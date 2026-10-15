@@ -267,9 +267,10 @@
     const projId = d.project?.id || d.projectId || d.project?.jobId || d.projectJobId;
     if (!projId) return;
     try {
-      const res = await ApiClient.getOrCreateProjectShare(projId);
-      if (res && res.shareUrl) {
-        await navigator.clipboard.writeText(res.shareUrl);
+      const res = await ApiClient.getProjectShareLinks(projId);
+      if (res && res.links && res.links.length > 0 && res.links[0].token) {
+        const shareUrl = `${window.location.origin}/#review?token=${encodeURIComponent(res.links[0].token)}`;
+        await navigator.clipboard.writeText(shareUrl);
         appState.addToast('Client review link copied to clipboard.', 'success', 'Share link');
       } else {
         openShare(d);
@@ -277,26 +278,6 @@
     } catch {
       openShare(d);
     }
-  }
-
-  const hasActiveDeliverableFilters = $derived(
-    filterStatus !== 'all' || 
-    (searchQuery && searchQuery.trim() !== '') || 
-    filterBrand !== 'all' || 
-    filterMediaClass !== 'all' || 
-    filterAspectRatio !== 'all' ||
-    filterResolution !== 'all' ||
-    filterReviewState !== 'all'
-  );
-
-  function resetAllDeliverableFilters() {
-    filterStatus = 'all';
-    searchQuery = '';
-    filterBrand = 'all';
-    filterMediaClass = 'all';
-    filterAspectRatio = 'all';
-    filterResolution = 'all';
-    filterReviewState = 'all';
   }
 </script>
 
@@ -988,23 +969,25 @@
   <PreflightValidatorModal
     bind:open={showPreflightModal}
     deliverable={preflightTargetDeliverable}
-    projectTitle={preflightTargetDeliverable?.project?.title || preflightTargetDeliverable?.projectTitle}
   />
 </div>
 
 <FluentDialog
   open={!!decisionTarget}
   title={decisionTarget?.decision === 'approved' ? 'Approve Deliverable?' : 'Request Revision?'}
-  message={decisionTarget?.decision === 'approved'
-    ? `Approve "${decisionTarget?.deliverable.filename}" as production-ready master deliverable?`
-    : `Flag "${decisionTarget?.deliverable.filename}" for revisions? The creative team will be notified.`}
-  confirmLabel={decisionTarget?.decision === 'approved' ? 'Approve Deliverable' : 'Request Revision'}
-  cancelLabel="Cancel"
+  confirmText={decisionTarget?.decision === 'approved' ? 'Approve Deliverable' : 'Request Revision'}
+  cancelText="Cancel"
   confirmAppearance={decisionTarget?.decision === 'approved' ? 'success' : 'danger'}
   loading={isSubmittingDecision}
   onConfirm={confirmDecision}
-  onCancel={() => { if (!isSubmittingDecision) decisionTarget = null; }}
-/>
+  onClose={() => { if (!isSubmittingDecision) decisionTarget = null; }}
+>
+  <p style="margin: 0; line-height: 1.5; color: var(--text-secondary, #94A3B8); font-size: 14px;">
+    {decisionTarget?.decision === 'approved'
+      ? `Approve "${decisionTarget?.deliverable.filename}" as production-ready master deliverable?`
+      : `Flag "${decisionTarget?.deliverable.filename}" for revisions? The creative team will be notified.`}
+  </p>
+</FluentDialog>
 
 <style>
   .deliverables-view-container {

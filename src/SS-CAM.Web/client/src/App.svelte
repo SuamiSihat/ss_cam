@@ -231,6 +231,7 @@
 
   const userInitial = $derived((appState.currentUser?.name ?? 'U').charAt(0).toUpperCase());
   const isRail = $derived(appState.sidebarRail && appState.sidebarExpanded);
+  const isAdmin = $derived(appState.currentUser?.roleKey === 'admin' || !!appState.currentUser?.capabilities?.canViewAdmin);
 
   // Gated Navigation and Dock derived from routes config and server capabilities
   const visibleNavGroups = $derived(getNavGroups(appState.currentUser));
