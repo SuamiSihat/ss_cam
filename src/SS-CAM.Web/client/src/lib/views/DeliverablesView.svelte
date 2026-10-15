@@ -80,6 +80,9 @@
     filterAspectRatio !== 'all'
   );
 
+  const hasActiveDeliverableFilters = $derived(hasActiveFilters);
+  const resetAllDeliverableFilters = resetAllFilters;
+
   function handleGlobalKeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       const activeTag = (document.activeElement as HTMLElement)?.tagName;
@@ -477,10 +480,10 @@
       <div class="empty-icon-box">
         <FluentIcons name="folder" size={36} color="rgba(255,255,255,0.2)" />
       </div>
-      {#if hasActiveDeliverableFilters}
+      {#if hasActiveFilters}
         <p class="state-title">No deliverables match the active filters</p>
         <p class="state-desc">Try clearing your search query or resetting filters to view all deliverables.</p>
-        <FluentButton appearance="secondary" size="sm" onclick={resetAllDeliverableFilters}>
+        <FluentButton appearance="secondary" size="sm" onclick={resetAllFilters}>
           Clear all filters
         </FluentButton>
       {:else}
