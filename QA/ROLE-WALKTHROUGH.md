@@ -1,4 +1,4 @@
-# SS-CAM Role & Navigation Walkthrough Matrix
+﻿# SS-CAM Role & Navigation Walkthrough Matrix
 
 **Date:** 2026-10-14  
 **Scope:** Phase 2 Role & Capability Governance Verification (Task T2.5)  
@@ -51,7 +51,7 @@ This document verifies the end-to-end alignment between **Client Navigation**, *
 | Review | Approvals | `#deliverables` | YES | YES | **PASS** |
 | Clinic | Consultation kit | `#consultation` | YES | YES | **PASS** |
 | Manage | Team | `#team` | YES | YES | **PASS** |
-| Manage | Studio display | `#signage` (new tab) | YES | YES | **PASS** |
+| Manage | Studio display | `#studio-display` (in-app control page; TV kiosk stays at `#signage`) | YES | YES | **PASS** |
 | Admin | Administration | `#admin` | YES | YES | **PASS** |
 | Account | Profile | `#profile` | YES | YES | **PASS** |
 
@@ -82,7 +82,7 @@ This document verifies the end-to-end alignment between **Client Navigation**, *
 | Review | Approvals | `#deliverables` | YES | YES | **PASS** |
 | Clinic | Consultation kit | `#consultation` | YES | YES | **PASS** |
 | Manage | Team | `#team` | YES | YES | **PASS** |
-| Manage | Studio display | `#signage` (new tab) | YES | YES | **PASS** |
+| Manage | Studio display | `#studio-display` (in-app control page; TV kiosk stays at `#signage`) | YES | YES | **PASS** |
 | Admin | Administration | `#admin` | **NO** | **HIDDEN** | **PASS** |
 | Account | Profile | `#profile` | YES | YES | **PASS** |
 
@@ -113,7 +113,7 @@ This document verifies the end-to-end alignment between **Client Navigation**, *
 | Review | Approvals | `#deliverables` | YES | YES | **PASS** |
 | Clinic | Consultation kit | `#consultation` | **NO** | **HIDDEN** | **PASS** |
 | Manage | Team | `#team` | YES | YES | **PASS** |
-| Manage | Studio display | `#signage` (new tab) | YES | YES | **PASS** |
+| Manage | Studio display | `#studio-display` (in-app control page; TV kiosk stays at `#signage`) | YES | YES | **PASS** |
 | Admin | Administration | `#admin` | **NO** | **HIDDEN** | **PASS** |
 | Account | Profile | `#profile` | YES | YES | **PASS** |
 
