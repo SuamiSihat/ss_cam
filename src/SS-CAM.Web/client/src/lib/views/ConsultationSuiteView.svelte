@@ -6,24 +6,106 @@
   import FluentErrorBanner from '$lib/components/ui/FluentErrorBanner.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import { ApiClient } from '$lib/services/api';
+  import {
+    getConsultationCopy,
+    getStoredConsultationLang,
+    setStoredConsultationLang,
+    type ConsultationLang,
+    type TreatmentData
+  } from '$lib/config/consultation.i18n';
+  import EswtAnatomyIllustration from '$lib/components/consultation/EswtAnatomyIllustration.svelte';
+  import TrtHormoneIllustration from '$lib/components/consultation/TrtHormoneIllustration.svelte';
+  import KegelAnatomyIllustration from '$lib/components/consultation/KegelAnatomyIllustration.svelte';
+  import PeEdAnatomyIllustration from '$lib/components/consultation/PeEdAnatomyIllustration.svelte';
+  import FertilityAnatomyIllustration from '$lib/components/consultation/FertilityAnatomyIllustration.svelte';
+  import PshotAnatomyIllustration from '$lib/components/consultation/PshotAnatomyIllustration.svelte';
+  import ReferencePanel from '$lib/components/consultation/ReferencePanel.svelte';
 
-  let selectedTreatment = $state<'eswt' | 'kegel' | 'pshot' | 'trt' | 'fertility' | 'pe_ed'>('eswt');
+  type TreatmentKey = 'eswt' | 'kegel' | 'pshot' | 'fertility' | 'trt' | 'pe_ed';
+
+  // Component state
+  let currentLang = $state<ConsultationLang>(getStoredConsultationLang());
+  let selectedTreatment = $state<TreatmentKey>('eswt');
   let selectedPhase = $state(1); // 1, 2, 3, 4
+  let isPatientView = $state(false);
+
+  // References drawer state (Step 4)
+  let refPanelOpen = $state(false);
+  let highlightedRefId = $state<number | null>(null);
+
+  function jumpToReference(refId: number) {
+    highlightedRefId = refId;
+    refPanelOpen = true;
+    setTimeout(() => {
+      const el = document.getElementById(`ref-card-${refId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+    setTimeout(() => {
+      highlightedRefId = null;
+    }, 3500);
+  }
+
+  // Dispatch modal state
   let patientName = $state('');
   let patientPhone = $state('');
   let followUpDate = $state('');
   let dispatchModalOpen = $state(false);
   let dispatchResult = $state<any>(null);
   let isDispatching = $state(false);
+  let dispatchError = $state<string | null>(null);
+
+  // Branches & pricing state
   let branches = $state<any[]>([]);
   let isLoadingBranches = $state(false);
   let branchError = $state<string | null>(null);
   let selectedBranch = $state('SSC-BSR');
-  let dispatchError = $state<string | null>(null);
+
+  // Dialog keyboard & focus management
+  let dialogElement: HTMLDivElement | null = $state(null);
+  let previousActiveElement: HTMLElement | null = $state(null);
+
+  // Derived copy & data
+  const t = $derived(getConsultationCopy(currentLang));
+  const activeTreatment = $derived<TreatmentData>(t.treatments[selectedTreatment]);
+  const activePhaseInfo = $derived(activeTreatment.phases[selectedPhase - 1]);
+  const activeBranch = $derived(branches.find((b: any) => b.code === selectedBranch) ?? null);
+  const pricing = $derived(activeBranch?.pricing ?? null);
 
   onMount(async () => {
     await loadBranches();
   });
+
+  function switchLanguage(lang: ConsultationLang) {
+    currentLang = lang;
+    setStoredConsultationLang(lang);
+  }
+
+  function togglePatientView() {
+    isPatientView = !isPatientView;
+    if (isPatientView) {
+      if (typeof document !== 'undefined' && document.fullscreenEnabled && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      }
+    } else {
+      if (typeof document !== 'undefined' && document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    }
+  }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      if (dispatchModalOpen) {
+        dispatchModalOpen = false;
+        return;
+      }
+      if (isPatientView) {
+        togglePatientView();
+      }
+    }
+  }
 
   async function loadBranches() {
     isLoadingBranches = true;
@@ -31,7 +113,6 @@
     try {
       const res = await ApiClient.request('/clinic/branches');
       branches = res.branches || [];
-      // Branches come from the Corporate Registry; keep the selection valid for whatever it holds.
       if (branches.length > 0 && !branches.some((b: any) => b.code === selectedBranch)) {
         selectedBranch = branches[0].code;
       }
@@ -42,253 +123,38 @@
     }
   }
 
-  const treatments = {
-    eswt: {
-      id: 'eswt',
-      name: 'Terapi Gelombang Kejutan (ESWT) / Shockwave Therapy',
-      title: 'Pemulihan Vaskularisasi & Pengaliran Darah Mikro / Vascular & Microcirculation Recovery',
-      description: 'Gelombang akustik berintensiti rendah merangsang faktor pertumbuhan salur darah (VEGF), menguraikan plak mikroskopik dan menyokong pembentukan kapilari darah baharu secara semulajadi.',
-      phases: [
-        {
-          phase: 1,
-          title: 'Fasa 1: Penilaian Asas & Rangsangan Selular (Minggu 1-2) / Phase 1: Baseline & Cellular Activation',
-          highlight: 'Memulakan pengaktifan metabolik tisu tanpa kesakitan.',
-          details: 'Sesi 1 & 2 dimulakan pada paras tenaga terkawal (0.09 mJ/mm²). Sel endotelium mula dirangsang untuk melepaskan molekul nitrik oksida (NO).',
-          metric: 'Pengaktifan Tisu Asas / Tissue Activation'
-        },
-        {
-          phase: 2,
-          title: 'Fasa 2: Neovaskularisasi & Pembentukan Kapilari (Minggu 3-6) / Phase 2: Neovascularization',
-          highlight: 'Pembentukan jaringan salur darah mikro baharu (Angiogenesis).',
-          details: 'Peningkatan aliran darah oksigen ke tisu spons korpus kavernosum bagi menyokong respons ereksi semulajadi.',
-          metric: 'Perfusi Vaskular Bertambah / Enhanced Perfusion'
-        },
-        {
-          phase: 3,
-          title: 'Fasa 3: Pengukuhan Struktur & Ketahanan (Minggu 7-10) / Phase 3: Structural Strengthening',
-          highlight: 'Penyatuan serat kolagen dan pemulihan elastisiti tisu.',
-          details: 'Ketegangan dan daya tahan ereksi mencapai kestabilan yang optimum dengan pengurangan tempoh latensi pemulihan.',
-          metric: 'Kestabilan Prestasi Tisu / Tissue Stability'
-        },
-        {
-          phase: 4,
-          title: 'Fasa 4: Penyelenggaraan Jangka Panjang (Minggu 12+) / Phase 4: Long-Term Maintenance',
-          highlight: 'Mengekalkan tahap kesihatan vaskular secara berterusan.',
-          // copy review needed: removed absolute claim 'sepanjang hayat'
-          details: 'Semakan berkala setiap 6 bulan bersama bimbingan senaman lantai pelvis bagi menyokong kesihatan vaskular berterusan.',
-          metric: 'Sasaran Klinikal Dicapai / Clinical Target Achieved'
-        }
-      ]
-    },
-    kegel: {
-      id: 'kegel',
-      name: 'Kerusi Kegel / Kegel Chair',
-      title: 'Latihan Otot Dasar Pelvis Berpandu / Guided Pelvic Floor Training',
-      description: 'Sesi latihan otot dasar pelvis yang berpandu bagi menyokong kawalan dan kesihatan pelvis lelaki. Kesan dibina secara berperingkat melalui sesi berjadual.',
-      // copy review needed: clinical wording must be confirmed by the Medical Director.
-      phases: [
-        {
-          phase: 1,
-          title: 'Fasa 1: Pengenalan Otot & Teknik Betul (Sesi 1-2) / Phase 1: Learn the Technique',
-          highlight: 'Mengenal pasti otot dasar pelvis dan teknik pengecutan yang betul.',
-          details: 'Pesakit dibimbing untuk mengenali otot yang disasarkan dan merasai perbezaan antara pengecutan yang betul dan salah.',
-          metric: 'Kesedaran Otot / Muscle Awareness'
-        },
-        {
-          phase: 2,
-          title: 'Fasa 2: Pembinaan Ketahanan Otot (Sesi 3-6) / Phase 2: Build Endurance',
-          highlight: 'Meningkatkan ketahanan dan kawalan otot secara beransur-ansur.',
-          details: 'Tahap latihan dinaikkan mengikut toleransi pesakit; latihan di rumah digalakkan untuk menyokong kemajuan.',
-          metric: 'Ketahanan Otot / Muscle Endurance'
-        },
-        {
-          phase: 3,
-          title: 'Fasa 3: Pengukuhan & Kawalan (Sesi 7-10) / Phase 3: Strengthen & Control',
-          highlight: 'Menggabungkan kekuatan otot dengan kawalan pernafasan.',
-          details: 'Fokus kepada konsistensi kawalan otot dan penyesuaian program bersama doktor berdasarkan kemajuan.',
-          metric: 'Kawalan Konsisten / Consistent Control'
-        },
-        {
-          phase: 4,
-          title: 'Fasa 4: Penyelenggaraan (Selepas Pakej) / Phase 4: Maintenance',
-          highlight: 'Meneruskan latihan di rumah untuk mengekalkan hasil.',
-          details: 'Sesi penyelenggaraan berkala dan latihan harian disyorkan mengikut nasihat doktor.',
-          metric: 'Rutin Penyelenggaraan / Maintenance Routine'
-        }
-      ]
-    },
-    pshot: {
-      id: 'pshot',
-      name: 'Rawatan Regeneratif (P-Shot) / Regenerative Therapy',
-      title: 'Rawatan Regeneratif Selepas Penilaian Klinikal / Regenerative Care After Clinical Assessment',
-      description: 'Rawatan regeneratif dilakukan doktor selepas konsultasi dan ujian darah. Pilihan rawatan dan kesesuaian ditentukan secara individu.',
-      // copy review needed: no outcome claims; Medical Director to confirm wording and LIU status.
-      phases: [
-        {
-          phase: 1,
-          title: 'Fasa 1: Konsultasi & Ujian Darah (Minggu 1) / Phase 1: Consultation & Blood Review',
-          highlight: 'Penilaian menyeluruh sebelum sebarang keputusan rawatan.',
-          details: 'Doktor menyemak sejarah kesihatan dan keputusan darah untuk menentukan kesesuaian dan pilihan rawatan.',
-          metric: 'Penilaian Kesesuaian / Suitability Assessed'
-        },
-        {
-          phase: 2,
-          title: 'Fasa 2: Persetujuan & Prosedur (Minggu 2-3) / Phase 2: Consent & Procedure',
-          highlight: 'Penerangan risiko dan manfaat sebelum persetujuan termaklum.',
-          details: 'Prosedur dijalankan oleh doktor bertauliah selepas pesakit memahami dan menandatangani persetujuan termaklum.',
-          metric: 'Persetujuan Termaklum / Informed Consent'
-        },
-        {
-          phase: 3,
-          title: 'Fasa 3: Pemulihan & Pemantauan (Minggu 4-8) / Phase 3: Recovery & Monitoring',
-          highlight: 'Pemantauan respons dan kesan sampingan oleh doktor.',
-          details: 'Pesakit mengikut panduan penjagaan dan melaporkan sebarang perubahan semasa semakan susulan.',
-          metric: 'Pemantauan Respons / Response Monitoring'
-        },
-        {
-          phase: 4,
-          title: 'Fasa 4: Semakan Susulan & Pelan Lanjut (Minggu 12+) / Phase 4: Follow-Up Review',
-          highlight: 'Semakan semula dan pelan penyelenggaraan jika sesuai.',
-          details: 'Doktor menilai kemajuan dan menentukan sama ada rawatan lanjut diperlukan.',
-          metric: 'Semakan Kemajuan / Progress Review'
-        }
-      ]
-    },
-    fertility: {
-      id: 'fertility',
-      name: 'Program Kesuburan Lelaki / Male Fertility Program',
-      title: 'Analisis Sperma & Program Infusi 12 Minggu / Sperm Analysis & 12-Week Infusion Program',
-      description: 'Program 12 minggu menggunakan infusi NAD+ dan Signature Drip bagi menyokong kesihatan sperma, termasuk kiraan, motiliti dan mobiliti. Dipantau doktor.',
-      // copy review needed: source is the internal Fertility Program Protocol (18 Oct 2026); outcome claims intentionally omitted.
-      phases: [
-        {
-          phase: 1,
-          title: 'Fasa 1: Analisis Sperma & Ujian Hormon (Minggu 1) / Phase 1: Baseline Testing',
-          highlight: 'Penilaian asas sebelum program bermula.',
-          details: 'Sampel dihantar ke makmal melalui pengatur operasi klinik. Ujian darah hormon dilakukan mengikut keperluan doktor.',
-          metric: 'Titik Asas / Baseline Established'
-        },
-        {
-          phase: 2,
-          title: 'Fasa 2: Infusi Berjadual (Minggu 2-6) / Phase 2: Scheduled Infusions',
-          highlight: 'Sesi infusi NAD+ dan Signature Drip mengikut jadual.',
-          details: 'Pesakit hadir untuk sesi berjadual; doktor memantau toleransi dan menyesuaikan program jika perlu.',
-          metric: 'Pematuhan Program / Program Adherence'
-        },
-        {
-          phase: 3,
-          title: 'Fasa 3: Pemantauan Pertengahan (Minggu 7-9) / Phase 3: Mid-Program Review',
-          highlight: 'Semakan kemajuan dan gaya hidup.',
-          details: 'Doktor menyemak kemajuan dan menasihati tentang tidur, pemakanan, merokok dan alkohol.',
-          metric: 'Semakan Pertengahan / Mid-Review'
-        },
-        {
-          phase: 4,
-          title: 'Fasa 4: Analisis Semula (Minggu 12) / Phase 4: Repeat Analysis',
-          highlight: 'Analisis sperma susulan bagi menilai kemajuan.',
-          details: 'Keputusan dibincangkan bersama doktor untuk menentukan langkah seterusnya.',
-          metric: 'Penilaian Susulan / Follow-Up Assessment'
-        }
-      ]
-    },
-    trt: {
-      id: 'trt',
-      name: 'Terapi Penggantian Testosteron (TRT) / Hormone Therapy',
-      title: 'Pengoptimuman Profil Hormon & Kesejahteraan Metabolik / Hormone Profile Optimization',
-      description: 'Pelan rawatan perubatan berasaskan ujian darah klinikal bagi mengoptimumkan paras hormon testosteron ke paras fisiologi lelaki aktif.',
-      phases: [
-        {
-          phase: 1,
-          title: 'Fasa 1: Ujian Profil Darah & Penentuan Dos (Minggu 1-2) / Phase 1: Blood Profile & Dosing',
-          highlight: 'Penetapan dos selamat berasaskan Total T, Free T, PSA & Hct.',
-          details: 'Penyelaras klinikal memeriksa fungsi hati, buah pinggang dan kepekatan sel darah merah sebelum memulakan pelan rawatan.',
-          metric: 'Penetapan Titik Asas / Baseline Established'
-        },
-        {
-          phase: 2,
-          title: 'Fasa 2: Pemulihan Tenaga & Kualiti Tidur (Minggu 3-6) / Phase 2: Energy & Sleep Recovery',
-          highlight: 'Penurunan rasa letih kronik dan kejelasan mental meningkat.',
-          details: 'Paras androgen mula stabil. Pesakit melaporkan tidur lebih lena, mood positif, dan tenaga harian yang lebih konsisten.',
-          metric: 'Peningkatan Stamina & Tenaga / Energy Recovery'
-        },
-        {
-          phase: 3,
-          title: 'Fasa 3: Pengurangan Lemak Viseral & Komposisi Otot (Minggu 7-10) / Phase 3: Body Composition',
-          highlight: 'Metabolisme lipid meningkat dan pembentukan jisim otot tanpa lemak.',
-          details: 'Sensitiviti insulin bertambah baik. Pengurangan lemak viseral lebih efektif apabila digandingkan dengan senaman asas.',
-          metric: 'Peningkatan Komposisi Badan / Composition Progress'
-        },
-        {
-          phase: 4,
-          title: 'Fasa 4: Pemantauan Darah 12-Minggu & Penyelenggaraan (Minggu 12+) / Phase 4: 12-Week Monitoring',
-          highlight: 'Ujian darah susulan bagi memantau keselamatan kardiovaskular.',
-          details: 'Semakan semula paras hematokrit dan lipid darah bagi memastikan paras hormon kekal dalam zon terapeutik selamat.',
-          metric: 'Keseimbangan Endokrin Optimum / Optimal Balance'
-        }
-      ]
-    },
-    pe_ed: {
-      id: 'pe_ed',
-      name: 'Rehabilitasi Prestasi Lelaki / Men\'s Health (PE/ED)',
-      title: 'Pendekatan Klinikal Bersepadu & Kawalan Neuromuskular / Integrated Clinical Approach',
-      description: 'Gabungan fisioterapi lantai pelvis, modulasi neuro-sensori dan sokongan klinikal berdaftar KKM bagi memulihkan kawalan dan keyakinan intim.',
-      phases: [
-        {
-          phase: 1,
-          title: 'Fasa 1: Pemetaan Sensori & Kekuatan Otot Pelvis (Minggu 1-2) / Phase 1: Sensory Mapping',
-          highlight: 'Mengenal pasti otot bulbocavernosus dan kawalan reflex.',
-          details: 'Doktor menguji ambang kepekaan saraf dan melatih teknik pengecutan otot dasar panggul yang betul.',
-          metric: 'Kesedaran Neuromuskular / Neuromuscular Awareness'
-        },
-        {
-          phase: 2,
-          title: 'Fasa 2: Kawalan Ambang & Pernafasan (Minggu 3-6) / Phase 2: Threshold & Breathing Control',
-          highlight: 'Meningkatkan kawalan ambang rangsangan secara bertahap.',
-          details: 'Latihan teknik desensitisasi berperingkat dan kawalan ritma pernafasan bagi mengelakkan lonjakan saraf terlalu awal.',
-          metric: 'Peningkatan Kawalan Masa / Latency Control'
-        },
-        {
-          phase: 3,
-          title: 'Fasa 3: Pengukuhan Respons Ereksi Berterusan (Minggu 7-10) / Phase 3: Response Strengthening',
-          highlight: 'Mengekalkan ketegangan tanpa keresahan prestasi (Performance Anxiety).',
-          // copy review needed: adjusted absolute claim 'kepuasan secara konsisten'
-          details: 'Kombinasi aliran darah vaskular yang lancar dan ketenangan psikologi menyokong kestabilan tindak balas intim.',
-          metric: 'Pengukuhan Keyakinan Diri / Confidence Established'
-        },
-        {
-          phase: 4,
-          title: 'Fasa 4: Penyelenggaraan & Kestabilan Lanjutan (Minggu 12+) / Phase 4: Long-Term Stability',
-          // copy review needed: adjusted claim 'secara automatik' and 'seumur hidup'
-          highlight: 'Kawalan respon seksual yang lebih terlatih dan konsisten.',
-          // copy review needed: adjusted absolute claim 'tanpa perlu bergantung kepada ubat'
-          details: 'Hasil rawatan diperkukuh melalui memori otot dan latihan neuromuskular dengan sokongan bimbingan klinikal.',
-          metric: 'Kawalan Prestasi Mantap / Consistent Control'
-        }
-      ]
-    }
-  };
-
-  const activeBranch = $derived(branches.find((b: any) => b.code === selectedBranch) ?? null);
-  const pricing = $derived(activeBranch?.pricing ?? null);
-
   function formatPrice(amount: number | null | undefined): string {
     if (amount === null || amount === undefined) return '-';
     return (pricing?.currency ?? 'RM') + ' ' + Number(amount).toLocaleString('en-MY');
   }
 
-  const activeTreatment = $derived(treatments[selectedTreatment]);
-  const activePhaseInfo = $derived(activeTreatment.phases[selectedPhase - 1]);
+  function openDispatchModal() {
+    dispatchModalOpen = true;
+    dispatchError = null;
+    previousActiveElement = (typeof document !== 'undefined' ? document.activeElement : null) as HTMLElement | null;
+    setTimeout(() => {
+      const input = document.getElementById('pt-name');
+      input?.focus();
+    }, 50);
+  }
+
+  function closeDispatchModal() {
+    dispatchModalOpen = false;
+    if (previousActiveElement) {
+      previousActiveElement.focus();
+      previousActiveElement = null;
+    }
+  }
 
   async function handleDispatchCare() {
     if (!patientName.trim()) {
-      appState.addToast('Sila masukkan nama pesakit. / Please enter patient name.', 'warning');
+      appState.addToast(t.dispatchModal.nameWarning, 'warning');
       return;
     }
 
     isDispatching = true;
     dispatchError = null;
     try {
-      // Uses the signed-in session: this endpoint handles a patient's name and phone number.
       dispatchResult = await ApiClient.request('/clinic/care-dispatch', {
         method: 'POST',
         body: JSON.stringify({
@@ -299,9 +165,9 @@
           followUpDate
         })
       });
-      appState.addToast('Panduan penjagaan digital berjaya dijana. / Digital care guide generated.', 'success');
+      appState.addToast(t.dispatchModal.successToast, 'success');
     } catch (e: any) {
-      const msg = getErrorMessage(e, 'We couldn\'t generate the care guide. Please try again.');
+      const msg = getErrorMessage(e, t.dispatchModal.errorDefault);
       dispatchError = msg;
       appState.addToast(msg, 'error');
     } finally {
@@ -310,7 +176,9 @@
   }
 </script>
 
-<div class="consult-suite-view">
+<svelte:window onkeydown={handleKeyDown} />
+
+<div class="consult-suite-view" class:patient-mode={isPatientView}>
   {#if branchError}
     <FluentErrorBanner
       title="Unable to connect to clinic services"
@@ -320,215 +188,276 @@
     />
   {/if}
 
-  <!-- Top Bar -->
-  <header class="suite-header">
-    <div class="header-titles">
-      <div class="suite-pill">IN-CLINIC CONSULTATION SUITE • MODUL BILIK DOKTOR</div>
-      <h1 class="suite-title">Consultation kit</h1>
-      <p class="suite-desc">
-        Interactive anatomical simulation and clinical recovery phases to help patients understand treatment plans with clarity and transparency.
-      </p>
-      <p class="suite-desc" style="margin-top: 4px; font-size: 13px; opacity: 0.85;">
-        Rajah anatomi interaktif dan simulasi fasa pemulihan bagi membantu pesakit memahami pelan rawatan klinikal secara saintifik dan telus.
-      </p>
-    </div>
+  <!-- Patient View Dedicated Notification Banner -->
+  {#if isPatientView}
+    <aside class="patient-mode-banner" role="banner">
+      <div class="pmb-left">
+        <span class="pmb-badge">{t.patientViewBadge}</span>
+        <span class="pmb-hint">{t.patientViewHint}</span>
+      </div>
+      <div class="pmb-right">
+        <!-- Language Switcher in Patient View -->
+        <div class="lang-toggle-group" role="group" aria-label={t.langToggleAria}>
+          <button
+            class="lang-btn"
+            class:active={currentLang === 'ms'}
+            onclick={() => switchLanguage('ms')}
+            aria-pressed={currentLang === 'ms'}
+          >
+            BM
+          </button>
+          <button
+            class="lang-btn"
+            class:active={currentLang === 'en'}
+            onclick={() => switchLanguage('en')}
+            aria-pressed={currentLang === 'en'}
+          >
+            EN
+          </button>
+        </div>
+        <FluentButton appearance="secondary" onclick={togglePatientView}>
+          <FluentIcons name="close" size={14} /> {t.exitPatientViewBtn}
+        </FluentButton>
+      </div>
+    </aside>
+  {/if}
 
-    <div class="header-actions">
-      <FluentButton appearance="primary" onclick={() => (dispatchModalOpen = true)}>
-        <FluentIcons name="phone" size={15} /> Hantar Panduan Selepas Rawatan / Send Guide (WhatsApp)
-      </FluentButton>
-    </div>
-  </header>
+  <!-- Slim Header (Doctor Mode) -->
+  {#if !isPatientView}
+    <header class="suite-header">
+      <div class="header-titles">
+        <div class="suite-pill">{t.badge}</div>
+        <h1 class="suite-title">{t.title}</h1>
+        <p class="suite-desc">{t.desc}</p>
+      </div>
 
-  <!-- Treatment Selector Tabs -->
-  <div class="treatment-tabs">
+      <div class="header-actions">
+        <!-- Bilingual Language Selector Toggle -->
+        <div class="lang-toggle-group" role="group" aria-label={t.langToggleAria}>
+          <button
+            class="lang-btn"
+            class:active={currentLang === 'ms'}
+            onclick={() => switchLanguage('ms')}
+            aria-pressed={currentLang === 'ms'}
+          >
+            BM
+          </button>
+          <button
+            class="lang-btn"
+            class:active={currentLang === 'en'}
+            onclick={() => switchLanguage('en')}
+            aria-pressed={currentLang === 'en'}
+          >
+            EN
+          </button>
+        </div>
+
+        <!-- Patient Presentation Mode Button -->
+        <FluentButton appearance="secondary" onclick={togglePatientView} aria-label={t.patientViewBtn}>
+          <FluentIcons name="tv" size={15} /> {t.patientViewBtn}
+        </FluentButton>
+
+        <!-- Dispatch Care Plan Modal Trigger -->
+        <FluentButton appearance="primary" onclick={openDispatchModal}>
+          <FluentIcons name="phone" size={15} /> {t.sendGuideBtn}
+        </FluentButton>
+      </div>
+    </header>
+  {/if}
+
+  <!-- Treatment Selector Sticky Segmented Control (Vector Icons, No Raw Emoji) -->
+  <nav class="treatment-nav" aria-label="Pilihan Rawatan / Treatment Selection">
+    <!-- ESWT -->
     <button
-      class="treatment-tab-btn"
+      class="treatment-card-tab"
       class:active={selectedTreatment === 'eswt'}
       onclick={() => { selectedTreatment = 'eswt'; selectedPhase = 1; }}
+      aria-pressed={selectedTreatment === 'eswt'}
     >
-      <span class="tab-icon">⚡</span>
+      <div class="tab-icon-box">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+      </div>
       <div class="tab-meta">
-        <div class="tab-label">Terapi ESWT / Shockwave</div>
-        <div class="tab-sub">Neovaskularisasi &amp; Aliran Darah / Blood Flow</div>
+        <div class="tab-label">{t.tabs.eswt.label}</div>
+        <div class="tab-sub">{t.tabs.eswt.sub}</div>
       </div>
     </button>
 
+    <!-- Kegel -->
     <button
-      class="treatment-tab-btn"
+      class="treatment-card-tab"
       class:active={selectedTreatment === 'kegel'}
       onclick={() => { selectedTreatment = 'kegel'; selectedPhase = 1; }}
+      aria-pressed={selectedTreatment === 'kegel'}
     >
-      <span class="tab-icon">🪑</span>
+      <div class="tab-icon-box">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M7 11V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v7" />
+          <path d="M5 14h14l-1.5 5a2 2 0 0 1-1.9 1.4H8.4a2 2 0 0 1-1.9-1.4L5 14z" />
+          <path d="M9 17h6" />
+        </svg>
+      </div>
       <div class="tab-meta">
-        <div class="tab-label">Kerusi Kegel / Kegel Chair</div>
-        <div class="tab-sub">Latihan Otot Pelvis / Pelvic Floor Training</div>
+        <div class="tab-label">{t.tabs.kegel.label}</div>
+        <div class="tab-sub">{t.tabs.kegel.sub}</div>
       </div>
     </button>
 
+    <!-- P-Shot -->
     <button
-      class="treatment-tab-btn"
+      class="treatment-card-tab"
       class:active={selectedTreatment === 'pshot'}
       onclick={() => { selectedTreatment = 'pshot'; selectedPhase = 1; }}
+      aria-pressed={selectedTreatment === 'pshot'}
     >
-      <span class="tab-icon">💉</span>
+      <div class="tab-icon-box">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m18 2 4 4" />
+          <path d="m17 7 3-3" />
+          <path d="M19 9 8.7 19.3c-.4.4-1 .4-1.4 0l-2.6-2.6c-.4-.4-.4-1 0-1.4L15 5" />
+          <path d="m9 11 4 4" />
+          <path d="m5 19-3 3" />
+        </svg>
+      </div>
       <div class="tab-meta">
-        <div class="tab-label">Rawatan Regeneratif / P-Shot</div>
-        <div class="tab-sub">Penilaian &amp; Pemantauan Doktor / Doctor-Led Care</div>
+        <div class="tab-label">{t.tabs.pshot.label}</div>
+        <div class="tab-sub">{t.tabs.pshot.sub}</div>
       </div>
     </button>
 
+    <!-- Fertility -->
     <button
-      class="treatment-tab-btn"
+      class="treatment-card-tab"
       class:active={selectedTreatment === 'fertility'}
       onclick={() => { selectedTreatment = 'fertility'; selectedPhase = 1; }}
+      aria-pressed={selectedTreatment === 'fertility'}
     >
-      <span class="tab-icon">🧬</span>
+      <div class="tab-icon-box">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 15c6.667-6 13.333 0 20-6" />
+          <path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993" />
+          <path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993" />
+          <path d="m17 6-2.5-2.5" />
+          <path d="m14 8-4-4" />
+          <path d="m7 18 2.5 2.5" />
+          <path d="m10 16 4 4" />
+        </svg>
+      </div>
       <div class="tab-meta">
-        <div class="tab-label">Kesuburan Lelaki / Male Fertility</div>
-        <div class="tab-sub">Program 12 Minggu / 12-Week Program</div>
+        <div class="tab-label">{t.tabs.fertility.label}</div>
+        <div class="tab-sub">{t.tabs.fertility.sub}</div>
       </div>
     </button>
 
+    <!-- TRT -->
     <button
-      class="treatment-tab-btn"
+      class="treatment-card-tab"
       class:active={selectedTreatment === 'trt'}
       onclick={() => { selectedTreatment = 'trt'; selectedPhase = 1; }}
+      aria-pressed={selectedTreatment === 'trt'}
     >
-      <span class="tab-icon">🩸</span>
+      <div class="tab-icon-box">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+          <circle cx="12" cy="14" r="3" />
+        </svg>
+      </div>
       <div class="tab-meta">
-        <div class="tab-label">Terapi TRT / Hormone</div>
-        <div class="tab-sub">Pengoptimuman Profil Darah / Blood Profile</div>
+        <div class="tab-label">{t.tabs.trt.label}</div>
+        <div class="tab-sub">{t.tabs.trt.sub}</div>
       </div>
     </button>
 
+    <!-- PE/ED -->
     <button
-      class="treatment-tab-btn"
+      class="treatment-card-tab"
       class:active={selectedTreatment === 'pe_ed'}
       onclick={() => { selectedTreatment = 'pe_ed'; selectedPhase = 1; }}
+      aria-pressed={selectedTreatment === 'pe_ed'}
     >
-      <span class="tab-icon">🎯</span>
+      <div class="tab-icon-box">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="6" />
+          <circle cx="12" cy="12" r="2" />
+        </svg>
+      </div>
       <div class="tab-meta">
-        <div class="tab-label">Rehabilitasi PE/ED / Men's Health</div>
-        <div class="tab-sub">Kawalan Pelvis / Neuromuscular Control</div>
+        <div class="tab-label">{t.tabs.pe_ed.label}</div>
+        <div class="tab-sub">{t.tabs.pe_ed.sub}</div>
       </div>
     </button>
-  </div>
+  </nav>
 
-  <!-- Interactive Visual Stage -->
-  <div class="suite-stage-grid">
-    <!-- Visual Anatomy Simulation Screen -->
-    <div class="visual-canvas-card">
-      <div class="canvas-top-tag">SIMULASI ANATOMI &amp; MEKANISME TINDAKAN / ANATOMY SIMULATION</div>
-      <h2 class="canvas-treatment-title">{activeTreatment.title}</h2>
-      <p class="canvas-treatment-desc">{activeTreatment.description}</p>
-
-      <!-- Dynamic Vector Simulation Graphic -->
-      <div class="vector-stage">
-        {#if selectedTreatment === 'eswt'}
-          <svg viewBox="0 0 600 240" class="anatomy-svg" aria-label="ESWT Shockwave Anatomy">
-            <defs>
-              <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#21A1F7" stop-opacity="0.8"/>
-                <stop offset="100%" stop-color="#043388" stop-opacity="0.2"/>
-              </linearGradient>
-            </defs>
-            <!-- Vascular Tissue Bed -->
-            <rect x="50" y="40" width="500" height="160" rx="16" fill="rgba(33, 161, 247, 0.05)" stroke="#043388" stroke-width="2"/>
-            
-            <!-- Shockwave Source Applicator -->
-            <path d="M 60 70 L 110 90 L 110 150 L 60 170 Z" fill="#21A1F7"/>
-            <text x="65" y="125" fill="#FFFFFF" font-size="11" font-weight="700">ESWT PROBE</text>
-
-            <!-- Acoustic Propagation Waves -->
-            <path d="M 125 80 Q 150 120 125 160" fill="none" stroke="#6DC6EC" stroke-width="3" stroke-dasharray="4,4"/>
-            <path d="M 155 70 Q 185 120 155 170" fill="none" stroke="#21A1F7" stroke-width="4"/>
-            <path d="M 185 60 Q 220 120 185 180" fill="none" stroke="#043388" stroke-width="4"/>
-
-            <!-- Micro-Vascular Bed (New Capillaries) -->
-            <g transform="translate(230, 60)">
-              <circle cx="80" cy="60" r="45" fill="rgba(33, 161, 247, 0.1)" stroke="#38BDF8" stroke-width="2"/>
-              <path d="M 30 60 Q 60 40 80 60 T 130 60" fill="none" stroke="#EF4444" stroke-width="5" stroke-linecap="round"/>
-              <path d="M 80 60 Q 100 25 120 30" fill="none" stroke="#F87171" stroke-width="3" stroke-linecap="round"/>
-              <path d="M 80 60 Q 95 95 125 90" fill="none" stroke="#F87171" stroke-width="3" stroke-linecap="round"/>
-              <text x="50" y="125" fill="#38BDF8" font-size="12" font-weight="700">Salur Darah Mikro Baharu (Angiogenesis)</text>
-            </g>
-          </svg>
-        {:else if selectedTreatment === 'trt'}
-          <svg viewBox="0 0 600 240" class="anatomy-svg" aria-label="TRT Hormone Curve">
-            <!-- Normal Range Band -->
-            <rect x="50" y="40" width="500" height="70" fill="rgba(52, 211, 153, 0.1)" stroke="#10B981" stroke-width="1" stroke-dasharray="4,4"/>
-            <text x="60" y="60" fill="#34D399" font-size="11" font-weight="700">Zon Terapeutik Optimum (15 - 30 nmol/L)</text>
-
-            <!-- Deficient Baseline Curve -->
-            <path d="M 50 180 Q 200 185 300 190 T 550 195" fill="none" stroke="#EF4444" stroke-width="3" stroke-dasharray="6,4"/>
-            <text x="60" y="205" fill="#F87171" font-size="11">Paras Asas Rendah (Hipogonadisme)</text>
-
-            <!-- TRT Optimized Steady Curve -->
-            <path d="M 50 180 Q 120 70 200 75 T 350 78 T 550 75" fill="none" stroke="#21A1F7" stroke-width="4"/>
-            <circle cx="200" cy="75" r="6" fill="#21A1F7"/>
-            <text x="215" y="78" fill="#6DC6EC" font-size="12" font-weight="700">Paras Selepas Terapi TRT Terkawal</text>
-          </svg>
-        {:else if selectedTreatment !== 'pe_ed'}
-          <svg viewBox="0 0 600 240" class="anatomy-svg" aria-label="Treatment roadmap: four phases">
-            <line x1="80" y1="120" x2="520" y2="120" stroke="#21A1F7" stroke-width="4" stroke-linecap="round"/>
-            {#each [1, 2, 3, 4] as n}
-              <circle cx={80 + (n - 1) * 146.7} cy="120" r={n === selectedPhase ? 16 : 10} fill={n === selectedPhase ? '#21A1F7' : '#043388'} stroke="#6DC6EC" stroke-width="2"/>
-              <text x={80 + (n - 1) * 146.7} y="125" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">{n}</text>
-              <text x={80 + (n - 1) * 146.7} y="165" text-anchor="middle" fill="#94A3B8" font-size="11">Fasa {n} / Phase {n}</text>
-            {/each}
-          </svg>
-        {:else}
-          <svg viewBox="0 0 600 240" class="anatomy-svg" aria-label="Pelvic Neuromuscular Matrix">
-            <rect x="50" y="40" width="500" height="160" rx="16" fill="rgba(139, 92, 246, 0.05)" stroke="#8B5CF6" stroke-width="2"/>
-            <path d="M 100 120 Q 250 50 400 120 T 500 120" fill="none" stroke="#A78BFA" stroke-width="4"/>
-            <circle cx="250" cy="85" r="10" fill="#8B5CF6"/>
-            <text x="220" y="65" fill="#DDD6FE" font-size="12" font-weight="700">Titik Kawalan Neuromuskular</text>
-            <text x="120" y="160" fill="#94A3B8" font-size="12">Latihan desensitisasi mengurangkan cetusan ejakulasi pra-matang secara mampan.</text>
-          </svg>
-        {/if}
+  <!-- Full-Width Anatomy Stage Hero (Edge-to-Edge Experience) -->
+  <main class="anatomy-stage-hero" aria-label="Simulasi Anatomi Klinikal">
+    <div class="stage-header-strip">
+      <div class="stage-tag-group">
+        <span class="stage-top-pill">{t.stage.topTag}</span>
+        <button
+          type="button"
+          class="evidence-badge-btn"
+          onclick={() => jumpToReference(activeTreatment.evidence.refId)}
+          title="{currentLang === 'ms' ? 'Lihat rujukan garis panduan' : 'View guideline citation'} [{activeTreatment.evidence.refId}]"
+        >
+          <FluentIcons name="info" size={13} />
+          <span>{t.stage.evidenceLevelTitle} {activeTreatment.evidence.levelLabel}</span>
+          <span class="cite-sup">[{activeTreatment.evidence.refId}]</span>
+        </button>
       </div>
 
-      <!-- Compliance Notice -->
-      <div class="canvas-footer-note">
-        🔒 *Semua rajah dan penerangan klinikal disemak mengikut Akta Iklan Ubat 1956 & garis panduan Lembaga Iklan Ubat (LIU/MAB).*
-      </div>
+      <h2 class="stage-treatment-title">{activeTreatment.title}</h2>
+      <p class="stage-treatment-desc">{activeTreatment.description}</p>
     </div>
 
-    <!-- 4-Phase Recovery Timeline Tracker -->
-    <div class="phase-timeline-card">
-      <div class="timeline-header">
-        <span class="th-badge">PELAN RAWATAN &amp; SASARAN / TREATMENT PLAN &amp; TARGETS</span>
-        <h3 class="th-title">4 Fasa Kemajuan Klinikal / 4 Clinical Progress Phases</h3>
+    <!-- Center Stage Vector Canvas -->
+    <div class="stage-canvas-viewport">
+      {#if selectedTreatment === 'eswt'}
+        <EswtAnatomyIllustration phase={selectedPhase} lang={currentLang} patientMode={isPatientView} />
+      {:else if selectedTreatment === 'kegel'}
+        <KegelAnatomyIllustration phase={selectedPhase} lang={currentLang} patientMode={isPatientView} />
+      {:else if selectedTreatment === 'pshot'}
+        <PshotAnatomyIllustration phase={selectedPhase} lang={currentLang} patientMode={isPatientView} />
+      {:else if selectedTreatment === 'fertility'}
+        <FertilityAnatomyIllustration phase={selectedPhase} lang={currentLang} patientMode={isPatientView} />
+      {:else if selectedTreatment === 'trt'}
+        <TrtHormoneIllustration phase={selectedPhase} lang={currentLang} patientMode={isPatientView} />
+      {:else if selectedTreatment === 'pe_ed'}
+        <PeEdAnatomyIllustration phase={selectedPhase} lang={currentLang} patientMode={isPatientView} />
+      {/if}
+    </div>
+
+    <!-- Floating Phase Scrubber Docked along the Bottom of the Stage -->
+    <div class="stage-scrubber-dock">
+      <div class="scrubber-head">
+        <span class="scrubber-title">
+          <FluentIcons name="timeline" size={14} /> {t.stage.phaseScrubberTitle}: {activePhaseInfo.title}
+        </span>
+        <span class="scrubber-active-metric">{activePhaseInfo.metric}</span>
       </div>
 
-      <!-- Phase Selector Pills -->
-      <div class="phase-pills">
+      <!-- Phase Segment Selector Buttons -->
+      <div class="scrubber-pills">
         {#each activeTreatment.phases as p}
           <button
-            class="phase-pill-btn"
+            class="scrubber-pill-btn"
             class:selected={selectedPhase === p.phase}
             onclick={() => (selectedPhase = p.phase)}
+            aria-pressed={selectedPhase === p.phase}
           >
-            Fasa {p.phase} / Phase {p.phase}
+            {currentLang === 'ms' ? `Fasa ${p.phase}` : `Phase ${p.phase}`}
           </button>
         {/each}
       </div>
 
-      <!-- Active Phase Details Display -->
-      <div class="active-phase-box">
-        <div class="ap-metric-badge">{activePhaseInfo.metric}</div>
-        <h4 class="ap-title">{activePhaseInfo.title}</h4>
-        <div class="ap-highlight">{activePhaseInfo.highlight}</div>
-        <p class="ap-details">{activePhaseInfo.details}</p>
-      </div>
-
-      <!-- Interactive Range Slider -->
-      <div class="slider-wrapper">
-        <div class="slider-labels">
-          <span>Minggu 1 / Wk 1</span>
-          <span>Minggu 6 / Wk 6</span>
-          <span>Minggu 12+ / Wk 12+</span>
+      <!-- Scrubber Slider -->
+      <div class="scrubber-range-container">
+        <div class="scrubber-range-ticks">
+          <span>{t.stage.week1Label}</span>
+          <span>{t.stage.week6Label}</span>
+          <span>{t.stage.week12Label}</span>
         </div>
         <input
           type="range"
@@ -536,69 +465,214 @@
           max="4"
           step="1"
           bind:value={selectedPhase}
-          class="phase-slider"
+          class="stage-range-slider"
+          aria-label={t.stage.phaseScrubberTitle}
         />
       </div>
+    </div>
+  </main>
 
-      <div class="doctor-tip-box">
-        <span class="tip-icon">💡</span>
-        <span class="tip-text">
-          Tunjukkan fasa ini kepada pesakit semasa konsultasi bagi menetapkan jangkaan pemulihan yang realistik dan menyokong kepatuhan rawatan (*treatment adherence*). / Share this timeline with the patient to establish realistic expectations and support treatment adherence.
-        </span>
+  <!-- Horizontal Phase Details Strip Beneath the Stage -->
+  <section class="phase-details-strip" aria-labelledby="phase-details-title">
+    <div class="phase-metric-card">
+      <div class="pms-label">{currentLang === 'ms' ? 'Sasaran Fisiologi' : 'Physiological Target'}</div>
+      <div class="pms-value-badge">{activePhaseInfo.metric}</div>
+      <h3 id="phase-details-title" class="pms-title">{activePhaseInfo.title}</h3>
+    </div>
+
+    <div class="phase-highlight-card">
+      <div class="pms-label">{currentLang === 'ms' ? 'Sorotan Fasa' : 'Phase Highlight'}</div>
+      <div class="pms-highlight">{activePhaseInfo.highlight}</div>
+    </div>
+
+    <div class="phase-clinical-card">
+      <div class="pms-label">{currentLang === 'ms' ? 'Huraian Mekanisme Tindakan' : 'Clinical Mechanism Details'}</div>
+      <p class="pms-details">{activePhaseInfo.details}</p>
+    </div>
+  </section>
+
+  <!-- Evidence & Safety Row (Target Patient, Contraindications, Clinical Notes) -->
+  <section class="evidence-safety-row" aria-label="Bukti Klinikal & Keselamatan / Clinical Evidence & Safety">
+    <!-- Card 1: Target Patient -->
+    <div class="safety-card">
+      <div class="sc-head">
+        <FluentIcons name="user" size={15} />
+        <span class="sc-title">{currentLang === 'ms' ? 'Indikasi / Sasaran Pesakit' : 'Patient Indication & Suitability'}</span>
       </div>
+      <p class="sc-body">{activeTreatment.targetPatient}</p>
+    </div>
+
+    <!-- Card 2: Contraindications & Red Flags -->
+    <div class="safety-card warning-accent">
+      <div class="sc-head">
+        <FluentIcons name="warning" size={15} />
+        <span class="sc-title">{currentLang === 'ms' ? 'Kontraindikasi & Langkah Berjaga-jaga' : 'Contraindications & Cautions'}</span>
+      </div>
+      <p class="sc-body">{activeTreatment.contraindications}</p>
+    </div>
+
+    <!-- Card 3: Clinical Guideline & Evidence Level -->
+    <div
+      class="safety-card guideline-accent interactive-ref-card"
+      role="button"
+      tabindex="0"
+      onclick={() => jumpToReference(activeTreatment.evidence.refId)}
+      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToReference(activeTreatment.evidence.refId); } }}
+      title="{currentLang === 'ms' ? 'Klik untuk melihat rujukan garis panduan klinikal' : 'Click to inspect clinical guideline references'} [{activeTreatment.evidence.refId}]"
+    >
+      <div class="sc-head">
+        <FluentIcons name="checkmark" size={15} />
+        <span class="sc-title">{currentLang === 'ms' ? 'Rujukan & Bukti Klinikal' : 'Guideline & Evidence Base'}</span>
+        <span class="ref-jump-tag">#{activeTreatment.evidence.refId} ↗</span>
+      </div>
+      <p class="sc-body"><strong>{activeTreatment.evidence.citation}</strong></p>
+      <p class="sc-subtext">{activeTreatment.evidence.clinicalNote}</p>
+      {#if activeTreatment.evidence.reviewMarker}
+        <div class="clinical-marker-tag">
+          <FluentIcons name="info" size={12} /> {activeTreatment.evidence.reviewMarker}
+        </div>
+      {/if}
+    </div>
+  </section>
+
+  <!-- Doctor In-Clinic Guidance Note -->
+  <div class="doctor-tip-card">
+    <div class="tip-icon-cell">
+      <FluentIcons name="sparkle" size={18} />
+    </div>
+    <div class="tip-text-cell">
+      {isPatientView ? t.stage.patientTip : t.stage.doctorTip}
     </div>
   </div>
 
-  <!-- Consultation checklist: from the clinics' daily new-case report format -->
-  <section class="checklist-card" aria-labelledby="checklist-title">
-    <h3 id="checklist-title" class="th-title">Senarai Semak Konsultasi / Consultation Checklist</h3>
+  <!-- Consultation Toolkit: Doctor View Only (Checklist & Branch Pricing Side-by-Side) -->
+  {#if !isPatientView}
+    <div class="doctor-toolkit-grid" aria-label={t.doctorOnlyBadge}>
+      <!-- Card A: Consultation Checklist -->
+      <section class="toolkit-card checklist-card" aria-labelledby="checklist-heading">
+        <div class="tk-card-header">
+          <span class="tk-badge">{t.doctorOnlyBadge}</span>
+          <h3 id="checklist-heading" class="tk-title">{t.checklist.title}</h3>
+          <p class="tk-subtitle">{t.checklist.subtitle}</p>
+        </div>
 
-    <div class="price-block" aria-live="polite">
-      <div class="price-head">
-        <label for="branch-select">Cawangan / Branch:</label>
-        <select id="branch-select" class="input-field branch-select" bind:value={selectedBranch} disabled={isLoadingBranches || branches.length === 0}>
-          {#each branches as b}
-            <option value={b.code}>{b.shortName || b.name}</option>
+        <ul class="checklist-items">
+          {#each t.checklist.items as item}
+            <li class="checklist-item">
+              <span class="cli-icon"><FluentIcons name="checkCircle" size={15} /></span>
+              <div class="cli-content">
+                <strong>{item.title}</strong> {item.desc}
+              </div>
+            </li>
           {/each}
-        </select>
-      </div>
-      {#if isLoadingBranches}
-        <p class="price-empty">Memuatkan harga... / Loading pricing...</p>
-      {:else if !pricing}
-        <p class="price-empty">Harga belum dikonfigurasi untuk cawangan ini. Hubungi pentadbir (Administration &rarr; Companies). / Pricing is not configured for this branch.</p>
-      {:else}
-        <dl class="price-list">
-          <div><dt>Yuran konsultasi / Consultation fee</dt><dd>{formatPrice(pricing.consultationFee)}</dd></div>
-          {#if pricing.onlineBookingFee !== null && pricing.onlineBookingFee !== undefined}
-            <div><dt>Tempahan dalam talian / Online booking</dt><dd>{formatPrice(pricing.onlineBookingFee)}{pricing.onlineBookingNote ? ' - ' + pricing.onlineBookingNote : ''}</dd></div>
+        </ul>
+      </section>
+
+      <!-- Card B: Branch Pricing & Packages -->
+      <section class="toolkit-card pricing-card" aria-labelledby="pricing-heading">
+        <div class="tk-card-header">
+          <span class="tk-badge">{t.doctorOnlyBadge}</span>
+          <h3 id="pricing-heading" class="tk-title">{t.pricing.title}</h3>
+        </div>
+
+        <div class="branch-selector-row">
+          <label for="branch-select" class="bs-label">{t.pricing.branchLabel}</label>
+          <select
+            id="branch-select"
+            class="input-field branch-select"
+            bind:value={selectedBranch}
+            disabled={isLoadingBranches || branches.length === 0}
+          >
+            {#each branches as b}
+              <option value={b.code}>{b.shortName || b.name}</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="pricing-content-box" aria-live="polite">
+          {#if isLoadingBranches}
+            <p class="price-empty">{t.pricing.loading}</p>
+          {:else if !pricing}
+            <p class="price-empty">{t.pricing.notConfigured}</p>
+          {:else}
+            <dl class="price-table">
+              <div class="price-row">
+                <dt>{t.pricing.consultationFee}</dt>
+                <dd>{formatPrice(pricing.consultationFee)}</dd>
+              </div>
+
+              {#if pricing.onlineBookingFee !== null && pricing.onlineBookingFee !== undefined}
+                <div class="price-row">
+                  <dt>{t.pricing.onlineBooking}</dt>
+                  <dd>
+                    {formatPrice(pricing.onlineBookingFee)}
+                    {#if pricing.onlineBookingNote}
+                      <span class="price-subnote">({pricing.onlineBookingNote})</span>
+                    {/if}
+                  </dd>
+                </div>
+              {/if}
+
+              {#each pricing.packages ?? [] as pk}
+                <div class="price-row">
+                  <dt>{pk.label}</dt>
+                  <dd>{formatPrice(pk.price)}</dd>
+                </div>
+              {/each}
+            </dl>
+
+            {#if pricing.validFrom || pricing.validTo}
+              <p class="price-valid-note">
+                <FluentIcons name="calendar" size={13} />
+                {t.pricing.validDate}: {pricing.validFrom || '-'} &rarr; {pricing.validTo || '-'}
+              </p>
+            {/if}
           {/if}
-          {#each pricing.packages ?? [] as pk}
-            <div><dt>{pk.label}</dt><dd>{formatPrice(pk.price)}</dd></div>
-          {/each}
-        </dl>
-        {#if pricing.validFrom || pricing.validTo}
-          <p class="price-note">Sah / Valid: {pricing.validFrom || '-'} &rarr; {pricing.validTo || '-'}</p>
-        {/if}
-      {/if}
+        </div>
+      </section>
     </div>
-    <ul class="checklist-list">
-      <li><strong>Yuran konsultasi / Consultation fee:</strong> nyatakan dengan jelas di awal supaya pesakit tidak menganggapnya percuma. / State it clearly up front so it is not assumed free.</li>
-      <li><strong>Profil pesakit / Patient profile:</strong> umur, aduan utama (diagnosis), bajet, lokasi. / Age, main complaint, budget, location.</li>
-      <li><strong>Isu utama / Main issue:</strong> tahap pengetahuan rawatan, kebimbangan, dan keperluan berbincang dengan pasangan. / Treatment knowledge, concerns, need to discuss with partner.</li>
-      <li><strong>Sumber lead / Lead source:</strong> Facebook, TikTok, Instagram, Google, billboard, rujukan. / Facebook, TikTok, Instagram, Google, billboard, referral.</li>
-      <li><strong>Pasukan jualan/operasi / Sales or operations contact:</strong> untuk susulan hari berikutnya. / For next-day follow-up.</li>
-      <li><strong>Analisis sperma / Sperm analysis:</strong> maklumkan pasukan operasi supaya pengambilan sampel oleh pelari makmal dapat diatur. / Inform operations so a lab runner can be arranged.</li>
-      <li><strong>Peringatan / Reminder:</strong> hantar panduan arah &amp; parkir kepada pesakit selepas temujanji disahkan (jika ada penutupan pintu utama). / Send the directions and parking guide once the appointment is confirmed.</li>
-    </ul>
-  </section>
+  {/if}
 
-  <!-- Dispatch Modal -->
+  <!-- Clinical References & Evidence Guidelines (Step 4) -->
+  <ReferencePanel
+    referencesSection={t.referencesSection}
+    activeTreatmentId={selectedTreatment}
+    bind:isOpen={refPanelOpen}
+    {highlightedRefId}
+    lang={currentLang}
+    onSelectTreatment={(id) => {
+      selectedTreatment = id as TreatmentKey;
+      selectedPhase = 1;
+    }}
+  />
+
+  <!-- Fixed Compliance Footer Disclaimer -->
+  <footer class="suite-footer" role="contentinfo">
+    <div class="footer-lock-icon">🔒</div>
+    <div class="footer-text-group">
+      <div class="footer-legal">{t.disclaimer.text}</div>
+      <div class="footer-stamp">{t.disclaimer.reviewStamp}</div>
+    </div>
+  </footer>
+
+  <!-- Accessible WhatsApp Post-Care Guide Modal -->
   {#if dispatchModalOpen}
-    <div class="modal-backdrop">
-      <div class="modal-dialog">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="modal-backdrop" onclick={(e) => { if (e.target === e.currentTarget) closeDispatchModal(); }}>
+      <div
+        class="modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        bind:this={dialogElement}
+        tabindex="-1"
+      >
         <div class="modal-head">
-          <h3 class="modal-title">Hantar Panduan Selepas Rawatan / Send Post-Care Guide (WhatsApp)</h3>
-          <button class="modal-close" onclick={() => (dispatchModalOpen = false)} aria-label="Close dialog"><FluentIcons name="close" size={16} /></button>
+          <h3 id="modal-title" class="modal-title">{t.dispatchModal.title}</h3>
+          <button class="modal-close" onclick={closeDispatchModal} aria-label={t.dispatchModal.closeBtn}>
+            <FluentIcons name="close" size={16} />
+          </button>
         </div>
 
         <div class="modal-body">
@@ -612,23 +686,41 @@
           {/if}
 
           <div class="form-group">
-            <label for="pt-name">Nama Penuh Pesakit / Patient Full Name:</label>
-            <input id="pt-name" type="text" bind:value={patientName} placeholder="cth: Tuan Ahmad Khairi" class="input-field"/>
+            <label for="pt-name">{t.dispatchModal.patientNameLabel}</label>
+            <input
+              id="pt-name"
+              type="text"
+              bind:value={patientName}
+              placeholder={t.dispatchModal.patientNamePlaceholder}
+              class="input-field"
+            />
           </div>
 
           <div class="form-group">
-            <label for="pt-phone">Nombor Telefon WhatsApp / WhatsApp Phone Number:</label>
-            <input id="pt-phone" type="tel" bind:value={patientPhone} placeholder="cth: 0123456789" class="input-field"/>
+            <label for="pt-phone">{t.dispatchModal.phoneLabel}</label>
+            <input
+              id="pt-phone"
+              type="tel"
+              bind:value={patientPhone}
+              placeholder={t.dispatchModal.phonePlaceholder}
+              class="input-field"
+            />
           </div>
 
           <div class="form-group">
-            <label for="pt-date">Tarikh Temujanji Susulan (Pilihan) / Follow-Up Date (Optional):</label>
-            <input id="pt-date" type="text" bind:value={followUpDate} placeholder="cth: 15 Oktober 2026, 11:00 AM" class="input-field"/>
+            <label for="pt-date">{t.dispatchModal.dateLabel}</label>
+            <input
+              id="pt-date"
+              type="text"
+              bind:value={followUpDate}
+              placeholder={t.dispatchModal.datePlaceholder}
+              class="input-field"
+            />
           </div>
 
           {#if dispatchResult}
             <div class="dispatch-result-box">
-              <div class="dr-title">Mesej WhatsApp Bersedia untuk Dihantar / Ready to Send:</div>
+              <div class="dr-title">{t.dispatchModal.readyTitle}</div>
               <pre class="dr-preview">{dispatchResult.messageText}</pre>
               <a
                 href={dispatchResult.whatsappUrl}
@@ -636,16 +728,18 @@
                 rel="noreferrer"
                 class="wa-jump-link"
               >
-                👉 Buka WhatsApp &amp; Hantar Mesej / Open WhatsApp &amp; Send Message ↗
+                👉 {t.dispatchModal.openWaBtn}
               </a>
             </div>
           {/if}
         </div>
 
         <div class="modal-foot">
-          <FluentButton appearance="secondary" onclick={() => (dispatchModalOpen = false)}>Tutup / Close</FluentButton>
+          <FluentButton appearance="secondary" onclick={closeDispatchModal}>
+            {t.dispatchModal.closeBtn}
+          </FluentButton>
           <FluentButton appearance="primary" onclick={handleDispatchCare} disabled={isDispatching}>
-            {isDispatching ? 'Menjana / Generating...' : 'Jana Pautan WhatsApp / Generate WhatsApp Link'}
+            {isDispatching ? t.dispatchModal.generatingBtn : t.dispatchModal.generateBtn}
           </FluentButton>
         </div>
       </div>
@@ -659,8 +753,59 @@
     flex-direction: column;
     gap: 24px;
     padding: 24px 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
   }
 
+  /* Patient View Fullscreen Styling */
+  .consult-suite-view.patient-mode {
+    padding: 16px 24px 40px;
+    max-width: 100%;
+  }
+
+  /* Patient View Banner */
+  .patient-mode-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(4, 51, 136, 0.4) 0%, rgba(33, 161, 247, 0.2) 100%);
+    border: 1px solid rgba(33, 161, 247, 0.4);
+    border-radius: 12px;
+    padding: 12px 20px;
+    gap: 16px;
+  }
+
+  .pmb-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .pmb-badge {
+    background: #21A1F7;
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .pmb-hint {
+    font-size: 13px;
+    color: #E2E8F0;
+  }
+
+  .pmb-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Slim Doctor Header */
   .suite-header {
     display: flex;
     justify-content: space-between;
@@ -692,150 +837,263 @@
     font-size: 14px;
     color: var(--text-secondary, #94A3B8);
     margin: 0;
-    max-width: 800px;
+    max-width: 820px;
     line-height: 1.5;
   }
 
-  .treatment-tabs {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 16px;
-  }
-
-  .treatment-tab-btn {
+  .header-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* Segmented Language Selector */
+  .lang-toggle-group {
+    display: inline-flex;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .lang-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary, #94A3B8);
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .lang-btn:hover {
+    color: #FFFFFF;
+  }
+
+  .lang-btn.active {
+    background: #21A1F7;
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(33, 161, 247, 0.3);
+  }
+
+  /* Treatment Navigation Bar */
+  .treatment-nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .treatment-card-tab {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
     background: var(--card-bg, rgba(255, 255, 255, 0.04));
     border: 1px solid var(--card-stroke, rgba(255, 255, 255, 0.08));
-    border-radius: 14px;
+    border-radius: 12px;
     cursor: pointer;
     text-align: left;
     transition: all 0.15s ease;
   }
 
-  .treatment-tab-btn:hover {
+  .treatment-card-tab:hover {
     background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(33, 161, 247, 0.3);
   }
 
-  .treatment-tab-btn.active {
-    background: linear-gradient(135deg, rgba(4, 51, 136, 0.25) 0%, rgba(33, 161, 247, 0.15) 100%);
+  .treatment-card-tab.active {
+    background: linear-gradient(135deg, rgba(4, 51, 136, 0.3) 0%, rgba(33, 161, 247, 0.18) 100%);
     border: 2px solid #21A1F7;
-    box-shadow: 0 4px 20px rgba(33, 161, 247, 0.15);
+    box-shadow: 0 4px 16px rgba(33, 161, 247, 0.2);
   }
 
-  .tab-icon {
-    font-size: 28px;
+  .tab-icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(33, 161, 247, 0.1);
+    color: #21A1F7;
+    flex-shrink: 0;
+  }
+
+  .treatment-card-tab.active .tab-icon-box {
+    background: #21A1F7;
+    color: #FFFFFF;
+  }
+
+  .tab-meta {
+    overflow: hidden;
   }
 
   .tab-label {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--text-primary, #FFFFFF);
-    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .tab-sub {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary, #94A3B8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
   }
 
-  .suite-stage-grid {
-    display: grid;
-    grid-template-columns: 1.3fr 1fr;
-    gap: 24px;
-  }
-
-  .visual-canvas-card {
+  /* Full-Width Anatomy Stage Hero */
+  .anatomy-stage-hero {
     background: var(--card-bg, rgba(255, 255, 255, 0.04));
     border: 1px solid var(--card-stroke, rgba(255, 255, 255, 0.08));
     border-radius: 20px;
-    padding: 28px;
+    padding: 28px 32px;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   }
 
-  .canvas-top-tag {
+  .stage-header-strip {
+    margin-bottom: 20px;
+  }
+
+  .stage-tag-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .stage-top-pill {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 800;
     color: #21A1F7;
     letter-spacing: 0.8px;
-    margin-bottom: 8px;
   }
 
-  .canvas-treatment-title {
-    font-size: 20px;
+  .evidence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #34D399;
+  }
+
+  .stage-treatment-title {
+    font-size: 22px;
     font-weight: 800;
     color: var(--text-primary, #FFFFFF);
     margin: 0 0 8px 0;
   }
 
-  .canvas-treatment-desc {
-    font-size: 13px;
-    color: var(--text-secondary, #94A3B8);
-    margin: 0 0 20px 0;
-    line-height: 1.5;
+  .patient-mode .stage-treatment-title {
+    font-size: 28px;
   }
 
-  .vector-stage {
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 14px;
-    padding: 16px;
+  .stage-treatment-desc {
+    font-size: 14px;
+    color: var(--text-secondary, #CBD5E1);
+    margin: 0;
+    max-width: 900px;
+    line-height: 1.6;
+  }
+
+  .patient-mode .stage-treatment-desc {
+    font-size: 16px;
+    max-width: 1100px;
+  }
+
+  /* Center Stage Graphic Canvas */
+  .stage-canvas-viewport {
+    background: radial-gradient(circle at center, rgba(33, 161, 247, 0.08) 0%, rgba(0, 0, 0, 0.4) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 260px;
-    margin-bottom: 16px;
+    min-height: 280px;
+    margin-bottom: 24px;
+  }
+
+  .patient-mode .stage-canvas-viewport {
+    min-height: 380px;
+    padding: 36px;
   }
 
   .anatomy-svg {
     width: 100%;
+    max-width: 780px;
     height: auto;
+    max-height: 340px;
   }
 
-  .canvas-footer-note {
-    font-size: 11px;
-    color: var(--text-secondary, #64748B);
-    margin-top: auto;
-  }
-
-  /* Phase Timeline Card */
-  .phase-timeline-card {
-    background: var(--card-bg, rgba(255, 255, 255, 0.04));
-    border: 1px solid var(--card-stroke, rgba(255, 255, 255, 0.08));
-    border-radius: 20px;
-    padding: 28px;
+  /* Floating Phase Scrubber Docked along Bottom */
+  .stage-scrubber-dock {
+    background: rgba(6, 25, 56, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(33, 161, 247, 0.3);
+    border-radius: 14px;
+    padding: 18px 24px;
     display: flex;
     flex-direction: column;
+    gap: 12px;
   }
 
-  .th-badge {
-    font-size: 11px;
-    font-weight: 700;
-    color: #38BDF8;
-    letter-spacing: 0.8px;
+  .scrubber-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
-  .th-title {
-    font-size: 18px;
+  .scrubber-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
     font-weight: 800;
-    color: var(--text-primary, #FFFFFF);
-    margin: 4px 0 16px 0;
+    color: #38BDF8;
   }
 
-  .phase-pills {
+  .scrubber-active-metric {
+    font-size: 12px;
+    font-weight: 700;
+    color: #34D399;
+    background: rgba(52, 211, 153, 0.15);
+    border: 1px solid #10B981;
+    padding: 2px 10px;
+    border-radius: 6px;
+  }
+
+  .scrubber-pills {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
-    margin-bottom: 16px;
   }
 
-  .phase-pill-btn {
-    padding: 8px;
+  .scrubber-pill-btn {
+    padding: 8px 12px;
     border-radius: 8px;
-    border: 1px solid var(--card-stroke, rgba(255, 255, 255, 0.1));
-    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
     color: var(--text-secondary, #94A3B8);
     font-size: 12px;
     font-weight: 700;
@@ -843,105 +1101,310 @@
     transition: all 0.15s ease;
   }
 
-  .phase-pill-btn.selected {
+  .scrubber-pill-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+  }
+
+  .scrubber-pill-btn.selected {
     background: #043388;
     color: #FFFFFF;
     border-color: #21A1F7;
+    box-shadow: 0 0 12px rgba(33, 161, 247, 0.35);
   }
 
-  .active-phase-box {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 20px;
-    margin-bottom: 20px;
+  .scrubber-range-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
-  .ap-metric-badge {
-    display: inline-block;
-    padding: 3px 10px;
-    background: rgba(52, 211, 153, 0.15);
-    border: 1px solid #10B981;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #34D399;
-    margin-bottom: 8px;
-  }
-
-  .ap-title {
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--text-primary, #FFFFFF);
-    margin: 0 0 6px 0;
-  }
-
-  .ap-highlight {
-    font-size: 13px;
-    font-weight: 600;
-    color: #38BDF8;
-    margin-bottom: 8px;
-  }
-
-  .ap-details {
-    font-size: 12px;
-    color: var(--text-secondary, #CBD5E1);
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  .slider-wrapper {
-    margin-bottom: 20px;
-  }
-
-  .slider-labels {
+  .scrubber-range-ticks {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
     color: var(--text-secondary, #94A3B8);
-    margin-bottom: 6px;
+    font-weight: 600;
   }
 
-  .phase-slider {
+  .stage-range-slider {
     width: 100%;
     accent-color: #21A1F7;
     cursor: pointer;
   }
 
-  .doctor-tip-box {
+  /* Horizontal Phase Details Strip */
+  .phase-details-strip {
+    display: grid;
+    grid-template-columns: 280px 1.2fr 1.6fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 1024px) {
+    .phase-details-strip {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .phase-metric-card,
+  .phase-highlight-card,
+  .phase-clinical-card {
+    background: var(--card-bg, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--card-stroke, rgba(255, 255, 255, 0.08));
+    border-radius: 14px;
+    padding: 18px 22px;
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px;
-    background: rgba(33, 161, 247, 0.06);
-    border: 1px dashed rgba(33, 161, 247, 0.3);
-    border-radius: 10px;
+    flex-direction: column;
+  }
+
+  .pms-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94A3B8;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .pms-value-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(52, 211, 153, 0.15);
+    border: 1px solid #10B981;
+    border-radius: 6px;
     font-size: 12px;
-    color: #BAE6FD;
+    font-weight: 700;
+    color: #34D399;
+    margin-bottom: 8px;
+    align-self: flex-start;
+  }
+
+  .pms-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-primary, #FFFFFF);
+    margin: 0;
+  }
+
+  .pms-highlight {
+    font-size: 14px;
+    font-weight: 700;
+    color: #38BDF8;
+    line-height: 1.5;
+  }
+
+  .pms-details {
+    font-size: 13px;
+    color: var(--text-secondary, #CBD5E1);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Evidence & Safety Row */
+  .evidence-safety-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .safety-card {
+    background: var(--card-bg, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--card-stroke, rgba(255, 255, 255, 0.08));
+    border-radius: 14px;
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .safety-card.warning-accent {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.03);
+  }
+
+  .safety-card.guideline-accent {
+    border-color: rgba(33, 161, 247, 0.3);
+    background: rgba(33, 161, 247, 0.03);
+  }
+
+  .safety-card.interactive-ref-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .safety-card.interactive-ref-card:hover {
+    border-color: #38BDF8;
+    background: rgba(33, 161, 247, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .ref-jump-tag {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 700;
+    color: #38BDF8;
+    background: rgba(33, 161, 247, 0.12);
+    border: 1px solid rgba(33, 161, 247, 0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
+  .sc-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #38BDF8;
+  }
+
+  .warning-accent .sc-head {
+    color: #F59E0B;
+  }
+
+  .sc-title {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sc-body {
+    font-size: 13px;
+    color: var(--text-primary, #E2E8F0);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .sc-subtext {
+    font-size: 12px;
+    color: var(--text-secondary, #94A3B8);
+    margin: 0;
     line-height: 1.4;
   }
 
-  .checklist-card {
-    background: var(--card-bg, rgba(255, 255, 255, 0.04));
-    border: 1px solid var(--card-stroke, rgba(255, 255, 255, 0.08));
-    border-radius: 20px;
-    padding: 28px;
+  .clinical-marker-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 4px 10px;
+    background: rgba(33, 161, 247, 0.08);
+    border: 1px dashed rgba(33, 161, 247, 0.3);
+    border-radius: 6px;
+    font-size: 11px;
+    color: #7DD3FC;
+    line-height: 1.4;
   }
 
-  .price-block {
-    margin: 0 0 16px 0;
-    padding: 16px;
+  /* Doctor / Patient Tip Card */
+  .doctor-tip-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 20px;
+    background: rgba(33, 161, 247, 0.06);
     border: 1px dashed rgba(33, 161, 247, 0.3);
     border-radius: 12px;
   }
 
-  .price-head {
+  .tip-icon-cell {
+    color: #38BDF8;
+    flex-shrink: 0;
+  }
+
+  .tip-text-cell {
+    font-size: 13px;
+    color: #BAE6FD;
+    line-height: 1.5;
+  }
+
+  /* Doctor Toolkit Grid: Checklist & Branch Pricing */
+  .doctor-toolkit-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 960px) {
+    .doctor-toolkit-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .toolkit-card {
+    background: var(--card-bg, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--card-stroke, rgba(255, 255, 255, 0.08));
+    border-radius: 18px;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tk-card-header {
+    margin-bottom: 18px;
+  }
+
+  .tk-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    color: #21A1F7;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+
+  .tk-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary, #FFFFFF);
+    margin: 0 0 4px 0;
+  }
+
+  .tk-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary, #94A3B8);
+    margin: 0;
+  }
+
+  /* Checklist Items */
+  .checklist-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary, #CBD5E1);
+  }
+
+  .cli-icon {
+    color: #10B981;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .cli-content strong {
+    color: var(--text-primary, #FFFFFF);
+  }
+
+  /* Branch Pricing Box */
+  .branch-selector-row {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
+  }
+
+  .bs-label {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: #CBD5E1;
   }
 
@@ -950,37 +1413,103 @@
     min-width: 220px;
   }
 
-  .price-list {
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 13px;
+  .pricing-content-box {
+    border: 1px dashed rgba(33, 161, 247, 0.3);
+    border-radius: 12px;
+    padding: 18px;
+    background: rgba(0, 0, 0, 0.2);
   }
 
-  .price-list div {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-  }
-
-  .price-list dt { color: var(--text-secondary, #CBD5E1); }
-  .price-list dd { margin: 0; font-weight: 700; color: var(--text-primary, #FFFFFF); text-align: right; }
-  .price-empty, .price-note { margin: 0; font-size: 12px; color: var(--text-secondary, #94A3B8); }
-  .price-note { margin-top: 8px; }
-
-  .checklist-list {
+  .price-table {
     margin: 0;
-    padding-left: 20px;
     display: flex;
     flex-direction: column;
     gap: 8px;
     font-size: 13px;
-    line-height: 1.5;
+  }
+
+  .price-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .price-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .price-row dt {
     color: var(--text-secondary, #CBD5E1);
   }
 
-  /* Modal */
+  .price-row dd {
+    margin: 0;
+    font-weight: 700;
+    color: var(--text-primary, #FFFFFF);
+    text-align: right;
+  }
+
+  .price-subnote {
+    font-size: 11px;
+    color: #94A3B8;
+    font-weight: normal;
+    display: block;
+  }
+
+  .price-empty {
+    margin: 0;
+    font-size: 12px;
+    color: #94A3B8;
+  }
+
+  .price-valid-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 12px 0 0 0;
+    font-size: 11px;
+    color: #94A3B8;
+  }
+
+  /* Fixed Grounded Compliance Footer */
+  .suite-footer {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    margin-top: 12px;
+  }
+
+  .footer-lock-icon {
+    font-size: 18px;
+    opacity: 0.8;
+  }
+
+  .footer-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .footer-legal {
+    font-size: 12px;
+    color: var(--text-secondary, #94A3B8);
+    line-height: 1.4;
+  }
+
+  .footer-stamp {
+    font-size: 11px;
+    color: #64748B;
+    font-style: italic;
+  }
+
+  /* Accessible Modal Styles */
   .modal-backdrop {
     position: fixed;
     top: 0;
@@ -1005,6 +1534,7 @@
     flex-direction: column;
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+    outline: none;
   }
 
   .modal-head {
@@ -1026,8 +1556,18 @@
     background: transparent;
     border: none;
     color: #94A3B8;
-    font-size: 18px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+  }
+
+  .modal-close:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .modal-body {
@@ -1059,11 +1599,12 @@
     color: #FFFFFF;
     font-size: 13px;
     outline: none;
+    transition: border-color 0.15s ease;
   }
 
   .input-field:focus {
     border-color: #21A1F7;
-    box-shadow: var(--focus-ring);
+    box-shadow: 0 0 0 2px rgba(33, 161, 247, 0.25);
   }
 
   .dispatch-result-box {
@@ -1115,5 +1656,15 @@
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+  }
+
+  /* Accessibility: Prefers Reduced Motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 </style>
