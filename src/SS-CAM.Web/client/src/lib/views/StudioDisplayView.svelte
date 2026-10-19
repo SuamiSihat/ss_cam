@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
@@ -79,6 +79,10 @@
   let newDoctor = $state('');
   let branchError = $state('');
   let newRoom = $state('');
+
+  const canManage = $derived(appState.can('canManageStudioDisplay'));
+  const visibleTabs = $derived(canManage ? TABS : TABS.filter(t => t.id === 'queue'));
+  $effect(() => { if (!canManage && tab !== 'queue') tab = 'queue'; });
 
   const ticket = $derived(digits ? `${prefix}-${digits}` : '');
   const doctors = $derived<string[]>(Array.isArray(config?.branch?.doctors) ? config!.branch.doctors : []);
@@ -345,7 +349,7 @@
   </header>
 
   <div class="sd-tabs" role="tablist" aria-label="Studio display sections">
-    {#each TABS as t (t.id)}
+    {#each visibleTabs as t (t.id)}
       <button type="button" role="tab" id="sd-tab-{t.id}" class="sd-tab" class:active={tab === t.id}
         aria-selected={tab === t.id} onclick={() => (tab = t.id)}>{t.label}</button>
     {/each}

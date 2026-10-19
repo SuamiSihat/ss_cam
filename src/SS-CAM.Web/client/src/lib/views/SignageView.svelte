@@ -1,6 +1,7 @@
 ﻿<script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
+  import QRCode from 'qrcode';
 
   interface BranchData {
     code?: string;
@@ -135,6 +136,18 @@
   const slideIsVideo = $derived(displaySlide?.type === 'video');
   const slideCount = $derived(activeSlides.length);
   const slideMs = $derived(Math.max(3, config.slideDurationSec || 10) * 1000);
+
+  // Real, scannable check-in code generated from the branch's own check-in link (never a placeholder).
+  let checkInQr = $state('');
+  $effect(() => {
+    const url = branch.checkInUrl;
+    if (!url || !/^https?:\/\//i.test(url)) { checkInQr = ''; return; }
+    let cancelled = false;
+    QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#022057', light: '#FFFFFF' } })
+      .then((svg: string) => { if (!cancelled) checkInQr = svg; })
+      .catch((err: unknown) => { console.warn('[Signage] QR generation failed:', err); if (!cancelled) checkInQr = ''; });
+    return () => { cancelled = true; };
+  });
 
   function advanceSlide() {
     if (slideCount > 1) currentSlide = (currentSlide + 1) % slideCount;
@@ -463,22 +476,11 @@
           <!-- Intake Check-In -->
           <div class="qr-intake-showcase">
             <div class="qr-placeholder">
-              <svg width="180" height="180" viewBox="0 0 100 100" fill="#022057">
-                <rect x="10" y="10" width="30" height="30" rx="4"/>
-                <rect x="15" y="15" width="20" height="20" fill="#FFFFFF"/>
-                <rect x="20" y="20" width="10" height="10" fill="#022057"/>
-                <rect x="60" y="10" width="30" height="30" rx="4"/>
-                <rect x="65" y="15" width="20" height="20" fill="#FFFFFF"/>
-                <rect x="70" y="20" width="10" height="10" fill="#022057"/>
-                <rect x="10" y="60" width="30" height="30" rx="4"/>
-                <rect x="15" y="65" width="20" height="20" fill="#FFFFFF"/>
-                <rect x="20" y="70" width="10" height="10" fill="#022057"/>
-                <rect x="45" y="45" width="15" height="15" fill="#21A1F7"/>
-                <rect x="45" y="15" width="8" height="20"/>
-                <rect x="15" y="45" width="20" height="8"/>
-                <rect x="65" y="45" width="25" height="8"/>
-                <rect x="45" y="70" width="45" height="20"/>
-              </svg>
+              {#if checkInQr}
+                <div class="qr-code" role="img" aria-label="QR code for {branch.shortName} check-in">{@html checkInQr}</div>
+              {:else}
+                <div class="qr-missing">Pautan pendaftaran belum ditetapkan</div>
+              {/if}
             </div>
             <div class="qr-instructions">
               <div class="qr-inst-title">Imbas Kod QR di Telefon Pintar Anda</div>
@@ -762,6 +764,10 @@
     overflow: hidden;
     backdrop-filter: blur(10px);
   }
+
+  .qr-code { width: 220px; height: 220px; background: #fff; padding: 8px; border-radius: 12px; box-sizing: border-box; }
+  .qr-code :global(svg) { width: 100%; height: 100%; display: block; }
+  .qr-missing { max-width: 220px; text-align: center; font-size: 14px; color: #022057; }
 
   .slide-video {
     flex: 1;

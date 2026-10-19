@@ -16,6 +16,8 @@ export interface UserCapabilities {
   canViewAdmin: boolean;
   canViewAuditLog: boolean;
   canManageShareLinks: boolean;
+  canManageStudioDisplay?: boolean;
+  canCallQueue?: boolean;
   allowedRoutes: string[];
 }
 

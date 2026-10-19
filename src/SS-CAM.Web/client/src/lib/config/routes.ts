@@ -162,7 +162,7 @@ export const ROUTES: RouteDefinition[] = [
     shortLabel: 'Display',
     icon: ROUTE_ICONS.display,
     group: 'Manage',
-    roles: ['manager', 'admin', 'ceo'],
+    roles: ['manager', 'admin', 'ceo', 'clinic'],
     mobileDock: false,
     paletteKeywords: ['studio display', 'signage', 'lounge tv', 'tv', 'kiosk', 'screen'],
     layout: 'layout-page'

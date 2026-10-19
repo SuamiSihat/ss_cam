@@ -943,6 +943,19 @@ test('Studio display: only admin/manager/ceo can change the TV, edit branches or
   }
   assert.strictEqual((await upload(designer, 'x.mp4', Buffer.alloc(64))).status, 403, 'Designers cannot upload videos');
 
+  // Reception (clinic role) runs the queue only.
+  const clinic = await tokenFor('clinic', 'SS9915', 'Signage Reception User');
+  const callRes = await request('POST', '/api/clinic/signage/queue/call', { token: clinic, body: { ticket: 'A-5001', room: 'Bilik Rawatan 1' } });
+  assert.strictEqual(callRes.status, 200, 'Reception can call a ticket');
+  assert.strictEqual((await request('POST', '/api/clinic/signage/queue/upcoming', { token: clinic, body: { upcoming: [{ ticket: 'A-5002' }] } })).status, 200, 'Reception can edit the waiting list');
+  assert.strictEqual((await request('DELETE', '/api/clinic/signage/queue', { token: clinic })).status, 200, 'Reception can clear the queue');
+  assert.strictEqual((await request('PUT', '/api/clinic/signage', { token: clinic, body: { slideDurationSec: 20 } })).status, 403, 'Reception cannot change the playlist or settings');
+  assert.strictEqual((await request('PUT', '/api/clinic/branches/SSC-BSR', { token: clinic, body: { phone: '1' } })).status, 403, 'Reception cannot edit branches');
+  assert.strictEqual((await upload(clinic, 'x.mp4', Buffer.alloc(64))).status, 403, 'Reception cannot upload videos');
+  const me = await request('GET', '/api/auth/me', { token: clinic });
+  assert.ok(me.json.capabilities.canCallQueue && !me.json.capabilities.canManageStudioDisplay, 'Capabilities reflect queue-only access');
+  assert.ok(me.json.capabilities.allowedRoutes.includes('studio-display'), 'Reception sees the Studio display page');
+
   // A manager can edit a branch; bad links are refused; other branches are untouched.
   const before = (await request('GET', '/api/clinic/branches')).json.branches;
   const other = before.find(b => b.code !== 'SSC-BSR');

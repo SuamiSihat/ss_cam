@@ -3695,6 +3695,8 @@ router.post('/clinic/care-dispatch', authenticateToken, (req, res) => {
 // Reading the display feed is public (the lounge TV has no sign-in). Changing what the TV shows
 // is limited to the people who manage the Studio Display page.
 const signageStaff = requireRole('admin', 'manager', 'ceo');
+// Reception (clinic role) may run the call queue only; playlist, branch and video stay with signageStaff.
+const signageQueueStaff = requireRole('admin', 'manager', 'ceo', 'clinic');
 
 // GET /api/clinic/signage — Get live signage configuration & queue
 router.get('/clinic/signage', publicReviewRead, (req, res) => {
@@ -3719,7 +3721,7 @@ router.put('/clinic/signage', authenticateToken, signageStaff, (req, res) => {
 });
 
 // POST /api/clinic/signage/queue/call — Call a queue ticket or next
-router.post('/clinic/signage/queue/call', authenticateToken, signageStaff, (req, res) => {
+router.post('/clinic/signage/queue/call', authenticateToken, signageQueueStaff, (req, res) => {
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
@@ -3738,7 +3740,7 @@ router.post('/clinic/signage/queue/call', authenticateToken, signageStaff, (req,
 });
 
 // POST /api/clinic/signage/queue/upcoming — Update upcoming tickets
-router.post('/clinic/signage/queue/upcoming', authenticateToken, signageStaff, (req, res) => {
+router.post('/clinic/signage/queue/upcoming', authenticateToken, signageQueueStaff, (req, res) => {
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
@@ -3751,7 +3753,7 @@ router.post('/clinic/signage/queue/upcoming', authenticateToken, signageStaff, (
 });
 
 // DELETE /api/clinic/signage/queue — Clear or reset queue
-router.delete('/clinic/signage/queue', authenticateToken, signageStaff, (req, res) => {
+router.delete('/clinic/signage/queue', authenticateToken, signageQueueStaff, (req, res) => {
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();

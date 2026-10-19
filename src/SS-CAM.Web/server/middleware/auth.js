@@ -147,10 +147,14 @@ function deriveUserCapabilities(user) {
   const canViewAuditLog = isAdmin || permissions.includes('admin:system_audit');
   const canManageShareLinks = isAdmin || permissions.includes('deliverable:upload') || permissions.includes('project:edit');
 
+  const canManageStudioDisplay = isAdmin || roleKeys.includes('manager') || roleKeys.includes('ceo');
+  const canCallQueue = canManageStudioDisplay || roleKeys.includes('clinic');
+
   const allowedRoutes = ['dashboard', 'tasks', 'projects', 'order-form', 'deliverables', 'team', 'profile'];
   if (canEditCopy) allowedRoutes.push('copy-studio');
   if (canViewConsultation) allowedRoutes.push('consultation');
-  if (isAdmin || roleKeys.includes('manager') || roleKeys.includes('ceo')) allowedRoutes.push('signage', 'studio-display');
+  if (canManageStudioDisplay) allowedRoutes.push('signage');
+  if (canCallQueue) allowedRoutes.push('studio-display');
   if (canViewAdmin) allowedRoutes.push('admin');
 
   return {
@@ -163,6 +167,8 @@ function deriveUserCapabilities(user) {
     canViewAdmin,
     canViewAuditLog,
     canManageShareLinks,
+    canManageStudioDisplay,
+    canCallQueue,
     allowedRoutes
   };
 }
