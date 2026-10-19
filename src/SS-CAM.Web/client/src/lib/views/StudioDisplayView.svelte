@@ -785,8 +785,10 @@
     }, 'Branch details saved and TV screens updated');
   }
 
-  function promptArchiveBranch() {
-    const isTvBranch = tvBranchCode === activeBranchCode;
+  function promptArchiveBranch(target?: Branch | null) {
+    const b = target || activeBranch;
+    if (!b) return;
+    const isTvBranch = tvBranchCode === b.code;
     const isLastBranch = branches.length <= 1;
 
     if (isLastBranch) {
@@ -794,24 +796,24 @@
       return;
     }
     if (isTvBranch) {
-      appState.addToast('This branch is currently assigned to the TV screen. Please assign another branch to the TV first.', 'error');
+      appState.addToast(`Branch "${b.name}" is currently broadcasting on the TV screen. Please switch the TV display to another branch in "Branch Info" before removing it.`, 'error');
       return;
     }
 
     confirmActionModal(
-      `Remove branch "${activeBranch?.name}"?`,
+      `Remove branch "${b.name}"?`,
       'Remove branch',
-      'Archiving removes this branch from TV displays and selectors. All data, queue records, and licences are kept safely and can be restored anytime from "Removed branches".',
+      `Archiving removes "${b.name}" from TV displays, queue management, and selectors. All historical queue records, doctor rosters, and licences remain safely stored and can be restored at any time from "Branch Info" > "Removed branches".`,
       'danger',
       async () => {
         await run(async () => {
-          await ApiClient.archiveClinicBranch(activeBranchCode);
+          await ApiClient.archiveClinicBranch(b.code);
           await loadBranches();
-          const fallback = branches.find(b => b.code !== activeBranchCode);
+          const fallback = branches.find(x => x.code !== b.code);
           if (fallback) {
             await selectBranch(fallback.code);
           }
-        }, `Branch ${activeBranchCode} removed`);
+        }, `Branch "${b.name}" removed`);
       }
     );
   }
@@ -1008,6 +1010,19 @@
           {#if !b.kkmLicense}
             <span class="sd-warn-dot" title="KKM licence missing">!</span>
           {/if}
+          {#if isSelected && canManage && !isOnTv && branches.length > 1}
+            <span
+              role="button"
+              tabindex="0"
+              class="sd-chip-remove-btn"
+              title="Remove branch {b.name}"
+              aria-label="Remove branch {b.name}"
+              onclick={(e) => { e.stopPropagation(); promptArchiveBranch(b); }}
+              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); promptArchiveBranch(b); } }}
+            >
+              ✕
+            </span>
+          {/if}
         </button>
       {/each}
 
@@ -1021,6 +1036,18 @@
           <FluentIcons name="add" />
           <span>Add branch</span>
         </button>
+
+        {#if activeBranch && branches.length > 1}
+          <button
+            type="button"
+            class="sd-remove-branch-chip"
+            onclick={() => promptArchiveBranch(activeBranch)}
+            title={tvBranchCode === activeBranchCode ? 'Currently on TV — switch TV branch first' : `Remove branch ${activeBranch.shortName || activeBranch.name}`}
+          >
+            <FluentIcons name="trash" />
+            <span>Remove branch</span>
+          </button>
+        {/if}
       {/if}
     </div>
   </section>
@@ -1405,93 +1432,98 @@
                         </div>
                       </div>
 
-                      <!-- Slide Actions -->
+                      <!-- Slide Actions (2-Tier Compact Cluster to prevent overflow/clipping) -->
                       <div class="sd-slide-actions">
-                        <!-- Toggle Enable/Disable -->
-                        <button
-                          type="button"
-                          class="sd-toggle-switch"
-                          class:is-active={s.enabled}
-                          role="switch"
-                          aria-checked={s.enabled}
-                          aria-label="Toggle {s.title} on TV"
-                          onclick={() => toggleSlideEnabled(s)}
-                          disabled={busy}
-                        >
-                          <span class="sd-toggle-knob"></span>
-                        </button>
-
-                        <!-- Reorder Up/Down -->
-                        <button
-                          type="button"
-                          class="sd-icon-btn"
-                          aria-label="Move slide up"
-                          onclick={() => moveSlideOrder(i, -1)}
-                          disabled={busy || i === 0}
-                          title="Move up"
-                        >
-                          <FluentIcons name="arrowUp" />
-                        </button>
-                        <button
-                          type="button"
-                          class="sd-icon-btn"
-                          aria-label="Move slide down"
-                          onclick={() => moveSlideOrder(i, 1)}
-                          disabled={busy || i === config.slides.length - 1}
-                          title="Move down"
-                        >
-                          <FluentIcons name="arrowDown" />
-                        </button>
-
-                        <!-- Edit Slide -->
-                        <button
-                          type="button"
-                          class="sd-icon-btn"
-                          aria-label="Edit slide properties"
-                          onclick={() => openEditSlideModal(s)}
-                          disabled={busy}
-                          title="Edit slide"
-                        >
-                          <FluentIcons name="edit" />
-                        </button>
-
-                        <!-- Replace File (Banner & Video only) -->
-                        {#if s.type === 'banner' || s.type === 'video'}
+                        <!-- Upper Action Row: TV Status & Reorder -->
+                        <div class="sd-actions-row sd-actions-status">
+                          <span class="sd-toggle-label" class:is-on={s.enabled}>
+                            {s.enabled ? 'On TV' : 'Hidden'}
+                          </span>
                           <button
                             type="button"
-                            class="sd-icon-btn"
-                            aria-label="Replace media file"
-                            onclick={() => openReplaceMediaModal(s)}
+                            class="sd-toggle-switch"
+                            class:is-active={s.enabled}
+                            role="switch"
+                            aria-checked={s.enabled}
+                            aria-label="Toggle {s.title} on TV"
+                            onclick={() => toggleSlideEnabled(s)}
                             disabled={busy}
-                            title="Replace media file"
+                            title={s.enabled ? 'Slide is live on TV. Click to hide.' : 'Slide is hidden. Click to show on TV.'}
                           >
-                            <FluentIcons name="upload" />
+                            <span class="sd-toggle-knob"></span>
                           </button>
-                        {/if}
+                          <div class="sd-reorder-cluster" role="group" aria-label="Reorder slide">
+                            <button
+                              type="button"
+                              class="sd-icon-btn sd-btn-sm"
+                              aria-label="Move slide up"
+                              onclick={() => moveSlideOrder(i, -1)}
+                              disabled={busy || i === 0}
+                              title="Move up"
+                            >
+                              <FluentIcons name="arrowUp" />
+                            </button>
+                            <button
+                              type="button"
+                              class="sd-icon-btn sd-btn-sm"
+                              aria-label="Move slide down"
+                              onclick={() => moveSlideOrder(i, 1)}
+                              disabled={busy || i === config.slides.length - 1}
+                              title="Move down"
+                            >
+                              <FluentIcons name="arrowDown" />
+                            </button>
+                          </div>
+                        </div>
 
-                        <!-- Duplicate -->
-                        <button
-                          type="button"
-                          class="sd-icon-btn"
-                          aria-label="Duplicate slide"
-                          onclick={() => duplicateSlideAction(s)}
-                          disabled={busy}
-                          title="Duplicate slide"
-                        >
-                          <FluentIcons name="copy" />
-                        </button>
+                        <!-- Lower Action Row: Content Management Tools -->
+                        <div class="sd-actions-row sd-actions-tools">
+                          <button
+                            type="button"
+                            class="sd-icon-btn sd-btn-sm"
+                            aria-label="Edit slide properties"
+                            onclick={() => openEditSlideModal(s)}
+                            disabled={busy}
+                            title="Edit slide properties"
+                          >
+                            <FluentIcons name="edit" />
+                          </button>
 
-                        <!-- Remove Slide -->
-                        <button
-                          type="button"
-                          class="sd-icon-btn sd-icon-danger"
-                          aria-label="Remove slide"
-                          onclick={() => promptRemoveSlide(s)}
-                          disabled={busy}
-                          title="Remove slide"
-                        >
-                          <FluentIcons name="trash" />
-                        </button>
+                          {#if s.type === 'banner' || s.type === 'video'}
+                            <button
+                              type="button"
+                              class="sd-icon-btn sd-btn-sm"
+                              aria-label="Replace media file"
+                              onclick={() => openReplaceMediaModal(s)}
+                              disabled={busy}
+                              title="Replace media file"
+                            >
+                              <FluentIcons name="upload" />
+                            </button>
+                          {/if}
+
+                          <button
+                            type="button"
+                            class="sd-icon-btn sd-btn-sm"
+                            aria-label="Duplicate slide"
+                            onclick={() => duplicateSlideAction(s)}
+                            disabled={busy}
+                            title="Duplicate slide"
+                          >
+                            <FluentIcons name="copy" />
+                          </button>
+
+                          <button
+                            type="button"
+                            class="sd-icon-btn sd-btn-sm sd-icon-danger"
+                            aria-label="Remove slide"
+                            onclick={() => promptRemoveSlide(s)}
+                            disabled={busy}
+                            title="Delete slide"
+                          >
+                            <FluentIcons name="trash" />
+                          </button>
+                        </div>
                       </div>
                     </li>
                   {/each}
@@ -1540,6 +1572,18 @@
                 {:else}
                   <FluentButton appearance="secondary" size="sm" onclick={() => setAsTvBranch(activeBranchCode)} disabled={busy}>
                     Show this branch on TV
+                  </FluentButton>
+                {/if}
+                {#if canManage && activeBranch && branches.length > 1}
+                  <FluentButton
+                    appearance="danger"
+                    size="sm"
+                    onclick={() => promptArchiveBranch(activeBranch)}
+                    disabled={busy || tvBranchCode === activeBranchCode}
+                    title={tvBranchCode === activeBranchCode ? 'Currently on TV — switch TV branch first' : `Remove branch ${activeBranch.name}`}
+                  >
+                    <FluentIcons name="trash" />
+                    <span>Remove branch</span>
                   </FluentButton>
                 {/if}
               </div>
@@ -1645,18 +1689,23 @@
           <FluentCard padding="20px" class="sd-danger-card">
             <div class="sd-danger-wrap">
               <div>
-                <h3 class="sd-danger-title">Remove this branch</h3>
+                <h3 class="sd-danger-title">Remove branch · {activeBranch?.name || activeBranchCode}</h3>
                 <p class="sd-danger-desc">
-                  Archiving hides this branch from the TV screen and branch selectors. All historical queues, bookings, and licences remain safely stored and can be restored at any time.
+                  Removing safely archives this branch so it no longer appears in TV displays, queues, or navigation. All patient logs, doctor assignments, and licences are kept intact and can be restored anytime from <strong>Removed branches</strong> below.
                 </p>
+                {#if tvBranchCode === activeBranchCode}
+                  <p class="sd-danger-hint">
+                    ⚠️ <strong>Currently broadcasting on TV:</strong> To remove this branch, please select another branch first (e.g. from the branch bar above) and click <em>"Show this branch on TV"</em>.
+                  </p>
+                {/if}
               </div>
               <FluentButton
                 appearance="danger"
                 size="touch"
-                onclick={promptArchiveBranch}
+                onclick={() => promptArchiveBranch(activeBranch)}
                 disabled={busy || branches.length <= 1 || tvBranchCode === activeBranchCode}
               >
-                Remove branch
+                Remove this branch
               </FluentButton>
             </div>
           </FluentCard>
@@ -2421,6 +2470,48 @@
   .sd-add-branch-chip:hover {
     background: rgba(33, 161, 247, 0.08);
   }
+  .sd-chip-remove-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 2px;
+    cursor: pointer;
+    transition: all var(--transition-fast, 0.15s ease);
+  }
+  .sd-chip-remove-btn:hover {
+    background: #DC2626;
+    color: #FFFFFF;
+    transform: scale(1.1);
+  }
+  .sd-remove-branch-chip {
+    min-height: 48px;
+    padding: 0 16px;
+    border-radius: 24px;
+    border: 1px dashed #FCA5A5;
+    background: transparent;
+    color: #DC2626;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all var(--transition-fast, 0.15s ease);
+  }
+  .sd-remove-branch-chip:hover {
+    background: #FEF2F2;
+    border-color: #DC2626;
+  }
+  .sd-remove-branch-chip svg {
+    width: 16px;
+    height: 16px;
+  }
 
   /* ═══ NAVIGATION TABS ═══════════════════════════════════════════ */
   .sd-tabs {
@@ -2723,11 +2814,18 @@
 
   .sd-playlist-layout {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
+    width: 100%;
+    min-width: 0;
   }
   .sd-playlist-layout.has-preview {
-    grid-template-columns: 1fr 380px;
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+
+  .sd-slides-container {
+    width: 100%;
+    min-width: 0;
   }
 
   .sd-slides-list {
@@ -2737,16 +2835,22 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    width: 100%;
+    min-width: 0;
   }
   .sd-slide-card {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 16px;
     padding: 12px 16px;
     border-radius: var(--radius-lg, 12px);
     background: var(--surface-card, #FFFFFF);
     border: 1px solid var(--surface-card-border, #E2E8F0);
     transition: all var(--transition-fast, 0.15s ease);
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
   .sd-slide-card:hover {
     border-color: var(--brand-accent, #21A1F7);
@@ -2758,8 +2862,8 @@
   }
 
   .sd-thumbnail-box {
-    width: 140px;
-    height: 79px; /* 16:9 ratio */
+    width: 128px;
+    height: 72px; /* 16:9 ratio */
     border-radius: var(--radius-md, 8px);
     overflow: hidden;
     position: relative;
@@ -2833,17 +2937,19 @@
   }
 
   .sd-slide-info {
-    flex: 1;
+    flex: 1 1 0;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    overflow: hidden;
   }
   .sd-slide-header-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
+    min-width: 0;
   }
   .sd-slide-title {
     font-size: 15px;
@@ -2852,11 +2958,13 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
   }
   .sd-badges-wrap {
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-shrink: 0;
   }
   .sd-badge-type {
     font-size: 11px;
@@ -2892,6 +3000,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
   }
   .sd-slide-meta-row {
     font-size: 12px;
@@ -2900,9 +3009,46 @@
 
   .sd-slide-actions {
     display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+    min-width: 180px;
+  }
+  .sd-actions-row {
+    display: flex;
     align-items: center;
     gap: 6px;
-    flex-shrink: 0;
+  }
+  .sd-actions-status {
+    gap: 8px;
+  }
+  .sd-toggle-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary, rgba(25, 25, 26, 0.65));
+    min-width: 44px;
+    text-align: right;
+    user-select: none;
+  }
+  .sd-toggle-label.is-on {
+    color: var(--ss-blue, #043388);
+  }
+  .sd-reorder-cluster {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 2px;
+  }
+  .sd-icon-btn.sd-btn-sm {
+    min-width: 36px;
+    min-height: 36px;
+    width: 36px;
+    height: 36px;
+  }
+  .sd-icon-btn.sd-btn-sm svg {
+    width: 16px;
+    height: 16px;
   }
 
   /* Preview Pane */
@@ -3006,6 +3152,15 @@
     font-size: 13px;
     color: #7C2D12;
     max-width: 600px;
+    line-height: 1.4;
+  }
+  .sd-danger-hint {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #9A3412;
+    background: #FFEDD5;
+    padding: 8px 12px;
+    border-radius: 6px;
     line-height: 1.4;
   }
 
@@ -3457,6 +3612,20 @@
       grid-template-columns: 1fr;
     }
   }
+  @media (max-width: 768px) {
+    .sd-slide-card {
+      flex-wrap: wrap;
+    }
+    .sd-slide-actions {
+      width: 100%;
+      max-width: 100%;
+      flex-direction: row;
+      justify-content: space-between;
+      min-width: 0;
+      padding-top: 10px;
+      border-top: 1px solid var(--surface-card-border, #E2E8F0);
+    }
+  }
   @media (max-width: 640px) {
     .sd-slide-card {
       flex-direction: column;
@@ -3465,10 +3634,6 @@
     .sd-thumbnail-box {
       width: 100%;
       height: 180px;
-    }
-    .sd-slide-actions {
-      width: 100%;
-      justify-content: flex-end;
     }
     .sd-now-ticket {
       font-size: 42px;
