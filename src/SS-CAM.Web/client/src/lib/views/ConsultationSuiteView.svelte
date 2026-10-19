@@ -7,7 +7,7 @@
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
   import { ApiClient } from '$lib/services/api';
 
-  let selectedTreatment = $state<'eswt' | 'trt' | 'pe_ed'>('eswt');
+  let selectedTreatment = $state<'eswt' | 'kegel' | 'pshot' | 'trt' | 'fertility' | 'pe_ed'>('eswt');
   let selectedPhase = $state(1); // 1, 2, 3, 4
   let patientName = $state('');
   let patientPhone = $state('');
@@ -31,6 +31,10 @@
     try {
       const res = await ApiClient.request('/clinic/branches');
       branches = res.branches || [];
+      // Branches come from the Corporate Registry; keep the selection valid for whatever it holds.
+      if (branches.length > 0 && !branches.some((b: any) => b.code === selectedBranch)) {
+        selectedBranch = branches[0].code;
+      }
     } catch (err: any) {
       branchError = getErrorMessage(err, 'We couldn\'t load the clinic branch information. Please try again.');
     } finally {
@@ -73,6 +77,117 @@
           // copy review needed: removed absolute claim 'sepanjang hayat'
           details: 'Semakan berkala setiap 6 bulan bersama bimbingan senaman lantai pelvis bagi menyokong kesihatan vaskular berterusan.',
           metric: 'Sasaran Klinikal Dicapai / Clinical Target Achieved'
+        }
+      ]
+    },
+    kegel: {
+      id: 'kegel',
+      name: 'Kerusi Kegel / Kegel Chair',
+      title: 'Latihan Otot Dasar Pelvis Berpandu / Guided Pelvic Floor Training',
+      description: 'Sesi latihan otot dasar pelvis yang berpandu bagi menyokong kawalan dan kesihatan pelvis lelaki. Kesan dibina secara berperingkat melalui sesi berjadual.',
+      // copy review needed: clinical wording must be confirmed by the Medical Director.
+      phases: [
+        {
+          phase: 1,
+          title: 'Fasa 1: Pengenalan Otot & Teknik Betul (Sesi 1-2) / Phase 1: Learn the Technique',
+          highlight: 'Mengenal pasti otot dasar pelvis dan teknik pengecutan yang betul.',
+          details: 'Pesakit dibimbing untuk mengenali otot yang disasarkan dan merasai perbezaan antara pengecutan yang betul dan salah.',
+          metric: 'Kesedaran Otot / Muscle Awareness'
+        },
+        {
+          phase: 2,
+          title: 'Fasa 2: Pembinaan Ketahanan Otot (Sesi 3-6) / Phase 2: Build Endurance',
+          highlight: 'Meningkatkan ketahanan dan kawalan otot secara beransur-ansur.',
+          details: 'Tahap latihan dinaikkan mengikut toleransi pesakit; latihan di rumah digalakkan untuk menyokong kemajuan.',
+          metric: 'Ketahanan Otot / Muscle Endurance'
+        },
+        {
+          phase: 3,
+          title: 'Fasa 3: Pengukuhan & Kawalan (Sesi 7-10) / Phase 3: Strengthen & Control',
+          highlight: 'Menggabungkan kekuatan otot dengan kawalan pernafasan.',
+          details: 'Fokus kepada konsistensi kawalan otot dan penyesuaian program bersama doktor berdasarkan kemajuan.',
+          metric: 'Kawalan Konsisten / Consistent Control'
+        },
+        {
+          phase: 4,
+          title: 'Fasa 4: Penyelenggaraan (Selepas Pakej) / Phase 4: Maintenance',
+          highlight: 'Meneruskan latihan di rumah untuk mengekalkan hasil.',
+          details: 'Sesi penyelenggaraan berkala dan latihan harian disyorkan mengikut nasihat doktor.',
+          metric: 'Rutin Penyelenggaraan / Maintenance Routine'
+        }
+      ]
+    },
+    pshot: {
+      id: 'pshot',
+      name: 'Rawatan Regeneratif (P-Shot) / Regenerative Therapy',
+      title: 'Rawatan Regeneratif Selepas Penilaian Klinikal / Regenerative Care After Clinical Assessment',
+      description: 'Rawatan regeneratif dilakukan doktor selepas konsultasi dan ujian darah. Pilihan rawatan dan kesesuaian ditentukan secara individu.',
+      // copy review needed: no outcome claims; Medical Director to confirm wording and LIU status.
+      phases: [
+        {
+          phase: 1,
+          title: 'Fasa 1: Konsultasi & Ujian Darah (Minggu 1) / Phase 1: Consultation & Blood Review',
+          highlight: 'Penilaian menyeluruh sebelum sebarang keputusan rawatan.',
+          details: 'Doktor menyemak sejarah kesihatan dan keputusan darah untuk menentukan kesesuaian dan pilihan rawatan.',
+          metric: 'Penilaian Kesesuaian / Suitability Assessed'
+        },
+        {
+          phase: 2,
+          title: 'Fasa 2: Persetujuan & Prosedur (Minggu 2-3) / Phase 2: Consent & Procedure',
+          highlight: 'Penerangan risiko dan manfaat sebelum persetujuan termaklum.',
+          details: 'Prosedur dijalankan oleh doktor bertauliah selepas pesakit memahami dan menandatangani persetujuan termaklum.',
+          metric: 'Persetujuan Termaklum / Informed Consent'
+        },
+        {
+          phase: 3,
+          title: 'Fasa 3: Pemulihan & Pemantauan (Minggu 4-8) / Phase 3: Recovery & Monitoring',
+          highlight: 'Pemantauan respons dan kesan sampingan oleh doktor.',
+          details: 'Pesakit mengikut panduan penjagaan dan melaporkan sebarang perubahan semasa semakan susulan.',
+          metric: 'Pemantauan Respons / Response Monitoring'
+        },
+        {
+          phase: 4,
+          title: 'Fasa 4: Semakan Susulan & Pelan Lanjut (Minggu 12+) / Phase 4: Follow-Up Review',
+          highlight: 'Semakan semula dan pelan penyelenggaraan jika sesuai.',
+          details: 'Doktor menilai kemajuan dan menentukan sama ada rawatan lanjut diperlukan.',
+          metric: 'Semakan Kemajuan / Progress Review'
+        }
+      ]
+    },
+    fertility: {
+      id: 'fertility',
+      name: 'Program Kesuburan Lelaki / Male Fertility Program',
+      title: 'Analisis Sperma & Program Infusi 12 Minggu / Sperm Analysis & 12-Week Infusion Program',
+      description: 'Program 12 minggu menggunakan infusi NAD+ dan Signature Drip bagi menyokong kesihatan sperma, termasuk kiraan, motiliti dan mobiliti. Dipantau doktor.',
+      // copy review needed: source is the internal Fertility Program Protocol (18 Oct 2026); outcome claims intentionally omitted.
+      phases: [
+        {
+          phase: 1,
+          title: 'Fasa 1: Analisis Sperma & Ujian Hormon (Minggu 1) / Phase 1: Baseline Testing',
+          highlight: 'Penilaian asas sebelum program bermula.',
+          details: 'Sampel dihantar ke makmal melalui pengatur operasi klinik. Ujian darah hormon dilakukan mengikut keperluan doktor.',
+          metric: 'Titik Asas / Baseline Established'
+        },
+        {
+          phase: 2,
+          title: 'Fasa 2: Infusi Berjadual (Minggu 2-6) / Phase 2: Scheduled Infusions',
+          highlight: 'Sesi infusi NAD+ dan Signature Drip mengikut jadual.',
+          details: 'Pesakit hadir untuk sesi berjadual; doktor memantau toleransi dan menyesuaikan program jika perlu.',
+          metric: 'Pematuhan Program / Program Adherence'
+        },
+        {
+          phase: 3,
+          title: 'Fasa 3: Pemantauan Pertengahan (Minggu 7-9) / Phase 3: Mid-Program Review',
+          highlight: 'Semakan kemajuan dan gaya hidup.',
+          details: 'Doktor menyemak kemajuan dan menasihati tentang tidur, pemakanan, merokok dan alkohol.',
+          metric: 'Semakan Pertengahan / Mid-Review'
+        },
+        {
+          phase: 4,
+          title: 'Fasa 4: Analisis Semula (Minggu 12) / Phase 4: Repeat Analysis',
+          highlight: 'Analisis sperma susulan bagi menilai kemajuan.',
+          details: 'Keputusan dibincangkan bersama doktor untuk menentukan langkah seterusnya.',
+          metric: 'Penilaian Susulan / Follow-Up Assessment'
         }
       ]
     },
@@ -153,6 +268,14 @@
     }
   };
 
+  const activeBranch = $derived(branches.find((b: any) => b.code === selectedBranch) ?? null);
+  const pricing = $derived(activeBranch?.pricing ?? null);
+
+  function formatPrice(amount: number | null | undefined): string {
+    if (amount === null || amount === undefined) return '-';
+    return (pricing?.currency ?? 'RM') + ' ' + Number(amount).toLocaleString('en-MY');
+  }
+
   const activeTreatment = $derived(treatments[selectedTreatment]);
   const activePhaseInfo = $derived(activeTreatment.phases[selectedPhase - 1]);
 
@@ -228,6 +351,42 @@
       <div class="tab-meta">
         <div class="tab-label">Terapi ESWT / Shockwave</div>
         <div class="tab-sub">Neovaskularisasi &amp; Aliran Darah / Blood Flow</div>
+      </div>
+    </button>
+
+    <button
+      class="treatment-tab-btn"
+      class:active={selectedTreatment === 'kegel'}
+      onclick={() => { selectedTreatment = 'kegel'; selectedPhase = 1; }}
+    >
+      <span class="tab-icon">🪑</span>
+      <div class="tab-meta">
+        <div class="tab-label">Kerusi Kegel / Kegel Chair</div>
+        <div class="tab-sub">Latihan Otot Pelvis / Pelvic Floor Training</div>
+      </div>
+    </button>
+
+    <button
+      class="treatment-tab-btn"
+      class:active={selectedTreatment === 'pshot'}
+      onclick={() => { selectedTreatment = 'pshot'; selectedPhase = 1; }}
+    >
+      <span class="tab-icon">💉</span>
+      <div class="tab-meta">
+        <div class="tab-label">Rawatan Regeneratif / P-Shot</div>
+        <div class="tab-sub">Penilaian &amp; Pemantauan Doktor / Doctor-Led Care</div>
+      </div>
+    </button>
+
+    <button
+      class="treatment-tab-btn"
+      class:active={selectedTreatment === 'fertility'}
+      onclick={() => { selectedTreatment = 'fertility'; selectedPhase = 1; }}
+    >
+      <span class="tab-icon">🧬</span>
+      <div class="tab-meta">
+        <div class="tab-label">Kesuburan Lelaki / Male Fertility</div>
+        <div class="tab-sub">Program 12 Minggu / 12-Week Program</div>
       </div>
     </button>
 
@@ -310,6 +469,15 @@
             <circle cx="200" cy="75" r="6" fill="#21A1F7"/>
             <text x="215" y="78" fill="#6DC6EC" font-size="12" font-weight="700">Paras Selepas Terapi TRT Terkawal</text>
           </svg>
+        {:else if selectedTreatment !== 'pe_ed'}
+          <svg viewBox="0 0 600 240" class="anatomy-svg" aria-label="Treatment roadmap: four phases">
+            <line x1="80" y1="120" x2="520" y2="120" stroke="#21A1F7" stroke-width="4" stroke-linecap="round"/>
+            {#each [1, 2, 3, 4] as n}
+              <circle cx={80 + (n - 1) * 146.7} cy="120" r={n === selectedPhase ? 16 : 10} fill={n === selectedPhase ? '#21A1F7' : '#043388'} stroke="#6DC6EC" stroke-width="2"/>
+              <text x={80 + (n - 1) * 146.7} y="125" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">{n}</text>
+              <text x={80 + (n - 1) * 146.7} y="165" text-anchor="middle" fill="#94A3B8" font-size="11">Fasa {n} / Phase {n}</text>
+            {/each}
+          </svg>
         {:else}
           <svg viewBox="0 0 600 240" class="anatomy-svg" aria-label="Pelvic Neuromuscular Matrix">
             <rect x="50" y="40" width="500" height="160" rx="16" fill="rgba(139, 92, 246, 0.05)" stroke="#8B5CF6" stroke-width="2"/>
@@ -380,6 +548,49 @@
       </div>
     </div>
   </div>
+
+  <!-- Consultation checklist: from the clinics' daily new-case report format -->
+  <section class="checklist-card" aria-labelledby="checklist-title">
+    <h3 id="checklist-title" class="th-title">Senarai Semak Konsultasi / Consultation Checklist</h3>
+
+    <div class="price-block" aria-live="polite">
+      <div class="price-head">
+        <label for="branch-select">Cawangan / Branch:</label>
+        <select id="branch-select" class="input-field branch-select" bind:value={selectedBranch} disabled={isLoadingBranches || branches.length === 0}>
+          {#each branches as b}
+            <option value={b.code}>{b.shortName || b.name}</option>
+          {/each}
+        </select>
+      </div>
+      {#if isLoadingBranches}
+        <p class="price-empty">Memuatkan harga... / Loading pricing...</p>
+      {:else if !pricing}
+        <p class="price-empty">Harga belum dikonfigurasi untuk cawangan ini. Hubungi pentadbir (Administration &rarr; Companies). / Pricing is not configured for this branch.</p>
+      {:else}
+        <dl class="price-list">
+          <div><dt>Yuran konsultasi / Consultation fee</dt><dd>{formatPrice(pricing.consultationFee)}</dd></div>
+          {#if pricing.onlineBookingFee !== null && pricing.onlineBookingFee !== undefined}
+            <div><dt>Tempahan dalam talian / Online booking</dt><dd>{formatPrice(pricing.onlineBookingFee)}{pricing.onlineBookingNote ? ' - ' + pricing.onlineBookingNote : ''}</dd></div>
+          {/if}
+          {#each pricing.packages ?? [] as pk}
+            <div><dt>{pk.label}</dt><dd>{formatPrice(pk.price)}</dd></div>
+          {/each}
+        </dl>
+        {#if pricing.validFrom || pricing.validTo}
+          <p class="price-note">Sah / Valid: {pricing.validFrom || '-'} &rarr; {pricing.validTo || '-'}</p>
+        {/if}
+      {/if}
+    </div>
+    <ul class="checklist-list">
+      <li><strong>Yuran konsultasi / Consultation fee:</strong> nyatakan dengan jelas di awal supaya pesakit tidak menganggapnya percuma. / State it clearly up front so it is not assumed free.</li>
+      <li><strong>Profil pesakit / Patient profile:</strong> umur, aduan utama (diagnosis), bajet, lokasi. / Age, main complaint, budget, location.</li>
+      <li><strong>Isu utama / Main issue:</strong> tahap pengetahuan rawatan, kebimbangan, dan keperluan berbincang dengan pasangan. / Treatment knowledge, concerns, need to discuss with partner.</li>
+      <li><strong>Sumber lead / Lead source:</strong> Facebook, TikTok, Instagram, Google, billboard, rujukan. / Facebook, TikTok, Instagram, Google, billboard, referral.</li>
+      <li><strong>Pasukan jualan/operasi / Sales or operations contact:</strong> untuk susulan hari berikutnya. / For next-day follow-up.</li>
+      <li><strong>Analisis sperma / Sperm analysis:</strong> maklumkan pasukan operasi supaya pengambilan sampel oleh pelari makmal dapat diatur. / Inform operations so a lab runner can be arranged.</li>
+      <li><strong>Peringatan / Reminder:</strong> hantar panduan arah &amp; parkir kepada pesakit selepas temujanji disahkan (jika ada penutupan pintu utama). / Send the directions and parking guide once the appointment is confirmed.</li>
+    </ul>
+  </section>
 
   <!-- Dispatch Modal -->
   {#if dispatchModalOpen}
@@ -487,7 +698,7 @@
 
   .treatment-tabs {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 16px;
   }
 
@@ -708,6 +919,65 @@
     font-size: 12px;
     color: #BAE6FD;
     line-height: 1.4;
+  }
+
+  .checklist-card {
+    background: var(--card-bg, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--card-stroke, rgba(255, 255, 255, 0.08));
+    border-radius: 20px;
+    padding: 28px;
+  }
+
+  .price-block {
+    margin: 0 0 16px 0;
+    padding: 16px;
+    border: 1px dashed rgba(33, 161, 247, 0.3);
+    border-radius: 12px;
+  }
+
+  .price-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #CBD5E1;
+  }
+
+  .branch-select {
+    min-height: 36px;
+    min-width: 220px;
+  }
+
+  .price-list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  .price-list div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .price-list dt { color: var(--text-secondary, #CBD5E1); }
+  .price-list dd { margin: 0; font-weight: 700; color: var(--text-primary, #FFFFFF); text-align: right; }
+  .price-empty, .price-note { margin: 0; font-size: 12px; color: var(--text-secondary, #94A3B8); }
+  .price-note { margin-top: 8px; }
+
+  .checklist-list {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary, #CBD5E1);
   }
 
   /* Modal */

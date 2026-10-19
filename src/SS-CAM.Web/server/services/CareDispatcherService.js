@@ -42,6 +42,47 @@ class CareDispatcherService {
         warningSigns: 'Pening berpanjangan atau sakit dada selepas mengambil ubat vasoaktif.',
         followUpRecommendation: 'Sesi penilaian kemajuan klinikal dalam tempoh 14 hari.'
       },
+      // kegel / pshot / fertility: added Oct 2026 to match the clinics' current offering.
+      // Aftercare wording is conservative and general: Medical Director must review before clinical use.
+      kegel: {
+        id: 'kegel',
+        name: 'Sesi Kerusi Kegel',
+        englishName: 'Kegel Chair Session',
+        immediateGuidelines: [
+          'Minum air secukupnya dan teruskan aktiviti harian seperti biasa selepas sesi.',
+          'Praktikkan teknik pengecutan otot lantai pelvis yang diajar jurulatih/doktor setiap hari.',
+          'Hadiri sesi mengikut jadual kerana kesan latihan otot dibina secara berperingkat.'
+        ],
+        normalSensations: 'Rasa penat ringan atau lenguh pada otot pelvis selepas sesi adalah normal dan reda dalam sehari dua.',
+        warningSigns: 'Sakit tajam yang berterusan, kebas, atau kesukaran membuang air kecil. Sila hubungi klinik.',
+        followUpRecommendation: 'Sesi seterusnya mengikut pakej dan jadual yang ditetapkan doktor anda.'
+      },
+      pshot: {
+        id: 'pshot',
+        name: 'Rawatan Regeneratif (P-Shot)',
+        englishName: 'Regenerative P-Shot Treatment',
+        immediateGuidelines: [
+          'Jaga kebersihan kawasan rawatan dan elakkan menggosok atau mengurut kawasan tersebut.',
+          'Elakkan aktiviti berat dan hubungan intim mengikut tempoh yang dinasihatkan doktor.',
+          'Ambil ubat yang dibekalkan (jika ada) mengikut arahan dan jangan ubah dos sendiri.'
+        ],
+        normalSensations: 'Bengkak ringan, kemerahan atau rasa sengal di kawasan rawatan pada 1-3 hari pertama.',
+        warningSigns: 'Demam, nanah, bengkak yang bertambah teruk, kesakitan melampau atau pendarahan yang tidak berhenti. Sila hubungi klinik serta-merta.',
+        followUpRecommendation: 'Semakan susulan bersama doktor mengikut tarikh yang diberikan.'
+      },
+      fertility: {
+        id: 'fertility',
+        name: 'Program Kesuburan Lelaki',
+        englishName: 'Male Fertility Program',
+        immediateGuidelines: [
+          'Ikut arahan penyediaan sampel dan jadual sesi infusi yang diberikan klinik.',
+          'Kurangkan merokok dan alkohol serta jaga tidur dan pemakanan sepanjang program.',
+          'Maklumkan doktor jika sedang mengambil ubat atau suplemen lain.'
+        ],
+        normalSensations: 'Rasa mengantuk ringan atau sedikit lenguh selepas sesi infusi pada hari yang sama.',
+        warningSigns: 'Ruam, sesak nafas, bengkak muka atau pening melampau semasa/selepas infusi. Sila maklumkan klinik serta-merta.',
+        followUpRecommendation: 'Program 12 minggu dipantau berkala; analisis sperma susulan mengikut jadual doktor.'
+      },
       minor_procedure: {
         id: 'minor_procedure',
         name: 'Penjagaan Prosedur Minor / Sirkumsisi',
@@ -78,8 +119,8 @@ class CareDispatcherService {
     } = options;
 
     const protocol = this.getProtocol(protocolId) || this.protocols.eswt;
-    const branch = BranchService.getBranchByCode(branchCode) || BranchService.branches[0];
-    const doctor = doctorName || branch.doctors[0];
+    const branch = BranchService.getBranchByCode(branchCode) || BranchService.getBranches()[0];
+    const doctor = doctorName || (branch.doctors && branch.doctors[0]) || "";
 
     const lines = [];
     lines.push(`🏥 *SUAMISIHAT CLINIC — PANDUAN PENJAGAAN DIGITAL*`);

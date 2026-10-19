@@ -83,6 +83,64 @@ const DEFAULT_COMPANIES = [
   }
 ];
 
+const str = (v, max = 300) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+const money = (v) => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
+};
+
+/**
+ * Branches live on a company record in the Corporate Registry (SSC = Healthcare & Clinic).
+ * Each branch carries its own contact details and a tenant-configurable price block, so no
+ * branch or price is hard-coded in the application.
+ */
+function sanitizePricing(p) {
+  if (!p || typeof p !== "object") return null;
+  const packages = (Array.isArray(p.packages) ? p.packages : [])
+    .map((pk) => ({ id: str(pk && pk.id, 60), label: str(pk && pk.label, 160), price: money(pk && pk.price) }))
+    .filter((pk) => pk.label && pk.price !== null)
+    .slice(0, 50);
+  return {
+    currency: str(p.currency, 8) || "RM",
+    consultationFee: money(p.consultationFee),
+    onlineBookingFee: money(p.onlineBookingFee),
+    onlineBookingNote: str(p.onlineBookingNote, 300),
+    packages,
+    validFrom: str(p.validFrom, 40),
+    validTo: str(p.validTo, 40),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function sanitizeBranches(list) {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const b of list.slice(0, 50)) {
+    if (!b || typeof b !== "object") continue;
+    const code = str(b.code, 30).toUpperCase();
+    const name = str(b.name, 160);
+    if (!code || !name || seen.has(code)) continue;
+    seen.add(code);
+    out.push({
+      code,
+      name,
+      shortName: str(b.shortName, 80) || name,
+      address: str(b.address, 300),
+      phone: str(b.phone, 40),
+      whatsapp: str(b.whatsapp, 40),
+      doctors: (Array.isArray(b.doctors) ? b.doctors : []).map((d) => str(d, 160)).filter(Boolean).slice(0, 30),
+      operatingHours: str(b.operatingHours, 200),
+      kkmLicense: str(b.kkmLicense, 80),
+      checkInUrl: str(b.checkInUrl, 300),
+      googleReviewUrl: str(b.googleReviewUrl, 300),
+      pricing: sanitizePricing(b.pricing)
+    });
+  }
+  return out;
+}
+
 class CompanyService {
   constructor() {
     this.memoryCompanies = null;
@@ -166,6 +224,10 @@ class CompanyService {
       color: companyData.color || '#043388',
       updatedAt: new Date().toISOString()
     };
+    // Only touch branches when the caller sends them, so ordinary company edits never wipe them.
+    if (Array.isArray(companyData.branches)) {
+      updatedItem.branches = sanitizeBranches(companyData.branches);
+    }
 
     if (existingIndex >= 0) {
       all[existingIndex] = { ...all[existingIndex], ...updatedItem };

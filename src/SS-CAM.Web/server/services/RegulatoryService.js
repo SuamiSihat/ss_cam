@@ -13,7 +13,20 @@ const PROHIBITED_TERMS = [
   { term: 'sembuh serta-merta', reason: 'Tuntutan penyembuhan segera atau magis dilarang oleh KKM.' },
   { term: 'guaranteed cure', reason: 'Absolute cure claims are strictly prohibited in English marketing.' },
   { term: '100% effective', reason: 'Absolute efficacy guarantee violates medical advertising codes.' },
-  { term: 'no side effects', reason: 'Claiming zero side-effects violates MAB/LIU safety regulations.' }
+  { term: 'no side effects', reason: 'Claiming zero side-effects violates MAB/LIU safety regulations.' },
+  { term: 'terbukti berkesan', reason: 'Tuntutan keberkesanan terbukti tanpa rujukan klinikal yang diluluskan dilarang oleh LIU.' },
+  { term: 'pasti tegang', reason: 'Jaminan hasil ereksi adalah tuntutan mutlak yang dilarang.' },
+  { term: 'jaminan hasil', reason: 'Jaminan hasil rawatan tidak dibenarkan; keputusan berbeza mengikut individu.' }
+];
+
+// Advisory-only terms: not medical-claim infractions, but repeatedly rejected by DBP / local councils
+// (Majlis) for outdoor media (billboards, glass stickers, flyers). Shown as warnings, never block copy.
+const OUTDOOR_ADVISORY_TERMS = [
+  { term: 'kekuatan', advice: 'Dianggap double meaning oleh Majlis KB / DBP. Gunakan "tenaga" sebagai ganti.' },
+  { term: 'zakar', advice: 'Istilah anatomi eksplisit ditolak untuk media luar. Gunakan bahasa kesihatan lelaki yang neutral.' },
+  { term: 'ereksi', advice: 'Elakkan istilah eksplisit pada media luar; gunakan "kesihatan lelaki" atau "prestasi".' },
+  { term: 'ss clinic', advice: 'Untuk media luar Kota Bharu, gunakan "SuamiSihat" sahaja; perkataan Inggeris "Clinic/Wellness" pada logo tidak diluluskan DBP.' },
+  { term: 'ss health', advice: 'Nama pada media luar mesti sebiji seperti dalam SSM (contoh: "SuamiSihat Wellness"), bukan singkatan.' }
 ];
 
 const APPROVAL_CODE_REGEX = /\b(KKLIU|KKM\/LIU|LIU|MAL)\s*[:\/\-\s]?\s*([A-Za-z0-9\/\-]+)\b/i;
@@ -52,6 +65,26 @@ const APPROVED_CLAIMS = [
     treatmentName: 'Saringan Kesihatan Holistik',
     approvedClaim: 'Pemeriksaan kesihatan menyeluruh meliputi paras glukosa, kolesterol, dan fungsi organ penting.',
     referenceCode: 'KKM/LIU/B/0815/2026'
+  },
+  // Added from Oct 2026 clinic offering review. Wording is objective and non-absolute, but NO LIU reference
+  // exists yet: referenceCode stays PENDING-LIU until the Medical Director records the approved code.
+  {
+    category: 'KEGEL',
+    treatmentName: 'Kerusi Kegel (Kegel Chair)',
+    approvedClaim: 'Latihan otot dasar pelvis berpandu bagi menyokong kawalan dan kesihatan pelvis lelaki.',
+    referenceCode: 'PENDING-LIU'
+  },
+  {
+    category: 'PSHOT',
+    treatmentName: 'Rawatan Regeneratif (P-Shot)',
+    approvedClaim: 'Rawatan regeneratif yang dilakukan oleh doktor selepas konsultasi dan penilaian klinikal individu.',
+    referenceCode: 'PENDING-LIU'
+  },
+  {
+    category: 'FERTILITY',
+    treatmentName: 'Penilaian & Program Kesuburan Lelaki',
+    approvedClaim: 'Analisis sperma dan program sokongan kesuburan lelaki dipantau doktor bagi menyokong kesihatan sperma.',
+    referenceCode: 'PENDING-LIU'
   }
 ];
 
@@ -62,7 +95,7 @@ class RegulatoryService {
 
   verifyCopy(text) {
     if (!text || typeof text !== 'string') {
-      return { isCompliant: true, infractions: [], hasApprovalCode: false, hasDisclaimer: false, suggestions: [] };
+      return { isCompliant: true, infractions: [], hasApprovalCode: false, hasDisclaimer: false, advisories: [], suggestions: [] };
     }
 
     const lower = text.toLowerCase();
@@ -76,6 +109,16 @@ class RegulatoryService {
           recommendation: `Gantikan '${item.term}' dengan penerangan klinikal objektif berasaskan sains perubatan.`
         });
       }
+    }
+
+    const advisories = [];
+    for (const item of OUTDOOR_ADVISORY_TERMS) {
+      if (lower.includes(item.term)) {
+        advisories.push({ term: item.term, advice: item.advice });
+      }
+    }
+    if (text.includes('SUAMISIHAT WELLNESS')) {
+      advisories.push({ term: 'SUAMISIHAT WELLNESS', advice: 'Jangan semua huruf besar; guna "SuamiSihat Wellness" seperti nama dalam SSM.' });
     }
 
     const match = text.match(APPROVAL_CODE_REGEX);
@@ -104,6 +147,7 @@ class RegulatoryService {
       hasApprovalCode,
       approvalCode,
       hasDisclaimer,
+      advisories,
       suggestions
     };
   }

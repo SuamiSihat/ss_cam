@@ -41,23 +41,27 @@ class CopywritingService {
     return `# ✍️ Copywriting & Script Studio: ${projectTitle}
 
 ## 🎯 Target Audience & Hook Strategy
-- **Core Demographic**: Men aged 28-55 seeking high performance, energy, and vitality.
-- **Tone of Voice**: Masculine, Authoritative, Trustworthy, Premium Medical.
-- **Primary Angle**: Clinically proven vitality formulation with 100% pure authentic ingredients.
+- **Core Demographic**: Men aged 30+ (and their wives, who often find the lead) who want better energy, performance and confidence.
+- **Tone of Voice**: Masculine, calm, trustworthy, premium medical. Punchy: say what the avatar thinks ("betul la, aku kena buat something!"), not the obvious.
+- **Primary Angle**: Doctor-led assessment first (blood test + consultation), then a plan that fits the patient's budget.
+- **Mix**: Candid-shot content is ~90% serious / 10% light humour. Heavy topics (stem cell, hormones) need an interactive, motion-graphic edit, not subtitles only.
 
 ---
 
 ## 📢 Meta Ad Creative Copy Variants
 
-### Angle 1: Direct Benefit & Authority
-> **Headline**: "Rahsia Tenaga Lelaki Sejati Kini Terbongkar — 100% Asli Tanpa Kompromi."
-> **Primary Text**: Ramai lelaki alami keletihan selepas seharian bekerja keras. Jangan biarkan prestasi anda menurun. Diformulasikan khusus untuk mengembalikan stamina dan fokus puncak harian anda.
-> **CTA**: [ Tempah Sekarang — Penghantaran Percuma ]
+### Angle 1: Hook + Sinker (Educational)
+> **Hook (first 3s)**: A question or scenario the avatar recognises.
+> **Sinker**: One clear fact or doctor explanation. No absolute claims.
+> **CTA (ads)**: "Klik butang di bawah" · **CTA (organic)**: "Link di bio ☝️"
 
-### Angle 2: Social Proof & Urgency
-> **Headline**: "Lebih 15,000+ Pelanggan Berpuas Hati — Stok Terhad!"
-> **Primary Text**: Nikmati keyakinan diri tahap maksimum dengan ramuan herba terpilih SuamiSihat.
-> **CTA**: [ Dapatkan Tawaran Eksklusif Hari Ini ]
+### Angle 2: Quiz / Privacy
+> **Headline**: "Semak tahap kesihatan lelaki anda — soalan ringkas, keputusan peribadi."
+> **Primary Text**: Quiz leads cost far less than WhatsApp leads; keep the promise modest and the tone private.
+> **CTA**: [ Mulakan Quiz ]
+
+### Angle 3: Social Proof (Testimonial Cards)
+> Use 4:5 Google-review cards or floating overlay cards with the doctor reading the review. Protect patient privacy (no names, faces or identifying details without consent).
 
 ---
 
@@ -65,17 +69,25 @@ class CopywritingService {
 
 | Scene | Visual / On-Screen Action | Audio / Voiceover (Malay) |
 | :--- | :--- | :--- |
-| **00:00 - 00:03** | Close-up botol Rejal, pencahayaan dramatik, audio swoosh | *"Bang, kalau selalu rasa lemau balik kerja, dengar ni kejap..."* |
-| **00:03 - 00:07** | B-roll lelaki bertenaga bekerja & bersenam | *"Rahsia stamina padu bukan kopi biasa, tapi khasiat herba gred premium."* |
-| **00:07 - 00:12** | Unboxing packaging premium SuamiSihat | *"Lulus KKM, 100% bahan selamat dan terbukti berkesan."* |
-| **00:12 - 00:15** | CTA end card & promo link | *"Klik beg kuning atau link di bio sekarang sebelum promosi tamat!"* |
+| **00:00 - 00:03** | Hook: close-up doctor or relatable moment | *"Bang, ramai tak tahu perkara ni..."* |
+| **00:03 - 00:12** | Doctor explains one point; Vox-style infographic + B-roll | *(Doctor's own words, plain language)* |
+| **00:12 - 00:15** | CTA end card | *"Klik butang di bawah / link di bio untuk tempah konsultasi."* |
 
 ---
 
-## 📦 Packaging & Label Compliance Claims
-- [x] Tiada bahan kimia terlarang / No banned substances
-- [x] Halal certified extraction process
-- [x] Standard dos harian: 1 sudu setiap pagi sebelum sarapan
+## 📦 Format & Delivery Checklist
+- [ ] Poster / video ratio **4:5** (feed) or **9:16** (story/reel); line spacing at least 1.5
+- [ ] CTA present (ads: "klik butang di bawah"; organic: "link di bio")
+- [ ] Trending audio checked for platform licensing before use
+- [ ] Sequenced Threads posts: Intro → Sinker → CTA (with link and location)
+- [ ] Kelantan audience: dialect allowed, but keep proper nouns capitalised ("K" besar) and details accurate
+
+## 🔒 Compliance Checklist (run Regulatory check before approval)
+- [ ] No absolute claims ("100% sembuh", "pasti berkesan", "terbukti berkesan", "tanpa kesan sampingan")
+- [ ] Do not use "ubat kuat" or double-meaning words; prefer "tenaga" over "kekuatan"
+- [ ] No explicit anatomy or treatment-room imagery on outdoor media; use three-race models (Malay/Chinese/Indian)
+- [ ] Outdoor/billboard: Jawi large, Rumi small, name exactly as in SSM; no English "Clinic/Wellness" in the logo for Kota Bharu
+- [ ] Medical disclaimer and approval reference (KKM/LIU) included where required
 `;
   }
 

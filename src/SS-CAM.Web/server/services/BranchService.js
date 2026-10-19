@@ -1,5 +1,11 @@
+const CompanyService = require("./CompanyService");
+
+/** Branches are owned by the Healthcare & Clinic entity in the Corporate Registry. */
+const CLINIC_COMPANY_CODE = "SSC";
+
 class BranchService {
   constructor() {
+    // Built-in fallback, used only while the registry has no branches configured.
     this.branches = [
       {
         code: 'SSC-BSR',
@@ -57,18 +63,32 @@ class BranchService {
   }
 
   getBranches() {
+    try {
+      const clinic = CompanyService.getByCode(CLINIC_COMPANY_CODE);
+      if (clinic && Array.isArray(clinic.branches) && clinic.branches.length > 0) {
+        return clinic.branches;
+      }
+    } catch (err) {
+      console.warn("[BranchService] Registry unavailable, using built-in branches:", err.message);
+    }
     return this.branches;
+  }
+
+  /** Tenant-configured price block for a branch, or null when not configured. */
+  getPricing(code) {
+    const branch = this.getBranchByCode(code);
+    return branch && branch.pricing ? branch.pricing : null;
   }
 
   getBranchByCode(code) {
     if (!code) return null;
     const clean = code.trim().toUpperCase();
-    return this.branches.find(b => b.code.toUpperCase() === clean || b.shortName.toUpperCase() === clean) || null;
+    return this.getBranches().find(b => b.code.toUpperCase() === clean || (b.shortName || "").toUpperCase() === clean) || null;
   }
 
   generateIntakePayload(branchCode, intakeType = 'consult', treatment = 'Umum') {
-    const branch = this.getBranchByCode(branchCode) || this.branches[0];
-    const phoneDigits = branch.whatsapp.replace(/[^0-9]/g, '');
+    const branch = this.getBranchByCode(branchCode) || this.getBranches()[0];
+    const phoneDigits = (branch.whatsapp || "").replace(/[^0-9]/g, '');
 
     if (intakeType === 'checkin') {
       return {
@@ -104,8 +124,8 @@ class BranchService {
 
   injectBranchDetails(templateText, branchCode, doctorName = null) {
     if (!templateText) return '';
-    const branch = this.getBranchByCode(branchCode) || this.branches[0];
-    const doctor = doctorName || branch.doctors[0];
+    const branch = this.getBranchByCode(branchCode) || this.getBranches()[0];
+    const doctor = doctorName || (branch.doctors && branch.doctors[0]) || "";
 
     return templateText
       .replace(/\{BRANCH_NAME\}/g, branch.name)
