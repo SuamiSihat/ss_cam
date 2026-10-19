@@ -140,11 +140,34 @@
 | General | `GET` | `/api/clinic/sops` | ✅ `authenticateToken` | Authenticated User (Any Valid Staff JWT) | Line 3603 |
 | General | `GET` | `/api/clinic/sops/:id` | ✅ `authenticateToken` | Authenticated User (Any Valid Staff JWT) | Line 3613 |
 | General | `GET` | `/api/clinic/branches` | ⚠️ None (Public) | None (Public) | Line 3625 |
-| General | `GET` | `/api/clinic/branches/:code` | ⚠️ None (Public) | None (Public) | Line 3630 |
-| General | `GET` | `/api/clinic/branches/:code/intake` | ✅ `authenticateToken` | Authenticated User (Any Valid Staff JWT) | Line 3637 |
-| General | `POST` | `/api/clinic/branch-inject` | ✅ `authenticateToken` | Authenticated User (Any Valid Staff JWT) | Line 3644 |
-| General | `GET` | `/api/clinic/care-protocols` | ✅ `authenticateToken` | Authenticated User (Any Valid Staff JWT) | Line 3656 |
-| General | `POST` | `/api/clinic/care-dispatch` | ✅ `authenticateToken` | Authenticated User (Any Valid Staff JWT) | Line 3661 |
+| General | `GET` | `/api/clinic/branches/:code` | ⚠️ None (Public) | None (Public) | Line 3631 |
+| General | `POST` | `/api/clinic/branches` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` | Line 3636 |
+| General | `PUT` | `/api/clinic/branches/:code` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` | Line 3658 |
+| General | `POST` | `/api/clinic/branches/:code/archive` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` | Line 3678 |
+| General | `POST` | `/api/clinic/branches/:code/restore` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` | Line 3698 |
+| General | `DELETE` | `/api/clinic/branches/:code` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` | Line 3718 |
+| General | `GET` | `/api/clinic/branches/:code/intake` | ✅ `authenticateToken` | Authenticated User (Any Valid Staff JWT) | Line 3737 |
+| General | `POST` | `/api/clinic/branch-inject` | ✅ `authenticateToken` | Authenticated User (Any Valid Staff JWT) | Line 3745 |
+| General | `GET` | `/api/clinic/care-protocols` | ✅ `authenticateToken` | Authenticated User (Any Valid Staff JWT) | Line 3757 |
+| General | `POST` | `/api/clinic/care-dispatch` | ✅ `authenticateToken` | Authenticated User (Any Valid Staff JWT) | Line 3762 |
+| Studio Display | `GET` | `/api/clinic/signage` | ⚠️ None (Public) | None (Public for TV kiosk display) | Line 3778 |
+| Studio Display | `PUT` | `/api/clinic/signage` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 3788 |
+| Studio Display | `POST` | `/api/clinic/signage/queue/call` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo`, `reception` (`signageQueueStaff`) | Line 3803 |
+| Studio Display | `POST` | `/api/clinic/signage/queue/call-next` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo`, `reception` (`signageQueueStaff`) | Line 3816 |
+| Studio Display | `POST` | `/api/clinic/signage/queue/upcoming` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo`, `reception` (`signageQueueStaff`) | Line 3832 |
+| Studio Display | `POST` | `/api/clinic/signage/queue/clear` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo`, `reception` (`signageQueueStaff`) | Line 3846 |
+| Studio Display | `POST` | `/api/clinic/signage/slides` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 3858 |
+| Studio Display | `PATCH` | `/api/clinic/signage/slides/:id` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 3875 |
+| Studio Display | `DELETE` | `/api/clinic/signage/slides/:id` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 3892 |
+| Studio Display | `PUT` | `/api/clinic/signage/slides/order` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 3909 |
+| Studio Display | `POST` | `/api/clinic/signage/slides/:id/duplicate` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 3926 |
+| Studio Display | `POST` | `/api/clinic/signage/copy-playlist` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 3943 |
+| Studio Display | `POST` | `/api/clinic/signage/slides/restore-defaults` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 3961 |
+| Studio Display | `POST` | `/api/clinic/signage/media` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 4048 |
+| Studio Display | `POST` | `/api/clinic/signage/media/image` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 4078 |
+| Studio Display | `POST` | `/api/clinic/signage/slides/:id/media` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 4114 |
+| Studio Display | `GET` | `/api/clinic/signage/media/:file` | ⚠️ None (Public) | None (Public TV streaming, rate limited) | Line 4149 |
+| Studio Display | `DELETE` | `/api/clinic/signage/media/:file` | ✅ `authenticateToken` | Roles: `admin`, `manager`, `ceo` (`signageStaff`) | Line 4173 |
 
 ## Security Governance & Findings Remediation
 

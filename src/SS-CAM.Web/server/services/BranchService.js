@@ -62,16 +62,17 @@ class BranchService {
     ];
   }
 
-  getBranches() {
+  getBranches(options = {}) {
+    const includeArchived = Boolean(options && options.includeArchived);
     try {
       const clinic = CompanyService.getByCode(CLINIC_COMPANY_CODE);
-      if (clinic && Array.isArray(clinic.branches) && clinic.branches.length > 0) {
-        return clinic.branches;
+      if (clinic && Array.isArray(clinic.branches)) {
+        return includeArchived ? clinic.branches : clinic.branches.filter(b => !b.archived);
       }
     } catch (err) {
       console.warn("[BranchService] Registry unavailable, using built-in branches:", err.message);
     }
-    return this.branches;
+    return includeArchived ? this.branches : this.branches.filter(b => !b.archived);
   }
 
   /** Tenant-configured price block for a branch, or null when not configured. */
@@ -80,10 +81,130 @@ class BranchService {
     return branch && branch.pricing ? branch.pricing : null;
   }
 
-  getBranchByCode(code) {
+  getBranchByCode(code, options = { includeArchived: true }) {
     if (!code) return null;
     const clean = code.trim().toUpperCase();
-    return this.getBranches().find(b => b.code.toUpperCase() === clean || (b.shortName || "").toUpperCase() === clean) || null;
+    return this.getBranches(options).find(b => b.code.toUpperCase() === clean || (b.shortName || "").toUpperCase() === clean) || null;
+  }
+
+  addBranch(data = {}) {
+    if (!data || typeof data !== 'object') throw new Error('Branch details are required.');
+    const code = String(data.code || '').trim().toUpperCase();
+    if (!/^[A-Z0-9-]{2,12}$/.test(code)) {
+      const err = new Error('Branch code must be 2 to 12 uppercase letters, numbers, or hyphens (e.g. SSC-MK).');
+      err.statusCode = 400;
+      throw err;
+    }
+    const existing = this.getBranchByCode(code, { includeArchived: true });
+    if (existing) {
+      const err = new Error(`A branch with code "${code}" already exists.`);
+      err.statusCode = 409;
+      throw err;
+    }
+
+    const text = (v, max) => String(v === undefined || v === null ? '' : v).trim().slice(0, max);
+    const url = (v, label) => {
+      const value = text(v, 300);
+      if (!value) return '';
+      let parsed;
+      try { parsed = new URL(value); } catch (e) { throw new Error(`${label} must be a full web address starting with https://`); }
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        throw new Error(`${label} must start with https:// or http://`);
+      }
+      return value;
+    };
+
+    const name = text(data.name, 160);
+    if (!name) {
+      const err = new Error('Branch name is required.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const clean = {
+      code,
+      name,
+      shortName: text(data.shortName, 80) || name,
+      address: text(data.address, 300),
+      phone: text(data.phone, 40),
+      whatsapp: text(data.whatsapp, 40),
+      operatingHours: text(data.operatingHours, 200),
+      kkmLicense: text(data.kkmLicense, 80),
+      checkInUrl: url(data.checkInUrl, 'Check-in link'),
+      googleReviewUrl: url(data.googleReviewUrl, 'Review link'),
+      doctors: Array.isArray(data.doctors) ? data.doctors.map(d => text(d, 160)).filter(Boolean).slice(0, 30) : [],
+      archived: false
+    };
+
+    return CompanyService.addBranch(CLINIC_COMPANY_CODE, clean, this.branches);
+  }
+
+  archiveBranch(code, options = {}) {
+    const current = this.getBranchByCode(code, { includeArchived: true });
+    if (!current) {
+      const err = new Error(`Branch "${code}" was not found.`);
+      err.statusCode = 404;
+      throw err;
+    }
+    if (current.archived) return current;
+
+    // Guard 1: Cannot archive the last active branch
+    const activeBranches = this.getBranches({ includeArchived: false });
+    if (activeBranches.length <= 1 && activeBranches.some(b => b.code.toUpperCase() === current.code.toUpperCase())) {
+      const err = new Error('Cannot archive the last active branch.');
+      err.statusCode = 409;
+      throw err;
+    }
+
+    // Guard 2: Cannot archive a branch that is showing on a TV unless switching
+    let SignageService;
+    try { SignageService = require('./SignageService'); } catch (_) {}
+    if (SignageService) {
+      const activeTvCode = (SignageService.loadConfig().branchCode || '').toUpperCase();
+      if (activeTvCode === current.code.toUpperCase()) {
+        const targetCode = options && options.switchToBranch ? String(options.switchToBranch).trim().toUpperCase() : null;
+        if (!targetCode) {
+          const err = new Error('This branch is currently broadcasting to the TV screen. Choose another branch for the TV first.');
+          err.statusCode = 409;
+          throw err;
+        }
+        const switchTarget = this.getBranchByCode(targetCode, { includeArchived: false });
+        if (!switchTarget || switchTarget.code.toUpperCase() === current.code.toUpperCase()) {
+          const err = new Error('Target branch to switch TV to is invalid, archived, or identical to current branch.');
+          err.statusCode = 400;
+          throw err;
+        }
+        SignageService.updateConfig({ branchCode: switchTarget.code });
+      }
+    }
+
+    return CompanyService.archiveBranch(CLINIC_COMPANY_CODE, current.code, this.branches);
+  }
+
+  restoreBranch(code) {
+    const current = this.getBranchByCode(code, { includeArchived: true });
+    if (!current) {
+      const err = new Error(`Branch "${code}" was not found.`);
+      err.statusCode = 404;
+      throw err;
+    }
+    if (!current.archived) return current;
+    return CompanyService.restoreBranch(CLINIC_COMPANY_CODE, current.code, this.branches);
+  }
+
+  removeBranch(code) {
+    const current = this.getBranchByCode(code, { includeArchived: true });
+    if (!current) {
+      const err = new Error(`Branch "${code}" was not found.`);
+      err.statusCode = 404;
+      throw err;
+    }
+    if (!current.archived) {
+      const err = new Error(`Branch "${code}" must be archived before it can be permanently removed.`);
+      err.statusCode = 400;
+      throw err;
+    }
+    return CompanyService.removeBranch(CLINIC_COMPANY_CODE, current.code);
   }
 
   /**

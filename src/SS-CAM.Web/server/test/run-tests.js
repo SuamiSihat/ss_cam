@@ -3148,6 +3148,58 @@ This is the project brief content.
     assert.ok(rendered.includes('KKM/JPS/KL'), 'Must inject KKM license number');
   });
 
+  // ─── TEST 63B: BranchService Lifecycle, Guardrails, and Safe TV Fallback ──
+  test('BranchService handles add, archive, restore, delete guards, and TV licence protection', () => {
+    const BranchService = require('../services/BranchService');
+    const SignageService = require('../services/SignageService');
+
+    // 1. Validation on add
+    assert.throws(() => BranchService.addBranch({ code: 'inv@lid', name: 'Test' }), /code/i);
+    assert.throws(() => BranchService.addBranch({ code: 'SSC-NONAME' }), /name/i);
+
+    const testBranch = BranchService.addBranch({
+      code: 'SSC-IPH',
+      name: 'SuamiSihat Clinic Ipoh',
+      shortName: 'Ipoh',
+      kkmLicense: 'KKM/JPS/PRK/2026/0202'
+    });
+    assert.strictEqual(testBranch.code, 'SSC-IPH');
+    assert.throws(() => BranchService.addBranch({ code: 'SSC-IPH', name: 'Duplicate' }), /already exists/i);
+
+    // 2. Unarchived deletion is blocked
+    assert.throws(() => BranchService.removeBranch('SSC-IPH'), /must be archived/i);
+
+    // 3. TV branch archive protection
+    const tvCode = (SignageService.loadConfig().branchCode || 'SSC-BSR').toUpperCase();
+    assert.throws(() => BranchService.archiveBranch(tvCode), /broadcasting to the TV/i);
+
+    // 4. Archive and restore
+    const archived = BranchService.archiveBranch('SSC-IPH');
+    assert.strictEqual(archived.archived, true);
+    assert.ok(!BranchService.getBranches().some(b => b.code === 'SSC-IPH'));
+    assert.ok(BranchService.getBranches({ includeArchived: true }).some(b => b.code === 'SSC-IPH'));
+
+    const restored = BranchService.restoreBranch('SSC-IPH');
+    assert.strictEqual(restored.archived, false);
+    assert.ok(BranchService.getBranches().some(b => b.code === 'SSC-IPH'));
+
+    // 5. Permanent deletion when archived
+    BranchService.archiveBranch('SSC-IPH');
+    const removed = BranchService.removeBranch('SSC-IPH');
+    assert.strictEqual(removed.removedCode, 'SSC-IPH');
+    assert.strictEqual(BranchService.getBranchByCode('SSC-IPH'), null);
+
+    // 6. Safe TV config: unknown and archived branches return branchMissing: true and empty licence
+    const missingCfg = SignageService.getConfig('UNKNOWN-BRANCH-XYZ');
+    assert.strictEqual(missingCfg.branchMissing, true);
+    assert.strictEqual(missingCfg.branch, null);
+    assert.strictEqual(missingCfg.effectiveLicense, '', 'Must never fall back to another branch licence');
+
+    const validCfg = SignageService.getConfig('SSC-BSR');
+    assert.strictEqual(validCfg.branchMissing, false);
+    assert.ok(validCfg.effectiveLicense.startsWith('KKM/'), 'Valid branch provides its own licence');
+  });
+
   // ─── TEST 64: CareDispatcherService Bilingual Protocols & WhatsApp Leaflets ──
   test('CareDispatcherService generates formatted recovery leaflets and 1-click WhatsApp dispatch links', () => {
     const CareDispatcherService = require('../services/CareDispatcherService');
@@ -3471,6 +3523,210 @@ This is the project brief content.
     const lic = SignageService.getConfig('SSC-BSR');
     assert.strictEqual(lic.effectiveLicense, (lic.branch && lic.branch.kkmLicense) || '', 'Licence comes from the selected branch');
     SignageService.clearQueue(true);
+  });
+
+  // ─── TEST: T1.2 V1->V2 Migration, Backup, and Per-Branch Queue Isolation ──
+  test('SignageService handles V1 to V2 migration, creates backup file, and isolates per-branch queues', () => {
+    const v1Fixture = {
+      branchCode: 'SSC-BSR',
+      slideDurationSec: 12,
+      rooms: ['Bilik Konsultasi 1', 'Bilik ESWT'],
+      queue: { currentCall: { ticket: 'V1-999', room: 'Bilik Konsultasi 1' }, upcoming: [] },
+      slides: [
+        { id: 'v1-slide', enabled: true, type: 'notice', tag: 'V1', title: 'Old Notice', subtitle: 'Migrated' }
+      ]
+    };
+    const rawFixture = JSON.stringify(v1Fixture, null, 2);
+    const migrated = SignageService.migrateV1ToV2(v1Fixture, rawFixture);
+
+    assert.strictEqual(migrated.version, 2, 'Migration must output schema version 2');
+    assert.ok(migrated.branches['SSC-BSR'], 'Must preserve primary branch under branches map');
+    assert.strictEqual(migrated.branches['SSC-BSR'].slideDurationSec, 12, 'Must preserve custom duration');
+    assert.strictEqual(migrated.branches['SSC-BSR'].slides[0].title, 'Old Notice', 'Must preserve slides');
+
+    // Backup check
+    const bakFile = path.join(SignageService.getTeamDir(), 'signage_config.json.bak-v1');
+    assert.ok(fs.existsSync(bakFile), 'Migration must write signage_config.json.bak-v1 backup file');
+    const bakContent = fs.readFileSync(bakFile, 'utf8');
+    assert.ok(bakContent.includes('V1-999'), 'Backup file must contain original V1 state');
+
+    // Idempotent migration
+    const reMigrated = SignageService.migrateV1ToV2(migrated, JSON.stringify(migrated));
+    assert.strictEqual(reMigrated.version, 2);
+
+    // Queue isolation across branches
+    SignageService.clearQueue(true, 'SSC-BSR');
+    SignageService.clearQueue(true, 'SSC-JB');
+
+    SignageService.callTicket({ ticket: 'BSR-101', room: 'Bilik 1', branchCode: 'SSC-BSR' });
+    SignageService.callTicket({ ticket: 'JB-202', room: 'Bilik 2', branchCode: 'SSC-JB' });
+
+    const bsrCfg = SignageService.getConfig('SSC-BSR');
+    const jbCfg = SignageService.getConfig('SSC-JB');
+
+    assert.strictEqual(bsrCfg.queue.currentCall.ticket, 'BSR-101', 'Bangsar queue has Bangsar ticket');
+    assert.strictEqual(jbCfg.queue.currentCall.ticket, 'JB-202', 'Johor Bahru queue has Johor Bahru ticket');
+
+    // Clearing one branch leaves the other intact
+    SignageService.clearQueue(true, 'SSC-BSR');
+    assert.strictEqual(SignageService.getConfig('SSC-BSR').queue.currentCall, null);
+    assert.strictEqual(SignageService.getConfig('SSC-JB').queue.currentCall.ticket, 'JB-202', 'Clearing Bangsar does not affect Johor Bahru');
+
+    SignageService.clearQueue(true, 'SSC-JB');
+  });
+
+  // ─── TEST: T1.3 Slide CRUD, Concurrency (409), Ordering, Duplication, and Copy ──
+  test('SignageService handles slide CRUD, optimistic concurrency (409), reordering, duplication, and playlist copy', () => {
+    const branch = 'SSC-BSR';
+    const initCfg = SignageService.getConfig(branch);
+    const startRev = initCfg.revision;
+
+    // 1. Add slide
+    const addRes = SignageService.addSlide({
+      type: 'notice',
+      tag: 'BERITA',
+      title: 'Klinik Beroperasi Seperti Biasa',
+      subtitle: 'Sempena cuti umum',
+      durationSec: 15
+    }, branch, startRev);
+
+    assert.ok(addRes.slide && addRes.slide.id, 'New slide has an ID');
+    assert.strictEqual(addRes.slide.durationSec, 15);
+    assert.strictEqual(addRes.revision, startRev + 1, 'Revision increments on add');
+    const slideId = addRes.slide.id;
+
+    // 2. Optimistic Concurrency 409 Conflict
+    assert.throws(() => {
+      SignageService.updateSlide(slideId, { title: 'Conflicting Edit' }, branch, startRev);
+    }, (err) => err.status === 409 && err.conflict === true, 'Mismatched baseRevision throws 409 conflict');
+
+    // 3. Successful update with matching baseRevision
+    const curRev = addRes.revision;
+    const updRes = SignageService.updateSlide(slideId, { title: 'Waktu Operasi Terkini' }, branch, curRev);
+    assert.strictEqual(updRes.slide.title, 'Waktu Operasi Terkini');
+    assert.strictEqual(updRes.revision, curRev + 1);
+
+    // 4. Duplicate slide
+    const dupRes = SignageService.duplicateSlide(slideId, branch, updRes.revision);
+    assert.ok(dupRes.slide.id !== slideId, 'Cloned slide receives fresh ID');
+    assert.ok(dupRes.slide.title.includes('(Salinan)'), 'Cloned slide title indicates copy');
+
+    // 5. Reorder slides
+    const currentSlides = SignageService.getConfig(branch).slides;
+    const slideIds = currentSlides.map(s => s.id).reverse();
+    assert.throws(() => SignageService.reorderSlides(['unknown-fake-id'], branch), /Unknown slide ID/);
+    const orderRes = SignageService.reorderSlides(slideIds, branch, dupRes.revision);
+    assert.strictEqual(orderRes.config.slides[0].id, slideIds[0], 'First slide matches reordered array');
+
+    // 6. Copy playlist across branches
+    const copyRes = SignageService.copyPlaylist('SSC-BSR', 'SSC-JB');
+    assert.strictEqual(copyRes.config.slides.length, orderRes.config.slides.length);
+    assert.ok(copyRes.config.slides[0].id !== orderRes.config.slides[0].id, 'Copied slides have independent IDs');
+
+    // 7. Remove slide
+    const remRes = SignageService.removeSlide(slideId, branch);
+    assert.strictEqual(remRes.removedId, slideId);
+    assert.ok(!SignageService.getConfig(branch).slides.some(s => s.id === slideId));
+
+    // 8. Restore default slides
+    const defRes = SignageService.restoreDefaultSlides(branch);
+    assert.strictEqual(defRes.config.slides.length, 5, 'Defaults restored to 5 built-in slides');
+  });
+
+  // ─── TEST: T1.4 Banner Uploads, Magic Bytes, Dimensions, and Reference-Counted Deletion ──
+  test('SignageService handles banner image uploads, magic bytes validation, dimension requirements, and reference-counted deletion', () => {
+    const branch = 'SSC-BSR';
+    const mediaDir = SignageService.getMediaDir();
+
+    // 1. Synthetic 1920x1080 JPEG
+    const validJpgHeader = Buffer.concat([
+      Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]),
+      Buffer.from('JFIF\0\1\1\0\0\1\0\1\0\0'),
+      Buffer.from([0xff, 0xc0, 0x00, 0x11, 0x08]),
+      Buffer.from([0x04, 0x38]), // 1080 height
+      Buffer.from([0x07, 0x80]), // 1920 width
+      Buffer.from([0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01]),
+      Buffer.alloc(200, 0)
+    ]);
+    const jpgFileName = '0123456789abcdef.jpg';
+    fs.writeFileSync(path.join(mediaDir, jpgFileName), validJpgHeader);
+
+    const bannerRes = SignageService.addImage({
+      fileName: jpgFileName,
+      originalName: 'Promotion Banner 1080p.jpg',
+      sizeBytes: validJpgHeader.length,
+      branchCode: branch
+    });
+    assert.strictEqual(bannerRes.slide.type, 'banner');
+    assert.strictEqual(bannerRes.slide.width, 1920);
+    assert.strictEqual(bannerRes.slide.height, 1080);
+    assert.strictEqual(bannerRes.warning, null, '16:9 aspect ratio has no warning');
+
+    // 2. Aspect ratio warning on non-16:9 image (e.g. 1000x1000 square PNG)
+    const squarePngHeader = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.from([0, 0, 0, 13]),
+      Buffer.from('IHDR'),
+      Buffer.from([0, 0, 0x03, 0xe8]), // 1000 width
+      Buffer.from([0, 0, 0x03, 0xe8]), // 1000 height
+      Buffer.from([8, 6, 0, 0, 0]),
+      Buffer.alloc(200, 0)
+    ]);
+    const pngFileName = 'fedcba9876543210.png';
+    fs.writeFileSync(path.join(mediaDir, pngFileName), squarePngHeader);
+
+    const pngRes = SignageService.addImage({
+      fileName: pngFileName,
+      originalName: 'Square Graphic.png',
+      sizeBytes: squarePngHeader.length,
+      branchCode: branch
+    });
+    assert.ok(pngRes.warning && pngRes.warning.includes('16:9'), 'Square image receives 16:9 aspect ratio warning');
+
+    // 3. Security: fake image (magic bytes mismatch)
+    const fakeFileName = '1122334455667788.jpg';
+    fs.writeFileSync(path.join(mediaDir, fakeFileName), Buffer.from('NOT A REAL JPEG FILE'));
+    assert.throws(() => {
+      SignageService.addImage({ fileName: fakeFileName, originalName: 'fake.jpg', sizeBytes: 20, branchCode: branch });
+    }, /not a valid (image|jpeg)/i);
+    assert.ok(!fs.existsSync(path.join(mediaDir, fakeFileName)), 'Refused file is deleted from disk');
+
+    // 4. Dimension requirement: undersized image (< 640x360)
+    const tinyPng = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.from([0, 0, 0, 13]),
+      Buffer.from('IHDR'),
+      Buffer.from([0, 0, 0x01, 0x2c]), // 300 width
+      Buffer.from([0, 0, 0x00, 0xc8]), // 200 height
+      Buffer.from([8, 6, 0, 0, 0])
+    ]);
+    const tinyFileName = '9988776655443322.png';
+    fs.writeFileSync(path.join(mediaDir, tinyFileName), tinyPng);
+    assert.throws(() => {
+      SignageService.addImage({ fileName: tinyFileName, originalName: 'tiny.png', sizeBytes: tinyPng.length, branchCode: branch });
+    }, /at least 640x360/i);
+    assert.ok(!fs.existsSync(path.join(mediaDir, tinyFileName)), 'Undersized file is deleted from disk');
+
+    // 5. Reference-counted deletion
+    // Copy playlist to JB so both branches reference jpgFileName
+    SignageService.copyPlaylist('SSC-BSR', 'SSC-JB');
+    const onDiskJpg = path.join(mediaDir, jpgFileName);
+    assert.ok(fs.existsSync(onDiskJpg), 'Media file exists on disk');
+
+    // Remove slide from BSR
+    SignageService.removeSlide(bannerRes.slide.id, 'SSC-BSR');
+    assert.ok(fs.existsSync(onDiskJpg), 'File NOT deleted because JB still references it');
+
+    // Find the copied slide on JB and remove it
+    const jbSlide = SignageService.getConfig('SSC-JB').slides.find(s => s.src && s.src.includes(jpgFileName));
+    assert.ok(jbSlide, 'JB holds the referenced slide');
+    SignageService.removeSlide(jbSlide.id, 'SSC-JB');
+    assert.ok(!fs.existsSync(onDiskJpg), 'File is deleted once all branch references are gone');
+
+    // Clean up second test image
+    SignageService.removeSlide(pngRes.slide.id, 'SSC-BSR');
+    SignageService.restoreDefaultSlides('SSC-BSR');
+    SignageService.restoreDefaultSlides('SSC-JB');
   });
 
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions

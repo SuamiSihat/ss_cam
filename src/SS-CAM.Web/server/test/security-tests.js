@@ -935,7 +935,11 @@ test('Studio display: only admin/manager/ceo can change the TV, edit branches or
     ['PUT', '/api/clinic/signage', { slideDurationSec: 20 }],
     ['POST', '/api/clinic/signage/queue/call', { ticket: 'A-1' }],
     ['DELETE', '/api/clinic/signage/queue', undefined],
+    ['POST', '/api/clinic/branches', { code: 'SSC-TST', name: 'Test' }],
     ['PUT', '/api/clinic/branches/SSC-BSR', { phone: '000' }],
+    ['POST', '/api/clinic/branches/SSC-BSR/archive', {}],
+    ['POST', '/api/clinic/branches/SSC-BSR/restore', {}],
+    ['DELETE', '/api/clinic/branches/SSC-BSR', undefined],
     ['DELETE', '/api/clinic/signage/media/0123456789abcdef.mp4', undefined]
   ]) {
     assert.strictEqual((await request(method, url, { body })).status, 401, `${method} ${url} needs sign-in`);
@@ -950,7 +954,11 @@ test('Studio display: only admin/manager/ceo can change the TV, edit branches or
   assert.strictEqual((await request('POST', '/api/clinic/signage/queue/upcoming', { token: clinic, body: { upcoming: [{ ticket: 'A-5002' }] } })).status, 200, 'Reception can edit the waiting list');
   assert.strictEqual((await request('DELETE', '/api/clinic/signage/queue', { token: clinic })).status, 200, 'Reception can clear the queue');
   assert.strictEqual((await request('PUT', '/api/clinic/signage', { token: clinic, body: { slideDurationSec: 20 } })).status, 403, 'Reception cannot change the playlist or settings');
+  assert.strictEqual((await request('POST', '/api/clinic/branches', { token: clinic, body: { code: 'SSC-TST', name: 'Test' } })).status, 403, 'Reception cannot add branches');
   assert.strictEqual((await request('PUT', '/api/clinic/branches/SSC-BSR', { token: clinic, body: { phone: '1' } })).status, 403, 'Reception cannot edit branches');
+  assert.strictEqual((await request('POST', '/api/clinic/branches/SSC-BSR/archive', { token: clinic })).status, 403, 'Reception cannot archive branches');
+  assert.strictEqual((await request('POST', '/api/clinic/branches/SSC-BSR/restore', { token: clinic })).status, 403, 'Reception cannot restore branches');
+  assert.strictEqual((await request('DELETE', '/api/clinic/branches/SSC-BSR', { token: clinic })).status, 403, 'Reception cannot delete branches');
   assert.strictEqual((await upload(clinic, 'x.mp4', Buffer.alloc(64))).status, 403, 'Reception cannot upload videos');
   const me = await request('GET', '/api/auth/me', { token: clinic });
   assert.ok(me.json.capabilities.canCallQueue && !me.json.capabilities.canManageStudioDisplay, 'Capabilities reflect queue-only access');
@@ -974,6 +982,75 @@ test('Studio display: only admin/manager/ceo can change the TV, edit branches or
     }
     assert.deepStrictEqual(now.doctors, other.doctors, 'Other branches must keep their doctors');
   }
+
+  // Branch management lifecycle (add, duplicate check, archive guards, restore, delete, TV safety)
+  const badCode = await request('POST', '/api/clinic/branches', { token: manager, body: { code: 'bad_code!', name: 'Bad Code Branch' } });
+  assert.strictEqual(badCode.status, 400, 'Bad branch code format rejected');
+
+  const missingName = await request('POST', '/api/clinic/branches', { token: manager, body: { code: 'SSC-NONAME' } });
+  assert.strictEqual(missingName.status, 400, 'Missing branch name rejected');
+
+  const addRes = await request('POST', '/api/clinic/branches', {
+    token: manager,
+    body: {
+      code: 'SSC-MEL',
+      name: 'SuamiSihat Clinic Melaka',
+      shortName: 'Melaka',
+      address: '10 Jalan Hang Tuah, Melaka',
+      phone: '+606-281 1234',
+      kkmLicense: 'KKM/JPS/MLK/2026/0101'
+    }
+  });
+  assert.strictEqual(addRes.status, 201, 'Valid branch added');
+  assert.strictEqual(addRes.json.branch.code, 'SSC-MEL');
+
+  const dupRes = await request('POST', '/api/clinic/branches', { token: manager, body: { code: 'SSC-MEL', name: 'Duplicate' } });
+  assert.strictEqual(dupRes.status, 409, 'Duplicate branch code rejected with 409');
+
+  // Archive guard: cannot archive active TV branch without switchToBranch
+  const activeTvCode = (await request('GET', '/api/clinic/signage')).json.config.branchCode;
+  const archiveTvBranch = await request('POST', `/api/clinic/branches/${activeTvCode}/archive`, { token: manager });
+  assert.strictEqual(archiveTvBranch.status, 409, 'Cannot archive active TV branch without switch');
+
+  // Archive guard: unarchived branch cannot be permanently deleted
+  const deleteUnarchived = await request('DELETE', '/api/clinic/branches/SSC-MEL', { token: manager });
+  assert.strictEqual(deleteUnarchived.status, 400, 'Cannot permanently delete an unarchived branch');
+
+  // Archive newly added branch
+  const archiveMelRes = await request('POST', '/api/clinic/branches/SSC-MEL/archive', { token: manager });
+  assert.strictEqual(archiveMelRes.status, 200, 'Archiving branch succeeds');
+  assert.strictEqual(archiveMelRes.json.branch.archived, true);
+
+  // Archived branch is omitted from default list, but visible when includeArchived=true
+  const listActive = (await request('GET', '/api/clinic/branches')).json.branches;
+  assert.ok(!listActive.some(b => b.code === 'SSC-MEL'), 'Archived branch hidden from active list');
+  const listAll = (await request('GET', '/api/clinic/branches?includeArchived=true')).json.branches;
+  assert.ok(listAll.some(b => b.code === 'SSC-MEL' && b.archived), 'Archived branch present in all list');
+
+  // TV getConfig for archived branch returns branchMissing: true and empty license (no leak)
+  const tvArchived = (await request('GET', '/api/clinic/signage?branch=SSC-MEL')).json.config;
+  assert.strictEqual(tvArchived.branchMissing, true, 'TV marks archived branch as missing');
+  assert.strictEqual(tvArchived.branch, null, 'TV returns null branch for archived branch');
+  assert.strictEqual(tvArchived.effectiveLicense, '', 'TV does not leak foreign licence');
+
+  // TV getConfig for completely unknown branch returns branchMissing: true
+  const tvUnknown = (await request('GET', '/api/clinic/signage?branch=NOPE-999')).json.config;
+  assert.strictEqual(tvUnknown.branchMissing, true, 'TV marks unknown branch as missing');
+  assert.strictEqual(tvUnknown.effectiveLicense, '', 'TV does not leak foreign licence on unknown branch');
+
+  // Restore branch
+  const restoreRes = await request('POST', '/api/clinic/branches/SSC-MEL/restore', { token: manager });
+  assert.strictEqual(restoreRes.status, 200, 'Restoring branch succeeds');
+  assert.strictEqual(restoreRes.json.branch.archived, false);
+  const listAfterRestore = (await request('GET', '/api/clinic/branches')).json.branches;
+  assert.ok(listAfterRestore.some(b => b.code === 'SSC-MEL' && !b.archived), 'Restored branch back in active list');
+
+  // Archive again and permanently delete
+  await request('POST', '/api/clinic/branches/SSC-MEL/archive', { token: manager });
+  const delRes = await request('DELETE', '/api/clinic/branches/SSC-MEL', { token: manager });
+  assert.strictEqual(delRes.status, 200, 'Permanently deleting archived branch succeeds');
+  const listAfterDel = (await request('GET', '/api/clinic/branches?includeArchived=true')).json.branches;
+  assert.ok(!listAfterDel.some(b => b.code === 'SSC-MEL'), 'Permanently deleted branch is completely purged');
 
   // Video slides can only point at files this server stored; fake sources are dropped.
   const put = await request('PUT', '/api/clinic/signage', {

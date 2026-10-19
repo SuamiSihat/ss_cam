@@ -135,7 +135,8 @@ function sanitizeBranches(list) {
       kkmLicense: str(b.kkmLicense, 80),
       checkInUrl: str(b.checkInUrl, 300),
       googleReviewUrl: str(b.googleReviewUrl, 300),
-      pricing: sanitizePricing(b.pricing)
+      pricing: sanitizePricing(b.pricing),
+      archived: Boolean(b.archived)
     });
   }
   return out;
@@ -258,7 +259,7 @@ class CompanyService {
     if (branchIdx < 0) throw new Error(`Branch "${branchCode}" was not found.`);
 
     const existing = list[branchIdx];
-    const [clean] = sanitizeBranches([{ ...existing, ...patch, code: existing.code }]);
+    const [clean] = sanitizeBranches([{ ...existing, ...patch, code: existing.code, archived: existing.archived }]);
     if (!clean) throw new Error('Branch name is required.');
     // Pricing is managed elsewhere; keep it byte-for-byte (sanitizeBranches would restamp updatedAt).
     clean.pricing = existing.pricing || null;
@@ -268,6 +269,109 @@ class CompanyService {
     this.memoryCompanies = all;
     this.persistCompanies();
     return clean;
+  }
+
+  addBranch(companyCode, branchData, seedBranches = []) {
+    const all = this.getAll();
+    const companyIdx = all.findIndex((c) => c.code.toUpperCase() === String(companyCode || '').toUpperCase());
+    if (companyIdx < 0) throw new Error(`Company "${companyCode}" is not in the Corporate Registry.`);
+
+    const company = all[companyIdx];
+    const list = Array.isArray(company.branches)
+      ? company.branches.slice()
+      : sanitizeBranches(seedBranches);
+
+    const code = String(branchData?.code || '').trim().toUpperCase();
+    if (list.some((b) => b.code.toUpperCase() === code)) {
+      const err = new Error(`A branch with code "${code}" already exists.`);
+      err.statusCode = 409;
+      throw err;
+    }
+
+    const [clean] = sanitizeBranches([{ ...branchData, code, archived: false }]);
+    if (!clean) throw new Error('Valid branch details are required.');
+
+    list.push(clean);
+    all[companyIdx] = { ...company, branches: list, updatedAt: new Date().toISOString() };
+    this.memoryCompanies = all;
+    this.persistCompanies();
+    return clean;
+  }
+
+  archiveBranch(companyCode, branchCode, seedBranches = []) {
+    const all = this.getAll();
+    const companyIdx = all.findIndex((c) => c.code.toUpperCase() === String(companyCode || '').toUpperCase());
+    if (companyIdx < 0) throw new Error(`Company "${companyCode}" is not in the Corporate Registry.`);
+
+    const company = all[companyIdx];
+    const list = Array.isArray(company.branches)
+      ? company.branches.slice()
+      : sanitizeBranches(seedBranches);
+
+    const branchIdx = list.findIndex((b) => b.code.toUpperCase() === String(branchCode || '').toUpperCase());
+    if (branchIdx < 0) {
+      const err = new Error(`Branch "${branchCode}" was not found.`);
+      err.statusCode = 404;
+      throw err;
+    }
+
+    list[branchIdx] = { ...list[branchIdx], archived: true };
+    all[companyIdx] = { ...company, branches: list, updatedAt: new Date().toISOString() };
+    this.memoryCompanies = all;
+    this.persistCompanies();
+    return list[branchIdx];
+  }
+
+  restoreBranch(companyCode, branchCode, seedBranches = []) {
+    const all = this.getAll();
+    const companyIdx = all.findIndex((c) => c.code.toUpperCase() === String(companyCode || '').toUpperCase());
+    if (companyIdx < 0) throw new Error(`Company "${companyCode}" is not in the Corporate Registry.`);
+
+    const company = all[companyIdx];
+    const list = Array.isArray(company.branches)
+      ? company.branches.slice()
+      : sanitizeBranches(seedBranches);
+
+    const branchIdx = list.findIndex((b) => b.code.toUpperCase() === String(branchCode || '').toUpperCase());
+    if (branchIdx < 0) {
+      const err = new Error(`Branch "${branchCode}" was not found.`);
+      err.statusCode = 404;
+      throw err;
+    }
+
+    list[branchIdx] = { ...list[branchIdx], archived: false };
+    all[companyIdx] = { ...company, branches: list, updatedAt: new Date().toISOString() };
+    this.memoryCompanies = all;
+    this.persistCompanies();
+    return list[branchIdx];
+  }
+
+  removeBranch(companyCode, branchCode) {
+    const all = this.getAll();
+    const companyIdx = all.findIndex((c) => c.code.toUpperCase() === String(companyCode || '').toUpperCase());
+    if (companyIdx < 0) throw new Error(`Company "${companyCode}" is not in the Corporate Registry.`);
+
+    const company = all[companyIdx];
+    const list = Array.isArray(company.branches) ? company.branches.slice() : [];
+    const branchIdx = list.findIndex((b) => b.code.toUpperCase() === String(branchCode || '').toUpperCase());
+    if (branchIdx < 0) {
+      const err = new Error(`Branch "${branchCode}" was not found.`);
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const existing = list[branchIdx];
+    if (!existing.archived) {
+      const err = new Error(`Branch "${branchCode}" must be archived before it can be permanently removed.`);
+      err.statusCode = 400;
+      throw err;
+    }
+
+    list.splice(branchIdx, 1);
+    all[companyIdx] = { ...company, branches: list, updatedAt: new Date().toISOString() };
+    this.memoryCompanies = all;
+    this.persistCompanies();
+    return { success: true, removedCode: existing.code };
   }
 
   deleteCompany(code) {

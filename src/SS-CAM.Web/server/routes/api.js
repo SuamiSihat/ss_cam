@@ -3624,14 +3624,36 @@ router.get('/clinic/sops/:id', authenticateToken, (req, res) => {
 
 // GET /api/clinic/branches — List of clinic branches
 router.get('/clinic/branches', publicReviewRead, (req, res) => {
-  res.json({ success: true, branches: BranchService.getBranches() });
+  const includeArchived = req.query.includeArchived === 'true' || req.query.includeArchived === '1';
+  res.json({ success: true, branches: BranchService.getBranches({ includeArchived }) });
 });
 
 // GET /api/clinic/branches/:code — Get branch profile
 router.get('/clinic/branches/:code', publicReviewRead, (req, res) => {
-  const branch = BranchService.getBranchByCode(req.params.code);
+  const branch = BranchService.getBranchByCode(req.params.code, { includeArchived: true });
   if (!branch) return res.status(404).json({ error: 'Branch not found.' });
   res.json({ success: true, branch });
+});
+
+// POST /api/clinic/branches — Add a new branch
+router.post('/clinic/branches', authenticateToken, requireRole('admin', 'manager', 'ceo'), (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const branch = BranchService.addBranch(req.body || {});
+    AuditService.logEvent({
+      actor,
+      role,
+      action: 'ADD_BRANCH',
+      entityType: 'branch',
+      entityId: branch.code,
+      details: { name: branch.name, code: branch.code }
+    });
+    SignageService.broadcast();
+    res.status(201).json({ success: true, branch });
+  } catch (err) {
+    res.status(err.statusCode || 400).json({ error: err.message });
+  }
 });
 
 // PUT /api/clinic/branches/:code — Update a branch profile (name, contact, hours, licence, doctors, links)
@@ -3652,7 +3674,70 @@ router.put('/clinic/branches/:code', authenticateToken, requireRole('admin', 'ma
     SignageService.broadcast();
     res.json({ success: true, branch });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.statusCode || 400).json({ error: err.message });
+  }
+});
+
+// POST /api/clinic/branches/:code/archive — Archive a branch
+router.post('/clinic/branches/:code/archive', authenticateToken, requireRole('admin', 'manager', 'ceo'), (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const branch = BranchService.archiveBranch(req.params.code, req.body || {});
+    AuditService.logEvent({
+      actor,
+      role,
+      action: 'ARCHIVE_BRANCH',
+      entityType: 'branch',
+      entityId: branch.code,
+      details: { code: branch.code }
+    });
+    SignageService.broadcast();
+    res.json({ success: true, branch });
+  } catch (err) {
+    res.status(err.statusCode || 400).json({ error: err.message });
+  }
+});
+
+// POST /api/clinic/branches/:code/restore — Restore an archived branch
+router.post('/clinic/branches/:code/restore', authenticateToken, requireRole('admin', 'manager', 'ceo'), (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const branch = BranchService.restoreBranch(req.params.code);
+    AuditService.logEvent({
+      actor,
+      role,
+      action: 'RESTORE_BRANCH',
+      entityType: 'branch',
+      entityId: branch.code,
+      details: { code: branch.code }
+    });
+    SignageService.broadcast();
+    res.json({ success: true, branch });
+  } catch (err) {
+    res.status(err.statusCode || 400).json({ error: err.message });
+  }
+});
+
+// DELETE /api/clinic/branches/:code — Permanently delete an archived branch
+router.delete('/clinic/branches/:code', authenticateToken, requireRole('admin', 'manager', 'ceo'), (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const result = BranchService.removeBranch(req.params.code);
+    AuditService.logEvent({
+      actor,
+      role,
+      action: 'DELETE_BRANCH',
+      entityType: 'branch',
+      entityId: req.params.code,
+      details: { code: req.params.code }
+    });
+    SignageService.broadcast();
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 400).json({ error: err.message });
   }
 });
 
@@ -3713,7 +3798,8 @@ router.put('/clinic/signage', authenticateToken, signageStaff, (req, res) => {
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
-    const config = SignageService.updateConfig(req.body, actor, role);
+    const branch = req.query.branch || req.body?.branchCode || null;
+    const config = SignageService.updateConfig(req.body, branch, actor, role);
     res.json({ success: true, config });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -3726,12 +3812,13 @@ router.post('/clinic/signage/queue/call', authenticateToken, signageQueueStaff, 
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
     const { ticket, room, doctor, popUpcoming, isNext } = req.body || {};
+    const branch = req.query.branch || req.body?.branchCode || null;
 
     let config;
     if (isNext) {
-      config = SignageService.callNext(room, doctor, actor, role);
+      config = SignageService.callNext({ room, doctor, branchCode: branch }, actor, role);
     } else {
-      config = SignageService.callTicket({ ticket, room, doctor, popUpcoming: popUpcoming !== false }, actor, role);
+      config = SignageService.callTicket({ ticket, room, doctor, popUpcoming: popUpcoming !== false, branchCode: branch }, actor, role);
     }
     res.json({ success: true, config });
   } catch (err) {
@@ -3745,7 +3832,8 @@ router.post('/clinic/signage/queue/upcoming', authenticateToken, signageQueueSta
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
     const { upcoming } = req.body || {};
-    const config = SignageService.updateUpcoming(upcoming || [], actor, role);
+    const branch = req.query.branch || req.body?.branchCode || null;
+    const config = SignageService.updateUpcoming(upcoming || [], branch, actor, role);
     res.json({ success: true, config });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -3758,17 +3846,153 @@ router.delete('/clinic/signage/queue', authenticateToken, signageQueueStaff, (re
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
     const clearCurrent = req.query.clearCurrent === 'true';
-    const config = SignageService.clearQueue(clearCurrent, actor, role);
+    const branch = req.query.branch || req.body?.branchCode || null;
+    const config = SignageService.clearQueue(clearCurrent, branch, actor, role);
     res.json({ success: true, config });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// ─── SIGNAGE VIDEO PLAYLIST MEDIA ───────────────────────────────────
+// ─── SIGNAGE PLAYLIST SLIDE CRUD & REORDER ──────────────────────────
+
+// POST /api/clinic/signage/slides — Add a new slide to the playlist
+router.post('/clinic/signage/slides', authenticateToken, signageStaff, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const branch = req.query.branch || req.body?.branchCode || null;
+    const baseRevision = req.body?.baseRevision !== undefined ? req.body.baseRevision : (req.query.baseRevision !== undefined ? req.query.baseRevision : null);
+    const slideData = req.body?.slide || req.body;
+    const result = SignageService.addSlide(slideData, branch, baseRevision, actor, role);
+    res.status(201).json(Object.assign({ success: true }, result));
+  } catch (err) {
+    res.status(err.status || 400).json({
+      error: err.message,
+      conflict: Boolean(err.conflict),
+      currentRevision: err.currentRevision
+    });
+  }
+});
+
+// PATCH /api/clinic/signage/slides/:id — Update an existing slide
+router.patch('/clinic/signage/slides/:id', authenticateToken, signageStaff, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const branch = req.query.branch || req.body?.branchCode || null;
+    const baseRevision = req.body?.baseRevision !== undefined ? req.body.baseRevision : (req.query.baseRevision !== undefined ? req.query.baseRevision : null);
+    const patchData = req.body?.patch || req.body;
+    const result = SignageService.updateSlide(req.params.id, patchData, branch, baseRevision, actor, role);
+    res.json(Object.assign({ success: true }, result));
+  } catch (err) {
+    res.status(err.status || 400).json({
+      error: err.message,
+      conflict: Boolean(err.conflict),
+      currentRevision: err.currentRevision
+    });
+  }
+});
+
+// DELETE /api/clinic/signage/slides/:id — Remove a slide from the playlist
+router.delete('/clinic/signage/slides/:id', authenticateToken, signageStaff, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const branch = req.query.branch || req.body?.branchCode || null;
+    const baseRevision = req.body?.baseRevision !== undefined ? req.body.baseRevision : (req.query.baseRevision !== undefined ? req.query.baseRevision : null);
+    const result = SignageService.removeSlide(req.params.id, branch, baseRevision, actor, role);
+    res.json(Object.assign({ success: true }, result));
+  } catch (err) {
+    res.status(err.status || 400).json({
+      error: err.message,
+      conflict: Boolean(err.conflict),
+      currentRevision: err.currentRevision
+    });
+  }
+});
+
+// PUT /api/clinic/signage/slides/order — Reorder playlist slides
+router.put('/clinic/signage/slides/order', authenticateToken, signageStaff, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const branch = req.query.branch || req.body?.branchCode || null;
+    const baseRevision = req.body?.baseRevision !== undefined ? req.body.baseRevision : (req.query.baseRevision !== undefined ? req.query.baseRevision : null);
+    const slideIds = req.body?.slideIds;
+    const result = SignageService.reorderSlides(slideIds, branch, baseRevision, actor, role);
+    res.json(Object.assign({ success: true }, result));
+  } catch (err) {
+    res.status(err.status || 400).json({
+      error: err.message,
+      conflict: Boolean(err.conflict),
+      currentRevision: err.currentRevision
+    });
+  }
+});
+
+// POST /api/clinic/signage/slides/:id/duplicate — Duplicate a slide
+router.post('/clinic/signage/slides/:id/duplicate', authenticateToken, signageStaff, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const branch = req.query.branch || req.body?.branchCode || null;
+    const baseRevision = req.body?.baseRevision !== undefined ? req.body.baseRevision : (req.query.baseRevision !== undefined ? req.query.baseRevision : null);
+    const result = SignageService.duplicateSlide(req.params.id, branch, baseRevision, actor, role);
+    res.status(201).json(Object.assign({ success: true }, result));
+  } catch (err) {
+    res.status(err.status || 400).json({
+      error: err.message,
+      conflict: Boolean(err.conflict),
+      currentRevision: err.currentRevision
+    });
+  }
+});
+
+// POST /api/clinic/signage/copy-playlist — Copy slides from another branch
+router.post('/clinic/signage/copy-playlist', authenticateToken, signageStaff, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const fromBranch = req.body?.fromBranch;
+    const toBranch = req.body?.toBranch || req.query.branch;
+    const baseRevision = req.body?.baseRevision !== undefined ? req.body.baseRevision : (req.query.baseRevision !== undefined ? req.query.baseRevision : null);
+    const result = SignageService.copyPlaylist(fromBranch, toBranch, baseRevision, actor, role);
+    res.json(Object.assign({ success: true }, result));
+  } catch (err) {
+    res.status(err.status || 400).json({
+      error: err.message,
+      conflict: Boolean(err.conflict),
+      currentRevision: err.currentRevision
+    });
+  }
+});
+
+// POST /api/clinic/signage/slides/restore-defaults — Restore default 5 built-in slides
+router.post('/clinic/signage/slides/restore-defaults', authenticateToken, signageStaff, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const branch = req.query.branch || req.body?.branchCode || null;
+    const baseRevision = req.body?.baseRevision !== undefined ? req.body.baseRevision : (req.query.baseRevision !== undefined ? req.query.baseRevision : null);
+    const result = SignageService.restoreDefaultSlides(branch, baseRevision, actor, role);
+    res.json(Object.assign({ success: true }, result));
+  } catch (err) {
+    res.status(err.status || 400).json({
+      error: err.message,
+      conflict: Boolean(err.conflict),
+      currentRevision: err.currentRevision
+    });
+  }
+});
+
+// ─── SIGNAGE MEDIA UPLOADS (VIDEO & BANNER IMAGES) ──────────────────
 
 const SIGNAGE_VIDEO_MAX_BYTES = 300 * 1024 * 1024;
+const SIGNAGE_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 const SIGNAGE_VIDEO_EXTENSIONS = new Set(['.mp4', '.webm']);
+const SIGNAGE_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const SIGNAGE_MEDIA_EXTENSIONS = new Set(['.mp4', '.webm', '.jpg', '.jpeg', '.png', '.webp']);
 
 const signageVideoUpload = multer({
   storage: multer.diskStorage({
@@ -3783,6 +4007,46 @@ const signageVideoUpload = multer({
     const ext = path.extname(String(file.originalname || '')).toLowerCase();
     if (!SIGNAGE_VIDEO_EXTENSIONS.has(ext)) {
       return cb(Object.assign(new Error('Only MP4 or WebM videos can be added to the playlist.'), { status: 400 }));
+    }
+    cb(null, true);
+  }
+});
+
+const signageImageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      try { cb(null, SignageService.getMediaDir()); } catch (err) { cb(err); }
+    },
+    filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname).toLowerCase())
+  }),
+  limits: { fileSize: SIGNAGE_IMAGE_MAX_BYTES, files: 1 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(String(file.originalname || '')).toLowerCase();
+    if (ext === '.svg') {
+      return cb(Object.assign(new Error('SVG files are not permitted for digital signage banners for security reasons. Please use JPG, PNG, or WebP.'), { status: 400 }));
+    }
+    if (!SIGNAGE_IMAGE_EXTENSIONS.has(ext)) {
+      return cb(Object.assign(new Error('Only JPG, PNG, or WebP images can be uploaded as signage banners.'), { status: 400 }));
+    }
+    cb(null, true);
+  }
+});
+
+const signageAnyMediaUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      try { cb(null, SignageService.getMediaDir()); } catch (err) { cb(err); }
+    },
+    filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname).toLowerCase())
+  }),
+  limits: { fileSize: SIGNAGE_VIDEO_MAX_BYTES, files: 1 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(String(file.originalname || '')).toLowerCase();
+    if (ext === '.svg') {
+      return cb(Object.assign(new Error('SVG files are not permitted for digital signage media.'), { status: 400 }));
+    }
+    if (!SIGNAGE_MEDIA_EXTENSIONS.has(ext)) {
+      return cb(Object.assign(new Error('Only JPG, PNG, WebP images or MP4, WebM videos can be uploaded.'), { status: 400 }));
     }
     cb(null, true);
   }
@@ -3805,10 +4069,12 @@ router.post('/clinic/signage/media', authenticateToken, signageStaff, (req, res)
     try {
       const actor = req.user?.name || req.user?.username || 'Staff';
       const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+      const branch = req.query.branch || req.body?.branchCode || null;
       const cfg = SignageService.addVideo({
         fileName: req.file.filename,
         originalName: req.file.originalname,
-        sizeBytes: req.file.size
+        sizeBytes: req.file.size,
+        branchCode: branch
       }, actor, role);
       res.status(201).json({ success: true, config: cfg });
     } catch (err) {
@@ -3819,13 +4085,102 @@ router.post('/clinic/signage/media', authenticateToken, signageStaff, (req, res)
   });
 });
 
-// GET /api/clinic/signage/media/:file — Stream a playlist video to the TV (supports range requests)
+// POST /api/clinic/signage/media/image — Upload a banner image and add it to the playlist
+router.post('/clinic/signage/media/image', authenticateToken, signageStaff, (req, res) => {
+  signageImageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'file', maxCount: 1 }])(req, res, (uploadErr) => {
+    if (uploadErr) {
+      if (uploadErr.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: `That image is larger than ${Math.round(SIGNAGE_IMAGE_MAX_BYTES / (1024 * 1024))} MB. Please optimize it and try again.` });
+      }
+      return res.status(uploadErr.status || 400).json({ error: uploadErr.status ? uploadErr.message : 'The image could not be uploaded.' });
+    }
+    const uploadedFile = (req.files && (req.files.image?.[0] || req.files.file?.[0])) || req.file;
+    if (!uploadedFile) return res.status(400).json({ error: 'Choose an image file to upload.' });
+
+    try {
+      const actor = req.user?.name || req.user?.username || 'Staff';
+      const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+      const branch = req.query.branch || req.body?.branchCode || null;
+      const baseRevision = req.body?.baseRevision !== undefined ? req.body.baseRevision : (req.query.baseRevision !== undefined ? req.query.baseRevision : null);
+      const result = SignageService.addImage({
+        fileName: uploadedFile.filename,
+        originalName: uploadedFile.originalname,
+        sizeBytes: uploadedFile.size,
+        branchCode: branch,
+        baseRevision
+      }, actor, role);
+      res.status(201).json(Object.assign({ success: true }, result));
+    } catch (err) {
+      SignageService.deleteMediaFile(uploadedFile.filename);
+      res.status(err.status || 400).json({
+        error: err.message,
+        conflict: Boolean(err.conflict),
+        currentRevision: err.currentRevision
+      });
+    }
+  });
+});
+
+// POST /api/clinic/signage/slides/:id/media — Replace the media file of an existing slide
+router.post('/clinic/signage/slides/:id/media', authenticateToken, signageStaff, (req, res) => {
+  signageAnyMediaUpload.fields([{ name: 'file', maxCount: 1 }, { name: 'media', maxCount: 1 }, { name: 'image', maxCount: 1 }, { name: 'video', maxCount: 1 }])(req, res, (uploadErr) => {
+    if (uploadErr) {
+      if (uploadErr.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'File size exceeds maximum upload limit.' });
+      }
+      return res.status(uploadErr.status || 400).json({ error: uploadErr.status ? uploadErr.message : 'The file could not be uploaded.' });
+    }
+    const uploadedFile = (req.files && (req.files.file?.[0] || req.files.media?.[0] || req.files.image?.[0] || req.files.video?.[0])) || req.file;
+    if (!uploadedFile) return res.status(400).json({ error: 'Choose a file to replace the slide media.' });
+
+    try {
+      const actor = req.user?.name || req.user?.username || 'Staff';
+      const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+      const branch = req.query.branch || req.body?.branchCode || null;
+      const baseRevision = req.body?.baseRevision !== undefined ? req.body.baseRevision : (req.query.baseRevision !== undefined ? req.query.baseRevision : null);
+      const result = SignageService.replaceSlideMedia(req.params.id, {
+        fileName: uploadedFile.filename,
+        originalName: uploadedFile.originalname,
+        sizeBytes: uploadedFile.size,
+        branchCode: branch,
+        baseRevision
+      }, actor, role);
+      res.json(Object.assign({ success: true }, result));
+    } catch (err) {
+      SignageService.deleteMediaFile(uploadedFile.filename);
+      res.status(err.status || 400).json({
+        error: err.message,
+        conflict: Boolean(err.conflict),
+        currentRevision: err.currentRevision
+      });
+    }
+  });
+});
+
+// GET /api/clinic/signage/media/:file — Stream/serve playlist media (images or videos)
 router.get('/clinic/signage/media/:file', signageMediaRead, (req, res) => {
   const fullPath = SignageService.resolveMediaFile(req.params.file);
-  if (!fullPath || !fs.existsSync(fullPath)) return res.status(404).json({ error: 'Video not found.' });
+  if (!fullPath || !fs.existsSync(fullPath)) return res.status(404).json({ error: 'Media not found.' });
+
+  const ext = path.extname(req.params.file).toLowerCase();
+  const mimeTypes = {
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp'
+  };
+  const contentType = mimeTypes[ext];
+  if (contentType) {
+    res.setHeader('Content-Type', contentType);
+  }
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=3600');
+
   applySafeFileHeaders(req, res, fullPath);
   res.sendFile(fullPath, { dotfiles: 'deny' }, (err) => {
-    if (err && !res.headersSent) res.status(err.status || 404).json({ error: 'Video not found.' });
+    if (err && !res.headersSent) res.status(err.status || 404).json({ error: 'Media not found.' });
   });
 });
 
@@ -3834,7 +4189,8 @@ router.delete('/clinic/signage/media/:file', authenticateToken, signageStaff, (r
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
-    const cfg = SignageService.removeVideo(req.params.file, actor, role);
+    const branch = req.query.branch || null;
+    const cfg = SignageService.removeVideo(req.params.file, branch, actor, role);
     res.json({ success: true, config: cfg });
   } catch (err) {
     res.status(400).json({ error: err.message });
