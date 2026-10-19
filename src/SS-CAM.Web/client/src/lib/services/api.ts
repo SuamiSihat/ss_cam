@@ -799,6 +799,45 @@ export class ApiClient {
       method: 'DELETE'
     });
   }
+
+  static getClinicBranches(): Promise<{ success: boolean; branches: any[] }> {
+    return this.request('/clinic/branches');
+  }
+
+  static updateClinicBranch(code: string, patch: Record<string, any>): Promise<{ success: boolean; branch: any }> {
+    return this.request(`/clinic/branches/${encodeURIComponent(code)}`, {
+      method: 'PUT',
+      body: JSON.stringify(patch)
+    });
+  }
+
+  /** Upload a video for the signage playlist (multipart, so it bypasses the JSON request helper). */
+  static uploadSignageVideo(file: File, onProgress?: (pct: number) => void): Promise<{ success: boolean; config: any }> {
+    return new Promise((resolve, reject) => {
+      const form = new FormData();
+      form.append('video', file);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/clinic/signage/media');
+      const token = this.getToken();
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onerror = () => reject(new Error('Network error while uploading. Please check the connection and try again.'));
+      xhr.ontimeout = () => reject(new Error('Upload timed out. Please try again.'));
+      xhr.onload = () => {
+        let body: any = {};
+        try { body = JSON.parse(xhr.responseText || '{}'); } catch (e) { console.warn('[ApiClient] uploadSignageVideo: non-JSON response'); }
+        if (xhr.status >= 200 && xhr.status < 300) resolve(body);
+        else reject(new Error(body.error || `Upload failed (${xhr.status}).`));
+      };
+      xhr.send(form);
+    });
+  }
+
+  static deleteSignageVideo(fileName: string): Promise<{ success: boolean; config: any }> {
+    return this.request(`/clinic/signage/media/${encodeURIComponent(fileName)}`, { method: 'DELETE' });
+  }
 }
 
 

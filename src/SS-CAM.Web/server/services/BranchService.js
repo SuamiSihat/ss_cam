@@ -86,6 +86,49 @@ class BranchService {
     return this.getBranches().find(b => b.code.toUpperCase() === clean || (b.shortName || "").toUpperCase() === clean) || null;
   }
 
+  /**
+   * Updates the public-facing profile of one branch (name, contact, hours, licence, doctors, links).
+   * Only whitelisted fields are accepted; the branch code and price block are never changed here.
+   * Links must be http(s) because they are rendered as clickable links / QR targets on the TV.
+   */
+  updateBranch(code, patch = {}) {
+    const current = this.getBranchByCode(code);
+    if (!current) throw new Error('Branch not found.');
+    if (!patch || typeof patch !== 'object') throw new Error('Branch details are required.');
+
+    const text = (v, max) => String(v === undefined || v === null ? '' : v).trim().slice(0, max);
+    const url = (v, label) => {
+      const value = text(v, 300);
+      if (!value) return '';
+      let parsed;
+      try { parsed = new URL(value); } catch (e) { throw new Error(`${label} must be a full web address starting with https://`); }
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        throw new Error(`${label} must start with https:// or http://`);
+      }
+      return value;
+    };
+
+    const next = {};
+    if (patch.name !== undefined) {
+      next.name = text(patch.name, 160);
+      if (!next.name) throw new Error('Branch name is required.');
+    }
+    if (patch.shortName !== undefined) next.shortName = text(patch.shortName, 80);
+    if (patch.address !== undefined) next.address = text(patch.address, 300);
+    if (patch.phone !== undefined) next.phone = text(patch.phone, 40);
+    if (patch.whatsapp !== undefined) next.whatsapp = text(patch.whatsapp, 40);
+    if (patch.operatingHours !== undefined) next.operatingHours = text(patch.operatingHours, 200);
+    if (patch.kkmLicense !== undefined) next.kkmLicense = text(patch.kkmLicense, 80);
+    if (patch.checkInUrl !== undefined) next.checkInUrl = url(patch.checkInUrl, 'Check-in link');
+    if (patch.googleReviewUrl !== undefined) next.googleReviewUrl = url(patch.googleReviewUrl, 'Review link');
+    if (patch.doctors !== undefined) {
+      if (!Array.isArray(patch.doctors)) throw new Error('Doctors must be a list.');
+      next.doctors = patch.doctors.map(d => text(d, 160)).filter(Boolean).slice(0, 30);
+    }
+
+    return CompanyService.updateBranch(CLINIC_COMPANY_CODE, current.code, next, this.branches);
+  }
+
   generateIntakePayload(branchCode, intakeType = 'consult', treatment = 'Umum') {
     const branch = this.getBranchByCode(branchCode) || this.getBranches()[0];
     const phoneDigits = (branch.whatsapp || "").replace(/[^0-9]/g, '');

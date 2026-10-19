@@ -150,7 +150,7 @@ function deriveUserCapabilities(user) {
   const allowedRoutes = ['dashboard', 'tasks', 'projects', 'order-form', 'deliverables', 'team', 'profile'];
   if (canEditCopy) allowedRoutes.push('copy-studio');
   if (canViewConsultation) allowedRoutes.push('consultation');
-  if (isAdmin || roleKeys.includes('manager') || roleKeys.includes('ceo')) allowedRoutes.push('signage');
+  if (isAdmin || roleKeys.includes('manager') || roleKeys.includes('ceo')) allowedRoutes.push('signage', 'studio-display');
   if (canViewAdmin) allowedRoutes.push('admin');
 
   return {

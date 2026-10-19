@@ -240,6 +240,36 @@ class CompanyService {
     return updatedItem;
   }
 
+  /**
+   * Updates ONE branch of a company in place. Other branches (and their price blocks) are left
+   * exactly as stored. When the company has no branches yet, `seedBranches` is used as the
+   * starting list so built-in defaults can be edited and then persisted to the registry.
+   */
+  updateBranch(companyCode, branchCode, patch, seedBranches = []) {
+    const all = this.getAll();
+    const companyIdx = all.findIndex((c) => c.code.toUpperCase() === String(companyCode || '').toUpperCase());
+    if (companyIdx < 0) throw new Error(`Company "${companyCode}" is not in the Corporate Registry.`);
+
+    const company = all[companyIdx];
+    const list = Array.isArray(company.branches) && company.branches.length > 0
+      ? company.branches.slice()
+      : sanitizeBranches(seedBranches);
+    const branchIdx = list.findIndex((b) => b.code.toUpperCase() === String(branchCode || '').toUpperCase());
+    if (branchIdx < 0) throw new Error(`Branch "${branchCode}" was not found.`);
+
+    const existing = list[branchIdx];
+    const [clean] = sanitizeBranches([{ ...existing, ...patch, code: existing.code }]);
+    if (!clean) throw new Error('Branch name is required.');
+    // Pricing is managed elsewhere; keep it byte-for-byte (sanitizeBranches would restamp updatedAt).
+    clean.pricing = existing.pricing || null;
+
+    list[branchIdx] = clean;
+    all[companyIdx] = { ...company, branches: list, updatedAt: new Date().toISOString() };
+    this.memoryCompanies = all;
+    this.persistCompanies();
+    return clean;
+  }
+
   deleteCompany(code) {
     if (!code) throw new Error('Company code is required.');
     const upper = code.trim().toUpperCase();

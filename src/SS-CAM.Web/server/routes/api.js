@@ -3634,6 +3634,28 @@ router.get('/clinic/branches/:code', publicReviewRead, (req, res) => {
   res.json({ success: true, branch });
 });
 
+// PUT /api/clinic/branches/:code — Update a branch profile (name, contact, hours, licence, doctors, links)
+router.put('/clinic/branches/:code', authenticateToken, requireRole('admin', 'manager', 'ceo'), (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const branch = BranchService.updateBranch(req.params.code, req.body || {});
+    AuditService.logEvent({
+      actor,
+      role,
+      action: 'UPDATE_CLINIC_BRANCH',
+      entityType: 'branch',
+      entityId: branch.code,
+      details: { fields: Object.keys(req.body || {}).filter(k => k !== 'code' && k !== 'pricing') }
+    });
+    // The TV shows branch details, so refresh every connected screen straight away.
+    SignageService.broadcast();
+    res.json({ success: true, branch });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // GET /api/clinic/branches/:code/intake — Generate dynamic intake QR payload
 router.get('/clinic/branches/:code/intake', authenticateToken, (req, res) => {
   const { type, treatment } = req.query;
@@ -3670,6 +3692,10 @@ router.post('/clinic/care-dispatch', authenticateToken, (req, res) => {
 
 // ─── CLINIC SIGNAGE & STUDIO DISPLAY ROUTES ──────────────────────────
 
+// Reading the display feed is public (the lounge TV has no sign-in). Changing what the TV shows
+// is limited to the people who manage the Studio Display page.
+const signageStaff = requireRole('admin', 'manager', 'ceo');
+
 // GET /api/clinic/signage — Get live signage configuration & queue
 router.get('/clinic/signage', publicReviewRead, (req, res) => {
   try {
@@ -3681,7 +3707,7 @@ router.get('/clinic/signage', publicReviewRead, (req, res) => {
 });
 
 // PUT /api/clinic/signage — Update signage configuration (admin / manager)
-router.put('/clinic/signage', authenticateToken, (req, res) => {
+router.put('/clinic/signage', authenticateToken, signageStaff, (req, res) => {
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
@@ -3693,7 +3719,7 @@ router.put('/clinic/signage', authenticateToken, (req, res) => {
 });
 
 // POST /api/clinic/signage/queue/call — Call a queue ticket or next
-router.post('/clinic/signage/queue/call', authenticateToken, (req, res) => {
+router.post('/clinic/signage/queue/call', authenticateToken, signageStaff, (req, res) => {
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
@@ -3712,7 +3738,7 @@ router.post('/clinic/signage/queue/call', authenticateToken, (req, res) => {
 });
 
 // POST /api/clinic/signage/queue/upcoming — Update upcoming tickets
-router.post('/clinic/signage/queue/upcoming', authenticateToken, (req, res) => {
+router.post('/clinic/signage/queue/upcoming', authenticateToken, signageStaff, (req, res) => {
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
@@ -3725,13 +3751,89 @@ router.post('/clinic/signage/queue/upcoming', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/clinic/signage/queue — Clear or reset queue
-router.delete('/clinic/signage/queue', authenticateToken, (req, res) => {
+router.delete('/clinic/signage/queue', authenticateToken, signageStaff, (req, res) => {
   try {
     const actor = req.user?.name || req.user?.username || 'Staff';
     const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
     const clearCurrent = req.query.clearCurrent === 'true';
     const config = SignageService.clearQueue(clearCurrent, actor, role);
     res.json({ success: true, config });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ─── SIGNAGE VIDEO PLAYLIST MEDIA ───────────────────────────────────
+
+const SIGNAGE_VIDEO_MAX_BYTES = 300 * 1024 * 1024;
+const SIGNAGE_VIDEO_EXTENSIONS = new Set(['.mp4', '.webm']);
+
+const signageVideoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      try { cb(null, SignageService.getMediaDir()); } catch (err) { cb(err); }
+    },
+    // The stored name is random: the original name is never used on disk.
+    filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname).toLowerCase())
+  }),
+  limits: { fileSize: SIGNAGE_VIDEO_MAX_BYTES, files: 1 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(String(file.originalname || '')).toLowerCase();
+    if (!SIGNAGE_VIDEO_EXTENSIONS.has(ext)) {
+      return cb(Object.assign(new Error('Only MP4 or WebM videos can be added to the playlist.'), { status: 400 }));
+    }
+    cb(null, true);
+  }
+});
+
+// The lounge TV streams the video with no sign-in, so this has its own generous rate limit.
+const signageMediaRead = limitBy({ windowMs: 15 * 60 * 1000, max: 4000, message: 'Too many requests. Please wait a few minutes and try again.' });
+
+// POST /api/clinic/signage/media — Upload a video and add it to the playlist
+router.post('/clinic/signage/media', authenticateToken, signageStaff, (req, res) => {
+  signageVideoUpload.single('video')(req, res, (uploadErr) => {
+    if (uploadErr) {
+      if (uploadErr.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: `That video is larger than ${Math.round(SIGNAGE_VIDEO_MAX_BYTES / (1024 * 1024))} MB. Please compress it and try again.` });
+      }
+      return res.status(uploadErr.status || 400).json({ error: uploadErr.status ? uploadErr.message : 'The video could not be uploaded.' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Choose a video file to upload.' });
+
+    try {
+      const actor = req.user?.name || req.user?.username || 'Staff';
+      const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+      const cfg = SignageService.addVideo({
+        fileName: req.file.filename,
+        originalName: req.file.originalname,
+        sizeBytes: req.file.size
+      }, actor, role);
+      res.status(201).json({ success: true, config: cfg });
+    } catch (err) {
+      // addVideo deletes the file when it refuses it; make sure nothing is left behind either way.
+      SignageService.deleteMediaFile(req.file.filename);
+      res.status(400).json({ error: err.message });
+    }
+  });
+});
+
+// GET /api/clinic/signage/media/:file — Stream a playlist video to the TV (supports range requests)
+router.get('/clinic/signage/media/:file', signageMediaRead, (req, res) => {
+  const fullPath = SignageService.resolveMediaFile(req.params.file);
+  if (!fullPath || !fs.existsSync(fullPath)) return res.status(404).json({ error: 'Video not found.' });
+  applySafeFileHeaders(req, res, fullPath);
+  res.sendFile(fullPath, { dotfiles: 'deny' }, (err) => {
+    if (err && !res.headersSent) res.status(err.status || 404).json({ error: 'Video not found.' });
+  });
+});
+
+// DELETE /api/clinic/signage/media/:file — Remove a video from the playlist and delete its file
+router.delete('/clinic/signage/media/:file', authenticateToken, signageStaff, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const cfg = SignageService.removeVideo(req.params.file, actor, role);
+    res.json({ success: true, config: cfg });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

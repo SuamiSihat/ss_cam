@@ -9,9 +9,8 @@
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
-  import SignageManagerTab from '$lib/components/admin/SignageManagerTab.svelte';
 
-  type ActiveTab = 'people' | 'companies' | 'roles' | 'notifications' | 'system' | 'signage';
+  type ActiveTab = 'people' | 'companies' | 'roles' | 'notifications' | 'system';
 
   interface RoleDefinition {
     key: string;
@@ -49,7 +48,7 @@
         canViewAuditLog: true,
         canManageShareLinks: true
       },
-      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'consultation', 'team', 'signage', 'admin']
+      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'consultation', 'team', 'studio-display', 'admin']
     },
     {
       key: 'ceo',
@@ -67,7 +66,7 @@
         canViewAuditLog: true,
         canManageShareLinks: true
       },
-      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'consultation', 'team', 'signage']
+      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'consultation', 'team', 'studio-display']
     },
     {
       key: 'manager',
@@ -85,7 +84,7 @@
         canViewAuditLog: false,
         canManageShareLinks: true
       },
-      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'consultation', 'team', 'signage']
+      allowedPages: ['dashboard', 'tasks', 'projects', 'order-form', 'copy-studio', 'deliverables', 'consultation', 'team', 'studio-display']
     },
     {
       key: 'designer',
@@ -1131,23 +1130,9 @@
         <span class="stat-ribbon-num">{systemStatus?.cachedProjects ?? 0}</span>
         <span class="stat-ribbon-label">System <span class="stat-ribbon-sub">({systemStatus?.synologyEngine || 'Volume 2 Active'})</span></span>
       </button>
-
-      <div class="stat-ribbon-sep"></div>
-
-      <button
-        type="button"
-        class="stat-ribbon-item"
-        class:active-stat={activeTab === 'signage'}
-        onclick={() => (activeTab = 'signage')}
-        title="Configure Studio Display & Signage TV"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        <span class="stat-ribbon-num">TV</span>
-        <span class="stat-ribbon-label">Signage <span class="stat-ribbon-sub">(Studio Display)</span></span>
-      </button>
     </div>
   {:else}
-    <!-- 6-METRIC EXECUTIVE KPI TELEMETRY STRIP (CLASSIC) -->
+    <!-- 5-METRIC EXECUTIVE KPI TELEMETRY STRIP (CLASSIC) -->
     <div class="kpi-telemetry-deck">
       <!-- Metric 1: People -->
       <FluentCard hoverLift borderAccent="#0284C7" onclick={() => (activeTab = 'people')}>
@@ -1206,18 +1191,6 @@
         <div class="kpi-value" style="font-size: 20px; padding-top: 4px;">Connected</div>
         <div class="kpi-detail">
           <b>{systemStatus?.cachedProjects || 0} Projects</b> • <b>{stats.totalAuditCount} Audits</b>
-        </div>
-      </FluentCard>
-
-      <!-- Metric 6: Signage TV / Studio Display -->
-      <FluentCard hoverLift borderAccent="#06B6D4" onclick={() => (activeTab = 'signage')}>
-        <div class="kpi-top">
-          <span class="kpi-label">Studio Display</span>
-          <span class="kpi-icon-pill" style="background: rgba(6, 182, 212, 0.15); color: #06B6D4;">📺</span>
-        </div>
-        <div class="kpi-value" style="font-size: 20px; padding-top: 4px;">Signage TV</div>
-        <div class="kpi-detail">
-          <span>Live Queue, Carousel &amp; Marquee</span>
         </div>
       </FluentCard>
     </div>
@@ -1292,20 +1265,6 @@
     >
       <FluentIcons name="settings" size={16} />
       <span>System</span>
-    </button>
-
-    <button
-      id="admin-tab-signage"
-      role="tab"
-      aria-selected={activeTab === 'signage'}
-      aria-controls="admin-panel-signage"
-      class="seg-tab-btn"
-      class:active={activeTab === 'signage'}
-      onclick={() => (activeTab = 'signage')}
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      <span>Studio Display</span>
-      <span class="tab-count-pill" style="background: rgba(6, 182, 212, 0.2); color: #06B6D4;">Live</span>
     </button>
   </div>
 
@@ -2194,15 +2153,6 @@
           {/each}
         {/if}
       </div>
-    </div>
-  {/if}
-
-  <!-- ══════════════════════════════════════════════════════════════════ -->
-  <!-- TAB 6: STUDIO DISPLAY / SIGNAGE TV CONTROLLER                       -->
-  <!-- ══════════════════════════════════════════════════════════════════ -->
-  {#if activeTab === 'signage'}
-    <div id="admin-panel-signage" role="tabpanel" aria-labelledby="admin-tab-signage" class="tab-pane-content">
-      <SignageManagerTab />
     </div>
   {/if}
 </div>

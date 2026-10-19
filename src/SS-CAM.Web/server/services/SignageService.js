@@ -6,11 +6,29 @@ const BranchService = require('./BranchService');
 const AuditService = require('./AuditService');
 const SseService = require('./SseService');
 
+/** Slide types the kiosk knows how to render. */
+const SLIDE_TYPES = ['doctors', 'eswt', 'trt', 'intake', 'notice', 'video'];
+
+/** Uploaded playlist videos live here and are only ever addressed by this exact URL shape. */
+const MEDIA_URL_PREFIX = '/api/clinic/signage/media/';
+const MEDIA_FILE_PATTERN = /^[a-f0-9]{16}\.(mp4|webm)$/;
+const MAX_SLIDES = 40;
+const MAX_ROOMS = 30;
+const TICKET_PATTERN = /^[A-Z0-9][A-Z0-9-]{0,11}$/;
+
 const DEFAULT_SIGNAGE_CONFIG = {
   branchCode: 'SSC-BSR',
   slideDurationSec: 10,
   soundAlertEnabled: true,
-  kkmLicense: 'KKM/JPS/KL/2024/0912',
+  rooms: [
+    'Bilik Rawatan 1',
+    'Bilik Rawatan 2',
+    'Bilik Rawatan 3',
+    'Bilik Prosedur ESWT',
+    'Kaunter Saringan',
+    'Makmal Darah TRT',
+    'Kaunter Farmasi'
+  ],
   ticker: {
     enabled: true,
     prefix: 'INFO KLINIK',
@@ -64,12 +82,91 @@ const DEFAULT_SIGNAGE_CONFIG = {
   ]
 };
 
+function clip(value, max) {
+  return String(value === undefined || value === null ? '' : value).trim().slice(0, max);
+}
+
+function newId(prefix) {
+  return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).substring(2, 6)}`;
+}
+
+/** Cleans one slide from untrusted input. Returns null when the slide must be dropped. */
+function sanitizeSlide(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const type = SLIDE_TYPES.includes(raw.type) ? raw.type : 'notice';
+  const slide = {
+    id: clip(raw.id, 60) || newId('slide'),
+    enabled: raw.enabled !== false,
+    tag: clip(raw.tag, 60) || 'INFO',
+    title: clip(raw.title, 160),
+    subtitle: clip(raw.subtitle, 400),
+    type
+  };
+
+  if (type === 'video') {
+    const src = clip(raw.src, 120);
+    if (!src.startsWith(MEDIA_URL_PREFIX) || !MEDIA_FILE_PATTERN.test(src.slice(MEDIA_URL_PREFIX.length))) {
+      return null; // only files uploaded through the signage media endpoint can be played
+    }
+    slide.src = src;
+    slide.muted = raw.muted !== false;
+    slide.originalName = clip(raw.originalName, 160);
+    slide.sizeBytes = Math.max(0, Math.min(Number(raw.sizeBytes) || 0, 10 * 1024 * 1024 * 1024));
+    if (!slide.title) slide.title = slide.originalName || 'Video';
+  }
+  return slide;
+}
+
+function sanitizeRooms(list) {
+  if (!Array.isArray(list)) return null;
+  const seen = new Set();
+  const out = [];
+  for (const item of list) {
+    const room = clip(item, 60);
+    const key = room.toLowerCase();
+    if (!room || seen.has(key)) continue;
+    seen.add(key);
+    out.push(room);
+    if (out.length >= MAX_ROOMS) break;
+  }
+  return out;
+}
+
+function sanitizeTicket(value) {
+  const ticket = clip(value, 24).toUpperCase();
+  if (!TICKET_PATTERN.test(ticket)) {
+    throw new Error('Ticket number must use letters, digits or "-" only (for example A-1031).');
+  }
+  return ticket;
+}
+
+/** True when the first bytes of the file really look like an MP4 or WebM container. */
+function looksLikeVideo(filePath, ext) {
+  let fd;
+  try {
+    fd = fs.openSync(filePath, 'r');
+    const head = Buffer.alloc(12);
+    const read = fs.readSync(fd, head, 0, 12, 0);
+    if (read < 12) return false;
+    if (ext === '.webm') return head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3;
+    if (ext === '.mp4') return head.toString('ascii', 4, 8) === 'ftyp';
+    return false;
+  } catch (err) {
+    console.warn('[SignageService] Could not inspect uploaded video:', err.message);
+    return false;
+  } finally {
+    if (fd !== undefined) {
+      try { fs.closeSync(fd); } catch (err) { console.debug('[SignageService] closeSync failed:', err.message); }
+    }
+  }
+}
+
 class SignageService {
   constructor() {
     this.memoryConfig = null;
   }
 
-  getFilePath() {
+  getTeamDir() {
     const root = WorkspaceService.workspaceRoot || config.WORKSPACE_ROOT;
     const teamDir = path.join(root, '_Team');
     if (!fs.existsSync(teamDir)) {
@@ -77,7 +174,27 @@ class SignageService {
         console.debug('[SignageService] Failed to create teamDir:', e.message);
       }
     }
-    return path.join(teamDir, 'signage_config.json');
+    return teamDir;
+  }
+
+  getFilePath() {
+    return path.join(this.getTeamDir(), 'signage_config.json');
+  }
+
+  /** Folder for uploaded playlist videos (created on demand). */
+  getMediaDir() {
+    const dir = path.join(this.getTeamDir(), 'signage_media');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    return dir;
+  }
+
+  /** Absolute path of an uploaded video, or null when the name is not a valid media file name. */
+  resolveMediaFile(fileName) {
+    if (!MEDIA_FILE_PATTERN.test(String(fileName || ''))) return null;
+    const dir = path.resolve(this.getMediaDir());
+    const full = path.resolve(dir, fileName);
+    if (path.dirname(full) !== dir) return null;
+    return full;
   }
 
   loadConfig() {
@@ -104,11 +221,15 @@ class SignageService {
   }
 
   mergeWithDefaults(loaded) {
+    const rooms = sanitizeRooms(loaded.rooms);
+    const slides = Array.isArray(loaded.slides)
+      ? loaded.slides.map(sanitizeSlide).filter(Boolean)
+      : [];
     return {
       branchCode: loaded.branchCode || DEFAULT_SIGNAGE_CONFIG.branchCode,
       slideDurationSec: typeof loaded.slideDurationSec === 'number' && loaded.slideDurationSec >= 3 ? loaded.slideDurationSec : 10,
       soundAlertEnabled: loaded.soundAlertEnabled !== false,
-      kkmLicense: loaded.kkmLicense || DEFAULT_SIGNAGE_CONFIG.kkmLicense,
+      rooms: rooms && rooms.length > 0 ? rooms : DEFAULT_SIGNAGE_CONFIG.rooms.slice(),
       ticker: {
         enabled: loaded.ticker ? loaded.ticker.enabled !== false : true,
         prefix: (loaded.ticker && loaded.ticker.prefix) || DEFAULT_SIGNAGE_CONFIG.ticker.prefix,
@@ -122,7 +243,8 @@ class SignageService {
           ? loaded.queue.upcoming
           : []
       },
-      slides: Array.isArray(loaded.slides) && loaded.slides.length > 0 ? loaded.slides : DEFAULT_SIGNAGE_CONFIG.slides,
+      // An empty array is a valid choice (staff removed everything); only a missing list falls back.
+      slides: Array.isArray(loaded.slides) ? slides : JSON.parse(JSON.stringify(DEFAULT_SIGNAGE_CONFIG.slides)),
       updatedAt: loaded.updatedAt || new Date().toISOString(),
       updatedBy: loaded.updatedBy || 'System'
     };
@@ -142,6 +264,7 @@ class SignageService {
 
   /**
    * Retrieves active signage configuration, automatically injecting current branch profile details.
+   * The licence shown on the TV is always the selected branch's own licence.
    */
   getConfig(branchCodeOverride = null) {
     const cfg = this.loadConfig();
@@ -152,38 +275,51 @@ class SignageService {
       ...cfg,
       branchCode: branch ? branch.code : effectiveCode,
       branch: branch || null,
-      effectiveLicense: cfg.kkmLicense || (branch ? branch.kkmLicense : 'KKM/JPS/KL/2024/0912')
+      effectiveLicense: branch ? (branch.kkmLicense || '') : ''
     };
   }
 
+  /** Pushes the current state to every connected TV and admin screen. */
+  broadcast() {
+    const enriched = this.getConfig();
+    SseService.broadcast('signage:updated', enriched);
+    return enriched;
+  }
+
   /**
-   * Updates global signage settings (ticker, slides, slide duration, active branch, sound alert).
+   * Updates global signage settings (ticker, playlist, slide duration, active branch, rooms, sound alert).
    */
   updateConfig(updates = {}, actor = 'Admin', role = 'admin') {
     const current = this.loadConfig();
 
-    if (updates.branchCode) current.branchCode = String(updates.branchCode).trim().toUpperCase();
-    if (typeof updates.slideDurationSec === 'number') current.slideDurationSec = Math.max(3, Math.min(120, updates.slideDurationSec));
+    if (updates.branchCode) {
+      const branch = BranchService.getBranchByCode(String(updates.branchCode));
+      if (!branch) throw new Error('That branch does not exist.');
+      current.branchCode = branch.code;
+    }
+    if (updates.slideDurationSec !== undefined) {
+      const sec = Number(updates.slideDurationSec);
+      if (Number.isFinite(sec)) current.slideDurationSec = Math.max(3, Math.min(120, Math.round(sec)));
+    }
     if (typeof updates.soundAlertEnabled === 'boolean') current.soundAlertEnabled = updates.soundAlertEnabled;
-    if (updates.kkmLicense !== undefined) current.kkmLicense = String(updates.kkmLicense).trim();
 
     if (updates.ticker && typeof updates.ticker === 'object') {
       current.ticker = {
         enabled: updates.ticker.enabled !== false,
-        prefix: String(updates.ticker.prefix || 'INFO KLINIK').trim(),
-        text: String(updates.ticker.text || '').trim()
+        prefix: clip(updates.ticker.prefix, 40) || 'INFO KLINIK',
+        text: clip(updates.ticker.text, 800)
       };
     }
 
+    if (updates.rooms !== undefined) {
+      const rooms = sanitizeRooms(updates.rooms);
+      if (!rooms || rooms.length === 0) throw new Error('Add at least one room or counter.');
+      current.rooms = rooms;
+    }
+
     if (Array.isArray(updates.slides)) {
-      current.slides = updates.slides.map(s => ({
-        id: s.id || `slide_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        enabled: s.enabled !== false,
-        tag: String(s.tag || 'INFO').trim(),
-        title: String(s.title || '').trim(),
-        subtitle: String(s.subtitle || '').trim(),
-        type: s.type || 'notice'
-      }));
+      if (updates.slides.length > MAX_SLIDES) throw new Error(`A playlist can hold at most ${MAX_SLIDES} items.`);
+      current.slides = updates.slides.map(sanitizeSlide).filter(Boolean);
     }
 
     current.updatedAt = new Date().toISOString();
@@ -197,12 +333,104 @@ class SignageService {
       action: 'UPDATE_SIGNAGE_CONFIG',
       entityType: 'signage',
       entityId: current.branchCode,
-      details: { branchCode: current.branchCode, slideDurationSec: current.slideDurationSec }
+      details: {
+        branchCode: current.branchCode,
+        slideDurationSec: current.slideDurationSec,
+        playlistItems: current.slides.length
+      }
     });
 
-    const enriched = this.getConfig(current.branchCode);
-    SseService.broadcast('signage:updated', enriched);
-    return enriched;
+    return this.broadcast();
+  }
+
+  /**
+   * Registers an uploaded video (already written to the media folder) as a new playlist item.
+   * The file is verified to be a real MP4/WebM; otherwise it is deleted and the upload refused.
+   */
+  addVideo({ fileName, originalName, sizeBytes }, actor = 'Staff', role = 'admin') {
+    const full = this.resolveMediaFile(fileName);
+    if (!full || !fs.existsSync(full)) throw new Error('The uploaded video could not be found.');
+
+    const ext = path.extname(fileName).toLowerCase();
+    if (!looksLikeVideo(full, ext)) {
+      this.deleteMediaFile(fileName);
+      throw new Error('That file is not a valid MP4 or WebM video.');
+    }
+
+    const current = this.loadConfig();
+    if (current.slides.length >= MAX_SLIDES) {
+      this.deleteMediaFile(fileName);
+      throw new Error(`A playlist can hold at most ${MAX_SLIDES} items.`);
+    }
+
+    const cleanName = clip(String(originalName || '').replace(/\.[^.]+$/, ''), 120) || 'Video';
+    const slide = sanitizeSlide({
+      id: newId('video'),
+      enabled: true,
+      type: 'video',
+      tag: 'VIDEO',
+      title: cleanName,
+      subtitle: '',
+      src: `${MEDIA_URL_PREFIX}${fileName}`,
+      muted: true,
+      originalName: clip(originalName, 160),
+      sizeBytes
+    });
+    current.slides.push(slide);
+    current.updatedAt = new Date().toISOString();
+    current.updatedBy = actor;
+    this.saveConfig(current);
+
+    AuditService.logEvent({
+      actor,
+      role,
+      action: 'ADD_SIGNAGE_VIDEO',
+      entityType: 'signage',
+      entityId: fileName,
+      details: { originalName: slide.originalName, sizeBytes: slide.sizeBytes }
+    });
+
+    return this.broadcast();
+  }
+
+  /** Deletes one uploaded video file. Returns true when a file was removed. */
+  deleteMediaFile(fileName) {
+    const full = this.resolveMediaFile(fileName);
+    if (!full || !fs.existsSync(full)) return false;
+    try {
+      fs.unlinkSync(full);
+      return true;
+    } catch (err) {
+      console.warn('[SignageService] Could not delete media file:', err.message);
+      return false;
+    }
+  }
+
+  /** Removes a video from the playlist and deletes its file. */
+  removeVideo(fileName, actor = 'Staff', role = 'admin') {
+    if (!MEDIA_FILE_PATTERN.test(String(fileName || ''))) throw new Error('Invalid video file name.');
+
+    const current = this.loadConfig();
+    const src = `${MEDIA_URL_PREFIX}${fileName}`;
+    const before = current.slides.length;
+    current.slides = current.slides.filter(s => s.src !== src);
+    const removedFile = this.deleteMediaFile(fileName);
+    if (current.slides.length === before && !removedFile) throw new Error('That video was not found.');
+
+    current.updatedAt = new Date().toISOString();
+    current.updatedBy = actor;
+    this.saveConfig(current);
+
+    AuditService.logEvent({
+      actor,
+      role,
+      action: 'REMOVE_SIGNAGE_VIDEO',
+      entityType: 'signage',
+      entityId: fileName,
+      details: { removedFile }
+    });
+
+    return this.broadcast();
   }
 
   /**
@@ -213,9 +441,9 @@ class SignageService {
     if (!ticket) throw new Error('Ticket number is required to call queue.');
 
     const current = this.loadConfig();
-    const cleanTicket = String(ticket).trim().toUpperCase();
-    const cleanRoom = String(room).trim();
-    const cleanDoctor = doctor ? String(doctor).trim() : null;
+    const cleanTicket = sanitizeTicket(ticket);
+    const cleanRoom = clip(room, 80) || 'Bilik Rawatan 1';
+    const cleanDoctor = doctor ? clip(doctor, 160) : null;
 
     current.queue = current.queue || { currentCall: null, upcoming: [] };
     current.queue.currentCall = {
@@ -226,12 +454,9 @@ class SignageService {
     };
 
     if (popUpcoming && Array.isArray(current.queue.upcoming) && current.queue.upcoming.length > 0) {
-      const matchIdx = current.queue.upcoming.findIndex(u => u.ticket.toUpperCase() === cleanTicket);
-      if (matchIdx !== -1) {
-        current.queue.upcoming.splice(matchIdx, 1);
-      } else {
-        current.queue.upcoming.shift();
-      }
+      // Only remove the ticket that was actually called. Never drop a different waiting patient.
+      const matchIdx = current.queue.upcoming.findIndex(u => String(u.ticket).toUpperCase() === cleanTicket);
+      if (matchIdx !== -1) current.queue.upcoming.splice(matchIdx, 1);
     }
 
     current.updatedAt = new Date().toISOString();
@@ -248,9 +473,7 @@ class SignageService {
       details: { ticket: cleanTicket, room: cleanRoom, doctor: cleanDoctor }
     });
 
-    const enriched = this.getConfig(current.branchCode);
-    SseService.broadcast('signage:updated', enriched);
-    return enriched;
+    return this.broadcast();
   }
 
   /**
@@ -277,15 +500,18 @@ class SignageService {
    */
   updateUpcoming(upcomingList = [], actor = 'Staff', role = 'admin') {
     if (!Array.isArray(upcomingList)) throw new Error('upcomingList must be an array.');
+    if (upcomingList.length > 100) throw new Error('The waiting list can hold at most 100 tickets.');
 
     const current = this.loadConfig();
     current.queue = current.queue || { currentCall: null, upcoming: [] };
+    const seen = new Set();
     current.queue.upcoming = upcomingList
       .filter(item => item && item.ticket)
       .map(item => ({
-        ticket: String(item.ticket).trim().toUpperCase(),
-        room: String(item.room || 'Kaunter Saringan').trim()
-      }));
+        ticket: sanitizeTicket(item.ticket),
+        room: clip(item.room, 80) || 'Kaunter Saringan'
+      }))
+      .filter(item => (seen.has(item.ticket) ? false : seen.add(item.ticket)));
 
     current.updatedAt = new Date().toISOString();
     current.updatedBy = actor;
@@ -301,9 +527,7 @@ class SignageService {
       details: { count: current.queue.upcoming.length }
     });
 
-    const enriched = this.getConfig(current.branchCode);
-    SseService.broadcast('signage:updated', enriched);
-    return enriched;
+    return this.broadcast();
   }
 
   /**
@@ -331,10 +555,10 @@ class SignageService {
       details: { clearCurrentCall }
     });
 
-    const enriched = this.getConfig(current.branchCode);
-    SseService.broadcast('signage:updated', enriched);
-    return enriched;
+    return this.broadcast();
   }
 }
 
 module.exports = new SignageService();
+module.exports.MEDIA_URL_PREFIX = MEDIA_URL_PREFIX;
+module.exports.MEDIA_FILE_PATTERN = MEDIA_FILE_PATTERN;

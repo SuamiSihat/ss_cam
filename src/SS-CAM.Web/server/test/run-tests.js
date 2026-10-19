@@ -3445,6 +3445,34 @@ This is the project brief content.
     assert.strictEqual(clearRes.queue.upcoming.length, 0);
   });
 
+  test('SignageService validates tickets, rooms and slides, and recall keeps the queue intact', () => {
+    SignageService.clearQueue(true);
+    assert.throws(() => SignageService.callTicket({ ticket: '<script>', room: 'Bilik 1' }), /ticket/i, 'Unsafe ticket text is refused');
+
+    const first = SignageService.callTicket({ ticket: 'a-7001', room: 'Bilik Rawatan 1' });
+    assert.strictEqual(first.queue.currentCall.ticket, 'A-7001', 'Tickets are upper-cased');
+    SignageService.updateUpcoming([{ ticket: 'A-7002', room: 'Bilik Rawatan 1' }, { ticket: 'A-7002', room: 'Bilik Rawatan 1' }]);
+    const recalled = SignageService.callTicket({ ticket: 'A-7001', room: 'Bilik Rawatan 1', popUpcoming: false });
+    assert.strictEqual(recalled.queue.upcoming.length, 1, 'Duplicates are dropped and a recall does not consume the waiting list');
+    assert.strictEqual(recalled.queue.upcoming[0].ticket, 'A-7002');
+
+    const cfg = SignageService.updateConfig({
+      slides: [
+        { id: 'ok-notice', enabled: true, type: 'notice', tag: 'T', title: 'Hello', subtitle: 'World' },
+        { id: 'bad-video', enabled: true, type: 'video', title: 'Nope', src: 'https://example.com/a.mp4' }
+      ],
+      rooms: ['Bilik A', 'Bilik A', 'Kaunter B']
+    });
+    assert.ok(cfg.slides.some(s => s.id === 'ok-notice'), 'Valid notice kept');
+    assert.ok(!cfg.slides.some(s => s.type === 'video'), 'Video with a foreign source dropped');
+    assert.deepStrictEqual(cfg.rooms, ['Bilik A', 'Kaunter B'], 'Rooms are de-duplicated');
+    assert.throws(() => SignageService.updateConfig({ branchCode: 'NOPE-123' }), /branch/i, 'Unknown branch refused');
+
+    const lic = SignageService.getConfig('SSC-BSR');
+    assert.strictEqual(lic.effectiveLicense, (lic.branch && lic.branch.kkmLicense) || '', 'Licence comes from the selected branch');
+    SignageService.clearQueue(true);
+  });
+
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions
   for (const t of testQueue) {
     try {

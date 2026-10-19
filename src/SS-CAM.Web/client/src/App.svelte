@@ -21,6 +21,7 @@
   import ClientReviewView from '$lib/views/ClientReviewView.svelte';
   import OrderFormView from '$lib/views/OrderFormView.svelte';
   import SignageView from '$lib/views/SignageView.svelte';
+  import StudioDisplayView from '$lib/views/StudioDisplayView.svelte';
   import ConsultationSuiteView from '$lib/views/ConsultationSuiteView.svelte';
   import NotificationDrawer from '$lib/components/features/NotificationDrawer.svelte';
   import CommandPaletteModal from '$lib/components/features/CommandPaletteModal.svelte';
@@ -49,7 +50,7 @@
         return;
       }
       if (hash.startsWith('signage') || hash.startsWith('kiosk')) {
-        appState.currentRoute = 'signage';
+        appState.currentRoute = 'kiosk';
         return;
       }
       if (!hash) {
@@ -248,7 +249,7 @@
 
 <svelte:window onkeydown={handleGlobalKeydown} />
 
-{#if appState.currentRoute === 'signage'}
+{#if appState.currentRoute === 'kiosk'}
   <SignageView />
 {:else if appState.currentRoute === 'review'}
   <ClientReviewView />
@@ -633,6 +634,8 @@
             <ConsultationSuiteView />
           {:else if appState.currentRoute === 'admin'}
             <AdminView />
+          {:else if appState.currentRoute === 'studio-display'}
+            <StudioDisplayView />
           {:else if appState.currentRoute === 'profile'}
             <ProfileView />
           {:else}

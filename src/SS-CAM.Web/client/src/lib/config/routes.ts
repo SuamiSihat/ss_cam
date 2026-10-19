@@ -156,17 +156,16 @@ export const ROUTES: RouteDefinition[] = [
     layout: 'layout-page'
   },
   {
-    id: 'signage',
-    hash: 'signage',
+    id: 'studio-display',
+    hash: 'studio-display',
     label: 'Studio display',
     shortLabel: 'Display',
     icon: ROUTE_ICONS.display,
     group: 'Manage',
     roles: ['manager', 'admin', 'ceo'],
-    newTab: true,
     mobileDock: false,
     paletteKeywords: ['studio display', 'signage', 'lounge tv', 'tv', 'kiosk', 'screen'],
-    layout: 'layout-full'
+    layout: 'layout-page'
   },
 
   // ── Admin ───────────────────────────────────────────────────────────

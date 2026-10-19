@@ -899,6 +899,102 @@ test('T2.5: server returns 403 on rejected endpoints for disallowed roles', asyn
   }
 });
 
+test('Studio display: only admin/manager/ceo can change the TV, edit branches or upload videos', async () => {
+  async function tokenFor(roleKey, staffId, name) {
+    let member = TeamService.getStaffRoster().find(m => m.staffId === staffId);
+    if (!member) member = TeamService.addStaffMember({ staffId, name, role: roleKey, roleKey });
+    auth.updateUserPassword(member.username, STRONG);
+    const res = await signIn(member.username, STRONG);
+    assert.strictEqual(res.status, 200, `Sign-in succeeded for ${roleKey}`);
+    return res.json.token;
+  }
+  const designer = await tokenFor('designer', 'SS9914', 'Signage Designer User');
+  const manager = await tokenFor('manager', 'SS9913', 'Signage Manager User');
+
+  function upload(token, filename, content) {
+    return new Promise((resolve, reject) => {
+      const boundary = '----sscamtest' + Date.now();
+      const head = Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="video"; filename="${filename}"\r\nContent-Type: video/mp4\r\n\r\n`);
+      const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
+      const body = Buffer.concat([head, content, tail]);
+      const req = http.request({
+        host: '127.0.0.1', port, path: '/api/clinic/signage/media', method: 'POST',
+        headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': body.length, Authorization: `Bearer ${token}` }
+      }, res => {
+        const chunks = [];
+        res.on('data', c => chunks.push(c));
+        res.on('end', () => resolve({ status: res.statusCode, raw: Buffer.concat(chunks).toString('utf8') }));
+      });
+      req.on('error', reject);
+      req.end(body);
+    });
+  }
+
+  // Signed-out and designer callers are refused on every write route.
+  for (const [method, url, body] of [
+    ['PUT', '/api/clinic/signage', { slideDurationSec: 20 }],
+    ['POST', '/api/clinic/signage/queue/call', { ticket: 'A-1' }],
+    ['DELETE', '/api/clinic/signage/queue', undefined],
+    ['PUT', '/api/clinic/branches/SSC-BSR', { phone: '000' }],
+    ['DELETE', '/api/clinic/signage/media/0123456789abcdef.mp4', undefined]
+  ]) {
+    assert.strictEqual((await request(method, url, { body })).status, 401, `${method} ${url} needs sign-in`);
+    assert.strictEqual((await request(method, url, { token: designer, body })).status, 403, `${method} ${url} refuses designers`);
+  }
+  assert.strictEqual((await upload(designer, 'x.mp4', Buffer.alloc(64))).status, 403, 'Designers cannot upload videos');
+
+  // A manager can edit a branch; bad links are refused; other branches are untouched.
+  const before = (await request('GET', '/api/clinic/branches')).json.branches;
+  const other = before.find(b => b.code !== 'SSC-BSR');
+  const bad = await request('PUT', '/api/clinic/branches/SSC-BSR', { token: manager, body: { checkInUrl: 'javascript:alert(1)' } });
+  assert.strictEqual(bad.status, 400, 'Non-web links are refused');
+  const ok = await request('PUT', '/api/clinic/branches/SSC-BSR', { token: manager, body: { phone: '+603-0000 1111', code: 'HACK', pricing: { x: 1 } } });
+  assert.strictEqual(ok.status, 200);
+  assert.strictEqual(ok.json.branch.phone, '+603-0000 1111');
+  assert.strictEqual(ok.json.branch.code, 'SSC-BSR', 'The branch code cannot be changed');
+  const after = (await request('GET', '/api/clinic/branches')).json.branches;
+  assert.strictEqual(after.find(b => b.code === 'SSC-BSR').phone, '+603-0000 1111');
+  if (other) {
+    const now = after.find(b => b.code === other.code);
+    for (const k of ['name', 'shortName', 'address', 'phone', 'whatsapp', 'operatingHours', 'kkmLicense', 'checkInUrl']) {
+      assert.strictEqual(now[k], other[k], 'Other branches must keep their ' + k);
+    }
+    assert.deepStrictEqual(now.doctors, other.doctors, 'Other branches must keep their doctors');
+  }
+
+  // Video slides can only point at files this server stored; fake sources are dropped.
+  const put = await request('PUT', '/api/clinic/signage', {
+    token: manager,
+    body: { slides: [
+      { id: 'evil', enabled: true, type: 'video', title: 'Evil', src: 'https://evil.example/x.mp4' },
+      { id: 'evil2', enabled: true, type: 'video', title: 'Evil2', src: '/api/clinic/signage/media/../../etc/passwd' }
+    ] }
+  });
+  const slides = (put.json && put.json.config && put.json.config.slides) || [];
+  assert.ok(!slides.some(s => s.type === 'video'), 'Videos with foreign sources must not be accepted');
+
+  // Uploads must be real videos, and the public stream never serves odd names.
+  assert.strictEqual((await upload(manager, 'fake.mp4', Buffer.from('this is not a video'))).status, 400, 'A non-video file renamed .mp4 is refused');
+  assert.strictEqual((await request('GET', '/api/clinic/signage/media/not-a-real-name.txt')).status, 404);
+  assert.strictEqual((await request('GET', '/api/clinic/signage/media/0123456789abcdef.mp4')).status, 404);
+
+  // Round trip with a minimal MP4 header: upload, stream with Range, delete (file removed from disk).
+  const mp4 = Buffer.concat([Buffer.from([0, 0, 0, 24]), Buffer.from('ftypisom'), Buffer.alloc(4096, 1)]);
+  const up = await upload(manager, 'Promo Clip.mp4', mp4);
+  assert.strictEqual(up.status, 201, `Valid MP4 accepted (${up.raw})`);
+  const vslide = JSON.parse(up.raw).config.slides.find(s => s.type === 'video');
+  assert.ok(vslide && /^\/api\/clinic\/signage\/media\/[0-9a-f]{16}\.mp4$/.test(vslide.src), 'Video slide points at a server-generated name');
+  const fileName = vslide.src.split('/').pop();
+  const onDisk = path.join(sandbox, '_Team', 'signage_media', fileName);
+  assert.ok(fs.existsSync(onDisk), 'Uploaded video exists on disk');
+  const ranged = await request('GET', vslide.src, { headers: { Range: 'bytes=0-99' } });
+  assert.strictEqual(ranged.status, 206, 'The TV can seek/stream with range requests');
+  const del = await request('DELETE', `/api/clinic/signage/media/${fileName}`, { token: manager });
+  assert.strictEqual(del.status, 200);
+  assert.ok(!fs.existsSync(onDisk), 'Deleting the slide deletes the file');
+  assert.ok(!del.json.config.slides.some(s => s.type === 'video'));
+});
+
 // ─── Runner ────────────────────────────────────────────────────────────────────
 
 (async () => {

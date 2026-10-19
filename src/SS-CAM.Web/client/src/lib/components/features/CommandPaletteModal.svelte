@@ -148,7 +148,7 @@
       case 'deliverables': return 'checkCircle';
       case 'consultation': return 'box';
       case 'team': return 'users';
-      case 'signage': return 'externalLink';
+      case 'studio-display': return 'externalLink';
       case 'admin': return 'settings';
       default: return 'folder';
     }

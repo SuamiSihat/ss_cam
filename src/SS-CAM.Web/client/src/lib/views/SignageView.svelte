@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { appState } from '$lib/stores/appState.svelte';
 
@@ -34,6 +34,8 @@
     title: string;
     subtitle: string;
     type: string;
+    src?: string;
+    muted?: boolean;
   }
 
   interface SignageConfig {
@@ -98,7 +100,8 @@
   let currentSlide = $state(0);
   let isOffline = $state(typeof navigator !== 'undefined' ? !navigator.onLine : false);
   let justCalled = $state(false);
-  let previousTicket = $state<string | null>(null);
+  let previousCallKey = $state<string | null>(null);
+  let videoEl = $state<HTMLVideoElement | null>(null);
 
   let slideTimer: any = null;
   let clockTimer: any = null;
@@ -126,6 +129,49 @@
   const displaySlide = $derived<SignageSlide | null>(
     activeSlides.length > 0 ? activeSlides[currentSlide % activeSlides.length] : null
   );
+
+  // Primitive deriveds: the slide timer must not restart just because a poll replaced the config object.
+  const slideKey = $derived(displaySlide ? `${displaySlide.id}|${displaySlide.type}|${displaySlide.src || ''}` : '');
+  const slideIsVideo = $derived(displaySlide?.type === 'video');
+  const slideCount = $derived(activeSlides.length);
+  const slideMs = $derived(Math.max(3, config.slideDurationSec || 10) * 1000);
+
+  function advanceSlide() {
+    if (slideCount > 1) currentSlide = (currentSlide + 1) % slideCount;
+  }
+
+  $effect(() => {
+    // Re-run only when the visible slide, the slide count or the duration really change.
+    void slideKey;
+    if (slideTimer) { clearTimeout(slideTimer); slideTimer = null; }
+    // Videos advance on their own 'ended' event; a lone slide never needs to advance.
+    if (slideIsVideo || slideCount <= 1) return;
+    const ms = slideMs;
+    slideTimer = setTimeout(advanceSlide, ms);
+    return () => { if (slideTimer) { clearTimeout(slideTimer); slideTimer = null; } };
+  });
+
+  function onVideoReady(e: Event) {
+    const v = e.currentTarget as HTMLVideoElement;
+    v.play().catch(() => {
+      // Browsers block unmuted autoplay until the page has been touched; fall back to muted playback.
+      v.muted = true;
+      v.play().catch((err) => console.debug('[Signage] Video autoplay blocked:', err));
+    });
+  }
+
+  function onVideoError() {
+    console.warn('[Signage] Video failed to load, skipping');
+    if (slideTimer) clearTimeout(slideTimer);
+    slideTimer = setTimeout(advanceSlide, 3000);
+  }
+
+  function duckVideo() {
+    if (!videoEl || videoEl.muted) return;
+    const v = videoEl;
+    v.volume = 0.15;
+    setTimeout(() => { try { v.volume = 1; } catch { /* element already removed */ } }, 6000);
+  }
 
   function getQueryBranch(): string | null {
     if (typeof window === 'undefined') return null;
@@ -211,24 +257,28 @@
   function handleDataReceived(newConfig: SignageConfig) {
     if (!newConfig) return;
 
-    const newTicket = newConfig.queue?.currentCall?.ticket || null;
-    if (newTicket && newTicket !== previousTicket) {
-      if (previousTicket !== null) {
+    // calledAt is part of the key so "Recall" for the same ticket is announced again.
+    const call = newConfig.queue?.currentCall;
+    const newCallKey = call?.ticket ? `${call.ticket}|${call.calledAt || ''}` : null;
+    if (newCallKey && newCallKey !== previousCallKey) {
+      if (previousCallKey !== null) {
         justCalled = true;
         if (flashTimeout) clearTimeout(flashTimeout);
         flashTimeout = setTimeout(() => { justCalled = false; }, 4000);
 
         if (newConfig.soundAlertEnabled !== false) {
+          duckVideo();
           playClinicChime();
-          speakTicketCall(newTicket, newConfig.queue?.currentCall?.room || 'Bilik Rawatan');
+          speakTicketCall(call!.ticket, call!.room || 'Bilik Rawatan');
         }
       }
-      previousTicket = newTicket;
+      previousCallKey = newCallKey;
+    } else if (!newCallKey) {
+      previousCallKey = null;
     }
 
     config = newConfig;
     isOffline = false;
-    resetSlideTimer();
   }
 
   async function fetchSignageData() {
@@ -255,18 +305,13 @@
     }
   }
 
-  function resetSlideTimer() {
-    if (slideTimer) clearInterval(slideTimer);
-    const duration = Math.max(3, config.slideDurationSec || 10) * 1000;
-    slideTimer = setInterval(() => {
-      if (activeSlides.length > 0) {
-        currentSlide = (currentSlide + 1) % activeSlides.length;
-      }
-    }, duration);
-  }
-
   function handleSseSignageEvent(evt: any) {
     const detail = evt.detail || evt;
+    // A TV pinned to ?branch= must not show another branch's payload; refetch its own instead.
+    if (getQueryBranch()) {
+      fetchSignageData();
+      return;
+    }
     if (detail && (detail.branchCode || detail.queue)) {
       handleDataReceived(detail);
     }
@@ -277,7 +322,6 @@
     clockTimer = setInterval(updateClock, 1000);
 
     await fetchSignageData();
-    resetSlideTimer();
 
     // Heartbeat polling every 5 seconds for sub-5s real-time accuracy across independent TV boxes
     pollTimer = setInterval(fetchSignageData, 5000);
@@ -293,7 +337,7 @@
     if (typeof window !== 'undefined') {
       window.removeEventListener('signage:updated', handleSseSignageEvent as EventListener);
     }
-    if (slideTimer) clearInterval(slideTimer);
+    if (slideTimer) clearTimeout(slideTimer);
     if (clockTimer) clearInterval(clockTimer);
     if (pollTimer) clearInterval(pollTimer);
     if (flashTimeout) clearTimeout(flashTimeout);
@@ -346,9 +390,11 @@
     <!-- Active Slide Showcase -->
     <div class="slide-card">
       {#if displaySlide}
-        <div class="slide-tag">{displaySlide.tag}</div>
-        <h1 class="slide-title">{displaySlide.title}</h1>
-        <p class="slide-subtitle">{displaySlide.subtitle}</p>
+        {#if displaySlide.type !== 'video'}
+          <div class="slide-tag">{displaySlide.tag}</div>
+          <h1 class="slide-title">{displaySlide.title}</h1>
+          <p class="slide-subtitle">{displaySlide.subtitle}</p>
+        {/if}
 
         {#if displaySlide.type === 'doctors'}
           <!-- Doctor Spotlight Card -->
@@ -441,6 +487,22 @@
               <div class="qr-inst-step">3. Kakitangan klinik akan memanggil nombor giliran anda dengan serta-merta.</div>
             </div>
           </div>
+        {:else if displaySlide.type === 'video' && displaySlide.src}
+          {#key slideKey}
+            <!-- svelte-ignore a11y_media_has_caption -->
+            <video
+              class="slide-video"
+              bind:this={videoEl}
+              src={displaySlide.src}
+              muted={displaySlide.muted !== false}
+              loop={slideCount <= 1}
+              playsinline
+              preload="auto"
+              onloadeddata={onVideoReady}
+              onended={advanceSlide}
+              onerror={onVideoError}
+            ></video>
+          {/key}
         {:else}
           <!-- Generic Dynamic Notice Slide -->
           <div class="custom-notice-card">
@@ -699,6 +761,16 @@
     position: relative;
     overflow: hidden;
     backdrop-filter: blur(10px);
+  }
+
+  .slide-video {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+    border-radius: 16px;
   }
 
   .slide-tag {
