@@ -24,6 +24,7 @@ const DeliverableService = require('../services/DeliverableService');
 const WorkspaceService = require('../services/WorkspaceService');
 const ApprovalService = require('../services/ApprovalService');
 const OrderService = require('../services/OrderService');
+const SignageService = require('../services/SignageService');
 const config = require('../config');
 const http = require('http');
 const apiRoutes = require('../routes/api');
@@ -3391,6 +3392,57 @@ This is the project brief content.
     assert.ok(whatsappUrl.includes(encodeURIComponent('KL Clinic Opening Campaign')), 'Must contain project title');
     assert.ok(whatsappUrl.includes(encodeURIComponent('Dato Roslan')), 'Must contain reviewer name');
     assert.ok(whatsappUrl.includes(encodeURIComponent('APPROVED')), 'Must reflect approved decision');
+  });
+
+  // ─── TEST: SignageService Studio Display & Realtime Queue Engine ───
+  test('SignageService manages live queue calling, upcoming tickets, slide timings and ticker config', () => {
+    const initialConfig = SignageService.getConfig();
+    assert.ok(initialConfig, 'Config must exist');
+    assert.ok(Array.isArray(initialConfig.slides), 'Slides must be an array');
+    assert.strictEqual(typeof initialConfig.ticker?.text, 'string');
+    assert.strictEqual(typeof initialConfig.slideDurationSec, 'number');
+
+    // 1. Call ticket
+    const callRes = SignageService.callTicket({
+      ticket: 'A-9901',
+      room: 'Bilik Rawatan 3',
+      doctor: 'Dr. Test Physician'
+    });
+    assert.ok(callRes, 'callRes must exist');
+    assert.strictEqual(callRes.queue.currentCall.ticket, 'A-9901');
+    assert.strictEqual(callRes.queue.currentCall.room, 'Bilik Rawatan 3');
+
+    // Verify config reflects called ticket
+    const afterCall = SignageService.getConfig();
+    assert.strictEqual(afterCall.queue.currentCall.ticket, 'A-9901');
+
+    // 2. Update upcoming tickets
+    const upcomingRes = SignageService.updateUpcoming([
+      { ticket: 'A-9902', room: 'Bilik 1' },
+      { ticket: 'B-8801', room: 'Bilik Prosedur' }
+    ]);
+    assert.ok(upcomingRes, 'upcomingRes must exist');
+    assert.strictEqual(upcomingRes.queue.upcoming.length, 2);
+    assert.strictEqual(upcomingRes.queue.upcoming[0].ticket, 'A-9902');
+
+    // 3. Update general config (ticker, interval, notice)
+    const updateRes = SignageService.updateConfig({
+      ticker: {
+        enabled: true,
+        prefix: 'INFO KLINIK',
+        text: 'Test Running Ticker Marquee'
+      },
+      slideDurationSec: 15
+    });
+    assert.ok(updateRes, 'updateRes must exist');
+    assert.strictEqual(updateRes.ticker.text, 'Test Running Ticker Marquee');
+    assert.strictEqual(updateRes.slideDurationSec, 15);
+
+    // 4. Clear queue
+    const clearRes = SignageService.clearQueue(true);
+    assert.ok(clearRes, 'clearRes must exist');
+    assert.strictEqual(clearRes.queue.currentCall, null);
+    assert.strictEqual(clearRes.queue.upcoming.length, 0);
   });
 
   // Execute all registered tests sequentially to ensure isolation and zero workspace collisions

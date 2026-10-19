@@ -453,6 +453,7 @@ export class ApiClient {
       es.addEventListener('task:created', (e) => { handleMessage(e as MessageEvent, 'task:created'); notifyTaskChange(e as MessageEvent); });
       es.addEventListener('task:updated', (e) => { handleMessage(e as MessageEvent, 'task:updated'); notifyTaskChange(e as MessageEvent); });
       es.addEventListener('task:deleted', (e) => { handleMessage(e as MessageEvent, 'task:deleted'); notifyTaskChange(e as MessageEvent); });
+      es.addEventListener('signage:updated', (e) => handleMessage(e as MessageEvent, 'signage:updated'));
 
       es.onerror = (err) => {
         onEvent('connection:status', { status: 'reconnecting' });
@@ -763,6 +764,39 @@ export class ApiClient {
     return this.request('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ token, newPassword })
+    });
+  }
+
+  // ─── Studio Display & Clinic Signage TV ───
+  static getSignageConfig(branchCode?: string): Promise<{ success: boolean; config: any }> {
+    const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+    return this.request(`/clinic/signage${qs}`);
+  }
+
+  static updateSignageConfig(payload: any): Promise<{ success: boolean; config: any }> {
+    return this.request('/clinic/signage', {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  static callSignageTicket(payload: { ticket: string; room?: string; doctor?: string; popUpcoming?: boolean; isNext?: boolean }): Promise<{ success: boolean; config: any }> {
+    return this.request('/clinic/signage/queue/call', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  static updateSignageUpcoming(upcoming: Array<{ ticket: string; room?: string }>): Promise<{ success: boolean; config: any }> {
+    return this.request('/clinic/signage/queue/upcoming', {
+      method: 'POST',
+      body: JSON.stringify({ upcoming })
+    });
+  }
+
+  static clearSignageQueue(clearCurrent = false): Promise<{ success: boolean; config: any }> {
+    return this.request(`/clinic/signage/queue?clearCurrent=${clearCurrent}`, {
+      method: 'DELETE'
     });
   }
 }

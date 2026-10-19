@@ -1,90 +1,4 @@
-<!-- ══════════════════════════════════════════════════════════════════ -->
-  <!-- TAB 3: ROLES & CAPABILITIES MATRIX                                 -->
-  <!-- ══════════════════════════════════════════════════════════════════ -->
-  {#if activeTab === 'roles'}
-    <div id="admin-panel-roles" role="tabpanel" aria-labelledby="admin-tab-roles" class="tab-pane-content">
-      <div class="section-title-wrap">
-        <div>
-          <h2 class="pane-title">Roles &amp; Access Capabilities</h2>
-          <p class="pane-subtitle">
-            Single source of truth for studio capabilities, navigation guard permissions, and action authorities.
-          </p>
-        </div>
-      </div>
-
-      <!-- Roles Cards Grid -->
-      <div class="roles-cards-grid">
-        {#each ROLES_CATALOG as role}
-          {@const assignedCount = users.filter(u => ((u as any).roleKey || '').toLowerCase() === role.key || (u.role || '').toLowerCase().includes(role.key)).length}
-          <FluentCard elevated>
-            <div class="role-card-header">
-              <div class="role-badge-row">
-                <span class="role-key-pill" style="border-left: 3px solid {role.badgeColor};">
-                  {role.name}
-                </span>
-                <span class="role-count-badge">
-                  {assignedCount} member{assignedCount === 1 ? '' : 's'}
-                </span>
-              </div>
-              <span class="role-code-tag"><code>{role.key}</code></span>
-            </div>
-
-            <p class="role-desc">{role.description}</p>
-
-            <div class="role-capabilities-list">
-              <div class="role-cap-item" class:cap-enabled={role.capabilities.canApproveDeliverables}>
-                <FluentIcons name={role.capabilities.canApproveDeliverables ? "checkmark" : "close"} size={13} />
-                <span>Approve deliverables</span>
-              </div>
-              <div class="role-cap-item" class:cap-enabled={role.capabilities.canDeleteProject}>
-                <FluentIcons name={role.capabilities.canDeleteProject ? "checkmark" : "close"} size={13} />
-                <span>Delete projects</span>
-              </div>
-              <div class="role-cap-item" class:cap-enabled={role.capabilities.canManageTeam}>
-                <FluentIcons name={role.capabilities.canManageTeam ? "checkmark" : "close"} size={13} />
-                <span>Manage staff roster</span>
-              </div>
-              <div class="role-cap-item" class:cap-enabled={role.capabilities.canReassign}>
-                <FluentIcons name={role.capabilities.canReassign ? "checkmark" : "close"} size={13} />
-                <span>Reassign deliverables</span>
-              </div>
-              <div class="role-cap-item" class:cap-enabled={role.capabilities.canEditCopy}>
-                <FluentIcons name={role.capabilities.canEditCopy ? "checkmark" : "close"} size={13} />
-                <span>Edit copywriting</span>
-              </div>
-              <div class="role-cap-item" class:cap-enabled={role.capabilities.canViewConsultation}>
-                <FluentIcons name={role.capabilities.canViewConsultation ? "checkmark" : "close"} size={13} />
-                <span>Consultation kit</span>
-              </div>
-              <div class="role-cap-item" class:cap-enabled={role.capabilities.canViewAdmin}>
-                <FluentIcons name={role.capabilities.canViewAdmin ? "checkmark" : "close"} size={13} />
-                <span>Admin console</span>
-              </div>
-              <div class="role-cap-item" class:cap-enabled={role.capabilities.canViewAuditLog}>
-                <FluentIcons name={role.capabilities.canViewAuditLog ? "checkmark" : "close"} size={13} />
-                <span>View audit logs</span>
-              </div>
-              <div class="role-cap-item" class:cap-enabled={role.capabilities.canManageShareLinks}>
-                <FluentIcons name={role.capabilities.canManageShareLinks ? "checkmark" : "close"} size={13} />
-                <span>Manage share links</span>
-              </div>
-            </div>
-
-            <div class="role-pages-row">
-              <span class="role-pages-label">Allowed routes:</span>
-              <div class="role-pages-chips">
-                {#each role.allowedPages as pg}
-                  <span class="role-page-chip">{pg}</span>
-                {/each}
-              </div>
-            </div>
-          </FluentCard>
-        {/each}
-      </div>
-    </div>
-  {/if}
-
-  <script lang="ts">
+<script lang="ts">
   import { onMount } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
@@ -95,8 +9,9 @@
   import FluentButton from '$lib/components/ui/FluentButton.svelte';
   import FluentDialog from '$lib/components/ui/FluentDialog.svelte';
   import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
+  import SignageManagerTab from '$lib/components/admin/SignageManagerTab.svelte';
 
-  type ActiveTab = 'people' | 'companies' | 'roles' | 'notifications' | 'system';
+  type ActiveTab = 'people' | 'companies' | 'roles' | 'notifications' | 'system' | 'signage';
 
   interface RoleDefinition {
     key: string;
@@ -1216,9 +1131,23 @@
         <span class="stat-ribbon-num">{systemStatus?.cachedProjects ?? 0}</span>
         <span class="stat-ribbon-label">System <span class="stat-ribbon-sub">({systemStatus?.synologyEngine || 'Volume 2 Active'})</span></span>
       </button>
+
+      <div class="stat-ribbon-sep"></div>
+
+      <button
+        type="button"
+        class="stat-ribbon-item"
+        class:active-stat={activeTab === 'signage'}
+        onclick={() => (activeTab = 'signage')}
+        title="Configure Studio Display & Signage TV"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span class="stat-ribbon-num">TV</span>
+        <span class="stat-ribbon-label">Signage <span class="stat-ribbon-sub">(Studio Display)</span></span>
+      </button>
     </div>
   {:else}
-    <!-- 5-METRIC EXECUTIVE KPI TELEMETRY STRIP (CLASSIC) -->
+    <!-- 6-METRIC EXECUTIVE KPI TELEMETRY STRIP (CLASSIC) -->
     <div class="kpi-telemetry-deck">
       <!-- Metric 1: People -->
       <FluentCard hoverLift borderAccent="#0284C7" onclick={() => (activeTab = 'people')}>
@@ -1277,6 +1206,18 @@
         <div class="kpi-value" style="font-size: 20px; padding-top: 4px;">Connected</div>
         <div class="kpi-detail">
           <b>{systemStatus?.cachedProjects || 0} Projects</b> • <b>{stats.totalAuditCount} Audits</b>
+        </div>
+      </FluentCard>
+
+      <!-- Metric 6: Signage TV / Studio Display -->
+      <FluentCard hoverLift borderAccent="#06B6D4" onclick={() => (activeTab = 'signage')}>
+        <div class="kpi-top">
+          <span class="kpi-label">Studio Display</span>
+          <span class="kpi-icon-pill" style="background: rgba(6, 182, 212, 0.15); color: #06B6D4;">📺</span>
+        </div>
+        <div class="kpi-value" style="font-size: 20px; padding-top: 4px;">Signage TV</div>
+        <div class="kpi-detail">
+          <span>Live Queue, Carousel &amp; Marquee</span>
         </div>
       </FluentCard>
     </div>
@@ -1351,6 +1292,20 @@
     >
       <FluentIcons name="settings" size={16} />
       <span>System</span>
+    </button>
+
+    <button
+      id="admin-tab-signage"
+      role="tab"
+      aria-selected={activeTab === 'signage'}
+      aria-controls="admin-panel-signage"
+      class="seg-tab-btn"
+      class:active={activeTab === 'signage'}
+      onclick={() => (activeTab = 'signage')}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span>Studio Display</span>
+      <span class="tab-count-pill" style="background: rgba(6, 182, 212, 0.2); color: #06B6D4;">Live</span>
     </button>
   </div>
 
@@ -1804,7 +1759,93 @@
   {/if}
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
-  <!-- TAB 3: SECURITY & AUDIT LOGS (DATA ANALYST LEVEL)                 -->
+  <!-- TAB 3: ROLES & CAPABILITIES MATRIX                                 -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  {#if activeTab === 'roles'}
+    <div id="admin-panel-roles" role="tabpanel" aria-labelledby="admin-tab-roles" class="tab-pane-content">
+      <div class="section-title-wrap">
+        <div>
+          <h2 class="pane-title">Roles &amp; Access Capabilities</h2>
+          <p class="pane-subtitle">
+            Single source of truth for studio capabilities, navigation guard permissions, and action authorities.
+          </p>
+        </div>
+      </div>
+
+      <!-- Roles Cards Grid -->
+      <div class="roles-cards-grid">
+        {#each ROLES_CATALOG as role}
+          {@const assignedCount = users.filter(u => ((u as any).roleKey || '').toLowerCase() === role.key || (u.role || '').toLowerCase().includes(role.key)).length}
+          <FluentCard elevated>
+            <div class="role-card-header">
+              <div class="role-badge-row">
+                <span class="role-key-pill" style="border-left: 3px solid {role.badgeColor};">
+                  {role.name}
+                </span>
+                <span class="role-count-badge">
+                  {assignedCount} member{assignedCount === 1 ? '' : 's'}
+                </span>
+              </div>
+              <span class="role-code-tag"><code>{role.key}</code></span>
+            </div>
+
+            <p class="role-desc">{role.description}</p>
+
+            <div class="role-capabilities-list">
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canApproveDeliverables}>
+                <FluentIcons name={role.capabilities.canApproveDeliverables ? "checkmark" : "close"} size={13} />
+                <span>Approve deliverables</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canDeleteProject}>
+                <FluentIcons name={role.capabilities.canDeleteProject ? "checkmark" : "close"} size={13} />
+                <span>Delete projects</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canManageTeam}>
+                <FluentIcons name={role.capabilities.canManageTeam ? "checkmark" : "close"} size={13} />
+                <span>Manage staff roster</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canReassign}>
+                <FluentIcons name={role.capabilities.canReassign ? "checkmark" : "close"} size={13} />
+                <span>Reassign deliverables</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canEditCopy}>
+                <FluentIcons name={role.capabilities.canEditCopy ? "checkmark" : "close"} size={13} />
+                <span>Edit copywriting</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canViewConsultation}>
+                <FluentIcons name={role.capabilities.canViewConsultation ? "checkmark" : "close"} size={13} />
+                <span>Consultation kit</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canViewAdmin}>
+                <FluentIcons name={role.capabilities.canViewAdmin ? "checkmark" : "close"} size={13} />
+                <span>Admin console</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canViewAuditLog}>
+                <FluentIcons name={role.capabilities.canViewAuditLog ? "checkmark" : "close"} size={13} />
+                <span>View audit logs</span>
+              </div>
+              <div class="role-cap-item" class:cap-enabled={role.capabilities.canManageShareLinks}>
+                <FluentIcons name={role.capabilities.canManageShareLinks ? "checkmark" : "close"} size={13} />
+                <span>Manage share links</span>
+              </div>
+            </div>
+
+            <div class="role-pages-row">
+              <span class="role-pages-label">Allowed routes:</span>
+              <div class="role-pages-chips">
+                {#each role.allowedPages as pg}
+                  <span class="role-page-chip">{pg}</span>
+                {/each}
+              </div>
+            </div>
+          </FluentCard>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 4: SECURITY & AUDIT LOGS (DATA ANALYST LEVEL)                 -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   {#if activeTab === 'system'}
     <div class="tab-pane-content">
@@ -2153,6 +2194,15 @@
           {/each}
         {/if}
       </div>
+    </div>
+  {/if}
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 6: STUDIO DISPLAY / SIGNAGE TV CONTROLLER                       -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  {#if activeTab === 'signage'}
+    <div id="admin-panel-signage" role="tabpanel" aria-labelledby="admin-tab-signage" class="tab-pane-content">
+      <SignageManagerTab />
     </div>
   {/if}
 </div>

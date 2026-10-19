@@ -60,6 +60,7 @@ const RegulatoryService = require('../services/RegulatoryService');
 const BranchService = require('../services/BranchService');
 const CareDispatcherService = require('../services/CareDispatcherService');
 const CollisionGuardService = require('../services/CollisionGuardService');
+const SignageService = require('../services/SignageService');
 const multer = require('multer');
 
 // ─── IN-PROCESS TTL CACHE ───────────────────────────────────────────────────
@@ -3664,6 +3665,75 @@ router.post('/clinic/care-dispatch', authenticateToken, (req, res) => {
     res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── CLINIC SIGNAGE & STUDIO DISPLAY ROUTES ──────────────────────────
+
+// GET /api/clinic/signage — Get live signage configuration & queue
+router.get('/clinic/signage', publicReviewRead, (req, res) => {
+  try {
+    const config = SignageService.getConfig(req.query.branch || null);
+    res.json({ success: true, config });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/clinic/signage — Update signage configuration (admin / manager)
+router.put('/clinic/signage', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const config = SignageService.updateConfig(req.body, actor, role);
+    res.json({ success: true, config });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/clinic/signage/queue/call — Call a queue ticket or next
+router.post('/clinic/signage/queue/call', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const { ticket, room, doctor, popUpcoming, isNext } = req.body || {};
+
+    let config;
+    if (isNext) {
+      config = SignageService.callNext(room, doctor, actor, role);
+    } else {
+      config = SignageService.callTicket({ ticket, room, doctor, popUpcoming: popUpcoming !== false }, actor, role);
+    }
+    res.json({ success: true, config });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/clinic/signage/queue/upcoming — Update upcoming tickets
+router.post('/clinic/signage/queue/upcoming', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const { upcoming } = req.body || {};
+    const config = SignageService.updateUpcoming(upcoming || [], actor, role);
+    res.json({ success: true, config });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// DELETE /api/clinic/signage/queue — Clear or reset queue
+router.delete('/clinic/signage/queue', authenticateToken, (req, res) => {
+  try {
+    const actor = req.user?.name || req.user?.username || 'Staff';
+    const role = (req.user?.roleKey || req.user?.role || 'admin').toLowerCase();
+    const clearCurrent = req.query.clearCurrent === 'true';
+    const config = SignageService.clearQueue(clearCurrent, actor, role);
+    res.json({ success: true, config });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 
