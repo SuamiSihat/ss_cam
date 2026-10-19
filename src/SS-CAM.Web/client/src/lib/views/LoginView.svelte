@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { ApiClient } from '$lib/services/api';
   import { appState } from '$lib/stores/appState.svelte';
+  import FluentIcons from '$lib/components/ui/FluentIcons.svelte';
 
   // Active Subsidiaries Configuration
   // Represents SuamiSihat entities (Holding, Healthcare, Wellness, E-Commerce, Technology)
