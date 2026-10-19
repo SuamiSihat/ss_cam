@@ -773,35 +773,111 @@ export class ApiClient {
     return this.request(`/clinic/signage${qs}`);
   }
 
-  static updateSignageConfig(payload: any): Promise<{ success: boolean; config: any }> {
-    return this.request('/clinic/signage', {
+  static updateSignageConfig(payload: any, branchCode?: string): Promise<{ success: boolean; config: any }> {
+    const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+    return this.request(`/clinic/signage${qs}`, {
       method: 'PUT',
       body: JSON.stringify(payload)
     });
   }
 
-  static callSignageTicket(payload: { ticket: string; room?: string; doctor?: string; popUpcoming?: boolean; isNext?: boolean }): Promise<{ success: boolean; config: any }> {
+  static callSignageTicket(payload: { ticket: string; room?: string; doctor?: string; popUpcoming?: boolean; branchCode?: string }): Promise<{ success: boolean; config: any }> {
     return this.request('/clinic/signage/queue/call', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
   }
 
-  static updateSignageUpcoming(upcoming: Array<{ ticket: string; room?: string }>): Promise<{ success: boolean; config: any }> {
-    return this.request('/clinic/signage/queue/upcoming', {
+  static callSignageNext(payload: { room?: string; doctor?: string; branchCode?: string }): Promise<{ success: boolean; config: any }> {
+    return this.request('/clinic/signage/queue/call-next', {
       method: 'POST',
-      body: JSON.stringify({ upcoming })
+      body: JSON.stringify(payload)
     });
   }
 
-  static clearSignageQueue(clearCurrent = false): Promise<{ success: boolean; config: any }> {
-    return this.request(`/clinic/signage/queue?clearCurrent=${clearCurrent}`, {
+  static updateSignageUpcoming(upcoming: Array<{ ticket: string; room?: string }>, branchCode?: string): Promise<{ success: boolean; config: any }> {
+    return this.request('/clinic/signage/queue/upcoming', {
+      method: 'POST',
+      body: JSON.stringify({ upcoming, branchCode })
+    });
+  }
+
+  static clearSignageQueue(clearCurrent = false, branchCode?: string): Promise<{ success: boolean; config: any }> {
+    return this.request('/clinic/signage/queue/clear', {
+      method: 'POST',
+      body: JSON.stringify({ clearCurrentCall: clearCurrent, branchCode })
+    });
+  }
+
+  // ─── Slide CRUD & Concurrency ───
+  static addSignageSlide(slide: any, branchCode?: string, baseRevision?: number): Promise<{ success: boolean; slide: any; config: any; revision: number }> {
+    const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+    return this.request(`/clinic/signage/slides${qs}`, {
+      method: 'POST',
+      body: JSON.stringify({ slide, branchCode, baseRevision })
+    });
+  }
+
+  static updateSignageSlide(slideId: string, patch: any, branchCode?: string, baseRevision?: number): Promise<{ success: boolean; slide: any; config: any; revision: number }> {
+    const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+    return this.request(`/clinic/signage/slides/${encodeURIComponent(slideId)}${qs}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ patch, branchCode, baseRevision })
+    });
+  }
+
+  static deleteSignageSlide(slideId: string, branchCode?: string, baseRevision?: number): Promise<{ success: boolean; removedId: string; config: any; revision: number }> {
+    const params = new URLSearchParams();
+    if (branchCode) params.set('branch', branchCode);
+    if (baseRevision !== undefined && baseRevision !== null) params.set('baseRevision', String(baseRevision));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return this.request(`/clinic/signage/slides/${encodeURIComponent(slideId)}${qs}`, {
       method: 'DELETE'
     });
   }
 
-  static getClinicBranches(): Promise<{ success: boolean; branches: any[] }> {
-    return this.request('/clinic/branches');
+  static reorderSignageSlides(slideIds: string[], branchCode?: string, baseRevision?: number): Promise<{ success: boolean; config: any; revision: number }> {
+    const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+    return this.request(`/clinic/signage/slides/order${qs}`, {
+      method: 'PUT',
+      body: JSON.stringify({ slideIds, branchCode, baseRevision })
+    });
+  }
+
+  static duplicateSignageSlide(slideId: string, branchCode?: string, baseRevision?: number): Promise<{ success: boolean; slide: any; config: any; revision: number }> {
+    const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+    return this.request(`/clinic/signage/slides/${encodeURIComponent(slideId)}/duplicate${qs}`, {
+      method: 'POST',
+      body: JSON.stringify({ branchCode, baseRevision })
+    });
+  }
+
+  static copySignagePlaylist(fromBranch: string, toBranch: string, baseRevision?: number): Promise<{ success: boolean; config: any; revision: number }> {
+    return this.request('/clinic/signage/copy-playlist', {
+      method: 'POST',
+      body: JSON.stringify({ fromBranch, toBranch, baseRevision })
+    });
+  }
+
+  static restoreSignageDefaultSlides(branchCode?: string, baseRevision?: number): Promise<{ success: boolean; config: any; revision: number }> {
+    const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+    return this.request(`/clinic/signage/slides/restore-defaults${qs}`, {
+      method: 'POST',
+      body: JSON.stringify({ branchCode, baseRevision })
+    });
+  }
+
+  // ─── Branches ───
+  static getClinicBranches(includeArchived = false): Promise<{ success: boolean; branches: any[] }> {
+    const qs = includeArchived ? '?includeArchived=true' : '';
+    return this.request(`/clinic/branches${qs}`);
+  }
+
+  static addClinicBranch(payload: any): Promise<{ success: boolean; branch: any }> {
+    return this.request('/clinic/branches', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   }
 
   static updateClinicBranch(code: string, patch: Record<string, any>): Promise<{ success: boolean; branch: any }> {
@@ -811,13 +887,34 @@ export class ApiClient {
     });
   }
 
-  /** Upload a video for the signage playlist (multipart, so it bypasses the JSON request helper). */
-  static uploadSignageVideo(file: File, onProgress?: (pct: number) => void): Promise<{ success: boolean; config: any }> {
+  static archiveClinicBranch(code: string, switchToBranch?: string): Promise<{ success: boolean; branch: any }> {
+    return this.request(`/clinic/branches/${encodeURIComponent(code)}/archive`, {
+      method: 'POST',
+      body: JSON.stringify({ switchToBranch })
+    });
+  }
+
+  static restoreClinicBranch(code: string): Promise<{ success: boolean; branch: any }> {
+    return this.request(`/clinic/branches/${encodeURIComponent(code)}/restore`, {
+      method: 'POST'
+    });
+  }
+
+  static deleteClinicBranch(code: string): Promise<{ success: boolean; removedCode: string }> {
+    return this.request(`/clinic/branches/${encodeURIComponent(code)}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // ─── Media Uploads (Video & Banner Images) ───
+  static uploadSignageVideo(file: File, branchCode?: string, onProgress?: (pct: number) => void): Promise<{ success: boolean; config: any }> {
     return new Promise((resolve, reject) => {
       const form = new FormData();
       form.append('video', file);
+      if (branchCode) form.append('branchCode', branchCode);
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/clinic/signage/media');
+      const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+      xhr.open('POST', `/api/clinic/signage/media${qs}`);
       const token = this.getToken();
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.upload.onprogress = (e) => {
@@ -835,8 +932,61 @@ export class ApiClient {
     });
   }
 
-  static deleteSignageVideo(fileName: string): Promise<{ success: boolean; config: any }> {
-    return this.request(`/clinic/signage/media/${encodeURIComponent(fileName)}`, { method: 'DELETE' });
+  static uploadSignageImage(file: File, branchCode?: string, baseRevision?: number, onProgress?: (pct: number) => void): Promise<{ success: boolean; slide: any; config: any; warning?: string }> {
+    return new Promise((resolve, reject) => {
+      const form = new FormData();
+      form.append('image', file);
+      if (branchCode) form.append('branchCode', branchCode);
+      if (baseRevision !== undefined && baseRevision !== null) form.append('baseRevision', String(baseRevision));
+      const xhr = new XMLHttpRequest();
+      const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+      xhr.open('POST', `/api/clinic/signage/media/image${qs}`);
+      const token = this.getToken();
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onerror = () => reject(new Error('Network error while uploading image. Please try again.'));
+      xhr.ontimeout = () => reject(new Error('Upload timed out. Please try again.'));
+      xhr.onload = () => {
+        let body: any = {};
+        try { body = JSON.parse(xhr.responseText || '{}'); } catch (e) { console.warn('[ApiClient] uploadSignageImage: non-JSON response'); }
+        if (xhr.status >= 200 && xhr.status < 300) resolve(body);
+        else reject(new Error(body.error || `Upload failed (${xhr.status}).`));
+      };
+      xhr.send(form);
+    });
+  }
+
+  static replaceSignageSlideMedia(slideId: string, file: File, branchCode?: string, baseRevision?: number, onProgress?: (pct: number) => void): Promise<{ success: boolean; slide: any; config: any; warning?: string }> {
+    return new Promise((resolve, reject) => {
+      const form = new FormData();
+      form.append('file', file);
+      if (branchCode) form.append('branchCode', branchCode);
+      if (baseRevision !== undefined && baseRevision !== null) form.append('baseRevision', String(baseRevision));
+      const xhr = new XMLHttpRequest();
+      const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+      xhr.open('POST', `/api/clinic/signage/slides/${encodeURIComponent(slideId)}/media${qs}`);
+      const token = this.getToken();
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onerror = () => reject(new Error('Network error while replacing media file. Please try again.'));
+      xhr.ontimeout = () => reject(new Error('Upload timed out. Please try again.'));
+      xhr.onload = () => {
+        let body: any = {};
+        try { body = JSON.parse(xhr.responseText || '{}'); } catch (e) { console.warn('[ApiClient] replaceSignageSlideMedia: non-JSON response'); }
+        if (xhr.status >= 200 && xhr.status < 300) resolve(body);
+        else reject(new Error(body.error || `Media replacement failed (${xhr.status}).`));
+      };
+      xhr.send(form);
+    });
+  }
+
+  static deleteSignageVideo(fileName: string, branchCode?: string): Promise<{ success: boolean; config: any }> {
+    const qs = branchCode ? `?branch=${encodeURIComponent(branchCode)}` : '';
+    return this.request(`/clinic/signage/media/${encodeURIComponent(fileName)}${qs}`, { method: 'DELETE' });
   }
 }
 

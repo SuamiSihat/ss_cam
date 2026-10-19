@@ -81,7 +81,13 @@
     | 'minimize'
     | 'phone'
     | 'windows'
-    | 'milestone';
+    | 'milestone'
+    | 'arrowUp'
+    | 'arrowDown'
+    | 'tv'
+    | 'archive'
+    | 'volume'
+    | 'volumeMute';
 
   interface Props {
     name: IconName;
@@ -332,6 +338,30 @@
   {:else if name === 'milestone'}
     <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
       <path d="M10 2.5 17.5 10 10 17.5 2.5 10 10 2.5zm0 2.12L4.62 10 10 15.38 15.38 10 10 4.62z"/>
+    </svg>
+  {:else if name === 'arrowUp'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path fill-rule="evenodd" d="M10 3.25a.75.75 0 0 1 .53.22l5 5a.75.75 0 1 1-1.06 1.06L10.75 5.81v10.44a.75.75 0 0 1-1.5 0V5.81L5.53 9.53a.75.75 0 0 1-1.06-1.06l5-5a.75.75 0 0 1 .53-.22z" clip-rule="evenodd"/>
+    </svg>
+  {:else if name === 'arrowDown'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path fill-rule="evenodd" d="M10 16.75a.75.75 0 0 1-.53-.22l-5-5a.75.75 0 1 1 1.06-1.06l3.72 3.72V3.75a.75.75 0 0 1 1.5 0v10.44l3.72-3.72a.75.75 0 1 1 1.06 1.06l-5 5a.75.75 0 0 1-.53.22z" clip-rule="evenodd"/>
+    </svg>
+  {:else if name === 'tv'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M3 4.5A2.5 2.5 0 0 1 5.5 2h9A2.5 2.5 0 0 1 17 4.5v8a2.5 2.5 0 0 1-2.5 2.5H11v1.5h2.25a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1 0-1.5H9V15H5.5A2.5 2.5 0 0 1 3 12.5v-8zm2.5-1A1 1 0 0 0 4.5 4.5v8a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-9z"/>
+    </svg>
+  {:else if name === 'archive'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M2.5 3.5A1.5 1.5 0 0 1 4 2h12a1.5 1.5 0 0 1 1.5 1.5V5a1 1 0 0 1-.5.86V16A2 2 0 0 1 15 18H5a2 2 0 0 1-2-2V5.86A1 1 0 0 1 2.5 5V3.5zM4 3.5V5h12V3.5H4zm.5 3.5V16a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5V7H4.5zm3 2a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 7.5 9z"/>
+    </svg>
+  {:else if name === 'volume'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M10.75 2.75a.75.75 0 0 0-1.28-.53L5.3 6.5H3A1.5 1.5 0 0 0 1.5 8v4A1.5 1.5 0 0 0 3 13.5h2.3l4.17 4.28a.75.75 0 0 0 1.28-.53V2.75zm3.72 3.72a.75.75 0 0 1 1.06 0 5 5 0 0 1 0 7.06.75.75 0 1 1-1.06-1.06 3.5 3.5 0 0 0 0-4.94.75.75 0 0 1 0-1.06zM16.53 4.47a.75.75 0 0 1 1.06 0 8 8 0 0 1 0 11.06.75.75 0 0 1-1.06-1.06 6.5 6.5 0 0 0 0-8.94.75.75 0 0 1 0-1.06z"/>
+    </svg>
+  {:else if name === 'volumeMute'}
+    <svg viewBox="0 0 20 20" fill="currentColor" width="100%" height="100%">
+      <path d="M10.75 2.75a.75.75 0 0 0-1.28-.53L5.3 6.5H3A1.5 1.5 0 0 0 1.5 8v4A1.5 1.5 0 0 0 3 13.5h2.3l4.17 4.28a.75.75 0 0 0 1.28-.53V2.75zM13.22 7.22a.75.75 0 0 1 1.06 0L15.5 8.44l1.22-1.22a.75.75 0 1 1 1.06 1.06L16.56 9.5l1.22 1.22a.75.75 0 1 1-1.06 1.06L15.5 10.56l-1.22 1.22a.75.75 0 0 1-1.06-1.06L14.44 9.5l-1.22-1.22a.75.75 0 0 1 0-1.06z"/>
     </svg>
   {:else}
     <!-- Default generic bullet icon -->

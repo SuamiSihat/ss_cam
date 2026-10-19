@@ -3,7 +3,7 @@
 
   interface Props {
     appearance?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'cta';
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'sm' | 'md' | 'lg' | 'touch';
     disabled?: boolean;
     loading?: boolean;
     type?: 'button' | 'submit' | 'reset';
@@ -74,10 +74,11 @@
     outline-offset: 2px;
   }
 
-  /* Sizes (Minimum 44px interactive target for md/lg; 36px for sm) */
+  /* Sizes (Minimum 44px interactive target for md/lg; 36px for sm; 52px for touch) */
   .btn-sm { min-height: 36px; padding: 6px 12px; font-size: 12px; }
   .btn-md { min-height: 44px; padding: 10px 18px; font-size: 13.5px; }
   .btn-lg { min-height: 48px; padding: 12px 24px; font-size: 14.5px; }
+  .btn-touch { min-height: 52px; min-width: 52px; padding: 12px 22px; font-size: 15px; }
 
   /* High-Converting CTA (Banana #FCE53D / Neutral Black #1C1C1C) */
   .btn-cta {
