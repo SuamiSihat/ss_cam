@@ -2,19 +2,20 @@
 
 **One place for the creative team's projects, files, tasks and approvals.**
 
-[![Release](https://img.shields.io/badge/release-v5.2.1-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v5.2.1)
+[![Release](https://img.shields.io/badge/release-v5.3.0-blue?style=flat-square)](https://github.com/SuamiSihat/ss_cam/releases/tag/v5.3.0)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Web%20%7C%20Android%20%7C%20Linux-blue?style=flat-square)](#which-app-should-i-use)
 [![Licence](https://img.shields.io/badge/licence-Internal%20use-orange?style=flat-square)](./installer/EULA.txt)
 
 SS-CAM (SuamiSihat Creative Assets Management) keeps every creative project in a tidy, standard folder on the shared drive and gives the team simple tools to plan the work, write the copy, review the designs and hand the files over. It was built for SuamiSihat Holding's creative team and is used across the group's companies.
 
-> **Latest release:** v5.2.1 (15 October 2026) — Complete enterprise web portal overhaul (security hardening, 7-role RBAC, 60:30:10 Fluent 2 design system, plain language voice, mobile responsiveness, HTTP 409 collision safety), live Approvals dashboard verification, and synchronized Windows desktop Release build. See the [full change history](./CHANGELOG.md).
+> **Latest release:** v5.3.0 (21 October 2026) — Evidence-based Consultation Suite redesign (6 dynamic SVG anatomy simulations, bilingual BM/EN dictionary, fullscreen patient presentation mode, peer-reviewed clinical reference panel), touch-first Studio Display TV kiosk and admin controller, and login flow repair. See the [full change history](./CHANGELOG.md).
 
 ---
 
 ## Contents
 
 - [What you can do](#what-you-can-do)
+- [Brand portfolio and digital ecosystem](#brand-portfolio-and-digital-ecosystem)
 - [Which app should I use?](#which-app-should-i-use)
 - [Getting started](#getting-started)
 - [How projects are organised](#how-projects-are-organised)
@@ -44,6 +45,24 @@ SS-CAM (SuamiSihat Creative Assets Management) keeps every creative project in a
 | **Wellbeing** | Focus timer, breathing breaks, Radio and Waktu Solat. |
 
 The web app also includes **Team** (workload by person), **Admin** (accounts, companies and activity log) and the clinic tools (**Consultation Suite** and **Lounge TV Signage**).
+
+---
+
+## Brand portfolio and digital ecosystem
+
+SS-CAM serves as the central creative production and asset management engine across SuamiSihat's commercial brand portfolio and internal platforms:
+
+### Public Brand & Product Sites
+- **[SuamiSihat Clinic](https://suamisihat.clinic/)**: Licensed men's clinical healthcare, doctor consultations, medical procedures (ESWT, TRT, Kegel therapy, P-Shot, fertility), and patient check-in.
+- **[SuamiSihat Flagship E-Commerce](https://suamisihat.com.my/)**: Corporate group portal, brand authority, health education, and flagship retail store.
+- **[Dr Mitring](https://drmitring.com/)**: Specialized male wellness ergonomic support devices and physical enhancement products.
+- **[MENSS](https://menss.co/)**: Contemporary men's daily wellness, personal care, and lifestyle supplements.
+- **[REJAL](https://rejal.co/)**: Traditional herbal vitality, natural botanical elixirs, and male performance formulations.
+
+### Internal Platform & Production Ecosystem
+- **[SS-CAM Web Management Portal](https://creative.suamisihat.myds.me/)**: Central production management workspace, priority task boards, deliverable reviews, Consultation Suite, and Studio Display TV kiosk.
+- **[SuamiSihat Design System & Brand Asset Portal](https://assets.suamisihat.myds.me/)**: Live design token visualizer, component documentation, SVG logomarks, typography tokens, and downloadable brand assets.
+- **[Main Infrastructure Dashboard](https://suamisihat.myds.me/)**: Synology DSM enterprise entry point, storage volume telemetry, and central IT infrastructure bookmark.
 
 ---
 

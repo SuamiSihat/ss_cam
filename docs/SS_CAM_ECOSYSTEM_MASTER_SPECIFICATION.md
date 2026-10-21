@@ -33,6 +33,22 @@ The ecosystem operates on an **Offline-First Markdown-as-Database** architecture
       └────────────────────────────────────┘    └────────────────────────────────────┘    └────────────────────────────────────┘
 ```
 
+### 1.1 Digital Ecosystem & Brand Portfolio Topology
+
+The SuamiSihat creative production ecosystem powers both internal studio operations and external multi-brand commercial properties:
+
+#### A. Commercial Brand & Product Properties
+- **SuamiSihat Clinic** (`https://suamisihat.clinic/`): Licensed men's clinical healthcare, medical consultations, procedural therapies (ESWT, TRT, Kegel pacer, P-Shot, fertility), doctor roster, and reception kiosk check-in.
+- **SuamiSihat Flagship E-Commerce** (`https://suamisihat.com.my/`): Group holding flagship portal, consumer store, educational content, and corporate authority.
+- **Dr Mitring** (`https://drmitring.com/`): Specialized male wellness physical support and enhancement devices.
+- **MENSS** (`https://menss.co/`): Contemporary men's daily wellness, grooming, and lifestyle vitality formulations.
+- **REJAL** (`https://rejal.co/`): Traditional herbal vitality, endurance botanicals, and ancestral health elixirs.
+
+#### B. Internal Studio & Infrastructure Endpoints
+- **SS-CAM Web Management Portal** (`https://creative.suamisihat.myds.me/`): Central web workspace hosting task boards, deliverable approvals, Consultation Suite, and Studio Display TV kiosk.
+- **Design System & Asset Portal** (`https://assets.suamisihat.myds.me/`): Central design token visualizer, component documentation, vector logos, and brand asset repository.
+- **Main Infrastructure Dashboard** (`https://suamisihat.myds.me/`): Primary Synology DSM administrative hub and IT bookmark portal.
+
 ---
 
 ## 2. Role Specialization Matrix

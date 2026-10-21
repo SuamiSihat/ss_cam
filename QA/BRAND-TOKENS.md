@@ -91,3 +91,35 @@
 - Card Subtitle / Label (`h3`): `15px`, font-weight `600`, line-height `1.35`
 - Caption / Metadata (`h4`): `13.5px`, font-weight `600`, line-height `1.4`
 - Body (`p`, `span`): `13px`, line-height `1.55`
+
+---
+
+## 6. Brand Portfolio & Digital Ecosystem Architecture
+
+SuamiSihat operates as a multi-brand holding ecosystem encompassing specialized clinical services, flagship e-commerce, consumer wellness products, and creative production infrastructure.
+
+### A. Official Public Brand & Product Sites
+
+| Brand / Product | Official Web Destination | Market Segment & Commercial/Clinical Role | Primary Palette / Visual Focus |
+|---|---|---|---|
+| **SuamiSihat Clinic** | [suamisihat.clinic](https://suamisihat.clinic/) | Specialized Men's Clinical Healthcare. Licensed medical consultations, clinical treatments (ESWT, TRT, Kegel pelvic floor therapy, P-Shot, male fertility assessment), doctor roster, and patient check-in. | Prussian Navy (`#022057`), Royal Blue (`#043388`), Banana Yellow CTA (`#FCE53D`). Clinical authority and discreet medical care. |
+| **SuamiSihat Flagship** | [suamisihat.com.my](https://suamisihat.com.my/) | Corporate Holding & Direct-to-Consumer Flagship Store. Brand authority, educational articles, customer support, and group product catalogue. | Prussian Navy (`#022057`), Azure (`#21A1F7`), Porcelain canvas (`#FCFAF6`). Premium trust and institutional authority. |
+| **Dr Mitring** | [drmitring.com](https://drmitring.com/) | Specialized Mechanical & Physical Male Wellness. Innovative ergonomic support devices, physical therapy rings, and functional enhancement products. | Deep Graphite / Midnight Slate with Vibrant Metallic accents. High-tech medical-grade engineering and precision. |
+| **MENSS** | [menss.co](https://menss.co/) | Modern Men's Daily Wellness & Lifestyle. Modern personal care, daily nutritional boosters, grooming, and contemporary vitality essentials for the active modern man. | Minimalist Monochrome / Deep Charcoal (`#1C1C1C`) with Warm Fawn (`#CCAC8D`) / Clean Porcelain. Modern apothecary aesthetic. |
+| **REJAL** | [rejal.co](https://rejal.co/) | Traditional Herbal Vitality & Natural Formulations. Premium grade-A traditional botanical elixirs, endurance teas, and authentic ancestral vitality formulations. | Warm Gold / Lion (`#BD9A73`), Forest Moss / Earthy Warmth, Dark Bronze. Heritage masculinity and natural vitality. |
+
+### B. Internal Creative Production & Platform Ecosystem
+
+| Internal Platform | Canonical URL | Purpose & Connected Systems |
+|---|---|---|
+| **SS-CAM Web Management Portal** | [creative.suamisihat.myds.me](https://creative.suamisihat.myds.me/) | Production workflow engine: priority task queue, 5-tab project management, 4K deliverable lightbox review, approval gatekeeping, Consultation Suite, and Studio Display TV kiosk. |
+| **Design System & Asset Portal** | [assets.suamisihat.myds.me](https://assets.suamisihat.myds.me/) | Central design system showcase: live Fluent 2 web tokens, 60:30:10 token visualizer, SVG logomarks, typography specs, and downloadable brand identity assets. |
+| **Main Infrastructure Dashboard** | [suamisihat.myds.me](https://suamisihat.myds.me/) | Synology DSM enterprise entry point: NAS storage management, volume telemetry, Docker container orchestrator, network backups, and centralized IT bookmarks. |
+
+### C. Digital Brand Implementation Guidelines
+
+1. **Exact Domain Usage:** Always link directly to the canonical HTTPS addresses listed above. Never invent regional suffixes (e.g. use `menss.co`, not `menss.com` or `menss.my`; use `rejal.co`, not `rejal.com`).
+2. **Sub-Brand Hierarchy:**
+   - Group holding & clinical authority resides with **SuamiSihat** (`suamisihat.clinic` / `suamisihat.com.my`).
+   - Consumer product lines (**Dr Mitring**, **MENSS**, **REJAL**) operate with dedicated brand identities while adhering to the group's core 60:30:10 contrast, typography, and accessibility standards.
+3. **Cross-Link Hygiene:** Marketing materials, consultation aftercare WhatsApp templates, and packaging QR codes must strictly pull from these verified destinations.

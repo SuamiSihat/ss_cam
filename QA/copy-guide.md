@@ -74,3 +74,22 @@ When something goes wrong:
 | File upload size exceeded | `PayloadTooLargeError: file > 60MB` | `That file is too large. Please choose a file under 60 MB.` |
 | Validation failure | `Invalid params: missing required fields` | `Please check the form and fill in all required fields.` |
 | Generic server error | `Error: Internal Server Error (Reference 9a2f)` | `Something went wrong on our side. Please try again.` |
+
+---
+
+## 5. Canonical Brand & Product Domains
+
+When drafting marketing copy, WhatsApp consultation follow-ups, packaging text, or portal prompts, always use canonical brand names and exact domain URLs:
+
+| Brand / Product Name | Canonical URL | Usage Guidance |
+|---|---|---|
+| **SuamiSihat Clinic** | `https://suamisihat.clinic/` | Clinical medical services, doctor consultation bookings, health screening. |
+| **SuamiSihat** | `https://suamisihat.com.my/` | Corporate group holding, flagship store, consumer product delivery. |
+| **Dr Mitring** | `https://drmitring.com/` | Specialized male wellness mechanical/ergonomic devices. Do not write "Dr. Mitring" or "DrMitring". |
+| **MENSS** | `https://menss.co/` | Modern men's daily care and lifestyle supplements. Always uppercase "MENSS", domain is `.co`. |
+| **REJAL** | `https://rejal.co/` | Traditional herbal vitality formulations. Always uppercase "REJAL", domain is `.co`. |
+
+### Digital Ecosystem Links
+- **SS-CAM Web Management Portal:** `https://creative.suamisihat.myds.me/`
+- **Design System & Asset Portal:** `https://assets.suamisihat.myds.me/`
+- **Main Infrastructure Dashboard:** `https://suamisihat.myds.me/`

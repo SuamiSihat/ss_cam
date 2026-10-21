@@ -5,6 +5,14 @@
   "CompanyUrl": "https://suamisihat.clinic",
   "PortalUrl": "https://creative.suamisihat.myds.me",
   "AssetPortalUrl": "https://assets.suamisihat.myds.me",
+  "DashboardUrl": "https://suamisihat.myds.me",
+  "BrandSites": [
+    { "Name": "SuamiSihat Clinic", "Url": "https://suamisihat.clinic" },
+    { "Name": "SuamiSihat Flagship", "Url": "https://suamisihat.com.my" },
+    { "Name": "Dr Mitring", "Url": "https://drmitring.com" },
+    { "Name": "MENSS", "Url": "https://menss.co" },
+    { "Name": "REJAL", "Url": "https://rejal.co" }
+  ],
   "StorageLabel": "SSNAS",
   "ThemeDefaultName": "SS Default (Nord Light)",
   "UpdateRepository": "SuamiSihat/ss_cam",
