@@ -437,10 +437,11 @@
               rel="noreferrer"
               title="Download SS-CAM Desktop (Windows, Linux, Android)"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+              <svg class="sidebar-desktop-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
               </svg>
-              <span>Native Apps (v{serverVersion}) ↗</span>
+              <span class="sidebar-desktop-text">Native Apps (v{serverVersion})</span>
+              <span class="sidebar-desktop-ext" aria-hidden="true">↗</span>
             </a>
           </div>
         {:else}
@@ -1008,26 +1009,54 @@
   }
 
   .sidebar-desktop-link-wrap {
-    padding: 8px 10px;
-    margin: 4px 6px 8px;
+    padding: 2px 10px 8px;
+    margin: 2px 0 6px;
+    box-sizing: border-box;
   }
   .sidebar-desktop-link {
-    display: inline-flex;
+    width: 100%;
+    display: flex;
     align-items: center;
-    gap: 7px;
-    font-size: 11px;
+    gap: 8px;
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 8px;
+    color: var(--sidebar-text, #E2E8F0);
+    font-size: 11.5px;
     font-weight: 600;
-    color: var(--text-tertiary);
     text-decoration: none;
-    padding: 6px 8px;
-    border-radius: 6px;
     transition: all 0.15s ease;
-    border: 1px solid transparent;
+    box-sizing: border-box;
+    font-family: inherit;
   }
   .sidebar-desktop-link:hover {
-    color: var(--text-primary);
-    background: var(--fill-subtle);
-    border-color: var(--stroke-subtle);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: #FFFFFF;
+  }
+  .sidebar-desktop-icon {
+    flex-shrink: 0;
+    color: var(--brand-accent, #21A1F7);
+    transition: transform 0.15s ease;
+  }
+  .sidebar-desktop-link:hover .sidebar-desktop-icon {
+    transform: translateY(1px);
+  }
+  .sidebar-desktop-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sidebar-desktop-ext {
+    font-size: 11px;
+    color: var(--sidebar-text-muted, rgba(241, 245, 249, 0.65));
+    transition: transform 0.15s ease, color 0.15s ease;
+  }
+  .sidebar-desktop-link:hover .sidebar-desktop-ext {
+    color: #FFFFFF;
+    transform: translate(1px, -1px);
   }
 
   .unified-status-pill .dot-reconnect {
