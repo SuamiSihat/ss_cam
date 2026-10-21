@@ -2,6 +2,33 @@
 
 All notable SS-CAM changes are documented here.
 
+## [5.3.0] - 2026-10-21 (Evidence-Based Consultation Suite Redesign & Touch-First Studio Display)
+
+Details and verification evidence: `QA/CONSULTATION-SUITE-IMPROVEMENT.md`, `QA/STUDIO-DISPLAY-QA.md`, and `QA/STUDIO-DISPLAY-REDESIGN-PLAN.md`.
+
+### Evidence-Based Consultation Suite Redesign
+- **6 Dynamic SVG Clinical Anatomy Simulations:**
+  - **ESWT:** Dynamic 4-arc acoustic wavefronts, cellular NO/VEGF signaling bubbles, neovascularization, and interactive clinical hotspots.
+  - **TRT:** Self-drawing hormone recovery curve, diagnostic threshold (`< 9.2-12 nmol/L`), physiological target band (`14-25 nmol/L`), and safety monitoring timeline.
+  - **Kegel Biomechanics:** Sagittal pelvic floor anatomy with real-time breathing & contraction pacer (cadence cycle with phase-scaled hold durations).
+  - **PE/ED Reflex Arc:** Neuro-vascular reflex circuit, traveling neural impulse nodes, pudendal afferents, and behavioral pacing interventions.
+  - **Fertility & Spermatogenesis:** 74-day spermatogenesis biological timeline, swimming mature spermatozoon flagellum animation, and live WHO 6th Edition semen benchmark trackers.
+  - **P-Shot Workflow:** 4-stage aseptic density separation (blood draw, centrifuge rotor, density strata, clinical delivery) with MAB / LIU compliance disclosure.
+- **Bilingual Clinical Dictionary:** Centralized `consultation.i18n.ts` supporting instantaneous BM/EN language toggling with persistent user preference in `localStorage`.
+- **Fullscreen Patient Presentation Mode:** Desk-side education layout hiding internal checklists and branch pricing while magnifying anatomical illustrations and progress scrubber.
+- **Collapsible Medical References & Guidelines Panel:** Accordion panel indexing 6 peer-reviewed clinical guidelines (EAU, WHO, Endocrine Society, ISSM, Cochrane) with cross-link jumping between stage badges and citation cards.
+
+### Touch-First Studio Display & TV Kiosk Overhaul
+- **Dedicated Admin Control View (`#studio-display`):** Added touch-first queue management interface with 52px keypad, prefix chips (A–F), duty doctor chips, Banana Yellow `#FCE53D` "Call now" CTA, and waiting list manager.
+- **Per-Branch State & Queue Isolation:** Multi-branch switcher tabs; ticket numbers, call history, playlists, and duty staff isolated by branch code (`A-1031`, etc.).
+- **Banner & Video Media Pipeline:** 16:9 banner uploader with image dimension validation, magic bytes verification, aspect ratio warning, and reference-counted disk management; video MP4 streaming with Range 206 support.
+- **Dynamic Real-Time TV Kiosk (`#signage`):** TV-scale typography and safe areas, official SuamiSihat brand logo, crisp vector `FluentIcons`, live check-in QR code generated directly from branch check-in URLs, duty doctor roster, scrolling ticker, and audio-visual call alerts.
+- **Branch Lifecycle & TV License Protection:** Branch profile editor with KKM license status, add/archive/restore/permanent delete guards, and screen unassigned state preventing foreign license leakage.
+
+### Bug Fixes & Security Hardening
+- **Web Portal Login:** Fixed missing `FluentIcons` import in `LoginView.svelte` that previously froze the forced password rotation step on first-time login.
+- **Dual-Track Governance:** Verified all 14 dual-track governance rules and UTF-8 BOM encoding.
+
 ## [5.2.1] - 2026-10-15 (Enterprise Web Portal Overhaul, Security Hardening & Desktop Sync)
 
 Details and verification evidence: `QA/FINAL-WEB-PORTAL-REPORT.md`, `QA/FINAL-QA-REPORT.md`, and `QA/PHASE-LOG.md`.
