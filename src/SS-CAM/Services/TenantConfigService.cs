@@ -204,6 +204,7 @@ namespace SS_CAM.Services
                     CompanyUrl = "https://suamisihat.clinic",
                     PortalUrl = "https://creative.suamisihat.myds.me",
                     AssetPortalUrl = "https://assets.suamisihat.myds.me",
+                    BrandKitsUrl = "https://assets.suamisihat.myds.me/brand-system/",
                     StorageLabel = "SSNAS",
                     ThemeDefaultName = "SS Default (Nord Light)",
                     Plugins = new System.Collections.Generic.Dictionary<string, PluginConfig>
@@ -234,6 +235,7 @@ namespace SS_CAM.Services
                 CompanyUrl = "https://corporate.local",
                 PortalUrl = "https://portal.corporate.local",
                 AssetPortalUrl = "https://assets.corporate.local",
+                BrandKitsUrl = "https://assets.corporate.local/brand-system/",
                 StorageLabel = "NAS",
                 ThemeDefaultName = "Corporate Light",
                 Plugins = new System.Collections.Generic.Dictionary<string, PluginConfig>

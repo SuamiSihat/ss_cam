@@ -272,8 +272,22 @@ namespace SS_CAM.Views
 
         private void OnOpenPublicAssets(object sender, RoutedEventArgs e)
         {
-            string companyUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.CompanyUrl)) ? TenantConfigService.Current.CompanyUrl : "https://corporate.com.my";
-            OpenUrl(string.Format("{0}/brand-assets", companyUrl.TrimEnd('/')));
+            string url = GetBrandKitsUrl();
+            OpenUrl(url);
+        }
+
+        private string GetBrandKitsUrl()
+        {
+            if (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.BrandKitsUrl))
+            {
+                return TenantConfigService.Current.BrandKitsUrl;
+            }
+
+            string assetUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AssetPortalUrl))
+                ? TenantConfigService.Current.AssetPortalUrl
+                : "https://assets.suamisihat.myds.me";
+
+            return string.Format("{0}/brand-system/", assetUrl.TrimEnd('/'));
         }
 
         private void OpenUrl(string url)

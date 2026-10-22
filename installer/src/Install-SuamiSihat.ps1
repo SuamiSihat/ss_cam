@@ -254,8 +254,8 @@ if (-not $SkipWebShortcuts -and -not $WhatIfPreference) {
             Url = "https://assets.suamisihat.myds.me/"
         },
         @{
-            Path = Join-Path (Join-Path $favoritesDirectory "SuamiSihat") "SuamiSihat Public Brand Assets.url"
-            Url = "https://suamisihat.com.my/brand-assets/"
+            Path = Join-Path (Join-Path $favoritesDirectory "SuamiSihat") "SuamiSihat Brand Kits (Brand System).url"
+            Url = "https://assets.suamisihat.myds.me/brand-system/"
         }
     )
     if (-not $SkipAssets) {
@@ -270,8 +270,8 @@ if (-not $SkipWebShortcuts -and -not $WhatIfPreference) {
                 Url = "https://assets.suamisihat.myds.me/"
             },
             @{
-                Path = Join-Path $linksDirectory "SuamiSihat Public Brand Assets.url"
-                Url = "https://suamisihat.com.my/brand-assets/"
+                Path = Join-Path $linksDirectory "SuamiSihat Brand Kits (Brand System).url"
+                Url = "https://assets.suamisihat.myds.me/brand-system/"
             }
         )
     }

@@ -5,6 +5,7 @@
   "CompanyUrl": "https://suamisihat.clinic",
   "PortalUrl": "https://creative.suamisihat.myds.me",
   "AssetPortalUrl": "https://assets.suamisihat.myds.me",
+  "BrandKitsUrl": "https://assets.suamisihat.myds.me/brand-system/",
   "DashboardUrl": "https://suamisihat.myds.me",
   "BrandSites": [
     { "Name": "SuamiSihat Clinic", "Url": "https://suamisihat.clinic" },

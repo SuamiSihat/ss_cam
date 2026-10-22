@@ -24,7 +24,7 @@ Scope: Evidence-based Consultation Suite redesign (6 dynamic SVG clinical anatom
 **Source Guardian**: **PASS — 14 passed, 0 warned, 0 failed (100%)**  
 **Live Production Portal**: **PASS — Version 5.3.0 live on Synology NAS Docker (`creative.suamisihat.myds.me`)**  
 **Windows Desktop Build**: **PASS — Assembly v5.3.0.0 (`dist/SS-CAM-v5.3.0.exe`)**  
-**SHA256 Checksum**: `B46F7706CF7D57BAE5508933BE644353D2063A652AED1A650AB498A6C30AB62E`  
+**SHA256 Checksum**: `8D8B27A0A70641D97F9B8AD6833D9F59BE7A0B10D4AC1611DC43FF65E69A6F5D`  
 
 ---
 

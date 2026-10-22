@@ -170,9 +170,13 @@ namespace SS_CAM.Services
                 string assetUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.AssetPortalUrl)) ? TenantConfigService.Current.AssetPortalUrl : "https://assets.suamisihat.myds.me/";
                 string companyUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.CompanyUrl)) ? TenantConfigService.Current.CompanyUrl : "https://suamisihat.com.my";
 
+                string brandKitsUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.BrandKitsUrl))
+                    ? TenantConfigService.Current.BrandKitsUrl
+                    : string.Format("{0}/brand-system/", assetUrl.TrimEnd('/'));
+
                 CreateUrlShortcut(Path.Combine(desktop, string.Format("{0} Service Dashboard.url", appName)), portalUrl);
                 CreateUrlShortcut(Path.Combine(desktop, "Design System (Internal).url"), assetUrl);
-                CreateUrlShortcut(Path.Combine(desktop, "Public Brand Kits.url"), string.Format("{0}/brand-assets", companyUrl));
+                CreateUrlShortcut(Path.Combine(desktop, "Brand Kits (Brand System).url"), brandKitsUrl);
 
                 return "Desktop web shortcuts created successfully for Service Dashboard, SS Design System, and Brand Kits.";
             }

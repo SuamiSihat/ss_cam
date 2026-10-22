@@ -12,6 +12,7 @@ namespace SS_CAM.Models
         public string CompanyUrl { get; set; }
         public string PortalUrl { get; set; }
         public string AssetPortalUrl { get; set; }
+        public string BrandKitsUrl { get; set; }
         public string StorageLabel { get; set; }
         public string ThemeDefaultName { get; set; }
 
@@ -33,6 +34,7 @@ namespace SS_CAM.Models
             CompanyUrl = "https://corporate.local";
             PortalUrl = "https://portal.corporate.local";
             AssetPortalUrl = "https://assets.corporate.local";
+            BrandKitsUrl = "https://assets.corporate.local/brand-system/";
             StorageLabel = "NAS";
             ThemeDefaultName = "Corporate Light";
             UpdateRepository = "";

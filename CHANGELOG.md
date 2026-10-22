@@ -32,15 +32,16 @@ Details and verification evidence: `QA/CONSULTATION-SUITE-IMPROVEMENT.md`, `QA/S
 ### Windows Desktop App Release & Ecosystem Sync
 - **Windows Desktop App (.NET Framework 4.8 / WPF):**
   - Verified clean Release build (`src/SS-CAM/bin/Release/SS-CAM.exe` / `dist/SS-CAM-v5.3.0.exe`, 6,361,088 bytes, AssemblyVersion `5.3.0.0`).
-  - SHA256: `B46F7706CF7D57BAE5508933BE644353D2063A652AED1A650AB498A6C30AB62E`.
+  - SHA256: `8D8B27A0A70641D97F9B8AD6833D9F59BE7A0B10D4AC1611DC43FF65E69A6F5D`.
   - Source Guardian verified: 14/14 checks passed (UTF-8 BOM, Fluent 2 `<ui:Button>`, ComboBox MinHeight >= 34/36, zero UI-thread blocking).
   - Synchronized Window Title and metadata to `v5.3.0`.
+  - Aligned Brand Assets module links and desktop shortcuts directly to authoritative [Brand System & Kits](https://assets.suamisihat.myds.me/brand-system/).
 
 ### Binary & Artifact Integrity
 
 | Component | Target / Platform | Version | Checksum (SHA256) |
 |---|---|---|---|
-| Windows Portable Desktop App | `dist/SS-CAM-v5.3.0.exe` | 5.3.0.0 | `B46F7706CF7D57BAE5508933BE644353D2063A652AED1A650AB498A6C30AB62E` |
+| Windows Portable Desktop App | `dist/SS-CAM-v5.3.0.exe` | 5.3.0.0 | `8D8B27A0A70641D97F9B8AD6833D9F59BE7A0B10D4AC1611DC43FF65E69A6F5D` |
 | Web Portal Server & API | `src/SS-CAM.Web/server/` | 5.3.0 | Node.js 20 Express / Helmet / JWT RBAC |
 | Web Client Production Dist | `src/SS-CAM.Web/client/dist/` | 5.3.0 | Svelte 5 / Vite 5 |
 

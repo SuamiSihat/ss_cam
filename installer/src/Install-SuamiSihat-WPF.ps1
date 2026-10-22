@@ -2179,7 +2179,7 @@ $script:sidebarExpanded = $true
 (Get-Control "OpenLogosButton").Add_Click({ Open-BrandAssetFolder "Logos" })
 (Get-Control "OpenServiceDashboardButton").Add_Click({ Open-SuamiSihatLink "https://suamisihat.myds.me" })
 (Get-Control "OpenInternalAssetsButton").Add_Click({ Open-SuamiSihatLink "https://assets.suamisihat.myds.me/" })
-(Get-Control "OpenPublicBrandAssetsButton").Add_Click({ Open-SuamiSihatLink "https://suamisihat.com.my/brand-assets/" })
+(Get-Control "OpenPublicBrandAssetsButton").Add_Click({ Open-SuamiSihatLink "https://assets.suamisihat.myds.me/brand-system/" })
 (Get-Control "OpenWorkstationReportButton").Add_Click({ Show-MarkdownReport "SuamiSihat-Workstation-Report.md" "SuamiSihat Workstation Report" })
 (Get-Control "OpenFontInventoryReportButton").Add_Click({ Show-MarkdownReport "SuamiSihat-Font-Inventory.md" "SuamiSihat Font Inventory" })
 (Get-Control "RefreshDashboardButton").Add_Click({ Start-DashboardRefresh })
