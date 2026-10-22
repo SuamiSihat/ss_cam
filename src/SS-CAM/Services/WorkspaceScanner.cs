@@ -22,6 +22,19 @@ namespace SS_CAM.Services
         private static string _lastScanRoot = null;
         private static readonly object _cacheLock = new object();
 
+        public static DashboardSnapshot GetCached(string root)
+        {
+            lock (_cacheLock)
+            {
+                if (_cachedSnapshot != null &&
+                    (string.IsNullOrWhiteSpace(root) || string.Equals(root, _lastScanRoot, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return _cachedSnapshot;
+                }
+                return null;
+            }
+        }
+
         public static Task<DashboardSnapshot> ScanAsync(string root, bool force = false)
         {
             return Task.Factory.StartNew(() => Scan(root, force));

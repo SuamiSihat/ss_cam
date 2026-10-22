@@ -127,6 +127,13 @@ namespace SS_CAM.Views
             }
 
             TxtWorkspacePath.Text = workspaceRoot;
+
+            var cached = WorkspaceScanner.GetCached(workspaceRoot);
+            if (cached != null)
+            {
+                PaintSnapshot(cached);
+            }
+
             await RefreshDashboard();
 
             // Initialise customizable layout
@@ -234,12 +241,11 @@ namespace SS_CAM.Views
             }
         }
 
-        private async System.Threading.Tasks.Task RefreshDashboard(bool force = false)
+        private bool _isRefreshing = false;
+
+        private void PaintSnapshot(DashboardSnapshot snapshot)
         {
-            TxtStatus.Text = force ? "Rescanning workspace folders..." : "Scanning workspace folders...";
-
-            DashboardSnapshot snapshot = await WorkspaceScanner.ScanAsync(workspaceRoot, force);
-
+            if (snapshot == null) return;
             MetricTotalProjects.Text = snapshot.TotalProjects.ToString();
             
             if (snapshot.RecentProjects != null && snapshot.RecentProjects.Count > 0)
@@ -299,8 +305,31 @@ namespace SS_CAM.Views
  
             LoadSpotlightProjects();
             LoadActiveTranscodes();
+        }
 
-            TxtStatus.Text = string.Format("Scan complete at {0:HH:mm:ss}. Connected to Synology Workspace.", DateTime.Now);
+        private async System.Threading.Tasks.Task RefreshDashboard(bool force = false)
+        {
+            if (_isRefreshing) return;
+            _isRefreshing = true;
+            try
+            {
+                TxtStatus.Text = force ? "Rescanning workspace folders..." : "Scanning workspace folders...";
+
+                DashboardSnapshot snapshot = await WorkspaceScanner.ScanAsync(workspaceRoot, force);
+                if (snapshot != null)
+                {
+                    PaintSnapshot(snapshot);
+                    TxtStatus.Text = string.Format("Scan complete at {0:HH:mm:ss}. Connected to Synology Workspace.", DateTime.Now);
+                }
+            }
+            catch (Exception ex)
+            {
+                App.LogTrace("DashboardPage: RefreshDashboard error: " + ex.Message);
+            }
+            finally
+            {
+                _isRefreshing = false;
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────────

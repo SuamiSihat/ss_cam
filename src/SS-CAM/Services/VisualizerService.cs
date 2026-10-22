@@ -73,14 +73,12 @@ namespace SS_CAM.Services
                     radio.PlaybackStateChanged += (state) =>
                     {
                         if (state == RadioPlaybackState.Playing) StartEngine();
+                        else StopEngine();
                     };
                     if (radio.State == RadioPlaybackState.Playing) StartEngine();
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[VisualizerService] Radio wire error: " + ex.Message); }
-
-            // Always run timer so preview & mesh shimmers gracefully
-            StartEngine();
+            catch (Exception ex) { App.LogTrace("[VisualizerService] Radio wire error: " + ex.Message); }
         }
 
         public void LoadPersistedMode()

@@ -56,7 +56,7 @@ if ($Build) {
         $warnings.Add('The .NET Framework MSBuild executable was not found.')
         Write-Result 'BLOCKED' 'Build' 'Install .NET Framework 4.8 developer tools or provide MSBuild.'
     } else {
-        & $msbuild $project "/p:Configuration=$Configuration" /t:Rebuild /v:minimal
+        & $msbuild $project "/p:Configuration=$Configuration" /m /t:Build /v:minimal
         if ($LASTEXITCODE -ne 0) {
             $failures.Add("$Configuration build failed.")
             Write-Result 'FAIL' 'Build' "$Configuration build failed."

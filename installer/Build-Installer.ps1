@@ -53,6 +53,19 @@ if ($major -ge 2) {
     Write-Host "This is a TRUE single-file executable. All dependencies (Wpf.Ui, etc) are embedded."
     Write-Host "To run: just double-click $($exeInfo.Name) (you can move it anywhere)" -ForegroundColor Yellow
 
+    # 3. Optional NGen native image generation
+    $ngenCandidates = @(
+        (Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\ngen.exe"),
+        (Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319\ngen.exe")
+    )
+    $ngen = $ngenCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if ($ngen) {
+        Write-Host "Triggering native image generation via NGen (optional warmup)..." -ForegroundColor DarkGray
+        try {
+            Start-Process -FilePath $ngen -ArgumentList "install `"$outputExe`" /nologo /silent" -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue
+        } catch { }
+    }
+
     exit 0
 }
 

@@ -352,6 +352,27 @@ namespace SS_CAM.Services
         }
 
         /// <summary>
+        private static bool SafeDirectoryExists(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            try
+            {
+                string root = Path.GetPathRoot(path);
+                if (!string.IsNullOrEmpty(root) && !root.StartsWith(@"\\"))
+                {
+                    DriveInfo d = new DriveInfo(root);
+                    if (!d.IsReady) return false;
+                }
+                return Directory.Exists(path);
+            }
+            catch (Exception ex)
+            {
+                App.LogTrace("[NasConfigSyncService] SafeDirectoryExists: " + ex.Message);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Automatically discovers potential Creative-Team workspace root directories on local mapped drives or Synology Drive sync paths.
         /// </summary>
         public static string DiscoverWorkspaceRoot()
@@ -371,9 +392,9 @@ namespace SS_CAM.Services
 
                 foreach (string candidate in primaryCandidates)
                 {
-                    if (Directory.Exists(candidate))
+                    if (SafeDirectoryExists(candidate))
                     {
-                        Debug.WriteLine("[NasConfigSyncService] Auto-discovered workspace root: " + candidate);
+                        App.LogTrace("[NasConfigSyncService] Auto-discovered workspace root: " + candidate);
                         return candidate;
                     }
                 }
@@ -385,19 +406,19 @@ namespace SS_CAM.Services
                     if (drive.IsReady && (drive.DriveType == DriveType.Fixed || drive.DriveType == DriveType.Network))
                     {
                         string candidate1 = Path.Combine(drive.RootDirectory.FullName, "SynologyDrive", "Creative-Team");
-                        if (Directory.Exists(candidate1)) return candidate1;
+                        if (SafeDirectoryExists(candidate1)) return candidate1;
 
                         string candidate2 = Path.Combine(drive.RootDirectory.FullName, "Creative-Team");
-                        if (Directory.Exists(candidate2)) return candidate2;
+                        if (SafeDirectoryExists(candidate2)) return candidate2;
                     }
                 }
 
                 // App base directory fallback
                 string appDir = AppDomain.CurrentDomain.BaseDirectory;
-                if (Directory.Exists(appDir)) return appDir;
+                if (SafeDirectoryExists(appDir)) return appDir;
 
                 string currentDir = Directory.GetCurrentDirectory();
-                if (Directory.Exists(currentDir)) return currentDir;
+                if (SafeDirectoryExists(currentDir)) return currentDir;
 
                 // Documents workspace fallback
                 string docWorkspace = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SS-CAM Workspace");

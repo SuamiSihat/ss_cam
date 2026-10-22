@@ -41,6 +41,25 @@ namespace SS_CAM.Services
                 string userFontsDir = Path.Combine(localAppData, "Microsoft", "Windows", "Fonts");
                 if (!Directory.Exists(userFontsDir)) Directory.CreateDirectory(userFontsDir);
 
+                string fontMarker = Path.Combine(userFontsDir, ".sscam_fonts_marker");
+                string currentVersion = Services.AppVersion.DisplayVersion;
+
+                if (File.Exists(fontMarker))
+                {
+                    try
+                    {
+                        string markerVersion = File.ReadAllText(fontMarker).Trim();
+                        if (string.Equals(markerVersion, currentVersion, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return string.Format("Brand fonts already verified for version {0}.", currentVersion);
+                        }
+                    }
+                    catch (Exception fMarkerEx)
+                    {
+                        App.LogTrace(string.Format("[PayloadInstallerService] Read font marker error: {0}", fMarkerEx.Message));
+                    }
+                }
+
                 string payloadDir = FindPayloadDirectory();
                 string fontSourceDir = !string.IsNullOrEmpty(payloadDir) ? Path.Combine(payloadDir, "Fonts") : "";
 
@@ -83,6 +102,15 @@ namespace SS_CAM.Services
                     }
                 }
 
+                try
+                {
+                    File.WriteAllText(fontMarker, currentVersion);
+                }
+                catch (Exception writeFontEx)
+                {
+                    App.LogTrace(string.Format("[PayloadInstallerService] Write font marker error: {0}", writeFontEx.Message));
+                }
+
                 return string.Format("Font deployment complete: {0} new fonts installed, {1} existing fonts verified in Windows registry.", installed, existing);
             }
             catch (Exception ex)
@@ -103,6 +131,25 @@ namespace SS_CAM.Services
                 string payloadDir = FindPayloadDirectory();
                 string sourceBrandAssets = !string.IsNullOrEmpty(payloadDir) ? Path.Combine(payloadDir, "Brand Assets") : "";
 
+                string markerFile = Path.Combine(assetsDir, ".payload_marker");
+                string currentVersion = Services.AppVersion.DisplayVersion;
+
+                if (string.IsNullOrWhiteSpace(targetPath) && File.Exists(markerFile))
+                {
+                    try
+                    {
+                        string markerVersion = File.ReadAllText(markerFile).Trim();
+                        if (string.Equals(markerVersion, currentVersion, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return string.Format("Brand assets already up to date ({0}).", currentVersion);
+                        }
+                    }
+                    catch (Exception markerEx)
+                    {
+                        App.LogTrace(string.Format("[PayloadInstallerService] Read marker error: {0}", markerEx.Message));
+                    }
+                }
+
                 int copiedFiles = 0;
 
                 if (Directory.Exists(sourceBrandAssets))
@@ -122,6 +169,15 @@ namespace SS_CAM.Services
                 {
                     string destinationWorkspaceAssets = Path.Combine(targetPath, "BrandAssets");
                     CopyDirectoryRecursive(sourceBrandAssets, destinationWorkspaceAssets);
+                }
+
+                try
+                {
+                    File.WriteAllText(markerFile, currentVersion);
+                }
+                catch (Exception writeMarkerEx)
+                {
+                    App.LogTrace(string.Format("[PayloadInstallerService] Write marker error: {0}", writeMarkerEx.Message));
                 }
 
                 return string.Format("Brand asset libraries, colour palettes, and logo packages deployed successfully ({0} files) to:\n{1}", copiedFiles, assetsDir);
@@ -146,6 +202,22 @@ namespace SS_CAM.Services
             foreach (FileInfo file in dir.GetFiles())
             {
                 string targetFilePath = Path.Combine(destinationDir, file.Name);
+                if (File.Exists(targetFilePath))
+                {
+                    try
+                    {
+                        FileInfo targetInfo = new FileInfo(targetFilePath);
+                        if (targetInfo.Length == file.Length && targetInfo.LastWriteTimeUtc == file.LastWriteTimeUtc)
+                        {
+                            continue;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        App.LogTrace(string.Format("[PayloadInstallerService] Check file error: {0}", ex.Message));
+                    }
+                }
+
                 file.CopyTo(targetFilePath, true);
                 count++;
             }

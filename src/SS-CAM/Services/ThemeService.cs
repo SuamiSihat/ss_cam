@@ -176,10 +176,13 @@ namespace SS_CAM.Services
             };
         }
 
-        public static void ApplyTheme(AppTheme theme)
+        public static void ApplyTheme(AppTheme theme, bool persist = true)
         {
             _currentTheme = theme;
-            SaveTheme(theme);
+            if (persist)
+            {
+                SaveTheme(theme);
+            }
 
             try
             {

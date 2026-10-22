@@ -51,105 +51,138 @@ namespace SS_CAM.Services
             return configuredFile;
         }
 
-        public static UserProfile LoadProfile()
+        private static UserProfile _cachedProfile = null;
+        private static readonly object _profileLock = new object();
+
+        public static void InvalidateCache()
         {
-            var profile = JsonPersistenceHelper.Load<UserProfile>(ConfigFilePath);
-
-            // Auto-sync setting from NAS if profile exists and has workspace root
-            if (profile != null && !string.IsNullOrWhiteSpace(profile.WorkspaceRoot) && Directory.Exists(profile.WorkspaceRoot))
+            lock (_profileLock)
             {
-                bool updated = NasConfigSyncService.SyncFromNasIfNewer(profile.WorkspaceRoot, "user_profile.json");
-                if (updated)
-                {
-                    var syncedProfile = JsonPersistenceHelper.Load<UserProfile>(ConfigFilePath);
-                    if (syncedProfile != null) profile = syncedProfile;
-                }
+                _cachedProfile = null;
             }
+        }
 
-            // If profile is missing or not fully configured, attempt auto-discovery & auto-restore from NAS
-            if (profile == null || !profile.IsConfigured || string.IsNullOrWhiteSpace(profile.DesignerName))
+        public static UserProfile LoadProfile(bool forceReload = false)
+        {
+            lock (_profileLock)
             {
-                string discoveredRoot = NasConfigSyncService.DiscoverWorkspaceRoot();
-                if (!string.IsNullOrWhiteSpace(discoveredRoot))
+                if (!forceReload && _cachedProfile != null)
                 {
-                    bool restored = NasConfigSyncService.TryAutoRestoreUserConfig(discoveredRoot);
-                    if (restored)
+                    return _cachedProfile;
+                }
+
+                var profile = JsonPersistenceHelper.Load<UserProfile>(ConfigFilePath);
+
+                // Auto-sync setting from NAS if profile exists and has workspace root
+                if (profile != null && !string.IsNullOrWhiteSpace(profile.WorkspaceRoot) && Directory.Exists(profile.WorkspaceRoot))
+                {
+                    try
                     {
-                        var restoredProfile = JsonPersistenceHelper.Load<UserProfile>(ConfigFilePath);
-                        if (restoredProfile != null)
+                        bool updated = NasConfigSyncService.SyncFromNasIfNewer(profile.WorkspaceRoot, "user_profile.json");
+                        if (updated)
                         {
-                            profile = restoredProfile;
-                            profile.WorkspaceRoot = discoveredRoot;
-                            profile.IsConfigured = true;
-                            SaveProfile(profile);
-                            return profile;
+                            var syncedProfile = JsonPersistenceHelper.Load<UserProfile>(ConfigFilePath);
+                            if (syncedProfile != null) profile = syncedProfile;
                         }
                     }
-
-                    if (profile == null) profile = GetDefaultProfile();
-                    profile.WorkspaceRoot = discoveredRoot;
-                }
-                else
-                {
-                    if (profile == null) profile = GetDefaultProfile();
-                }
-
-                // If designer name and workspace root are present, mark configured
-                if (!string.IsNullOrWhiteSpace(profile.DesignerName) && !string.IsNullOrWhiteSpace(profile.WorkspaceRoot) && Directory.Exists(profile.WorkspaceRoot))
-                {
-                    profile.IsConfigured = true;
-                    SaveProfile(profile);
-                }
-            }
-
-            // Auto-sync avatar from _Team/Users/{staffId}/avatar.jpg or staff_directory.json on NAS
-            if (profile != null && !string.IsNullOrWhiteSpace(profile.StaffId))
-            {
-                try
-                {
-                    string ws = !string.IsNullOrWhiteSpace(profile.WorkspaceRoot) && Directory.Exists(profile.WorkspaceRoot)
-                        ? profile.WorkspaceRoot
-                        : NasConfigSyncService.DiscoverWorkspaceRoot();
-
-                    if (!string.IsNullOrWhiteSpace(ws) && Directory.Exists(ws))
+                    catch (Exception nasSyncEx)
                     {
-                        string nasAvatar = GetUserAvatarPath(ws, profile.StaffId);
-                        if (!string.IsNullOrWhiteSpace(nasAvatar) && File.Exists(nasAvatar))
-                        {
-                            string localApp = AppPaths.AppDataFolder;
-                            if (!Directory.Exists(localApp)) Directory.CreateDirectory(localApp);
-                            string localCached = Path.Combine(localApp, string.Format("avatar_{0}.jpg", profile.StaffId.Trim()));
-
-                            // Copy from NAS if local is missing or NAS avatar was modified more recently
-                            if (!File.Exists(localCached) || File.GetLastWriteTimeUtc(nasAvatar) > File.GetLastWriteTimeUtc(localCached).AddSeconds(2))
-                            {
-                                File.Copy(nasAvatar, localCached, true);
-                            }
-
-                            if (!string.Equals(profile.AvatarPath, localCached, StringComparison.OrdinalIgnoreCase))
-                            {
-                                profile.AvatarPath = localCached;
-                                JsonPersistenceHelper.Save(ConfigFilePath, profile);
-                            }
-                        }
-                        else if (!string.IsNullOrWhiteSpace(profile.AvatarPath) && File.Exists(profile.AvatarPath))
-                        {
-                            // Local avatar exists but NAS is missing it: auto-push to NAS _Team/Users/{staffId}/avatar.jpg
-                            SyncAvatarToNas(profile.StaffId, profile.AvatarPath, ws);
-                        }
+                        App.LogTrace("[UserProfileService] SyncFromNasIfNewer error: " + nasSyncEx.Message);
                     }
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine("[UserProfileService] Avatar auto-sync error: " + ex.Message);
-                }
-            }
 
-            return profile;
+                // If profile is missing or not fully configured, attempt auto-discovery & auto-restore from NAS
+                if (profile == null || !profile.IsConfigured || string.IsNullOrWhiteSpace(profile.DesignerName))
+                {
+                    string discoveredRoot = NasConfigSyncService.DiscoverWorkspaceRoot();
+                    if (!string.IsNullOrWhiteSpace(discoveredRoot))
+                    {
+                        bool restored = NasConfigSyncService.TryAutoRestoreUserConfig(discoveredRoot);
+                        if (restored)
+                        {
+                            var restoredProfile = JsonPersistenceHelper.Load<UserProfile>(ConfigFilePath);
+                            if (restoredProfile != null)
+                            {
+                                profile = restoredProfile;
+                                profile.WorkspaceRoot = discoveredRoot;
+                                profile.IsConfigured = true;
+                                SaveProfile(profile);
+                                _cachedProfile = profile;
+                                return profile;
+                            }
+                        }
+
+                        if (profile == null) profile = GetDefaultProfile();
+                        profile.WorkspaceRoot = discoveredRoot;
+                    }
+                    else
+                    {
+                        if (profile == null) profile = GetDefaultProfile();
+                    }
+
+                    // If designer name and workspace root are present, mark configured
+                    if (!string.IsNullOrWhiteSpace(profile.DesignerName) && !string.IsNullOrWhiteSpace(profile.WorkspaceRoot) && Directory.Exists(profile.WorkspaceRoot))
+                    {
+                        profile.IsConfigured = true;
+                        SaveProfile(profile);
+                    }
+                }
+
+                // Auto-sync avatar from _Team/Users/{staffId}/avatar.jpg or staff_directory.json on NAS
+                if (profile != null && !string.IsNullOrWhiteSpace(profile.StaffId))
+                {
+                    try
+                    {
+                        string ws = !string.IsNullOrWhiteSpace(profile.WorkspaceRoot) && Directory.Exists(profile.WorkspaceRoot)
+                            ? profile.WorkspaceRoot
+                            : NasConfigSyncService.DiscoverWorkspaceRoot();
+
+                        if (!string.IsNullOrWhiteSpace(ws) && Directory.Exists(ws))
+                        {
+                            string nasAvatar = GetUserAvatarPath(ws, profile.StaffId);
+                            if (!string.IsNullOrWhiteSpace(nasAvatar) && File.Exists(nasAvatar))
+                            {
+                                string localApp = AppPaths.AppDataFolder;
+                                if (!Directory.Exists(localApp)) Directory.CreateDirectory(localApp);
+                                string localCached = Path.Combine(localApp, string.Format("avatar_{0}.jpg", profile.StaffId.Trim()));
+
+                                // Copy from NAS if local is missing or NAS avatar was modified more recently
+                                if (!File.Exists(localCached) || File.GetLastWriteTimeUtc(nasAvatar) > File.GetLastWriteTimeUtc(localCached).AddSeconds(2))
+                                {
+                                    File.Copy(nasAvatar, localCached, true);
+                                }
+
+                                if (!string.Equals(profile.AvatarPath, localCached, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    profile.AvatarPath = localCached;
+                                    JsonPersistenceHelper.Save(ConfigFilePath, profile);
+                                }
+                            }
+                            else if (!string.IsNullOrWhiteSpace(profile.AvatarPath) && File.Exists(profile.AvatarPath))
+                            {
+                                // Local avatar exists but NAS is missing it: auto-push to NAS _Team/Users/{staffId}/avatar.jpg
+                                SyncAvatarToNas(profile.StaffId, profile.AvatarPath, ws);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        App.LogTrace("[UserProfileService] Avatar auto-sync error: " + ex.Message);
+                    }
+                }
+
+                _cachedProfile = profile;
+                return profile;
+            }
         }
 
         public static void SaveProfile(UserProfile profile)
         {
+            lock (_profileLock)
+            {
+                _cachedProfile = profile;
+            }
+
             JsonPersistenceHelper.Save(ConfigFilePath, profile);
             if (profile != null && !string.IsNullOrWhiteSpace(profile.WorkspaceRoot))
             {
@@ -166,7 +199,7 @@ namespace SS_CAM.Services
                             string uProfilePath = Path.Combine(uFolder, "profile.json");
                             JsonPersistenceHelper.Save(uProfilePath, profile);
                         }
-                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[UserProfileService] SaveUserProfile error: " + ex.Message); }
+                        catch (Exception ex) { App.LogTrace("[UserProfileService] SaveUserProfile error: " + ex.Message); }
                     }
 
                     // Push avatar to NAS if valid local avatar exists

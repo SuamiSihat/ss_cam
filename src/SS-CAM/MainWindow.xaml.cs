@@ -31,6 +31,7 @@ namespace SS_CAM
         private UserProfile currentProfile;
         private List<DesignerFolderItem> _popoverCachedProjects;
         private bool _popoverUpdating = false;
+        private static readonly System.Net.Http.HttpClient _portalHttpClient = PortalAuthService.CreatePortalHttpClient(TimeSpan.FromSeconds(5));
 
         public MainWindow()
         {
@@ -57,77 +58,75 @@ namespace SS_CAM
                 try { InitHeaderAnimation(); App.LogTrace("MainWindow: InitHeaderAnimation done"); }
                 catch (Exception ex) { App.LogTrace("MainWindow: InitHeaderAnimation error: " + ex.Message); }
 
-                // 2. Play Intro Sound Effect on App Launch
-                try { AudioFeedbackService.PlayIntroSound(); App.LogTrace("MainWindow: PlayIntroSound done"); }
-                catch (Exception ex) { App.LogTrace("MainWindow: PlayIntroSound error: " + ex.Message); }
+                // 2. Load Designer Profile & UI
+                try { RefreshProfileUI(); App.LogTrace("MainWindow: Profile UI refreshed"); }
+                catch (Exception ex) { App.LogTrace("MainWindow: RefreshProfileUI error: " + ex.Message); }
 
-                // 3. Load Designer Profile & Check First-Run Setup
+                // 3. Status bar listeners
                 try
                 {
-                    RefreshProfileUI();
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        try
-                        {
-                            CheckFirstRunProfileSetup();
-                            App.LogTrace("MainWindow: ProfileSetup done");
-                        }
-                        catch (Exception ex) { App.LogTrace("MainWindow: Profile setup error: " + ex.Message); }
-                    }), DispatcherPriority.ApplicationIdle);
-                }
-                catch (Exception ex) { App.LogTrace("MainWindow: Profile setup error: " + ex.Message); }
-
-                // 4. Initialize Real-Time Footer Status Bar Timer & NAS Online Check
-                try
-                {
-                    InitNasHealthCheck();
-                    InitUpdateCheck();
                     InitRadioStatusListeners();
                     InitVisualizerListeners();
                     App.LogTrace("MainWindow: Listeners done");
                 }
                 catch (Exception ex) { App.LogTrace("MainWindow: Listeners error: " + ex.Message); }
 
-                // 5. Apply Theme on Launch (loads saved theme from ThemeService)
-                try { ThemeService.ApplyTheme(ThemeService.CurrentTheme); App.LogTrace("MainWindow: ApplyTheme done"); }
+                // 4. Apply Theme on Launch without writing to NAS
+                try { ThemeService.ApplyTheme(ThemeService.CurrentTheme, persist: false); App.LogTrace("MainWindow: ApplyTheme done"); }
                 catch (Exception ex) { App.LogTrace("MainWindow: ApplyTheme error: " + ex.Message); }
 
-                // 6. Start Background NAS File Watcher
-                try
-                {
-                    if (currentProfile != null && !string.IsNullOrWhiteSpace(currentProfile.WorkspaceRoot))
-                    {
-                        WorkspaceWatcherService.Instance.Start(currentProfile.WorkspaceRoot);
-                        App.LogTrace("MainWindow: WorkspaceWatcher started");
-                    }
-                }
-                catch (Exception ex) { App.LogTrace("MainWindow: WorkspaceWatcher error: " + ex.Message); }
-
-                // 6b. Initialize Live Work Session Tracker
-                try
-                {
-                    InitWorkSessionTracker();
-                    App.LogTrace("MainWindow: WorkSessionTracker initialized");
-                }
-                catch (Exception ex) { App.LogTrace("MainWindow: WorkSessionTracker error: " + ex.Message); }
-
-                // 7. Inject Dynamic Plugins into Navigation
+                // 5. Inject Dynamic Plugins into Navigation
                 RefreshPluginNavigation();
 
-                // 8. Navigate to Dashboard on startup
+                // 6. Navigate to Dashboard on startup
                 try { RootNavigation.Navigate(typeof(DashboardPage)); App.LogTrace("MainWindow: Navigated to DashboardPage"); }
                 catch (Exception ex) { App.LogTrace("MainWindow: Navigate Dashboard error: " + ex.Message); }
 
-                // 8. Trigger Welcome Toast Notification
-                try
+                // 7. Defer non-critical background services to ContextIdle
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    string displayName = (currentProfile != null && !string.IsNullOrWhiteSpace(currentProfile.DesignerName)) ? currentProfile.DesignerName : "designer";
-                    NotificationService.ShowSuccess("SuamiSihat CAM Ready", "Workstation initialized. Welcome back, " + displayName + "!");
-                    App.LogTrace("MainWindow: Welcome notification done");
-                }
-                catch (Exception ex) { App.LogTrace("MainWindow: Welcome notification error: " + ex.Message); }
+                    try { AudioFeedbackService.PlayIntroSound(); App.LogTrace("MainWindow: PlayIntroSound done"); }
+                    catch (Exception ex) { App.LogTrace("MainWindow: PlayIntroSound error: " + ex.Message); }
 
-                App.LogTrace("MainWindow: OnLoaded finished completely");
+                    try { CheckFirstRunProfileSetup(); App.LogTrace("MainWindow: ProfileSetup done"); }
+                    catch (Exception ex) { App.LogTrace("MainWindow: Profile setup error: " + ex.Message); }
+
+                    try
+                    {
+                        InitNasHealthCheck();
+                        InitUpdateCheck();
+                        App.LogTrace("MainWindow: Background network checks initialized");
+                    }
+                    catch (Exception ex) { App.LogTrace("MainWindow: Health & update checks error: " + ex.Message); }
+
+                    try
+                    {
+                        if (currentProfile != null && !string.IsNullOrWhiteSpace(currentProfile.WorkspaceRoot))
+                        {
+                            WorkspaceWatcherService.Instance.Start(currentProfile.WorkspaceRoot);
+                            App.LogTrace("MainWindow: WorkspaceWatcher started");
+                        }
+                    }
+                    catch (Exception ex) { App.LogTrace("MainWindow: WorkspaceWatcher error: " + ex.Message); }
+
+                    try
+                    {
+                        InitWorkSessionTracker();
+                        App.LogTrace("MainWindow: WorkSessionTracker initialized");
+                    }
+                    catch (Exception ex) { App.LogTrace("MainWindow: WorkSessionTracker error: " + ex.Message); }
+
+                    try
+                    {
+                        string displayName = (currentProfile != null && !string.IsNullOrWhiteSpace(currentProfile.DesignerName)) ? currentProfile.DesignerName : "designer";
+                        NotificationService.ShowSuccess("SuamiSihat CAM Ready", "Workstation initialized. Welcome back, " + displayName + "!");
+                        App.LogTrace("MainWindow: Welcome notification done");
+                    }
+                    catch (Exception ex) { App.LogTrace("MainWindow: Welcome notification error: " + ex.Message); }
+                }), DispatcherPriority.ContextIdle);
+
+                long elapsed = App.StartupStopwatch != null ? App.StartupStopwatch.ElapsedMilliseconds : -1;
+                App.LogTrace(string.Format("MainWindow: OnLoaded finished completely (Total startup time: {0} ms)", elapsed));
             }
             catch (Exception fatalEx)
             {
@@ -818,7 +817,19 @@ namespace SS_CAM
             }
 
             headerAnimTimer = new DispatcherTimer();
-            headerAnimTimer.Interval = TimeSpan.FromMilliseconds(33);
+            headerAnimTimer.Interval = TimeSpan.FromMilliseconds(50);
+            StateChanged += (s, e) =>
+            {
+                if (headerAnimTimer == null) return;
+                if (WindowState == WindowState.Minimized)
+                {
+                    headerAnimTimer.Stop();
+                }
+                else
+                {
+                    if (!headerAnimTimer.IsEnabled) headerAnimTimer.Start();
+                }
+            };
             headerAnimTimer.Tick += (s, ev) =>
             {
                 visTickCount++;
@@ -1082,40 +1093,23 @@ namespace SS_CAM
 
         private void CheckNasOnlineAsync(Action<bool, string> callback)
         {
-            System.Threading.ThreadPool.QueueUserWorkItem(state =>
+            var unawaited = System.Threading.Tasks.Task.Run(async () =>
             {
                 bool isOnline = false;
                 try
                 {
-                    System.Net.ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
-
-                    System.Net.HttpWebRequest request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create("https://suamisihat.myds.me");
-                    request.Timeout = 4000;
-                    request.ReadWriteTimeout = 4000;
-                    request.Method = "HEAD";
-
-                    using (System.Net.HttpWebResponse response = (System.Net.HttpWebResponse)request.GetResponse())
+                    using (var response = await _portalHttpClient.GetAsync("https://suamisihat.myds.me", System.Net.Http.HttpCompletionOption.ResponseHeadersRead))
                     {
-                        isOnline = (response.StatusCode == System.Net.HttpStatusCode.OK ||
-                                    response.StatusCode == System.Net.HttpStatusCode.Moved ||
-                                    response.StatusCode == System.Net.HttpStatusCode.Redirect ||
-                                    response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
-                                    response.StatusCode == System.Net.HttpStatusCode.Forbidden);
+                        isOnline = response.IsSuccessStatusCode ||
+                                   response.StatusCode == System.Net.HttpStatusCode.Moved ||
+                                   response.StatusCode == System.Net.HttpStatusCode.Redirect ||
+                                   response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                                   response.StatusCode == System.Net.HttpStatusCode.Forbidden;
                     }
                 }
-                catch (System.Net.WebException ex)
+                catch (Exception ex)
                 {
-                    if (ex.Response != null)
-                    {
-                        isOnline = true;
-                    }
-                    else
-                    {
-                        isOnline = false;
-                    }
-                }
-                catch
-                {
+                    App.LogTrace("CheckNasOnlineAsync: " + ex.Message);
                     isOnline = false;
                 }
 
@@ -1182,50 +1176,40 @@ namespace SS_CAM
 
         private void InitUpdateCheck()
         {
-            System.Threading.ThreadPool.QueueUserWorkItem(state =>
+            var unawaited = System.Threading.Tasks.Task.Run(async () =>
             {
-                System.Threading.Thread.Sleep(3000); // slight delay so app loads first
-                CheckForUpdate();
+                await System.Threading.Tasks.Task.Delay(3000);
+                await CheckForUpdateAsync();
             });
         }
 
-        private void CheckForUpdate()
+        private async System.Threading.Tasks.Task CheckForUpdateAsync()
         {
             try
             {
-                System.Net.ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, e) => true;
-                System.Net.HttpWebRequest req = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(VersionCheckUrl);
-                req.Timeout = 5000;
-                req.Method = "GET";
-                req.Accept = "application/json";
+                string json = await _portalHttpClient.GetStringAsync(VersionCheckUrl);
+                string latestVersion = ExtractJsonString(json, "version");
+                string releaseNotes = ExtractJsonString(json, "releaseNotes");
+                string downloadUrl = ExtractJsonString(json, "downloadUrl");
 
-                using (System.Net.HttpWebResponse resp = (System.Net.HttpWebResponse)req.GetResponse())
-                using (System.IO.StreamReader reader = new System.IO.StreamReader(resp.GetResponseStream()))
+                if (!string.IsNullOrWhiteSpace(latestVersion) && IsNewerVersion(latestVersion, CurrentVersion))
                 {
-                    string json = reader.ReadToEnd();
-                    string latestVersion = ExtractJsonString(json, "version");
-                    string releaseNotes = ExtractJsonString(json, "releaseNotes");
-                    string downloadUrl = ExtractJsonString(json, "downloadUrl");
+                    _updateDownloadUrl = downloadUrl;
+                    string notes = string.IsNullOrWhiteSpace(releaseNotes) ? "" : " – " + releaseNotes;
+                    string msg = string.Format("SS-CAM v{0} is available{1}", latestVersion, notes);
 
-                    if (!string.IsNullOrWhiteSpace(latestVersion) && IsNewerVersion(latestVersion, CurrentVersion))
+                    if (Application.Current != null)
                     {
-                        _updateDownloadUrl = downloadUrl;
-                        string notes = string.IsNullOrWhiteSpace(releaseNotes) ? "" : " – " + releaseNotes;
-                        string msg = string.Format("SS-CAM v{0} is available{1}", latestVersion, notes);
-
-                        if (Application.Current != null)
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                ShowUpdateBanner(msg);
-                            }));
-                        }
+                            ShowUpdateBanner(msg);
+                        }));
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[MainWindow] CheckForUpdatesAsync: " + ex.Message);
+                App.LogTrace("[MainWindow] CheckForUpdatesAsync: " + ex.Message);
             }
         }
 

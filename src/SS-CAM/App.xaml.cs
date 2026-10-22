@@ -8,8 +8,11 @@ namespace SS_CAM
 {
     public partial class App : Application
     {
+        public static Stopwatch StartupStopwatch { get; private set; }
+
         protected override void OnStartup(StartupEventArgs e)
         {
+            StartupStopwatch = Stopwatch.StartNew();
             LogTrace("=== SS-CAM APPLICATION STARTUP ===");
             AppDomain.CurrentDomain.ProcessExit += (s, args) => LogTrace("=== AppDomain ProcessExit fired ===");
             AppDomain.CurrentDomain.UnhandledException += (s, args) =>
@@ -96,9 +99,31 @@ namespace SS_CAM
             });
         }
 
+        private static readonly System.Collections.Concurrent.ConcurrentQueue<string> _traceBuffer = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        private static readonly object _traceLock = new object();
+        private static System.Threading.Timer _traceTimer;
+
+        static App()
+        {
+            try
+            {
+                _traceTimer = new System.Threading.Timer(state => FlushTraceBuffer(), null, 1000, 1000);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[App] TraceTimer init error: " + ex.Message);
+            }
+        }
+
         protected override void OnExit(ExitEventArgs e)
         {
             LogTrace(string.Format("=== SS-CAM APPLICATION EXIT (ExitCode={0}) ===", e.ApplicationExitCode));
+            FlushTraceBuffer();
+            if (_traceTimer != null)
+            {
+                _traceTimer.Dispose();
+                _traceTimer = null;
+            }
             base.OnExit(e);
         }
 
@@ -106,14 +131,39 @@ namespace SS_CAM
         {
             try
             {
-                string dir = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "SuamiSihat");
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-                string path = Path.Combine(dir, "startup_trace.log");
-                File.AppendAllText(path, string.Format("[{0:yyyy-MM-dd HH:mm:ss.fff}] {1}\r\n", DateTime.Now, message));
+                string entry = string.Format("[{0:yyyy-MM-dd HH:mm:ss.fff}] {1}\r\n", DateTime.Now, message);
+                _traceBuffer.Enqueue(entry);
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[App] LogTrace error: " + ex.Message); }
+            catch (Exception ex) { Debug.WriteLine("[App] LogTrace error: " + ex.Message); }
+        }
+
+        public static void FlushTraceBuffer()
+        {
+            if (_traceBuffer.IsEmpty) return;
+            lock (_traceLock)
+            {
+                if (_traceBuffer.IsEmpty) return;
+                try
+                {
+                    string dir = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "SuamiSihat");
+                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                    string path = Path.Combine(dir, "startup_trace.log");
+
+                    var sb = new System.Text.StringBuilder();
+                    string line;
+                    while (_traceBuffer.TryDequeue(out line))
+                    {
+                        sb.Append(line);
+                    }
+                    if (sb.Length > 0)
+                    {
+                        File.AppendAllText(path, sb.ToString());
+                    }
+                }
+                catch (Exception ex) { Debug.WriteLine("[App] FlushTraceBuffer error: " + ex.Message); }
+            }
         }
 
         private static void LogException(Exception ex)
@@ -148,12 +198,17 @@ namespace SS_CAM
                 {
                     try
                     {
-                        File.Copy(currentExe, targetExe, true);
+                        FileInfo src = new FileInfo(currentExe);
+                        FileInfo dst = new FileInfo(targetExe);
+                        if (!dst.Exists || dst.Length != src.Length || dst.LastWriteTimeUtc != src.LastWriteTimeUtc)
+                        {
+                            File.Copy(currentExe, targetExe, true);
+                        }
                     }
-                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+                    catch (Exception ex) { LogTrace("[App] RegisterUserAppPlacement copy error: " + ex.Message); }
                 }
 
-                // Deploy Brand Assets & Fonts to LocalAppData automatically
+                // Deploy Brand Assets & Fonts to LocalAppData automatically (fast with version marker)
                 PayloadInstallerService.DeployBrandAssets();
                 PayloadInstallerService.InstallBrandFonts();
 
@@ -179,11 +234,11 @@ namespace SS_CAM
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine("[App] Shortcut creation error: " + ex.Message);
+                        LogTrace("[App] Shortcut creation error: " + ex.Message);
                     }
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+            catch (Exception ex) { LogTrace("[App] RegisterUserAppPlacement error: " + ex.Message); }
         }
 
         public static void RegisterCustomUriScheme()
