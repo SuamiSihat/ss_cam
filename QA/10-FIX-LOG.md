@@ -1444,3 +1444,27 @@ Owner decision: typed username, not a dropdown, plus "remember me" on each devic
 **Verification**
 - See the commit message; all builds and tests were re-run before pushing.
 - The live sign-in flow against the production portal was not run (BLOCKED: no test server reachable from this machine).
+
+---
+
+## P2: Radio Stream URL Modernization (`live.mp3`) & Corporate Radio Cleanup (2026-10-22, Desktop Improvement Batch)
+
+Migrated default radio stream URLs across Windows, Linux, and Android platforms from legacy endpoints to `https://radio.suamisihat.myds.me/live.mp3`. Removed hardcoded tenant preset `GetCorporateRadioStation` from Core code to maintain generic Core compliance (dual-track governance), resolving tenant URL leakage while preserving the official tenant stream via `tenant_config.json`.
+
+**Files Changed**
+- `src/SS-CAM/Services/RadioStreamService.cs`: Purged `GetCorporateRadioStation()`, cleaned default preset list, updated URL migration rewrite.
+- `src/SS-CAM/Services/TenantConfigService.cs`: Updated fallback station stream URL to `live.mp3`.
+- `src/SS-CAM/tenant_config.json`: Updated tenant radio URL to `live.mp3`.
+- `src/SS-CAM.Linux/ViewModels/MainViewModel.cs`: Updated default stream URL to `live.mp3`.
+- `src/SS-CAM.Android/app/src/main/java/com/suamisihat/sscam/ui/screens/StudioRadioScreen.kt`: Updated default stream URL to `live.mp3`.
+
+**Verification**
+- Stream endpoint probed: `curl` probe times out / returns 0 bytes (source offline, reported as BLOCKED without modifying URL).
+- Core code audit: 0 legacy `/listen` or `/live` references remaining in `src/`.
+- Windows Debug build: PASS (0 errors).
+- Windows Release build: PASS (0 errors, `bin\Release\SS-CAM.exe`).
+- Android build: PASS (`gradlew assembleDebug`, BUILD SUCCESSFUL in 44s).
+- Linux build: BLOCKED (dotnet CLI toolchain not installed on host).
+- Dual-Track Governance (`QA/verify-dual-track.ps1 -Fix`): PASS (14/14 checks).
+- Source Guardian (`QA/verify-sscam.ps1 -Fix`): PASS (14/14 checks).
+
