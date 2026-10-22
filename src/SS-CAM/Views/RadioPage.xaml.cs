@@ -22,6 +22,7 @@ namespace SS_CAM.Views
         private Random _random = new Random();
         private string _activeFilter = "ALL";
         private RadioStation _editingStation = null;
+        private bool _enableHeavyParticles = false;
 
         private void OnScrollViewerPreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
@@ -126,13 +127,13 @@ namespace SS_CAM.Views
                         ParticleCanvas.Width = e.NewSize.Width;
                         ParticleCanvas.Height = e.NewSize.Height;
                     }
-                    if (_marsParticles.Count == 0)
+                    if (_enableHeavyParticles && _marsParticles.Count == 0)
                     {
                         InitializeScatteredMarsSymbols();
                     }
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[RadioPage] OnHeroMeshSizeChanged: " + ex.Message); }
+            catch (Exception ex) { App.LogTrace("RadioPage.OnHeroMeshSizeChanged: " + ex.Message); }
         }
 
         private void InitializeScatteredMarsSymbols()
@@ -297,7 +298,11 @@ namespace SS_CAM.Views
             _radioService.CoverDownloaded      += OnCoverDownloaded;
 
             InitVisualizerTimer();
-            InitializeScatteredMarsSymbols();
+            if (_enableHeavyParticles)
+            {
+                InitializeScatteredMarsSymbols();
+            }
+            UpdateParticleToggleUI();
             RefreshHeroUI();
             ApplyFilter(_activeFilter);
         }
@@ -323,7 +328,7 @@ namespace SS_CAM.Views
                     viz.VisualizerModeChanged -= OnVisualizerModeChanged;
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[RadioPage] OnPageUnloaded viz unhook: " + ex.Message); }
+            catch (Exception ex) { App.LogTrace("RadioPage.OnPageUnloaded viz unhook: " + ex.Message); }
         }
 
         private void InitVisualizerTimer()
@@ -338,7 +343,7 @@ namespace SS_CAM.Views
                     UpdateVisualizerModeUI(viz.CurrentMode);
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[RadioPage] InitVisualizerTimer: " + ex.Message); }
+            catch (Exception ex) { App.LogTrace("RadioPage.InitVisualizerTimer: " + ex.Message); }
         }
 
         private void OnVisualizerModeChanged(object sender, VisualizerMode mode)
@@ -395,7 +400,7 @@ namespace SS_CAM.Views
                         viz.SetMode(mode);
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[RadioPage] OnVisualizerComboSelectionChanged: " + ex.Message); }
+            catch (Exception ex) { App.LogTrace("RadioPage.OnVisualizerComboSelectionChanged: " + ex.Message); }
         }
 
         private void OnRhythmTick(object sender, RhythmFrameEventArgs e)
@@ -418,8 +423,8 @@ namespace SS_CAM.Views
                         ? HeroMeshContainer.ActualHeight
                         : 130.0;
 
-                    // If not playing, hide all symbols, logos, and shockwaves
-                    if (!isPlaying)
+                    // If not playing or particles disabled, hide all heavy symbols, logos, and shockwaves
+                    if (!isPlaying || !_enableHeavyParticles)
                     {
                         if (ScatteredSymbolsCanvas != null) ScatteredSymbolsCanvas.Opacity = 0.0;
                         if (SSLogoCanvas != null) SSLogoCanvas.Opacity = 0.0;
@@ -427,7 +432,7 @@ namespace SS_CAM.Views
                     }
                     else
                     {
-                        // When playing, reveal symbol and logo backdrop layer
+                        // When playing with FX enabled, reveal symbol and logo backdrop layer
                         if (ScatteredSymbolsCanvas != null) ScatteredSymbolsCanvas.Opacity = 1.0;
                         if (SSLogoCanvas != null) SSLogoCanvas.Opacity = Math.Min(0.85, 0.35 + e.Bass * 0.45);
 
@@ -801,7 +806,7 @@ namespace SS_CAM.Views
                         }
                     }
                 }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[RadioPage] OnRhythmTick: " + ex.Message); }
+                catch (Exception ex) { App.LogTrace("RadioPage.OnRhythmTick: " + ex.Message); }
             }));
         }
 
@@ -813,12 +818,14 @@ namespace SS_CAM.Views
                 HeroIconText.Text = "\uE768"; // Radio glyph fallback
                 HeroStationName.Text = station.Name;
                 HeroGenreText.Text = station.Genre;
+                if (HeroInitialsText != null) HeroInitialsText.Text = station.Initials;
             }
             else
             {
                 HeroIconText.Text = "\uE768";
                 HeroStationName.Text = "No station selected";
                 HeroGenreText.Text = "";
+                if (HeroInitialsText != null) HeroInitialsText.Text = "SS";
             }
 
             UpdatePlaybackStateUI(_radioService.State);
@@ -923,14 +930,19 @@ namespace SS_CAM.Views
 
         /// <summary>
         /// Loads station.LocalCoverPath into the hero transport bar's cover Image element.
-        /// Shows the Image and hides the fallback glyph TextBlock.
+        /// Shows the Image and hides the fallback glyph/initials.
         /// </summary>
         private void UpdateHeroCoverImage(RadioStation station)
         {
             if (station == null || !station.HasLocalCover)
             {
-                HeroCoverImage.Visibility = Visibility.Collapsed;
-                HeroIconText.Visibility   = Visibility.Visible;
+                if (HeroCoverImage != null) HeroCoverImage.Visibility = Visibility.Collapsed;
+                if (HeroIconText != null) HeroIconText.Visibility = Visibility.Visible;
+                if (HeroInitialsText != null)
+                {
+                    HeroInitialsText.Text = (station != null) ? station.Initials : "SS";
+                    HeroInitialsText.Visibility = Visibility.Visible;
+                }
                 return;
             }
 
@@ -938,21 +950,30 @@ namespace SS_CAM.Views
             {
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
-                bmp.UriSource      = new Uri(station.LocalCoverPath, UriKind.Absolute);
-                bmp.CacheOption    = BitmapCacheOption.OnLoad;
-                bmp.DecodePixelWidth = 92; // 2x display size for retina clarity
+                bmp.UriSource        = new Uri(station.LocalCoverPath, UriKind.Absolute);
+                bmp.CacheOption      = BitmapCacheOption.OnLoad;
+                bmp.DecodePixelWidth = 256; // 2x display size for 128x128 retina clarity
                 bmp.EndInit();
                 bmp.Freeze();
 
-                HeroCoverImage.Source     = bmp;
-                HeroCoverImage.Visibility = Visibility.Visible;
-                HeroIconText.Visibility   = Visibility.Collapsed;
+                if (HeroCoverImage != null)
+                {
+                    HeroCoverImage.Source     = bmp;
+                    HeroCoverImage.Visibility = Visibility.Visible;
+                }
+                if (HeroIconText != null) HeroIconText.Visibility = Visibility.Collapsed;
+                if (HeroInitialsText != null) HeroInitialsText.Visibility = Visibility.Collapsed;
             }
-            catch
+            catch (Exception ex)
             {
-                // Silently fall back to glyph icon on any load error
-                HeroCoverImage.Visibility = Visibility.Collapsed;
-                HeroIconText.Visibility   = Visibility.Visible;
+                App.LogTrace("RadioPage.UpdateHeroCoverImage: " + ex.Message);
+                if (HeroCoverImage != null) HeroCoverImage.Visibility = Visibility.Collapsed;
+                if (HeroIconText != null) HeroIconText.Visibility = Visibility.Visible;
+                if (HeroInitialsText != null)
+                {
+                    HeroInitialsText.Text = station.Initials;
+                    HeroInitialsText.Visibility = Visibility.Visible;
+                }
             }
         }
 
@@ -977,8 +998,36 @@ namespace SS_CAM.Views
             }
         }
 
+        private void OnToggleHeavyParticlesClicked(object sender, RoutedEventArgs e)
+        {
+            _enableHeavyParticles = !_enableHeavyParticles;
+            UpdateParticleToggleUI();
+
+            if (_enableHeavyParticles)
+            {
+                InitializeScatteredMarsSymbols();
+                if (ScatteredSymbolsCanvas != null) ScatteredSymbolsCanvas.Opacity = 1.0;
+            }
+            else
+            {
+                if (ScatteredSymbolsCanvas != null) ScatteredSymbolsCanvas.Opacity = 0.0;
+                if (SSLogoCanvas != null) SSLogoCanvas.Opacity = 0.0;
+            }
+        }
+
+        private void UpdateParticleToggleUI()
+        {
+            if (TxtParticleState != null)
+                TxtParticleState.Text = _enableHeavyParticles ? "FX: On" : "FX: Off";
+            if (BtnToggleParticles != null)
+                BtnToggleParticles.Appearance = _enableHeavyParticles ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+        }
+
         private void HighlightFilterButton(Button selectedBtn)
         {
+            Brush activeBg = TryFindResource("FluentBrand80") as Brush ?? Brushes.DodgerBlue;
+            Brush inactiveText = TryFindResource("TextFillColorSecondaryBrush") as Brush ?? Brushes.Gray;
+
             foreach (var child in FilterCategoryPanel.Children)
             {
                 Border border = child as Border;
@@ -987,15 +1036,15 @@ namespace SS_CAM.Views
                     Button b = border.Child as Button;
                     if (b == selectedBtn)
                     {
-                        border.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#043388"));
+                        border.Background = activeBg;
                         b.Foreground = Brushes.White;
-                        b.FontWeight = FontWeights.Bold;
+                        b.FontWeight = FontWeights.SemiBold;
                     }
                     else
                     {
                         border.Background = Brushes.Transparent;
-                        b.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569"));
-                        b.FontWeight = FontWeights.SemiBold;
+                        b.Foreground = inactiveText;
+                        b.FontWeight = FontWeights.Normal;
                     }
                 }
             }
