@@ -548,11 +548,23 @@ namespace SS_CAM.Views
                 {
                     return new Bitmap(resPath);
                 }
+
+                // Embedded WPF resource (ships inside the exe)
+                var info = Application.GetResourceStream(new Uri("/SS-CAM;component/Resources/ss_icon_light.png", UriKind.Relative));
+                if (info != null)
+                {
+                    using (Stream s = info.Stream)
+                    using (Bitmap temp = new Bitmap(s))
+                    {
+                        return new Bitmap(temp);
+                    }
+                }
             }
             catch (Exception ex)
             {
                 App.LogTrace("[QrCodePage] LoadSsIconLogo: " + ex.Message);
             }
+            App.LogTrace("[QrCodePage] LoadSsIconLogo: logomark not found, using text fallback");
             return GenerateFallbackSsCrest();
         }
 

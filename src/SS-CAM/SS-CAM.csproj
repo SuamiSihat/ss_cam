@@ -373,6 +373,7 @@
       <SubType>Code</SubType>
     </Compile>
     <EmbeddedResource Include="tenant_config.json" />
+    <Resource Include="Resources\ss_icon_light.png" />
     <Content Include="tenant_config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

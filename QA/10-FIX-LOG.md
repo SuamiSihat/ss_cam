@@ -1491,3 +1491,15 @@ Migrated default radio stream URLs across Windows, Linux, and Android platforms 
 - Visual check of the Rounded+logo and Dots renders: three clean finder eyes and a 4-module quiet zone.
 - Release build: PASS. Source Guardian: 14/14 PASS.
 - Not verified: SVG export was not machine-decoded, a phone scan was not done, and the live in-app preview was not re-checked (the app was not launched).
+
+## P4: QR Studio center shows "SS" text instead of the SuamiSihat logomark (2026-10-22)
+
+**Root cause:** `Resources/ss_icon_light.png` was not listed in `SS-CAM.csproj`, so it never reached the build output. `QrCodePage.LoadSsIconLogo` did not find it and fell back to `GenerateFallbackSsCrest` (yellow "SS" text on a navy circle) without logging anything.
+
+**Fix:** The logomark is now added as a WPF `<Resource>`, so it is built into the exe. `LoadSsIconLogo` checks the payload copy first, then the loose file, then the embedded resource. The text crest is only used as a last resort, and that fallback is now logged.
+
+**Verification**
+- Release build (to a separate output folder, because the running app locks `bin\Release`): PASS. Source Guardian: 14/14 PASS.
+- `SS-CAM.g.resources` contains `resources/ss_icon_light.png` (1081x1080): PASS.
+- A Rounded QR with the embedded logomark and white pad decodes to `https://suamisihat.clinic` with OpenCV: PASS.
+- Not verified: the live in-app preview and a phone scan.
