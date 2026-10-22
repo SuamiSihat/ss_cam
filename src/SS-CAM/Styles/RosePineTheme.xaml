@@ -80,4 +80,21 @@
                       BlurRadius="30" ShadowDepth="8" Direction="270"
                       Color="#12101D" Opacity="0.65"/>
 
+    <!-- Global ComboBox & Input Standards (Prevents Text Clipping, Cropping & Dropdown Overlay Issues) -->
+    <Style TargetType="{x:Type ComboBox}">
+        <Setter Property="MinHeight" Value="36"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="MaxDropDownHeight" Value="380"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+    </Style>
+
+    <Style TargetType="{x:Type ComboBoxItem}">
+        <Setter Property="MinHeight" Value="34"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
 </ResourceDictionary>

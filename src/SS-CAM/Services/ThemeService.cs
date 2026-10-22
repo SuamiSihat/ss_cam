@@ -13,7 +13,8 @@ namespace SS_CAM.Services
         Metamorphosis,   // Glassmorphism — deep navy + electric cyan + violet glow
         Catppuccin,      // Soothing pastel dark (Mocha flavor — Mauve accent on Base dark background)
         RosePine,        // All natural pine, warm rose, iris & gold aesthetic (rosepinetheme.com)
-        Nord             // Arctic, North-bluish color palette (nordtheme.com)
+        Nord,            // Arctic, North-bluish color palette (nordtheme.com)
+        Focus            // Neutral, high-contrast, flat, single blue-teal accent (productivity & speed)
     }
 
     public class ThemeColors
@@ -116,6 +117,8 @@ namespace SS_CAM.Services
                 return GetRosePineColors();
             if (theme == AppTheme.Nord)
                 return GetNordColors();
+            if (theme == AppTheme.Focus)
+                return GetFocusColors();
 
             return GetFalconiaColors();
         }
@@ -186,7 +189,7 @@ namespace SS_CAM.Services
 
             try
             {
-                var appTheme = (theme == AppTheme.Metamorphosis || theme == AppTheme.Catppuccin || theme == AppTheme.RosePine)
+                var appTheme = (theme == AppTheme.Metamorphosis || theme == AppTheme.Catppuccin || theme == AppTheme.RosePine || theme == AppTheme.Focus)
                     ? Wpf.Ui.Appearance.ApplicationTheme.Dark
                     : Wpf.Ui.Appearance.ApplicationTheme.Light;
 
@@ -201,6 +204,8 @@ namespace SS_CAM.Services
                     accentColor = (Color)ColorConverter.ConvertFromString("#EBBCBA");
                 else if (theme == AppTheme.Nord)
                     accentColor = (Color)ColorConverter.ConvertFromString("#5E81AC");
+                else if (theme == AppTheme.Focus)
+                    accentColor = (Color)ColorConverter.ConvertFromString("#0EA5E9");
                 else
                     accentColor = (Color)ColorConverter.ConvertFromString("#FCE53D");
 
@@ -397,7 +402,54 @@ namespace SS_CAM.Services
                 NavIndicatorColor = "#5E81AC",
                 NavIconActive     = "#5E81AC",
                 NavIconInactive   = "#4C566A",
+                SpectrumBarColor  = "#5E81AC"
+            };
+        }
 
+        private static ThemeColors GetFocusColors()
+        {
+            return new ThemeColors
+            {
+                IsLight = false,
+                FontFamily = "Segoe UI Variable Text, Segoe UI Variable Display, Segoe UI, sans-serif",
+
+                TitleBarForeground = "#F8FAFC",
+
+                HeaderBg     = "#0F172A",
+                HeaderBorder = "#1E293B",
+                MainFrameBg  = "#0B0F19",
+
+                SidebarBg     = "#0F172A",
+                SidebarBorder = "#1E293B",
+
+                SearchBg          = "#1E293B",
+                SearchBorder      = "#334155",
+                SearchText        = "#F8FAFC",
+                SearchPlaceholder = "#64748B",
+
+                ActiveNavBg      = "#1E293B",
+                ActiveNavText    = "#38BDF8",
+                ActiveNavSubtext = "#7DD3FC",
+
+                InactiveNavText    = "#94A3B8",
+                InactiveNavSubtext = "#64748B",
+
+                FooterBg        = "#0F172A",
+                FooterBorder    = "#1E293B",
+                FooterText      = "#94A3B8",
+                FooterCardBg    = "#1E293B",
+                FooterCardBorder= "#334155",
+
+                UserCardBg     = "#1E293B",
+                UserCardBorder = "#334155",
+                UserCardTitle  = "#F8FAFC",
+                UserCardSub    = "#38BDF8",
+
+                NavIndicatorColor = "#38BDF8",
+                NavIconActive     = "#38BDF8",
+                NavIconInactive   = "#64748B",
+
+                SpectrumBarColor  = "#38BDF8"
             };
         }
 
@@ -414,6 +466,8 @@ namespace SS_CAM.Services
                     newSource = "Styles/RosePineTheme.xaml";
                 else if (theme == AppTheme.Nord)
                     newSource = "Styles/NordTheme.xaml";
+                else if (theme == AppTheme.Focus)
+                    newSource = "Styles/FocusTheme.xaml";
                 else
                     newSource = "Styles/Fluent2Styles.xaml";
 
@@ -422,7 +476,7 @@ namespace SS_CAM.Services
                 for (int i = merged.Count - 1; i >= 0; i--)
                 {
                     var src = merged[i].Source != null ? merged[i].Source.OriginalString : "";
-                    if (src.Contains("Fluent2Styles") || src.Contains("MetamorphosisTheme") || src.Contains("CatppuccinTheme") || src.Contains("RosePineTheme") || src.Contains("NordTheme") || src.Contains("SSDefaultTheme"))
+                    if (src.Contains("Fluent2Styles") || src.Contains("MetamorphosisTheme") || src.Contains("CatppuccinTheme") || src.Contains("RosePineTheme") || src.Contains("NordTheme") || src.Contains("FocusTheme") || src.Contains("SSDefaultTheme"))
                     {
                         merged.RemoveAt(i);
                         break;

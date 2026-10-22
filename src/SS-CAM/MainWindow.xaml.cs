@@ -931,7 +931,7 @@ namespace SS_CAM
 
         private void OnStatusThemeToggle(object sender, MouseButtonEventArgs e)
         {
-            // Cycle through themes: Falconia -> Metamorphosis -> Catppuccin -> RosePine -> Nord -> Falconia
+            // Cycle through themes: Falconia -> Metamorphosis -> Catppuccin -> RosePine -> Nord -> Focus -> Falconia
             AppTheme nextTheme;
             if (ThemeService.CurrentTheme == AppTheme.Falconia)
                 nextTheme = AppTheme.Metamorphosis;
@@ -941,6 +941,8 @@ namespace SS_CAM
                 nextTheme = AppTheme.RosePine;
             else if (ThemeService.CurrentTheme == AppTheme.RosePine)
                 nextTheme = AppTheme.Nord;
+            else if (ThemeService.CurrentTheme == AppTheme.Nord)
+                nextTheme = AppTheme.Focus;
             else
                 nextTheme = AppTheme.Falconia;
 
@@ -1017,14 +1019,14 @@ namespace SS_CAM
             if (StatusThemeText != null)
             {
                 string defaultThemeName = (SS_CAM.Services.TenantConfigService.Current != null) ? SS_CAM.Services.TenantConfigService.Current.ThemeDefaultName : "SuamiSihat Light";
-                string themeName = (theme == AppTheme.Metamorphosis) ? "Metamorphosis" : (theme == AppTheme.Catppuccin ? "Catppuccin" : (theme == AppTheme.RosePine ? "Rosé Pine" : (theme == AppTheme.Nord ? "Nord Light" : defaultThemeName)));
+                string themeName = (theme == AppTheme.Metamorphosis) ? "Metamorphosis" : (theme == AppTheme.Catppuccin) ? "Catppuccin" : (theme == AppTheme.RosePine) ? "Rosé Pine" : (theme == AppTheme.Nord) ? "Nord Light" : (theme == AppTheme.Focus) ? "Focus" : defaultThemeName;
                 StatusThemeText.Text = themeName;
             }
 
             // -- Nav item foreground --
-            // Metamorphosis, Catppuccin & RosePine: dark sidebar in Dark WPF-UI mode — force nav text white.
+            // Metamorphosis, Catppuccin, RosePine & Focus: dark sidebar in Dark WPF-UI mode — force nav text white.
             // Falconia & Nord: light sidebar in Light WPF-UI mode — clear override (WPF-UI default = dark).
-            bool forceWhiteNavText = (theme == AppTheme.Metamorphosis || theme == AppTheme.Catppuccin || theme == AppTheme.RosePine);
+            bool forceWhiteNavText = (theme == AppTheme.Metamorphosis || theme == AppTheme.Catppuccin || theme == AppTheme.RosePine || theme == AppTheme.Focus);
             var navFg = forceWhiteNavText
                 ? new SolidColorBrush(Colors.White)
                 : null;

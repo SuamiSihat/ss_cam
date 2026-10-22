@@ -21,20 +21,29 @@ namespace SS_CAM.Views
                 TxtVersionBadge.Text = string.Format("SS-CAM {0}", AppVersion.DisplayVersion);
             Loaded += OnPageLoaded;
             Unloaded += OnPageUnloaded;
+            ThemeService.ThemeChanged += OnThemeChanged;
         }
 
         private void OnPageUnloaded(object sender, RoutedEventArgs e)
         {
-            // Reserved for future cleanup
+            ThemeService.ThemeChanged -= OnThemeChanged;
+        }
+
+        private void OnThemeChanged(AppTheme theme)
+        {
+            UpdateThemeChips(theme);
         }
 
         private bool _isPluginLoading = false;
 
         private void OnPageLoaded(object sender, RoutedEventArgs e)
         {
+            SelectCategory("Profile");
             LoadProfileData();
             LoadPluginStates();
             RefreshPortalAccountCard();
+            UpdateThemeChips(ThemeService.CurrentTheme);
+            ValidateWorkspacePath();
         }
 
         #region Web portal account
@@ -840,6 +849,88 @@ namespace SS_CAM.Views
             ThemeService.ApplyTheme(AppTheme.Nord);
         }
 
+        private void OnSelectFocusTheme(object sender, RoutedEventArgs e)
+        {
+            ThemeService.ApplyTheme(AppTheme.Focus);
+        }
+
+        private void UpdateThemeChips(AppTheme current)
+        {
+            if (BtnThemeFalconia != null) BtnThemeFalconia.Appearance = current == AppTheme.Falconia ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+            if (BtnThemeMetamorphosis != null) BtnThemeMetamorphosis.Appearance = current == AppTheme.Metamorphosis ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+            if (BtnThemeCatppuccin != null) BtnThemeCatppuccin.Appearance = current == AppTheme.Catppuccin ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+            if (BtnThemeRosePine != null) BtnThemeRosePine.Appearance = current == AppTheme.RosePine ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+            if (BtnThemeNord != null) BtnThemeNord.Appearance = current == AppTheme.Nord ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+            if (BtnThemeFocus != null) BtnThemeFocus.Appearance = current == AppTheme.Focus ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
+        }
+
+        #region Category Rail and Compact Profile
+
+        private void OnCategoryRailClicked(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as FrameworkElement;
+            if (btn == null || btn.Tag == null) return;
+            SelectCategory(btn.Tag.ToString());
+        }
+
+        public void SelectCategory(string category)
+        {
+            if (string.IsNullOrEmpty(category)) category = "Profile";
+
+            if (CategoryPanelProfile != null) CategoryPanelProfile.Visibility = (category == "Profile") ? Visibility.Visible : Visibility.Collapsed;
+            if (CategoryPanelWorkspace != null) CategoryPanelWorkspace.Visibility = (category == "Workspace") ? Visibility.Visible : Visibility.Collapsed;
+            if (CategoryPanelAccount != null) CategoryPanelAccount.Visibility = (category == "Account") ? Visibility.Visible : Visibility.Collapsed;
+            if (CategoryPanelAppearance != null) CategoryPanelAppearance.Visibility = (category == "Appearance") ? Visibility.Visible : Visibility.Collapsed;
+            if (CategoryPanelModules != null) CategoryPanelModules.Visibility = (category == "Modules") ? Visibility.Visible : Visibility.Collapsed;
+            if (CategoryPanelMaintenance != null) CategoryPanelMaintenance.Visibility = (category == "Maintenance") ? Visibility.Visible : Visibility.Collapsed;
+
+            UpdateRailButton(RailBtnProfile, category == "Profile");
+            UpdateRailButton(RailBtnWorkspace, category == "Workspace");
+            UpdateRailButton(RailBtnAccount, category == "Account");
+            UpdateRailButton(RailBtnAppearance, category == "Appearance");
+            UpdateRailButton(RailBtnModules, category == "Modules");
+            UpdateRailButton(RailBtnMaintenance, category == "Maintenance");
+        }
+
+        private void UpdateRailButton(Wpf.Ui.Controls.Button btn, bool isActive)
+        {
+            if (btn == null) return;
+            btn.Appearance = isActive ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Transparent;
+        }
+
+        private void OnToggleEditProfileClicked(object sender, RoutedEventArgs e)
+        {
+            if (ProfileEditDetailsPanel == null) return;
+            bool isNowVisible = ProfileEditDetailsPanel.Visibility != Visibility.Visible;
+            ProfileEditDetailsPanel.Visibility = isNowVisible ? Visibility.Visible : Visibility.Collapsed;
+            if (TxtEditProfile != null)
+                TxtEditProfile.Text = isNowVisible ? "Done" : "Edit";
+            if (IconEditProfile != null)
+                IconEditProfile.Symbol = isNowVisible ? Wpf.Ui.Controls.SymbolRegular.Dismiss24 : Wpf.Ui.Controls.SymbolRegular.Edit24;
+        }
+
+        private void OnWorkspacePathTextChanged(object sender, TextChangedEventArgs e)
+        {
+            ValidateWorkspacePath();
+        }
+
+        private void ValidateWorkspacePath()
+        {
+            if (WorkspacePathHint == null || WorkspaceRootInput == null) return;
+            string path = WorkspaceRootInput.Text;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                WorkspacePathHint.Visibility = Visibility.Visible;
+                return;
+            }
+            bool hasSynology = path.IndexOf("SynologyDrive", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool exists = false;
+            try { exists = Directory.Exists(path); } catch (Exception ex) { App.LogTrace("[SettingsPage] ValidateWorkspacePath: " + ex.Message); }
+            WorkspacePathHint.Visibility = (hasSynology || exists) ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        #endregion
+
         private void OnScrollViewerPreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             try
@@ -849,7 +940,7 @@ namespace SS_CAM.Views
                 sv.ScrollToVerticalOffset(sv.VerticalOffset - e.Delta * 0.5);
                 e.Handled = true;
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[SettingsPage] OnScrollViewerPreviewMouseWheel: " + ex.Message); }
+            catch (Exception ex) { App.LogTrace("[SettingsPage] OnScrollViewerPreviewMouseWheel: " + ex.Message); }
         }
 
 

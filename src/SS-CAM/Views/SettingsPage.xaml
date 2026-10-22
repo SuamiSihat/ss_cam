@@ -4,344 +4,402 @@
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       Title="Designer Profile and Settings">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                  ScrollViewer.CanContentScroll="False"
-                  Padding="28,24,28,28"
-                  PreviewMouseWheel="OnScrollViewerPreviewMouseWheel"
-                  Background="{DynamicResource ApplicationPageBackgroundThemeBrush}">
-        <StackPanel>
-
-            <!-- PAGE HEADER -->
-            <Grid Margin="0,0,0,24">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                        <ui:SymbolIcon Symbol="Settings24" FontSize="24" Foreground="{DynamicResource FluentBrand80}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <ui:TextBlock Text="Settings &amp; Designer Profile" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <ui:TextBlock Text="Customize visual themes, workstation preferences, Synology NAS sync paths, and designer identity." Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="13" Margin="0,2,0,0"/>
-                </StackPanel>
-                <Border Grid.Column="1"
-                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1" CornerRadius="8" Padding="12,6"
-                        VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="Tag24" FontSize="13"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <ui:TextBlock x:Name="TxtVersionBadge" Text=""
-                                      FontSize="12" FontWeight="SemiBold"
-                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                      VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <!-- TWO COLUMN GRID -->
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- LEFT COLUMN -->
-                <StackPanel Grid.Column="0">
-
-                    <!-- Designer Profile Card -->
-                    <ui:Card Margin="0,0,0,16" Padding="20">
-                        <StackPanel>
-
-                            <!-- Section heading -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                                <Border Width="32" Height="32" CornerRadius="8"
-                                        Background="{DynamicResource FluentBrandTint}"
-                                        Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="Person24" FontSize="16"
-                                                   Foreground="{DynamicResource FluentBrand80}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <ui:TextBlock Text="Designer Profile"
-                                                  FontSize="14" FontWeight="Bold"
-                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ui:TextBlock Text="Your identity across the application"
-                                                  FontSize="11"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                </StackPanel>
-                            </StackPanel>
-
-                            <!-- Avatar and identity overview -->
-                            <Grid Margin="0,0,0,16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center">
-                                    <Border Width="76" Height="76" CornerRadius="38"
-                                            Background="{DynamicResource FluentBrand80}"
-                                            BorderBrush="{DynamicResource FluentBrand70}"
-                                            BorderThickness="2" ClipToBounds="True"
-                                            HorizontalAlignment="Center">
-                                        <Grid>
-                                            <ui:TextBlock x:Name="AvatarEmojiText"
-                                                          Text="&#xE77B;" FontFamily="Segoe Fluent Icons"
-                                                          FontSize="34"
-                                                          HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center"/>
-                                            <Image x:Name="AvatarPreviewImg"
-                                                   Stretch="UniformToFill"
-                                                   Visibility="Collapsed"/>
-                                        </Grid>
-                                    </Border>
-                                      <ui:Button Click="OnChangeAvatarClicked"
-                                                 Width="30" Height="30" Margin="0,8,0,0"
-                                                 Padding="0" ToolTip="Change Avatar Photo"
-                                                 Appearance="Secondary" Cursor="Hand"
-                                                 HorizontalAlignment="Center">
-                                          <ui:SymbolIcon Symbol="Camera24"/>
-                                      </ui:Button>
-                                 </StackPanel>
-                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                     <ui:TextBlock x:Name="ProfileHeaderName"
-                                                   Text="Brand"
-                                                   FontSize="18" FontWeight="Bold"
-                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                     <ui:TextBlock x:Name="ProfileHeaderDept"
-                                                   Text="Creative"
-                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                   FontSize="12"/>
-                                     <ui:TextBlock x:Name="ProfileHeaderStaffId"
-                                                   Text="Staff ID: 0001D"
-                                                   Foreground="{DynamicResource FluentBrand80}"
-                                                   FontSize="11" FontWeight="SemiBold"
-                                                   Margin="0,4,0,0"/>
-                                 </StackPanel>
-                             </Grid>
-
-                             <!-- Staff Directory Dropdown Selector (Sync from NAS) -->
-                             <StackPanel Margin="0,0,0,14">
-                                 <ui:TextBlock Text="Select Staff Identity (Synology NAS Directory)" FontSize="12" FontWeight="Bold"
-                                               Foreground="{DynamicResource FluentBrand80}" Margin="0,0,0,6"/>
-                                 <ComboBox x:Name="StaffDirectoryCombo" Height="36"
-                                           DisplayMemberPath="DisplayText"
-                                           SelectionChanged="OnStaffDirectoryComboSelectionChanged"/>
-                             </StackPanel>
-
-                             <!-- Form Fields Grid -->
-                             <Grid Margin="0,0,0,16">
-                                 <Grid.ColumnDefinitions>
-                                     <ColumnDefinition Width="*"/>
-                                     <ColumnDefinition Width="16"/>
-                                     <ColumnDefinition Width="*"/>
-                                 </Grid.ColumnDefinitions>
-                                 <Grid.RowDefinitions>
-                                     <RowDefinition Height="Auto"/>
-                                     <RowDefinition Height="Auto"/>
-                                 </Grid.RowDefinitions>
-
-                                  <!-- Full Name Input (read-only: auto-filled from Staff Identity dropdown) -->
-                                  <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,14">
-                                      <ui:TextBlock Text="Full Name" FontSize="12" FontWeight="SemiBold"
-                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                                      <ui:TextBox x:Name="DesignerNameInput" Height="34"
-                                                  IsReadOnly="True" Opacity="0.75"
-                                                  ToolTip="Auto-filled from the Staff Identity dropdown above. Select a staff entry to update."/>
-                                  </StackPanel>
-
-                                  <!-- Staff ID Input (read-only: auto-filled from Staff Identity dropdown) -->
-                                  <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,14">
-                                      <ui:TextBlock Text="Staff ID" FontSize="12" FontWeight="SemiBold"
-                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                                      <ui:TextBox x:Name="StaffIdInput" Height="34"
-                                                  IsReadOnly="True" Opacity="0.75"
-                                                  ToolTip="Auto-filled from the Staff Identity dropdown above. Select a staff entry to update."/>
-                                  </StackPanel>
-
-                                  <!-- Department Input (read-only: auto-filled from Staff Identity dropdown) -->
-                                  <StackPanel Grid.Row="1" Grid.Column="0">
-                                      <ui:TextBlock Text="Department / Role" FontSize="12" FontWeight="SemiBold"
-                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                                      <ui:TextBox x:Name="DepartmentInput" Height="34"
-                                                  IsReadOnly="True" Opacity="0.75"
-                                                  ToolTip="Auto-filled from the Staff Identity dropdown above. Select a staff entry to update."/>
-                                  </StackPanel>
-
-                                  <!-- Email Address Input (read-only: auto-filled from Staff Identity dropdown) -->
-                                  <StackPanel Grid.Row="1" Grid.Column="2">
-                                      <ui:TextBlock Text="Email Address" FontSize="12" FontWeight="SemiBold"
-                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                                      <ui:TextBox x:Name="EmailInput" Height="34"
-                                                  IsReadOnly="True" Opacity="0.75"
-                                                  ToolTip="Auto-filled from the Staff Identity dropdown above. Select a staff entry to update."/>
-                                  </StackPanel>
-                             </Grid>
-
-                            <!-- Save action row — full-width button -->
-                            <StackPanel Margin="0,4,0,0">
-                                <ui:Button Appearance="Primary"
-                                           Click="OnSaveProfileClicked"
-                                           Height="36" Padding="0,0,0,0"
-                                           HorizontalAlignment="Stretch"
-                                           HorizontalContentAlignment="Center"
-                                           ToolTip="Save Designer Profile" Cursor="Hand">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <ui:SymbolIcon Symbol="Save24" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <ui:TextBlock Text="Save Profile" FontSize="13" FontWeight="SemiBold"
-                                                      VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </ui:Button>
-                                <ui:TextBlock x:Name="ProfileSaveStatus"
-                                             Text=""
-                                             Foreground="{DynamicResource SystemFillColorSuccessBrush}"
-                                             FontSize="12" FontWeight="SemiBold"
-                                             HorizontalAlignment="Center"
-                                             Margin="0,6,0,0"/>
-                            </StackPanel>
-
-                        </StackPanel>
-                    </ui:Card>
-
-                    <!-- Workspace Storage Card -->
-                    <ui:Card Margin="0,0,0,16" Padding="20">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                <Border Width="32" Height="32" CornerRadius="8"
-                                        Background="{DynamicResource FluentBrandTint}"
-                                        Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="Folder24" FontSize="16"
-                                                   Foreground="{DynamicResource FluentBrand80}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <ui:TextBlock Text="Workspace Storage"
-                                                  FontSize="14" FontWeight="Bold"
-                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ui:TextBlock Text="Root path of your Synology / local drive"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                  FontSize="11"/>
-                                </StackPanel>
-                            </StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <ui:TextBox x:Name="WorkspaceRootInput" Height="34"
-                                            ToolTip="Must end with \SynologyDrive\Creative-Team (e.g. D:\SynologyDrive\Creative-Team)"/>
-                                <ui:Button Grid.Column="2"
-                                           Appearance="Secondary"
-                                           Click="OnBrowseWorkspace"
-                                           Height="34" Width="34" Padding="0" Cursor="Hand" ToolTip="Browse Workspace Directory">
-                                    <ui:SymbolIcon Symbol="Folder24"/>
-                                </ui:Button>
-                            </Grid>
-
-                            <!-- Multi-Workspace Business Unit Switcher -->
-                            <StackPanel Margin="0,10,0,0">
-                                <ui:TextBlock Text="Quick-Switch Business Unit Share:"
-                                              FontSize="11" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              Margin="0,0,0,6"/>
-                                <WrapPanel Orientation="Horizontal">
-                                    <ui:Button Appearance="Secondary"
-                                               Tag="Creative-Team"
-                                               Click="OnSwitchBusinessUnit"
-                                               Height="32" Padding="10,0" Margin="0,0,6,6"
-                                               Cursor="Hand" ToolTip="Creative &amp; Brand Assets Share">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ui:SymbolIcon Symbol="Folder24" Margin="0,0,6,0"/>
-                                            <ui:TextBlock Text="[CT] Creative-Team" FontSize="11" FontWeight="SemiBold"/>
-                                        </StackPanel>
-                                    </ui:Button>
-                                    <ui:Button Appearance="Secondary"
-                                               Tag="Video-Production"
-                                               Click="OnSwitchBusinessUnit"
-                                               Height="32" Padding="10,0" Margin="0,0,6,6"
-                                               Cursor="Hand" ToolTip="Video &amp; Motion Production Share">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ui:SymbolIcon Symbol="Video24" Margin="0,0,6,0"/>
-                                            <ui:TextBlock Text="[VP] Video-Production" FontSize="11" FontWeight="SemiBold"/>
-                                        </StackPanel>
-                                    </ui:Button>
-                                    <ui:Button Appearance="Secondary"
-                                               Tag="Marketing-Assets"
-                                               Click="OnSwitchBusinessUnit"
-                                               Height="32" Padding="10,0" Margin="0,0,6,6"
-                                               Cursor="Hand" ToolTip="Marketing &amp; Performance Growth Share">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ui:SymbolIcon Symbol="Megaphone24" Margin="0,0,6,0"/>
-                                            <ui:TextBlock Text="[MA] Marketing-Assets" FontSize="11" FontWeight="SemiBold"/>
-                                        </StackPanel>
-                                    </ui:Button>
-                                </WrapPanel>
-                            </StackPanel>
-
-                            <!-- Workspace path guidance note -->
-                            <Border Margin="0,6,0,0" Padding="10,8" CornerRadius="6"
+    <Page.Resources>
+        <!-- Reusable Section Header Style: 32x32 icon tile, 14 Bold title, 11 subtitle -->
+        <Style x:Key="SettingsSectionHeaderStyle" TargetType="HeaderedContentControl">
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="HeaderedContentControl">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <Border Width="32" Height="32" CornerRadius="8"
                                     Background="{DynamicResource FluentBrandTint}"
-                                    BorderBrush="{DynamicResource FluentBrand80}"
-                                    BorderThickness="1">
-                                <StackPanel Orientation="Horizontal">
-                                    <ui:SymbolIcon Symbol="Info24" FontSize="14"
-                                                   Foreground="{DynamicResource FluentBrand80}"
-                                                   VerticalAlignment="Top"
-                                                   Margin="0,1,8,0"/>
-                                    <StackPanel>
-                                        <ui:TextBlock Text="Required path format:"
-                                                      FontSize="11" FontWeight="SemiBold"
-                                                      Foreground="{DynamicResource FluentBrand80}"
-                                                      Margin="0,0,0,2"/>
-                                        <ui:TextBlock Text="[Drive]:\SynologyDrive\Creative-Team"
-                                                      FontSize="12" FontWeight="Bold"
-                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                      Margin="0,0,0,2"/>
-                                        <ui:TextBlock Text="e.g.  D:\SynologyDrive\Creative-Team  or  Z:\SynologyDrive\Creative-Team"
-                                                      FontSize="11"
-                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        <ui:TextBlock Text="The drive letter can be anything, but the \SynologyDrive\Creative-Team path is mandatory."
-                                                      FontSize="11"
-                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                      TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                    </StackPanel>
-                                </StackPanel>
+                                    Margin="0,0,10,0" VerticalAlignment="Center">
+                                <ContentPresenter Content="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Tag}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <ui:TextBlock Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Header}"
+                                              FontSize="14" FontWeight="Bold"
+                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <ui:TextBlock Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Content}"
+                                              FontSize="11"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
                         </StackPanel>
-                    </ui:Card>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Page.Resources>
 
-                    <!-- Web Portal Account Card -->
-                    <ui:Card Margin="0,0,0,16" Padding="20">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                <Border Width="32" Height="32" CornerRadius="8"
-                                        Background="{DynamicResource FluentBrandTint}"
-                                        Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="PersonKey20" FontSize="16"
-                                                   Foreground="{DynamicResource FluentBrand80}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <ui:TextBlock Text="Web portal account"
-                                                  FontSize="14" FontWeight="Bold"
-                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ui:TextBlock Text="Sign in to sync orders and notes with the web portal"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                  FontSize="11"/>
+    <Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- PAGE HEADER -->
+        <Grid Grid.Row="0" Margin="28,24,28,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <ui:SymbolIcon Symbol="Settings24" FontSize="24" Foreground="{DynamicResource FluentBrand80}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <ui:TextBlock Text="Settings &amp; Designer Profile" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <ui:TextBlock Text="Customize visual themes, workstation preferences, Synology NAS sync paths, and designer identity." Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="13" Margin="0,2,0,0"/>
+            </StackPanel>
+            <Border Grid.Column="1"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="12,6"
+                    VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Symbol="Tag24" FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <ui:TextBlock x:Name="TxtVersionBadge" Text=""
+                                  FontSize="12" FontWeight="SemiBold"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                  VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- MAIN LAYOUT: Left Category Rail + Centered Single Column Content -->
+        <Grid Grid.Row="1" Margin="28,0,28,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="190"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT CATEGORY RAIL -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8"
+                    Padding="6" VerticalAlignment="Top">
+                <StackPanel>
+                    <ui:Button x:Name="RailBtnProfile" Tag="Profile" Click="OnCategoryRailClicked"
+                               Appearance="Primary" HorizontalContentAlignment="Left"
+                               Padding="12,8" Margin="0,0,0,4" HorizontalAlignment="Stretch" Cursor="Hand"
+                               AutomationProperties.Name="Designer Profile Settings">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Person24" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <ui:TextBlock Text="Profile" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:Button>
+
+                    <ui:Button x:Name="RailBtnWorkspace" Tag="Workspace" Click="OnCategoryRailClicked"
+                               Appearance="Transparent" HorizontalContentAlignment="Left"
+                               Padding="12,8" Margin="0,0,0,4" HorizontalAlignment="Stretch" Cursor="Hand"
+                               AutomationProperties.Name="Workspace Storage and Tools">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Folder24" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <ui:TextBlock Text="Workspace" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:Button>
+
+                    <ui:Button x:Name="RailBtnAccount" Tag="Account" Click="OnCategoryRailClicked"
+                               Appearance="Transparent" HorizontalContentAlignment="Left"
+                               Padding="12,8" Margin="0,0,0,4" HorizontalAlignment="Stretch" Cursor="Hand"
+                               AutomationProperties.Name="Web Portal Account">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="PersonKey20" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <ui:TextBlock Text="Account" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:Button>
+
+                    <ui:Button x:Name="RailBtnAppearance" Tag="Appearance" Click="OnCategoryRailClicked"
+                               Appearance="Transparent" HorizontalContentAlignment="Left"
+                               Padding="12,8" Margin="0,0,0,4" HorizontalAlignment="Stretch" Cursor="Hand"
+                               AutomationProperties.Name="Appearance and Themes">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Color24" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <ui:TextBlock Text="Appearance" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:Button>
+
+                    <ui:Button x:Name="RailBtnModules" Tag="Modules" Click="OnCategoryRailClicked"
+                               Appearance="Transparent" HorizontalContentAlignment="Left"
+                               Padding="12,8" Margin="0,0,0,4" HorizontalAlignment="Stretch" Cursor="Hand"
+                               AutomationProperties.Name="Pluggable Modules">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="AppsAddIn24" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <ui:TextBlock Text="Modules" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:Button>
+
+                    <ui:Button x:Name="RailBtnMaintenance" Tag="Maintenance" Click="OnCategoryRailClicked"
+                               Appearance="Transparent" HorizontalContentAlignment="Left"
+                               Padding="12,8" Margin="0,0,0,0" HorizontalAlignment="Stretch" Cursor="Hand"
+                               AutomationProperties.Name="Maintenance and Reset">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Wrench24" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <ui:TextBlock Text="Maintenance" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:Button>
+                </StackPanel>
+            </Border>
+
+            <!-- RIGHT CONTENT AREA (Single Centered Column, MaxWidth="760") -->
+            <ScrollViewer Grid.Column="2"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          ScrollViewer.CanContentScroll="False"
+                          PreviewMouseWheel="OnScrollViewerPreviewMouseWheel"
+                          Padding="0,0,16,16">
+                <StackPanel MaxWidth="760" HorizontalAlignment="Left">
+
+                    <!-- ========================================================= -->
+                    <!-- CATEGORY 1: PROFILE                                       -->
+                    <!-- ========================================================= -->
+                    <StackPanel x:Name="CategoryPanelProfile" Visibility="Visible">
+                        <ui:Card Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <HeaderedContentControl Style="{StaticResource SettingsSectionHeaderStyle}"
+                                                        Header="Designer Profile"
+                                                        Content="Your identity across the application">
+                                    <HeaderedContentControl.Tag>
+                                        <ui:SymbolIcon Symbol="Person24" FontSize="16" Foreground="{DynamicResource FluentBrand80}"/>
+                                    </HeaderedContentControl.Tag>
+                                </HeaderedContentControl>
+
+                                <!-- Compact Avatar and identity overview row -->
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <Border Width="64" Height="64" CornerRadius="32"
+                                                Background="{DynamicResource FluentBrand80}"
+                                                BorderBrush="{DynamicResource FluentBrand70}"
+                                                BorderThickness="2" ClipToBounds="True"
+                                                HorizontalAlignment="Center">
+                                            <Grid>
+                                                <ui:TextBlock x:Name="AvatarEmojiText"
+                                                              Text="&#xE77B;" FontFamily="Segoe Fluent Icons"
+                                                              FontSize="28"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                                <Image x:Name="AvatarPreviewImg"
+                                                       Stretch="UniformToFill"
+                                                       Visibility="Collapsed"/>
+                                            </Grid>
+                                        </Border>
+                                        <ui:Button Click="OnChangeAvatarClicked"
+                                                   Width="28" Height="28" Margin="0,6,0,0"
+                                                   Padding="0" ToolTip="Change Avatar Photo"
+                                                   Appearance="Secondary" Cursor="Hand"
+                                                   HorizontalAlignment="Center">
+                                            <ui:SymbolIcon Symbol="Camera24" FontSize="13"/>
+                                        </ui:Button>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <ui:TextBlock x:Name="ProfileHeaderName"
+                                                      Text="Brand"
+                                                      FontSize="18" FontWeight="Bold"
+                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <ui:TextBlock x:Name="ProfileHeaderDept"
+                                                      Text="Creative"
+                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                      FontSize="12"/>
+                                        <ui:TextBlock x:Name="ProfileHeaderStaffId"
+                                                      Text="Staff ID: 0001D"
+                                                      Foreground="{DynamicResource FluentBrand80}"
+                                                      FontSize="11" FontWeight="SemiBold"
+                                                      Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <ui:Button Grid.Column="2" x:Name="BtnToggleEditProfile"
+                                               Click="OnToggleEditProfileClicked"
+                                               Appearance="Secondary" Height="34" Padding="12,0"
+                                               VerticalAlignment="Center" Cursor="Hand" ToolTip="Edit profile fields and staff identity">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon x:Name="IconEditProfile" Symbol="Edit24" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock x:Name="TxtEditProfile" Text="Edit" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ui:Button>
+                                </Grid>
+
+                                <!-- Editable fields (hidden behind Edit toggle) -->
+                                <StackPanel x:Name="ProfileEditDetailsPanel" Visibility="Collapsed" Margin="0,8,0,0">
+                                    <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="0,1,0,0" Padding="0,14,0,0">
+                                        <StackPanel>
+                                            <!-- Staff Directory Dropdown Selector (Sync from NAS) -->
+                                            <StackPanel Margin="0,0,0,14">
+                                                <ui:TextBlock Text="Select Staff Identity (Synology NAS Directory)" FontSize="12" FontWeight="Bold"
+                                                              Foreground="{DynamicResource FluentBrand80}" Margin="0,0,0,6"/>
+                                                <ComboBox x:Name="StaffDirectoryCombo" Height="36" MinHeight="36"
+                                                          VerticalContentAlignment="Center" Padding="10,0"
+                                                          DisplayMemberPath="DisplayText"
+                                                          SelectionChanged="OnStaffDirectoryComboSelectionChanged"/>
+                                            </StackPanel>
+
+                                            <!-- Form Fields Grid -->
+                                            <Grid Margin="0,0,0,16">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="16"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Full Name Input -->
+                                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,14">
+                                                    <ui:TextBlock Text="Full Name" FontSize="12" FontWeight="SemiBold"
+                                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                                    <ui:TextBox x:Name="DesignerNameInput" Height="36" MinHeight="36"
+                                                                VerticalContentAlignment="Center"
+                                                                IsReadOnly="True" Opacity="0.75"
+                                                                ToolTip="Auto-filled from the Staff Identity dropdown above. Select a staff entry to update."/>
+                                                </StackPanel>
+
+                                                <!-- Staff ID Input -->
+                                                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,14">
+                                                    <ui:TextBlock Text="Staff ID" FontSize="12" FontWeight="SemiBold"
+                                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                                    <ui:TextBox x:Name="StaffIdInput" Height="36" MinHeight="36"
+                                                                VerticalContentAlignment="Center"
+                                                                IsReadOnly="True" Opacity="0.75"
+                                                                ToolTip="Auto-filled from the Staff Identity dropdown above. Select a staff entry to update."/>
+                                                </StackPanel>
+
+                                                <!-- Department Input -->
+                                                <StackPanel Grid.Row="1" Grid.Column="0">
+                                                    <ui:TextBlock Text="Department / Role" FontSize="12" FontWeight="SemiBold"
+                                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                                    <ui:TextBox x:Name="DepartmentInput" Height="36" MinHeight="36"
+                                                                VerticalContentAlignment="Center"
+                                                                IsReadOnly="True" Opacity="0.75"
+                                                                ToolTip="Auto-filled from the Staff Identity dropdown above. Select a staff entry to update."/>
+                                                </StackPanel>
+
+                                                <!-- Email Address Input -->
+                                                <StackPanel Grid.Row="1" Grid.Column="2">
+                                                    <ui:TextBlock Text="Email Address" FontSize="12" FontWeight="SemiBold"
+                                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                                    <ui:TextBox x:Name="EmailInput" Height="36" MinHeight="36"
+                                                                VerticalContentAlignment="Center"
+                                                                IsReadOnly="True" Opacity="0.75"
+                                                                ToolTip="Auto-filled from the Staff Identity dropdown above. Select a staff entry to update."/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <!-- Save action row — full-width button -->
+                                            <StackPanel Margin="0,4,0,0">
+                                                <ui:Button Appearance="Primary"
+                                                           Click="OnSaveProfileClicked"
+                                                           Height="36" Padding="0,0,0,0"
+                                                           HorizontalAlignment="Stretch"
+                                                           HorizontalContentAlignment="Center"
+                                                           ToolTip="Save Designer Profile" Cursor="Hand">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <ui:SymbolIcon Symbol="Save24" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                        <ui:TextBlock Text="Save Profile" FontSize="13" FontWeight="SemiBold"
+                                                                      VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </ui:Button>
+                                                <ui:TextBlock x:Name="ProfileSaveStatus"
+                                                              Text=""
+                                                              Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                                              FontSize="12" FontWeight="SemiBold"
+                                                              HorizontalAlignment="Center"
+                                                              Margin="0,6,0,0"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </StackPanel>
+                        </ui:Card>
+                    </StackPanel>
 
-                            <!-- Signed out: sign-in form -->
-                            <StackPanel x:Name="PortalSignedOutPanel">
-                                <Border x:Name="PortalNotSignedInHint"
-                                        Margin="0,0,0,12" Padding="10,8" CornerRadius="6"
+                    <!-- ========================================================= -->
+                    <!-- CATEGORY 2: WORKSPACE & TOOLS                             -->
+                    <!-- ========================================================= -->
+                    <StackPanel x:Name="CategoryPanelWorkspace" Visibility="Collapsed">
+                        <!-- Workspace Storage Card -->
+                        <ui:Card Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <HeaderedContentControl Style="{StaticResource SettingsSectionHeaderStyle}"
+                                                        Header="Workspace Storage"
+                                                        Content="Root path of your Synology / local drive">
+                                    <HeaderedContentControl.Tag>
+                                        <ui:SymbolIcon Symbol="Folder24" FontSize="16" Foreground="{DynamicResource FluentBrand80}"/>
+                                    </HeaderedContentControl.Tag>
+                                </HeaderedContentControl>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox x:Name="WorkspaceRootInput" Height="36" MinHeight="36"
+                                                VerticalContentAlignment="Center"
+                                                TextChanged="OnWorkspacePathTextChanged"
+                                                ToolTip="Must end with \SynologyDrive\Creative-Team (e.g. D:\SynologyDrive\Creative-Team)"/>
+                                    <ui:Button Grid.Column="2"
+                                               Appearance="Secondary"
+                                               Click="OnBrowseWorkspace"
+                                               Height="36" Width="36" Padding="0" Cursor="Hand" ToolTip="Browse Workspace Directory">
+                                        <ui:SymbolIcon Symbol="Folder24"/>
+                                    </ui:Button>
+                                </Grid>
+
+                                <!-- Multi-Workspace Business Unit Switcher -->
+                                <StackPanel Margin="0,4,0,0">
+                                    <ui:TextBlock Text="Quick-Switch Business Unit Share:"
+                                                  FontSize="11" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                  Margin="0,0,0,6"/>
+                                    <WrapPanel Orientation="Horizontal">
+                                        <ui:Button Appearance="Secondary"
+                                                   Tag="Creative-Team"
+                                                   Click="OnSwitchBusinessUnit"
+                                                   Height="32" Padding="10,0" Margin="0,0,6,6"
+                                                   Cursor="Hand" ToolTip="Creative &amp; Brand Assets Share">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon Symbol="Folder24" Margin="0,0,6,0"/>
+                                                <ui:TextBlock Text="[CT] Creative-Team" FontSize="11" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </ui:Button>
+                                        <ui:Button Appearance="Secondary"
+                                                   Tag="Video-Production"
+                                                   Click="OnSwitchBusinessUnit"
+                                                   Height="32" Padding="10,0" Margin="0,0,6,6"
+                                                   Cursor="Hand" ToolTip="Video &amp; Motion Production Share">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon Symbol="Video24" Margin="0,0,6,0"/>
+                                                <ui:TextBlock Text="[VP] Video-Production" FontSize="11" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </ui:Button>
+                                        <ui:Button Appearance="Secondary"
+                                                   Tag="Marketing-Assets"
+                                                   Click="OnSwitchBusinessUnit"
+                                                   Height="32" Padding="10,0" Margin="0,0,6,6"
+                                                   Cursor="Hand" ToolTip="Marketing &amp; Performance Growth Share">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon Symbol="Megaphone24" Margin="0,0,6,0"/>
+                                                <ui:TextBlock Text="[MA] Marketing-Assets" FontSize="11" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </ui:Button>
+                                    </WrapPanel>
+                                </StackPanel>
+
+                                <!-- Workspace path guidance note (Shown ONLY on validation error) -->
+                                <Border x:Name="WorkspacePathHint" Visibility="Collapsed"
+                                        Margin="0,10,0,0" Padding="10,8" CornerRadius="6"
                                         Background="{DynamicResource FluentBrandTint}"
                                         BorderBrush="{DynamicResource FluentBrand80}"
                                         BorderThickness="1">
@@ -350,756 +408,647 @@
                                                        Foreground="{DynamicResource FluentBrand80}"
                                                        VerticalAlignment="Top"
                                                        Margin="0,1,8,0"/>
-                                        <ui:TextBlock x:Name="PortalHintText"
-                                                      Text="You're not signed in. Orders and notes use the NAS copy until you sign in."
-                                                      FontSize="11" TextWrapping="Wrap" MaxWidth="420"
-                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <StackPanel>
+                                            <ui:TextBlock Text="Required path format:"
+                                                          FontSize="11" FontWeight="SemiBold"
+                                                          Foreground="{DynamicResource FluentBrand80}"
+                                                          Margin="0,0,0,2"/>
+                                            <ui:TextBlock Text="[Drive]:\SynologyDrive\Creative-Team"
+                                                          FontSize="12" FontWeight="Bold"
+                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                          Margin="0,0,0,2"/>
+                                            <ui:TextBlock Text="e.g.  D:\SynologyDrive\Creative-Team  or  Z:\SynologyDrive\Creative-Team"
+                                                          FontSize="11"
+                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            <ui:TextBlock Text="The drive letter can be anything, but the \SynologyDrive\Creative-Team path is mandatory."
+                                                          FontSize="11"
+                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                          TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
-
-                                <ui:TextBlock Text="Username" FontSize="12" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                                <ui:TextBox x:Name="PortalUsernameInput" Height="36" MinHeight="36"
-                                            VerticalContentAlignment="Center"
-                                            PlaceholderText="Username, staff ID or email"
-                                            AutomationProperties.Name="Web portal username"
-                                            AutomationProperties.HelpText="Your username, staff ID or email"
-                                            PreviewKeyDown="OnPortalSignInKeyDown"
-                                            Margin="0,0,0,12"/>
-
-                                <ui:TextBlock Text="Password" FontSize="12" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                                <ui:PasswordBox x:Name="PortalPasswordInput" Height="36" MinHeight="36"
-                                                VerticalContentAlignment="Center"
-                                                AutomationProperties.Name="Web portal password"
-                                                PreviewKeyDown="OnPortalSignInKeyDown"
-                                                Margin="0,0,0,8"/>
-
-                                <ui:TextBlock Text="Use the same username and password as the web portal."
-                                              FontSize="11" TextWrapping="Wrap"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              Margin="0,0,0,12"/>
-
-                                <ui:Button x:Name="BtnPortalSignIn"
-                                           Appearance="Primary"
-                                           Click="OnPortalSignInClicked"
-                                           Height="36" HorizontalAlignment="Stretch"
-                                           HorizontalContentAlignment="Center"
-                                           AutomationProperties.Name="Sign in to the web portal"
-                                           Cursor="Hand">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <ui:SymbolIcon Symbol="Key24" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <ui:TextBlock x:Name="BtnPortalSignInText" Text="Sign in" FontSize="13" FontWeight="SemiBold"
-                                                      VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </ui:Button>
                             </StackPanel>
+                        </ui:Card>
 
-                            <!-- Forced password change after sign-in -->
-                            <StackPanel x:Name="PortalChangePasswordPanel" Visibility="Collapsed">
-                                <ui:TextBlock Text="Choose a new password"
-                                              FontSize="13" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <ui:TextBlock Text="Your account needs a new password before you can continue. Use at least 10 characters."
-                                              FontSize="11" TextWrapping="Wrap"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+                        <!-- Merged Workstation Tools, Presets & Diagnostics Card -->
+                        <ui:Card Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <HeaderedContentControl Style="{StaticResource SettingsSectionHeaderStyle}"
+                                                        Header="Workstation &amp; Studio Tools"
+                                                        Content="Manage desktop integration, brand assets, presets, and diagnostics">
+                                    <HeaderedContentControl.Tag>
+                                        <ui:SymbolIcon Symbol="DeveloperBoard24" FontSize="16" Foreground="{DynamicResource FluentBrand80}"/>
+                                    </HeaderedContentControl.Tag>
+                                </HeaderedContentControl>
 
-                                <ui:TextBlock Text="New password" FontSize="12" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                                <ui:PasswordBox x:Name="PortalNewPasswordInput" Height="36" MinHeight="36"
+                                <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="0,1,0,0" Padding="0,14,0,0">
+                                    <StackPanel>
+                                        <!-- Desktop Shortcut row -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <ui:TextBlock Text="Desktop Shortcut" FontSize="13" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <ui:TextBlock Text="Create shortcut icon on your Windows Desktop"
+                                                              FontSize="11"
+                                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="1"
+                                                       Appearance="Primary"
+                                                       Click="OnCreateDesktopShortcut"
+                                                       Width="32" Height="32" Padding="0"
+                                                       ToolTip="Create Desktop Shortcut" Cursor="Hand">
+                                                <ui:SymbolIcon Symbol="Desktop24"/>
+                                            </ui:Button>
+                                        </Grid>
+
+                                        <!-- Install fonts row -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <ui:TextBlock Text="Brand Fonts" FontSize="13" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <ui:TextBlock Text="Install brand font family into Windows"
+                                                              FontSize="11"
+                                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="1"
+                                                       Appearance="Primary"
+                                                       Click="OnRepairFonts"
+                                                       Width="32" Height="32" Padding="0"
+                                                       ToolTip="Install Brand Fonts into Windows" Cursor="Hand">
+                                                <ui:SymbolIcon Symbol="TextFont24"/>
+                                            </ui:Button>
+                                        </Grid>
+
+                                        <!-- Deploy assets row -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <ui:TextBlock Text="Asset Libraries" FontSize="13" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <ui:TextBlock Text="Deploy brand asset library to workspace"
+                                                              FontSize="11"
+                                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="1"
+                                                       Appearance="Primary"
+                                                       Click="OnDeployAssets"
+                                                       Width="32" Height="32" Padding="0"
+                                                       ToolTip="Deploy Brand Asset Libraries" Cursor="Hand">
+                                                <ui:SymbolIcon Symbol="Library24"/>
+                                            </ui:Button>
+                                        </Grid>
+
+                                        <!-- Check updates row -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <ui:TextBlock Text="Software Updates" FontSize="13" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <ui:TextBlock Text="Check for the latest application version"
+                                                              FontSize="11"
+                                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="1"
+                                                       Appearance="Secondary"
+                                                       Click="OnCheckUpdates"
+                                                       Width="32" Height="32" Padding="0"
+                                                       ToolTip="Check for Updates" Cursor="Hand">
+                                                <ui:SymbolIcon Symbol="ArrowSync24"/>
+                                            </ui:Button>
+                                        </Grid>
+
+                                        <!-- Category Presets row -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <ui:TextBlock Text="Category Presets &amp; Folder Structure" FontSize="13" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <ui:TextBlock Text="Configure subfolder trees, template schemas and Project ID codes"
+                                                              FontSize="11"
+                                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="1"
+                                                       Appearance="Primary"
+                                                       Click="OnManageCategoryPresetsClicked"
+                                                       Width="32" Height="32" Padding="0"
+                                                       ToolTip="Manage Category Presets &amp; Folder Structures" Cursor="Hand">
+                                                <ui:SymbolIcon Symbol="Settings24"/>
+                                            </ui:Button>
+                                        </Grid>
+
+                                        <!-- Workstation Diagnostics Studio row -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <ui:TextBlock Text="Workstation Health &amp; Diagnostics Studio" FontSize="13" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <ui:TextBlock Text="View hardware audit, GPU OpenCL status, and Creative Suite integrity"
+                                                              FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="1" Appearance="Secondary" Click="OnOpenWorkstationHealthClicked"
+                                                       Height="32" Padding="12,0" Cursor="Hand" ToolTip="Open Workstation Health &amp; Diagnostics">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ui:SymbolIcon Symbol="Open24" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <ui:TextBlock Text="Open Diagnostics" FontSize="11" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </ui:Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ui:Card>
+                    </StackPanel>
+
+                    <!-- ========================================================= -->
+                    <!-- CATEGORY 3: ACCOUNT                                       -->
+                    <!-- ========================================================= -->
+                    <StackPanel x:Name="CategoryPanelAccount" Visibility="Collapsed">
+                        <ui:Card Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <HeaderedContentControl Style="{StaticResource SettingsSectionHeaderStyle}"
+                                                        Header="Web Portal Account"
+                                                        Content="Sign in to sync orders and notes with the web portal">
+                                    <HeaderedContentControl.Tag>
+                                        <ui:SymbolIcon Symbol="PersonKey20" FontSize="16" Foreground="{DynamicResource FluentBrand80}"/>
+                                    </HeaderedContentControl.Tag>
+                                </HeaderedContentControl>
+
+                                <!-- Signed out: sign-in form -->
+                                <StackPanel x:Name="PortalSignedOutPanel">
+                                    <Border x:Name="PortalNotSignedInHint"
+                                            Margin="0,0,0,12" Padding="10,8" CornerRadius="6"
+                                            Background="{DynamicResource FluentBrandTint}"
+                                            BorderBrush="{DynamicResource FluentBrand80}"
+                                            BorderThickness="1">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="Info24" FontSize="14"
+                                                           Foreground="{DynamicResource FluentBrand80}"
+                                                           VerticalAlignment="Top"
+                                                           Margin="0,1,8,0"/>
+                                            <ui:TextBlock x:Name="PortalHintText"
+                                                          Text="You're not signed in. Orders and notes use the NAS copy until you sign in."
+                                                          FontSize="11" TextWrapping="Wrap" MaxWidth="420"
+                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <ui:TextBlock Text="Username" FontSize="12" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                    <ui:TextBox x:Name="PortalUsernameInput" Height="36" MinHeight="36"
                                                 VerticalContentAlignment="Center"
-                                                AutomationProperties.Name="New password"
-                                                PreviewKeyDown="OnPortalChangePasswordKeyDown"
+                                                PlaceholderText="Username, staff ID or email"
+                                                AutomationProperties.Name="Web portal username"
+                                                AutomationProperties.HelpText="Your username, staff ID or email"
+                                                PreviewKeyDown="OnPortalSignInKeyDown"
                                                 Margin="0,0,0,12"/>
 
-                                <ui:TextBlock Text="Confirm new password" FontSize="12" FontWeight="SemiBold"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                                <ui:PasswordBox x:Name="PortalConfirmPasswordInput" Height="36" MinHeight="36"
-                                                VerticalContentAlignment="Center"
-                                                AutomationProperties.Name="Confirm new password"
-                                                PreviewKeyDown="OnPortalChangePasswordKeyDown"
-                                                Margin="0,0,0,12"/>
+                                    <ui:TextBlock Text="Password" FontSize="12" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                    <ui:PasswordBox x:Name="PortalPasswordInput" Height="36" MinHeight="36"
+                                                    VerticalContentAlignment="Center"
+                                                    AutomationProperties.Name="Web portal password"
+                                                    PreviewKeyDown="OnPortalSignInKeyDown"
+                                                    Margin="0,0,0,8"/>
 
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="10"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <ui:Button x:Name="BtnPortalChangePassword" Grid.Column="0"
+                                    <ui:TextBlock Text="Use the same username and password as the web portal."
+                                                  FontSize="11" TextWrapping="Wrap"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                  Margin="0,0,0,12"/>
+
+                                    <ui:Button x:Name="BtnPortalSignIn"
                                                Appearance="Primary"
-                                               Click="OnPortalChangePasswordClicked"
+                                               Click="OnPortalSignInClicked"
                                                Height="36" HorizontalAlignment="Stretch"
                                                HorizontalContentAlignment="Center"
-                                               AutomationProperties.Name="Change password"
+                                               AutomationProperties.Name="Sign in to the web portal"
                                                Cursor="Hand">
-                                        <ui:TextBlock x:Name="BtnPortalChangePasswordText" Text="Change password" FontSize="13" FontWeight="SemiBold"/>
-                                    </ui:Button>
-                                    <ui:Button x:Name="BtnPortalCancelChange" Grid.Column="2"
-                                               Appearance="Secondary"
-                                               Click="OnPortalCancelChangeClicked"
-                                               Height="36" Padding="16,0"
-                                               AutomationProperties.Name="Cancel password change"
-                                               Content="Cancel" Cursor="Hand"/>
-                                </Grid>
-                            </StackPanel>
-
-                            <!-- Signed in -->
-                            <StackPanel x:Name="PortalSignedInPanel" Visibility="Collapsed">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                    <ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="16"
-                                                   Foreground="{DynamicResource SystemFillColorSuccessBrush}"
-                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <ui:TextBlock x:Name="PortalSignedInText" Text="Signed in"
-                                                  FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap"
-                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                  VerticalAlignment="Center"/>
-                                </StackPanel>
-                                <ui:TextBlock x:Name="PortalSignedInDetail" Text=""
-                                              FontSize="11" TextWrapping="Wrap"
-                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                              Margin="24,0,0,12"/>
-                                <WrapPanel Orientation="Horizontal">
-                                    <ui:Button x:Name="BtnPortalSignOut"
-                                               Appearance="Secondary"
-                                               Click="OnPortalSignOutClicked"
-                                               Height="36" Padding="14,0" Margin="0,0,8,8"
-                                               AutomationProperties.Name="Sign out of the web portal"
-                                               Cursor="Hand">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ui:SymbolIcon Symbol="SignOut24" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                            <ui:TextBlock Text="Sign out" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <ui:SymbolIcon Symbol="Key24" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock x:Name="BtnPortalSignInText" Text="Sign in" FontSize="13" FontWeight="SemiBold"
+                                                          VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </ui:Button>
-                                    <ui:Button x:Name="BtnPortalSwitchAccount"
-                                               Appearance="Transparent"
-                                               Click="OnPortalSwitchAccountClicked"
+                                </StackPanel>
+
+                                <!-- Forced password change after sign-in -->
+                                <StackPanel x:Name="PortalChangePasswordPanel" Visibility="Collapsed">
+                                    <ui:TextBlock Text="Choose a new password"
+                                                  FontSize="13" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <ui:TextBlock Text="Your account needs a new password before you can continue. Use at least 10 characters."
+                                                  FontSize="11" TextWrapping="Wrap"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+
+                                    <ui:TextBlock Text="New password" FontSize="12" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                    <ui:PasswordBox x:Name="PortalNewPasswordInput" Height="36" MinHeight="36"
+                                                    VerticalContentAlignment="Center"
+                                                    AutomationProperties.Name="New password"
+                                                    PreviewKeyDown="OnPortalChangePasswordKeyDown"
+                                                    Margin="0,0,0,12"/>
+
+                                    <ui:TextBlock Text="Confirm new password" FontSize="12" FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                    <ui:PasswordBox x:Name="PortalConfirmPasswordInput" Height="36" MinHeight="36"
+                                                    VerticalContentAlignment="Center"
+                                                    AutomationProperties.Name="Confirm new password"
+                                                    PreviewKeyDown="OnPortalChangePasswordKeyDown"
+                                                    Margin="0,0,0,12"/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:Button x:Name="BtnPortalChangePassword" Grid.Column="0"
+                                                   Appearance="Primary"
+                                                   Click="OnPortalChangePasswordClicked"
+                                                   Height="36" HorizontalAlignment="Stretch"
+                                                   HorizontalContentAlignment="Center"
+                                                   AutomationProperties.Name="Change password"
+                                                   Cursor="Hand">
+                                            <ui:TextBlock x:Name="BtnPortalChangePasswordText" Text="Change password" FontSize="13" FontWeight="SemiBold"/>
+                                        </ui:Button>
+                                        <ui:Button x:Name="BtnPortalCancelChange" Grid.Column="2"
+                                                   Appearance="Secondary"
+                                                   Click="OnPortalCancelChangeClicked"
+                                                   Height="36" Padding="16,0"
+                                                   AutomationProperties.Name="Cancel password change"
+                                                   Content="Cancel" Cursor="Hand"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Signed in -->
+                                <StackPanel x:Name="PortalSignedInPanel" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="16"
+                                                       Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <ui:TextBlock x:Name="PortalSignedInText" Text="Signed in"
+                                                      FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap"
+                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                      VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <ui:TextBlock x:Name="PortalSignedInDetail" Text=""
+                                                  FontSize="11" TextWrapping="Wrap"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                  Margin="24,0,0,12"/>
+                                    <WrapPanel Orientation="Horizontal">
+                                        <ui:Button x:Name="BtnPortalSignOut"
+                                                   Appearance="Secondary"
+                                                   Click="OnPortalSignOutClicked"
+                                                   Height="36" Padding="14,0" Margin="0,0,8,8"
+                                                   AutomationProperties.Name="Sign out of the web portal"
+                                                   Cursor="Hand">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon Symbol="SignOut24" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                <ui:TextBlock Text="Sign out" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </ui:Button>
+                                        <ui:Button x:Name="BtnPortalSwitchAccount"
+                                                   Appearance="Transparent"
+                                                   Click="OnPortalSwitchAccountClicked"
+                                                   Height="36" Padding="14,0" Margin="0,0,8,8"
+                                                   AutomationProperties.Name="Not you? Switch account"
+                                                   ToolTip="Sign out and sign in with a different account"
+                                                   Cursor="Hand">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon Symbol="PersonSwap24" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                <ui:TextBlock Text="Not you? Switch account" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </ui:Button>
+                                    </WrapPanel>
+                                </StackPanel>
+
+                                <ui:TextBlock x:Name="PortalStatusText"
+                                              Text="" Visibility="Collapsed"
+                                              FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"
+                                              Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                                              AutomationProperties.LiveSetting="Assertive"
+                                              Margin="0,10,0,0"/>
+                            </StackPanel>
+                        </ui:Card>
+                    </StackPanel>
+
+                    <!-- ========================================================= -->
+                    <!-- CATEGORY 4: APPEARANCE                                    -->
+                    <!-- ========================================================= -->
+                    <StackPanel x:Name="CategoryPanelAppearance" Visibility="Collapsed">
+                        <ui:Card Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <HeaderedContentControl Style="{StaticResource SettingsSectionHeaderStyle}"
+                                                        Header="Application Theme"
+                                                        Content="Click a theme chip to apply immediately">
+                                    <HeaderedContentControl.Tag>
+                                        <ui:SymbolIcon Symbol="Color24" FontSize="16" Foreground="{DynamicResource FluentBrand80}"/>
+                                    </HeaderedContentControl.Tag>
+                                </HeaderedContentControl>
+
+                                <!-- Compact Theme Chip Row -->
+                                <WrapPanel Orientation="Horizontal">
+                                    <!-- Falconia chip -->
+                                    <ui:Button x:Name="BtnThemeFalconia"
+                                               Click="OnSelectFalconiaTheme"
+                                               Appearance="Secondary"
                                                Height="36" Padding="14,0" Margin="0,0,8,8"
-                                               AutomationProperties.Name="Not you? Switch account"
-                                               ToolTip="Sign out and sign in with a different account"
-                                               Cursor="Hand">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ui:SymbolIcon Symbol="PersonSwap24" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                            <ui:TextBlock Text="Not you? Switch account" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                               Cursor="Hand" ToolTip="Falconia (Fluent 2 Light)">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="12" Height="12" CornerRadius="6" Background="#0F6CBD" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock Text="Falconia" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ui:Button>
+
+                                    <!-- Metamorphosis chip -->
+                                    <ui:Button x:Name="BtnThemeMetamorphosis"
+                                               Click="OnSelectMetamorphosisTheme"
+                                               Appearance="Secondary"
+                                               Height="36" Padding="14,0" Margin="0,0,8,8"
+                                               Cursor="Hand" ToolTip="Metamorphosis (Glassmorphism Dark)">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="12" Height="12" CornerRadius="6" Background="#00CFFF" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock Text="Metamorphosis" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ui:Button>
+
+                                    <!-- Catppuccin chip -->
+                                    <ui:Button x:Name="BtnThemeCatppuccin"
+                                               Click="OnSelectCatppuccinTheme"
+                                               Appearance="Secondary"
+                                               Height="36" Padding="14,0" Margin="0,0,8,8"
+                                               Cursor="Hand" ToolTip="Catppuccin (Pastel Dark)">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="12" Height="12" CornerRadius="6" Background="#CBA6F7" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock Text="Catppuccin" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ui:Button>
+
+                                    <!-- Rose Pine chip -->
+                                    <ui:Button x:Name="BtnThemeRosePine"
+                                               Click="OnSelectRosePineTheme"
+                                               Appearance="Secondary"
+                                               Height="36" Padding="14,0" Margin="0,0,8,8"
+                                               Cursor="Hand" ToolTip="Rose Pine (Warm Bloom)">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="12" Height="12" CornerRadius="6" Background="#EBBCBA" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock Text="Rosé Pine" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ui:Button>
+
+                                    <!-- Nord chip -->
+                                    <ui:Button x:Name="BtnThemeNord"
+                                               Click="OnSelectNordTheme"
+                                               Appearance="Secondary"
+                                               Height="36" Padding="14,0" Margin="0,0,8,8"
+                                               Cursor="Hand" ToolTip="Nord (Arctic Blue Light)">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="12" Height="12" CornerRadius="6" Background="#88C0D0" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock Text="Nord" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </ui:Button>
+
+                                    <!-- Focus chip -->
+                                    <ui:Button x:Name="BtnThemeFocus"
+                                               Click="OnSelectFocusTheme"
+                                               Appearance="Secondary"
+                                               Height="36" Padding="14,0" Margin="0,0,8,8"
+                                               Cursor="Hand" ToolTip="Focus (Minimal High-Contrast Slate Dark)">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="12" Height="12" CornerRadius="6" Background="#0EA5E9" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <ui:TextBlock Text="Focus" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </ui:Button>
                                 </WrapPanel>
                             </StackPanel>
+                        </ui:Card>
+                    </StackPanel>
 
-                            <ui:TextBlock x:Name="PortalStatusText"
-                                          Text="" Visibility="Collapsed"
-                                          FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"
-                                          Foreground="{DynamicResource SystemFillColorCriticalBrush}"
-                                          AutomationProperties.LiveSetting="Assertive"
-                                          Margin="0,10,0,0"/>
-                        </StackPanel>
-                    </ui:Card>
+                    <!-- ========================================================= -->
+                    <!-- CATEGORY 5: MODULES                                       -->
+                    <!-- ========================================================= -->
+                    <StackPanel x:Name="CategoryPanelModules" Visibility="Collapsed">
+                        <ui:Card Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <HeaderedContentControl Style="{StaticResource SettingsSectionHeaderStyle}"
+                                                        Header="Pluggable Modules &amp; Extensions"
+                                                        Content="Enable or disable auxiliary studio tools &amp; widgets">
+                                    <HeaderedContentControl.Tag>
+                                        <ui:SymbolIcon Symbol="AppsAddIn24" FontSize="16" Foreground="{DynamicResource FluentBrand80}"/>
+                                    </HeaderedContentControl.Tag>
+                                </HeaderedContentControl>
 
-                    <!-- Application Theme Card -->
-                    <ui:Card Padding="20">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                                <Border Width="32" Height="32" CornerRadius="8"
-                                        Background="{DynamicResource FluentBrandTint}"
-                                        Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="Color24" FontSize="16"
-                                                   Foreground="{DynamicResource FluentBrand80}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
+                                <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="0,1,0,0" Padding="0,14,0,0">
+                                    <StackPanel>
+
+                                        <!-- Waktu Solat Toggle -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ui:SymbolIcon Grid.Column="0" Symbol="Clock24" FontSize="16"
+                                                           Foreground="{DynamicResource FluentBrand80}"
+                                                           VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <ui:TextBlock Text="Waktu Solat &amp; Islamic Calendar" FontSize="13" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <ui:TextBlock Text="Daily prayer times, azan notifications, and Hijri dates"
+                                                              FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                              TextTrimming="CharacterEllipsis"
+                                                              ToolTip="Daily prayer times, azan notifications, and Hijri dates"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginWaktuSolat"
+                                                             Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <!-- Creative Wellbeing Toggle -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ui:SymbolIcon Grid.Column="0" Symbol="Heart24" FontSize="16"
+                                                           Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                                           VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <ui:TextBlock Text="Creative Wellbeing &amp; Ergonomics" FontSize="13" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <ui:TextBlock Text="Desk ergonomics, 20-20-20 eye rest &amp; water hydration tracker"
+                                                              FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                              TextTrimming="CharacterEllipsis"
+                                                              ToolTip="Desk ergonomics, 20-20-20 eye rest &amp; water hydration tracker"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginWellbeing"
+                                                             Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <!-- QR Code Studio Toggle -->
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ui:SymbolIcon Grid.Column="0" Symbol="QrCode24" FontSize="16"
+                                                           Foreground="{DynamicResource FluentBrand80}"
+                                                           VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <ui:TextBlock Text="QR Code Studio &amp; Generator" FontSize="13" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <ui:TextBlock Text="Vector QR codes for packaging dielines &amp; marketing campaigns"
+                                                              FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                              TextTrimming="CharacterEllipsis"
+                                                              ToolTip="Vector QR codes for packaging dielines &amp; marketing campaigns"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginQrCode"
+                                                             Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <!-- Radio Player Toggle -->
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ui:SymbolIcon Grid.Column="0" Symbol="MusicNote224" FontSize="16"
+                                                           Foreground="{DynamicResource FluentBrand80}"
+                                                           VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <ui:TextBlock Text="Radio Player &amp; Audio Visualizer" FontSize="13" FontWeight="SemiBold"
+                                                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <ui:TextBlock Text="Ambient radio streams, lofi beats &amp; real-time audio visualizer"
+                                                              FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                              TextTrimming="CharacterEllipsis"
+                                                              ToolTip="Ambient radio streams, lofi beats &amp; real-time audio visualizer"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginRadio"
+                                                             Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                    </StackPanel>
                                 </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <ui:TextBlock Text="Application Theme"
-                                                  FontSize="14" FontWeight="Bold"
-                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ui:TextBlock Text="Click a swatch to apply instantly"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                  FontSize="11"/>
-                                </StackPanel>
+
+                                <!-- Hint bar -->
+                                <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,12,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="Info24" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <ui:TextBlock Text="Toggling a module updates sidebar navigation and Ctrl + K immediately."
+                                                      FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
+                        </ui:Card>
+                    </StackPanel>
 
-                            <!-- Theme swatches -->
-                            <WrapPanel Orientation="Horizontal">
+                    <!-- ========================================================= -->
+                    <!-- CATEGORY 6: MAINTENANCE                                   -->
+                    <!-- ========================================================= -->
+                    <StackPanel x:Name="CategoryPanelMaintenance" Visibility="Collapsed">
+                        <ui:Card Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <HeaderedContentControl Style="{StaticResource SettingsSectionHeaderStyle}"
+                                                        Header="Reset &amp; Maintenance"
+                                                        Content="Application maintenance, session cache, and advanced options">
+                                    <HeaderedContentControl.Tag>
+                                        <ui:SymbolIcon Symbol="Wrench24" FontSize="16" Foreground="{DynamicResource FluentBrand80}"/>
+                                    </HeaderedContentControl.Tag>
+                                </HeaderedContentControl>
 
-                                <!-- Falconia swatch -->
-                                <Border CornerRadius="10" BorderBrush="#D1D1D1" BorderThickness="2"
-                                        Width="118" Margin="0,0,10,10" Cursor="Hand" ClipToBounds="True">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.10" Color="#000000"/>
-                                    </Border.Effect>
-                                    <ui:Button x:Name="BtnThemeFalconia"
-                                               Click="OnSelectFalconiaTheme"
-                                               BorderThickness="0" Padding="0"
-                                               Background="Transparent" Cursor="Hand">
-                                        <StackPanel>
-                                            <Border Background="#F5F5F5" Height="54" CornerRadius="8,8,0,0"
-                                                    BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-                                                <StackPanel Margin="10,10">
-                                                    <Rectangle Fill="#0F6CBD" Width="18" Height="3"
-                                                               HorizontalAlignment="Left" RadiusX="1.5" RadiusY="1.5" Margin="0,0,0,5"/>
-                                                    <Rectangle Fill="#424242" Width="62" Height="2"
-                                                               HorizontalAlignment="Left" RadiusX="1" RadiusY="1" Margin="0,0,0,4"/>
-                                                    <Rectangle Fill="#616161" Width="46" Height="2"
-                                                               HorizontalAlignment="Left" RadiusX="1" RadiusY="1"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Background="#FFFFFF" Padding="10,8">
-                                                <StackPanel>
-                                                    <ui:TextBlock Text="Falconia" FontSize="12" FontWeight="Bold"
-                                                                  Foreground="#0F6CBD"/>
-                                                    <ui:TextBlock Text="Fluent 2 Light" FontSize="10"
-                                                                  Foreground="#616161"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-                                    </ui:Button>
+                                <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="0,1,0,0" Padding="0,14,0,0">
+                                    <StackPanel>
+                                        <!-- Overview row -->
+                                        <ui:TextBlock Text="Maintenance options allow you to restore default settings and clear cached profile state. Destructive actions require confirmation."
+                                                      FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                      TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+                                        <!-- Advanced Expander for Destructive Actions -->
+                                        <Expander Header="Advanced / Destructive Actions"
+                                                  IsExpanded="False"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                                  BorderThickness="1" Padding="12">
+                                            <StackPanel Margin="0,14,0,0">
+                                                <!-- Reset defaults row -->
+                                                <Grid Margin="0,0,0,14">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <ui:TextBlock Text="Reset Profile Defaults" FontSize="13" FontWeight="SemiBold"
+                                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                        <ui:TextBlock Text="Restore default Corporate Branding credentials"
+                                                                      FontSize="11"
+                                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                    </StackPanel>
+                                                    <ui:Button Grid.Column="1"
+                                                               Appearance="Secondary"
+                                                               Click="OnResetProfileDefaults"
+                                                               Width="32" Height="32" Padding="0"
+                                                               ToolTip="Reset Profile Defaults" Cursor="Hand">
+                                                        <ui:SymbolIcon Symbol="ArrowCounterclockwise24"/>
+                                                    </ui:Button>
+                                                </Grid>
+
+                                                <!-- Clear all row -->
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <ui:TextBlock Text="Clear Cache and Reset All" FontSize="13" FontWeight="SemiBold"
+                                                                      Foreground="{DynamicResource SystemFillColorCriticalBrush}"/>
+                                                        <ui:TextBlock Text="Wipes all local data and session history"
+                                                                      FontSize="11"
+                                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                    </StackPanel>
+                                                    <ui:Button Grid.Column="1"
+                                                               Appearance="Danger"
+                                                               Click="OnClearAllData"
+                                                               Width="32" Height="32" Padding="0"
+                                                               ToolTip="Clear Cache &amp; Reset All Local Data" Cursor="Hand">
+                                                        <ui:SymbolIcon Symbol="Delete24"/>
+                                                    </ui:Button>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Expander>
+                                    </StackPanel>
                                 </Border>
-
-                                <!-- Metamorphosis swatch -->
-                                <Border CornerRadius="10" BorderBrush="#00CFFF" BorderThickness="2"
-                                        Width="118" Margin="0,0,10,10" Cursor="Hand" ClipToBounds="True">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.18" Color="#00CFFF"/>
-                                    </Border.Effect>
-                                    <ui:Button x:Name="BtnThemeMetamorphosis"
-                                               Click="OnSelectMetamorphosisTheme"
-                                               BorderThickness="0" Padding="0"
-                                               Background="Transparent" Cursor="Hand">
-                                        <StackPanel>
-                                            <Border Background="#0C1535" Height="54" CornerRadius="8,8,0,0"
-                                                    BorderBrush="#1B2B56" BorderThickness="0,0,0,1">
-                                                <StackPanel Margin="10,10">
-                                                    <Rectangle Fill="#00CFFF" Width="18" Height="3"
-                                                               HorizontalAlignment="Left" RadiusX="1.5" RadiusY="1.5" Margin="0,0,0,5"/>
-                                                    <Rectangle Fill="#94A3B8" Width="62" Height="2"
-                                                               HorizontalAlignment="Left" RadiusX="1" RadiusY="1" Margin="0,0,0,4"/>
-                                                    <Rectangle Fill="#64748B" Width="46" Height="2"
-                                                               HorizontalAlignment="Left" RadiusX="1" RadiusY="1"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Background="#080D1F" Padding="10,8">
-                                                <StackPanel>
-                                                    <ui:TextBlock Text="Metamorphosis" FontSize="12" FontWeight="Bold"
-                                                                  Foreground="#00CFFF"/>
-                                                    <ui:TextBlock Text="Glassmorphism" FontSize="10"
-                                                                  Foreground="#94A3B8"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-                                    </ui:Button>
-                                </Border>
-
-                                <!-- Catppuccin swatch -->
-                                <Border CornerRadius="10" BorderBrush="#CBA6F7" BorderThickness="2"
-                                        Width="118" Margin="0,0,10,10" Cursor="Hand" ClipToBounds="True">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.18" Color="#CBA6F7"/>
-                                    </Border.Effect>
-                                    <ui:Button x:Name="BtnThemeCatppuccin"
-                                               Click="OnSelectCatppuccinTheme"
-                                               BorderThickness="0" Padding="0"
-                                               Background="Transparent" Cursor="Hand">
-                                        <StackPanel>
-                                            <Border Background="#1E1E2E" Height="54" CornerRadius="8,8,0,0"
-                                                    BorderBrush="#313244" BorderThickness="0,0,0,1">
-                                                <StackPanel Margin="10,10">
-                                                    <Rectangle Fill="#CBA6F7" Width="18" Height="3"
-                                                               HorizontalAlignment="Left" RadiusX="1.5" RadiusY="1.5" Margin="0,0,0,5"/>
-                                                    <Rectangle Fill="#CDD6F4" Width="62" Height="2"
-                                                               HorizontalAlignment="Left" RadiusX="1" RadiusY="1" Margin="0,0,0,4"/>
-                                                    <Rectangle Fill="#A6ADC8" Width="46" Height="2"
-                                                               HorizontalAlignment="Left" RadiusX="1" RadiusY="1"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Background="#181825" Padding="10,8">
-                                                <StackPanel>
-                                                    <ui:TextBlock Text="Catppuccin" FontSize="12" FontWeight="Bold"
-                                                                  Foreground="#CBA6F7"/>
-                                                    <ui:TextBlock Text="Pastel Dark" FontSize="10"
-                                                                  Foreground="#A6ADC8"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-                                    </ui:Button>
-                                </Border>
-
-                                <!-- Rose Pine swatch -->
-                                <Border CornerRadius="10" BorderBrush="#EBBCBA" BorderThickness="2"
-                                        Width="118" Margin="0,0,10,10" Cursor="Hand" ClipToBounds="True">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.18" Color="#EBBCBA"/>
-                                    </Border.Effect>
-                                    <ui:Button x:Name="BtnThemeRosePine"
-                                               Click="OnSelectRosePineTheme"
-                                               BorderThickness="0" Padding="0"
-                                               Background="Transparent" Cursor="Hand">
-                                        <StackPanel>
-                                            <Border Background="#191724" Height="54" CornerRadius="8,8,0,0"
-                                                    BorderBrush="#26233A" BorderThickness="0,0,0,1">
-                                                <StackPanel Margin="10,10">
-                                                    <Rectangle Fill="#EBBCBA" Width="18" Height="3"
-                                                               HorizontalAlignment="Left" RadiusX="1.5" RadiusY="1.5" Margin="0,0,0,5"/>
-                                                    <Rectangle Fill="#E0DEF4" Width="62" Height="2"
-                                                               HorizontalAlignment="Left" RadiusX="1" RadiusY="1" Margin="0,0,0,4"/>
-                                                    <Rectangle Fill="#908CAA" Width="46" Height="2"
-                                                               HorizontalAlignment="Left" RadiusX="1" RadiusY="1"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Background="#1F1D2E" Padding="10,8">
-                                                <StackPanel>
-                                                    <ui:TextBlock Text="Rose Pine" FontSize="12" FontWeight="Bold"
-                                                                  Foreground="#EBBCBA"/>
-                                                    <ui:TextBlock Text="Warm Bloom" FontSize="10"
-                                                                  Foreground="#908CAA"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-                                    </ui:Button>
-                                </Border>
-
-                                <!-- Nord swatch -->
-                                <Border CornerRadius="10" BorderBrush="#88C0D0" BorderThickness="2"
-                                        Width="118" Margin="0,0,0,10" Cursor="Hand" ClipToBounds="True">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.14" Color="#5E81AC"/>
-                                    </Border.Effect>
-                                    <ui:Button x:Name="BtnThemeNord"
-                                               Click="OnSelectNordTheme"
-                                               BorderThickness="0" Padding="0"
-                                               Background="Transparent" Cursor="Hand">
-                                        <StackPanel>
-                                            <Border Background="#2E3440" Height="54" CornerRadius="8,8,0,0"
-                                                    BorderBrush="#3B4252" BorderThickness="0,0,0,1">
-                                                <StackPanel Margin="10,10">
-                                                    <Rectangle Fill="#88C0D0" Width="18" Height="3"
-                                                               HorizontalAlignment="Left" RadiusX="1.5" RadiusY="1.5" Margin="0,0,0,5"/>
-                                                    <Rectangle Fill="#ECEFF4" Width="62" Height="2"
-                                                               HorizontalAlignment="Left" RadiusX="1" RadiusY="1" Margin="0,0,0,4"/>
-                                                    <Rectangle Fill="#D8DEE9" Width="46" Height="2"
-                                                               HorizontalAlignment="Left" RadiusX="1" RadiusY="1"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Background="#3B4252" Padding="10,8">
-                                                <StackPanel>
-                                                    <ui:TextBlock Text="Nord" FontSize="12" FontWeight="Bold"
-                                                                  Foreground="#88C0D0"/>
-                                                    <ui:TextBlock Text="Arctic Blue" FontSize="10"
-                                                                  Foreground="#D8DEE9"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-                                    </ui:Button>
-                                </Border>
-
-                            </WrapPanel>
-                        </StackPanel>
-                    </ui:Card>
+                            </StackPanel>
+                        </ui:Card>
+                    </StackPanel>
 
                 </StackPanel>
-
-                <!-- RIGHT COLUMN -->
-                <StackPanel Grid.Column="2">
-
-                    <!-- Workstation Payload Card -->
-                    <ui:Card Margin="0,0,0,16" Padding="20">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                <Border Width="32" Height="32" CornerRadius="8"
-                                        Background="{DynamicResource FluentBrandTint}"
-                                        Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="ArrowDownload24" FontSize="16"
-                                                   Foreground="{DynamicResource FluentBrand80}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <ui:TextBlock Text="Workstation Payload"
-                                                  FontSize="14" FontWeight="Bold"
-                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ui:TextBlock Text="Deploy fonts, brand assets and updates"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                  FontSize="11"/>
-                                </StackPanel>
-                            </StackPanel>
-
-                            <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="0,1,0,0" Padding="0,12,0,0">
-                                <StackPanel>
-                                    <!-- Desktop Shortcut row -->
-                                    <Grid Margin="0,0,0,10">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <ui:TextBlock Text="Desktop Shortcut" FontSize="13" FontWeight="SemiBold"
-                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Create shortcut icon on your Windows Desktop"
-                                                          FontSize="11"
-                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <ui:Button Grid.Column="1"
-                                                   Appearance="Primary"
-                                                   Click="OnCreateDesktopShortcut"
-                                                   Width="32" Height="32" Padding="0"
-                                                   ToolTip="Create Desktop Shortcut" Cursor="Hand">
-                                            <ui:SymbolIcon Symbol="Desktop24"/>
-                                        </ui:Button>
-                                    </Grid>
-                                    <!-- Install fonts row -->
-                                    <Grid Margin="0,0,0,10">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <ui:TextBlock Text="Brand Fonts" FontSize="13" FontWeight="SemiBold"
-                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Install brand font family"
-                                                          FontSize="11"
-                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <ui:Button Grid.Column="1"
-                                                   Appearance="Primary"
-                                                   Click="OnRepairFonts"
-                                                   Width="32" Height="32" Padding="0"
-                                                   ToolTip="Install Brand Fonts into Windows" Cursor="Hand">
-                                            <ui:SymbolIcon Symbol="TextFont24"/>
-                                        </ui:Button>
-                                    </Grid>
-                                    <!-- Deploy assets row -->
-                                    <Grid Margin="0,0,0,10">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <ui:TextBlock Text="Asset Libraries" FontSize="13" FontWeight="SemiBold"
-                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Deploy brand asset library to workspace"
-                                                          FontSize="11"
-                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <ui:Button Grid.Column="1"
-                                                   Appearance="Primary"
-                                                   Click="OnDeployAssets"
-                                                   Width="32" Height="32" Padding="0"
-                                                   ToolTip="Deploy Brand Asset Libraries" Cursor="Hand">
-                                            <ui:SymbolIcon Symbol="Library24"/>
-                                        </ui:Button>
-                                    </Grid>
-                                    <!-- Check updates row -->
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <ui:TextBlock Text="Software Updates" FontSize="13" FontWeight="SemiBold"
-                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Check for the latest application version"
-                                                          FontSize="11"
-                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <ui:Button Grid.Column="1"
-                                                   Appearance="Secondary"
-                                                   Click="OnCheckUpdates"
-                                                   Width="32" Height="32" Padding="0"
-                                                   ToolTip="Check for Updates" Cursor="Hand">
-                                            <ui:SymbolIcon Symbol="ArrowSync24"/>
-                                        </ui:Button>
-                                    </Grid>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ui:Card>
-
-                    <!-- Pluggable Modules Card -->
-                    <ui:Card Margin="0,0,0,16" Padding="20">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                <Border Width="32" Height="32" CornerRadius="8"
-                                        Background="{DynamicResource FluentBrandTint}"
-                                        Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="AppsAddIn24" FontSize="16"
-                                                   Foreground="{DynamicResource FluentBrand80}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <ui:TextBlock Text="Pluggable Modules &amp; Extensions"
-                                                  FontSize="14" FontWeight="Bold"
-                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ui:TextBlock Text="Enable or disable auxiliary studio tools &amp; widgets"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                  FontSize="11"/>
-                                </StackPanel>
-                            </StackPanel>
-
-                            <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="0,1,0,0" Padding="0,12,0,0">
-                                <StackPanel>
-
-                                    <!-- Waktu Solat Toggle -->
-                                    <Grid Margin="0,0,0,12">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <ui:SymbolIcon Grid.Column="0" Symbol="Clock24" FontSize="16"
-                                                       Foreground="{DynamicResource FluentBrand80}"
-                                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
-                                            <ui:TextBlock Text="Waktu Solat &amp; Islamic Calendar" FontSize="13" FontWeight="SemiBold"
-                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Daily prayer times, azan notifications, and Hijri dates"
-                                                          FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginWaktuSolat"
-                                                         Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
-                                    </Grid>
-
-                                    <!-- Creative Wellbeing Toggle -->
-                                    <Grid Margin="0,0,0,12">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <ui:SymbolIcon Grid.Column="0" Symbol="Heart24" FontSize="16"
-                                                       Foreground="{DynamicResource SystemFillColorSuccessBrush}"
-                                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
-                                            <ui:TextBlock Text="Creative Wellbeing &amp; Ergonomics" FontSize="13" FontWeight="SemiBold"
-                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Desk ergonomics, 20-20-20 eye rest &amp; water hydration tracker"
-                                                          FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginWellbeing"
-                                                         Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
-                                    </Grid>
-
-                                    <!-- QR Code Studio Toggle -->
-                                    <Grid Margin="0,0,0,12">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <ui:SymbolIcon Grid.Column="0" Symbol="QrCode24" FontSize="16"
-                                                       Foreground="{DynamicResource FluentBrand80}"
-                                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
-                                            <ui:TextBlock Text="QR Code Studio &amp; Generator" FontSize="13" FontWeight="SemiBold"
-                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Vector QR codes for packaging dielines &amp; marketing campaigns"
-                                                          FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginQrCode"
-                                                         Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
-                                    </Grid>
-
-                                    <!-- Radio Player Toggle -->
-                                    <Grid Margin="0,0,0,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <ui:SymbolIcon Grid.Column="0" Symbol="MusicNote224" FontSize="16"
-                                                       Foreground="{DynamicResource FluentBrand80}"
-                                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
-                                            <ui:TextBlock Text="Radio Player &amp; Audio Visualizer" FontSize="13" FontWeight="SemiBold"
-                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Ambient radio streams, lofi beats &amp; real-time audio visualizer"
-                                                          FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <ui:ToggleSwitch Grid.Column="2" x:Name="TogglePluginRadio"
-                                                         Click="OnPluginToggleClicked" Cursor="Hand" VerticalAlignment="Center"/>
-                                    </Grid>
-
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Hint bar -->
-                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,10,0,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <ui:SymbolIcon Symbol="Info24" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                    <ui:TextBlock Text="Toggling a module updates sidebar navigation and Ctrl + K immediately."
-                                                  FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ui:Card>
-
-                    <!-- Category Presets Card -->
-                    <ui:Card Margin="0,0,0,16" Padding="20">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                <Border Width="32" Height="32" CornerRadius="8"
-                                        Background="{DynamicResource FluentBrandTint}"
-                                        Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="Grid24" FontSize="16"
-                                                   Foreground="{DynamicResource FluentBrand80}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <ui:TextBlock Text="Category Presets"
-                                                  FontSize="14" FontWeight="Bold"
-                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ui:TextBlock Text="Folder templates and Project ID codes"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                  FontSize="11"/>
-                                </StackPanel>
-                            </StackPanel>
-                            <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="0,1,0,0" Padding="0,12,0,0">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center">
-                                        <ui:TextBlock Text="Folder Structure and Presets" FontSize="13" FontWeight="SemiBold"
-                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                        <ui:TextBlock Text="Configure subfolder trees and suffix codes"
-                                                      FontSize="11"
-                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    </StackPanel>
-                                    <ui:Button Grid.Column="1"
-                                               Appearance="Primary"
-                                               Click="OnManageCategoryPresetsClicked"
-                                               Width="32" Height="32" Padding="0"
-                                               ToolTip="Manage Category Presets &amp; Folder Structures" Cursor="Hand">
-                                        <ui:SymbolIcon Symbol="Settings24"/>
-                                    </ui:Button>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
-                    </ui:Card>
-
-                    <!-- Workstation & Software Diagnostics Card -->
-                    <ui:Card Margin="0,0,0,16" Padding="20">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                <Border Width="32" Height="32" CornerRadius="8"
-                                        Background="{DynamicResource FluentBrandTint}"
-                                        Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="DeveloperBoard24" FontSize="16"
-                                                   Foreground="{DynamicResource FluentBrand80}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <ui:TextBlock Text="Workstation &amp; Diagnostics"
-                                                   FontSize="14" FontWeight="Bold"
-                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ui:TextBlock Text="Hardware telemetry, GPU OpenCL &amp; Creative Suite health"
-                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                   FontSize="11"/>
-                                </StackPanel>
-                            </StackPanel>
-                            <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="0,1,0,0" Padding="0,12,0,0">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center">
-                                        <ui:TextBlock Text="Launch Diagnostics Studio" FontSize="13" FontWeight="SemiBold"
-                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                        <ui:TextBlock Text="View full hardware audit, GPU status, and software suite integrity"
-                                                      FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    </StackPanel>
-                                    <ui:Button Grid.Column="1" Appearance="Secondary" Click="OnOpenWorkstationHealthClicked"
-                                               Height="32" Padding="12,0" Cursor="Hand" ToolTip="Open Workstation Health &amp; Diagnostics">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ui:SymbolIcon Symbol="Open24" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                            <ui:TextBlock Text="Open Diagnostics" FontSize="11" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </ui:Button>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
-                    </ui:Card>
-
-                    <!-- Reset and Maintenance Card -->
-                    <ui:Card Padding="20">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                <Border Width="32" Height="32" CornerRadius="8"
-                                        Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="Warning24" FontSize="16"
-                                                   Foreground="{DynamicResource SystemFillColorCriticalBrush}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <ui:TextBlock Text="Reset and Maintenance"
-                                                  FontSize="14" FontWeight="Bold"
-                                                  Foreground="{DynamicResource SystemFillColorCriticalBrush}"/>
-                                    <ui:TextBlock Text="Destructive actions - use with care"
-                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                  FontSize="11"/>
-                                </StackPanel>
-                            </StackPanel>
-                            <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="0,1,0,0" Padding="0,12,0,0">
-                                <StackPanel>
-                                    <!-- Reset defaults row -->
-                                    <Grid Margin="0,0,0,10">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <ui:TextBlock Text="Reset Profile Defaults" FontSize="13" FontWeight="SemiBold"
-                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                            <ui:TextBlock Text="Restore SS Branding default credentials"
-                                                          FontSize="11"
-                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <ui:Button Grid.Column="1"
-                                                   Appearance="Secondary"
-                                                   Click="OnResetProfileDefaults"
-                                                   Width="32" Height="32" Padding="0"
-                                                   ToolTip="Reset Profile Defaults" Cursor="Hand">
-                                            <ui:SymbolIcon Symbol="ArrowCounterclockwise24"/>
-                                        </ui:Button>
-                                    </Grid>
-                                    <!-- Clear all row -->
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <ui:TextBlock Text="Clear Cache and Reset All" FontSize="13" FontWeight="SemiBold"
-                                                          Foreground="{DynamicResource SystemFillColorCriticalBrush}"/>
-                                            <ui:TextBlock Text="Wipes all local data and session history"
-                                                          FontSize="11"
-                                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <ui:Button Grid.Column="1"
-                                                   Appearance="Danger"
-                                                   Click="OnClearAllData"
-                                                   Width="32" Height="32" Padding="0"
-                                                   ToolTip="Clear Cache &amp; Reset All Local Data" Cursor="Hand">
-                                            <ui:SymbolIcon Symbol="Delete24"/>
-                                        </ui:Button>
-                                    </Grid>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ui:Card>
-
-                </StackPanel>
-            </Grid>
-        </StackPanel>
-    </ScrollViewer>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
 </Page>
