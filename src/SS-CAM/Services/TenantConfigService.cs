@@ -213,7 +213,7 @@ namespace SS_CAM.Services
                         { "creative-wellbeing", new PluginConfig { Enabled = true } },
                         { "qr-code-studio", new PluginConfig { Enabled = true, DefaultContent = "https://suamisihat.clinic", FilenamePrefix = "SuamiSihat_QRCode" } },
                         { "radio-player", new PluginConfig { Enabled = true, PinnedStations = new System.Collections.Generic.List<PinnedStationConfig> {
-                            new PinnedStationConfig { Id = "preset_suamisihat", Name = "SuamiSihat Radio Official", StreamUrl = "https://radio.suamisihat.myds.me/live" }
+                            new PinnedStationConfig { Id = "preset_suamisihat", Name = "SuamiSihat Radio Official", StreamUrl = "https://radio.suamisihat.myds.me/live.mp3" }
                         }}}
                     },
                     Subsidiaries = new System.Collections.Generic.List<SubsidiaryConfig>

@@ -777,7 +777,14 @@ namespace SS_CAM.Services
                 AllStations = new List<RadioStation>(_config.SavedStations);
 
                 // Purge removed station presets
-                AllStations.RemoveAll(s => s.Id == "preset_fm988" || s.Id == "preset_aifm" || s.Id == "preset_cityplus" || s.Name.Contains("988 FM") || s.Name.Contains("Ai FM") || s.Name.Contains("CITYPlus"));
+                AllStations.RemoveAll(s => s.Id == "preset_corporate" || s.Id == "preset_fm988" || s.Id == "preset_aifm" || s.Id == "preset_cityplus" || s.Name.Contains("988 FM") || s.Name.Contains("Ai FM") || s.Name.Contains("CITYPlus"));
+
+                // Migrate saved SuamiSihat stations from the retired /listen and /live endpoints
+                foreach (var legacy in AllStations)
+                {
+                    if (legacy.StreamUrl == "https://radio.suamisihat.myds.me/listen" || legacy.StreamUrl == "https://radio.suamisihat.myds.me/live")
+                        legacy.StreamUrl = "https://radio.suamisihat.myds.me/live.mp3";
+                }
 
                 // Ensure Nightwave Plaza is present
                 if (!AllStations.Any(s => s.Id == "preset_nightwave" || s.Name.Contains("Nightwave")))
@@ -908,22 +915,6 @@ namespace SS_CAM.Services
             }
         }
 
-        public static RadioStation GetCorporateRadioStation()
-        {
-            return new RadioStation
-            {
-                Id = "preset_corporate",
-                Name = "Corporate Radio",
-                Genre = "Health / Lifestyle (Official)",
-                StreamUrl = "https://radio.suamisihat.myds.me/listen",
-                IconEmoji = "📻",
-                IsPreset = true,
-                Language = "Malay",
-                Country = "Malaysia",
-                Description = "Official SuamiSihat Radio — health, wellness & lifestyle broadcasting 24/7."
-            };
-        }
-
         public static RadioStation GetInitialDStation()
         {
             return new RadioStation
@@ -1007,7 +998,6 @@ namespace SS_CAM.Services
         {
             return new List<RadioStation>
             {
-                GetCorporateRadioStation(),
                 GetInitialDStation(),
                 GetBabymetalStation(),
                 new RadioStation

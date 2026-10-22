@@ -35,7 +35,7 @@
     "radio-player": {
       "Enabled": true,
       "PinnedStations": [
-        { "Id": "preset_suamisihat", "Name": "SuamiSihat Radio Official", "StreamUrl": "https://radio.suamisihat.myds.me/live" }
+        { "Id": "preset_suamisihat", "Name": "SuamiSihat Radio Official", "StreamUrl": "https://radio.suamisihat.myds.me/live.mp3" }
       ]
     }
   }
