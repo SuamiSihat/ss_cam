@@ -1,6 +1,6 @@
 # SS-CAM Project Roadmap
 
-> **Living document.** Updated with every release. Last updated: 2026-10-15.
+> **Living document.** Updated with every release. Last updated: 2026-10-22.
 
 ---
 
@@ -66,6 +66,18 @@
 | **v5.1.0** | 2026-10-08 | **Clinic Operations & PERNAS Franchise Standardization**: Full strategic alignment with PERNAS Franchise Development Grant application; KKM Regulatory Compliance Gateway & Clinical Preflight Validator (Medicines Advertisement Act 1956, KKLIU/MAL code verification, disclaimer autofix); Waiting Lounge TV Signage Engine (`SignageView.svelte`, `#signage` full-bleed kiosk route, live queue caller); In-Clinic Patient Consultation Suite (`ConsultationSuiteView.svelte`, 4-phase recovery timeline, vascular simulation); Branch Marketing & Patient Intake Kit (Bangsar HQ, KD, JB, Penang branch presets across Desktop & Web); Post-Treatment Digital Care Dispatcher (automated bilingual recovery leaflets & 1-click WhatsApp dispatch); and 4 versioned clinical SOP manuals in NAS vault `_Clinic/SOP_Manuals`. |
 | **v5.2.0** | 2026-10-12 | **Enterprise Intelligence, Asset Versioning & Collision Guard**: Automated non-destructive asset revision snapshot caching and rollback engine across WPF Desktop and Web Portal (`SnapshotDesktopService.cs`, `ProjectSnapshotsDialog.xaml`, `SnapshotService.js`); real-time project lock leasing and multi-designer collision guard (`FileCollisionGuardService.cs`, `_lock.json`); Web DeliverablesView overhaul with Production Vault Telemetry Ribbon, 1-click fast sign-off, and theme tokenization; TasksView 2-tier toolbar with executive bottleneck radar and inline non-blocking confirmations; Client Review Portal visual pin annotations, video proxy streaming, and 1-click batch ZIP download; and Native Linux Desktop Client updated to .NET 10 with 0 warnings, single-file packaging, and 76/76 smoke test passes. |
 | **v5.2.1** | 2026-10-15 | **Enterprise Web Portal Overhaul, Security Hardening & Desktop Alignment**: Full 5-phase Web Management Portal remediation (strict route authorization, sanitized JWT cookies, safe preview MIME gating, bcrypt credential store, and Docker multi-stage sync); Desktop Windows (.NET 4.8 / WPF) parity with encrypted DPAPI portal credentials and Source Guardian compliance; and live Approvals View rune bug fix with verified 520-deliverable telemetry. |
+| **v5.3.0** | 2026-10-21 | **Evidence-Based Consultation Suite Redesign, Touch-First Studio Display & Ecosystem Sync**: 6 dynamic SVG clinical anatomy simulations, bilingual BM/EN clinical dictionary, fullscreen presentation mode, peer-reviewed medical reference panel, touch-first Studio Display TV kiosk (`#signage`) and queue management admin console (`#studio-display`), per-branch queue isolation, banner/video media upload pipeline, and Windows Desktop v5.3.0 single-file release |
+
+---
+
+## v5.3.0 (2026-10-21 — Consultation Suite Redesign, Studio Display TV Kiosk & Ecosystem Sync)
+
+| Area | Summary |
+|---|---|
+| **Clinical Consultation Suite** | Evidence-based interactive patient education suite with 6 dynamic SVG anatomy simulations (ESWT, TRT, Kegel pacer, PE/ED, Fertility, P-Shot), bilingual BM/EN dictionary, fullscreen presentation mode, and collapsible clinical guidelines. |
+| **Studio Display TV Kiosk & Queue** | Real-time waiting lounge TV kiosk (`#signage`) and touch-first admin queue manager (`#studio-display`) with per-branch state, 16:9 banner uploader, MP4 video streaming, and live check-in QR code. |
+| **Desktop Windows Parity** | Windows WPF (.NET Framework 4.8) updated to v5.3.0 with synchronized assembly info, single-file release executable (`dist/SS-CAM-v5.3.0.exe`), and Source Guardian compliance. |
+| **Authentication & UX** | Fixed missing `FluentIcons` in LoginView for first-time password rotation, improved sidebar app link contrast, and documented canonical brand properties. |
 
 ---
 

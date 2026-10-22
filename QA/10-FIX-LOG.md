@@ -1,5 +1,26 @@
 # SS-CAM FIX LOG
 
+## Release: v5.3.0 — Consultation Suite Redesign, Studio Display TV Kiosk & Desktop Ecosystem Sync — 2026-10-22
+
+- **Evidence-Based Consultation Suite Redesign (`ConsultationSuiteView.svelte`)**:
+  - 6 dynamic SVG clinical anatomy simulations (ESWT acoustic wavefronts, TRT hormonal recovery curve, Kegel sagittal pelvic floor biomechanics pacer, PE/ED neuro-vascular reflex arc, Fertility 74-day spermatogenesis tracker, P-Shot 4-stage aseptic density separation).
+  - Bilingual BM/EN clinical dictionary with instant persistent language toggle (`consultation.i18n.ts`).
+  - Fullscreen patient education presentation mode hiding operational checklists and branch pricing.
+  - Collapsible clinical reference panel indexing 6 peer-reviewed clinical guidelines (EAU, WHO, Endocrine Society, ISSM, Cochrane).
+- **Touch-First Studio Display & TV Kiosk (`#studio-display`, `#signage`)**:
+  - Touch-first queue management admin view with 52px keypad, prefix chips (A–F), duty doctor chips, and Banana Yellow "Call now" CTA.
+  - Per-branch state isolation: ticket calling, waiting list, playlists, and duty doctors isolated by branch code.
+  - Media pipeline: 16:9 banner uploader with image dimension & magic-byte verification; MP4 video streaming with Range 206 support.
+  - Dynamic real-time TV kiosk with official brand logo, vector `FluentIcons`, live check-in QR code, duty doctor roster, scrolling ticker, and audio-visual call alerts.
+- **Web Portal Login & Navigation Fixes**:
+  - Fixed missing `FluentIcons` in `LoginView.svelte` for first-time password rotation.
+  - Improved sidebar native apps download link contrast (`#21A1F7` → `#022057` / `#043388`) and brand styling.
+  - Documented canonical product brand sites and digital ecosystem links.
+- **Windows Desktop App Release (`v5.3.0.0`)**:
+  - Recompiled `src/SS-CAM/bin/Release/SS-CAM.exe` (`dist/SS-CAM-v5.3.0.exe`, 6,361,088 bytes, SHA256: `B46F7706CF7D57BAE5508933BE644353D2063A652AED1A650AB498A6C30AB62E`).
+  - Source Guardian verified: 14/14 checks passed (100% compliance).
+  - Synchronized Window Title and metadata to `v5.3.0`.
+
 ## Release: v5.2.1 — Enterprise Web Portal Overhaul, Security Hardening & Desktop Sync — 2026-10-15
 
 - **Web Deliverables / Approvals View Live Remediation (`DeliverablesView.svelte`)**:

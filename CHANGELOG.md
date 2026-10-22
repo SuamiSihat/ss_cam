@@ -29,6 +29,21 @@ Details and verification evidence: `QA/CONSULTATION-SUITE-IMPROVEMENT.md`, `QA/S
 - **Web Portal Login:** Fixed missing `FluentIcons` import in `LoginView.svelte` that previously froze the forced password rotation step on first-time login.
 - **Dual-Track Governance:** Verified all 14 dual-track governance rules and UTF-8 BOM encoding.
 
+### Windows Desktop App Release & Ecosystem Sync
+- **Windows Desktop App (.NET Framework 4.8 / WPF):**
+  - Verified clean Release build (`src/SS-CAM/bin/Release/SS-CAM.exe` / `dist/SS-CAM-v5.3.0.exe`, 6,361,088 bytes, AssemblyVersion `5.3.0.0`).
+  - SHA256: `B46F7706CF7D57BAE5508933BE644353D2063A652AED1A650AB498A6C30AB62E`.
+  - Source Guardian verified: 14/14 checks passed (UTF-8 BOM, Fluent 2 `<ui:Button>`, ComboBox MinHeight >= 34/36, zero UI-thread blocking).
+  - Synchronized Window Title and metadata to `v5.3.0`.
+
+### Binary & Artifact Integrity
+
+| Component | Target / Platform | Version | Checksum (SHA256) |
+|---|---|---|---|
+| Windows Portable Desktop App | `dist/SS-CAM-v5.3.0.exe` | 5.3.0.0 | `B46F7706CF7D57BAE5508933BE644353D2063A652AED1A650AB498A6C30AB62E` |
+| Web Portal Server & API | `src/SS-CAM.Web/server/` | 5.3.0 | Node.js 20 Express / Helmet / JWT RBAC |
+| Web Client Production Dist | `src/SS-CAM.Web/client/dist/` | 5.3.0 | Svelte 5 / Vite 5 |
+
 ## [5.2.1] - 2026-10-15 (Enterprise Web Portal Overhaul, Security Hardening & Desktop Sync)
 
 Details and verification evidence: `QA/FINAL-WEB-PORTAL-REPORT.md`, `QA/FINAL-QA-REPORT.md`, and `QA/PHASE-LOG.md`.

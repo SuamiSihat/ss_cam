@@ -1,10 +1,10 @@
 # SS-CAM QA Suite
 
 **Application:** SuamiSihat Creative Assets Management (SS-CAM)
-**Version under review:** v5.2.1
+**Version under review:** v5.3.0
 **QA Lead:** Brand / Creative & Brand Team
 **Date initiated:** 2026-10-12
-**Last updated:** 2026-10-15
+**Last updated:** 2026-10-22
 
 ---
 
@@ -36,7 +36,7 @@ This folder contains the complete quality assurance record for SS-CAM — a WPF 
 ## QA Process
 
 ```text
-Build v5.2.1 dist
+Build v5.3.0 dist
       │
       ▼
 01 Architecture review  ──→  02 Functional tests (manual)
