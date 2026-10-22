@@ -117,23 +117,6 @@ namespace SS_CAM.Services
     {
         private static QrCodeEncoderService _instance;
 
-        // Galois Field GF(256) Tables for Reed-Solomon
-        private static readonly byte[] GfExp = new byte[512];
-        private static readonly byte[] GfLog = new byte[256];
-
-        static QrCodeEncoderService()
-        {
-            int x = 1;
-            for (int i = 0; i < 255; i++)
-            {
-                GfExp[i] = (byte)x;
-                GfExp[i + 255] = (byte)x;
-                GfLog[x] = (byte)i;
-                x <<= 1;
-                if ((x & 256) != 0) x ^= 0x11D; // Primitive polynomial 285 (x^8 + x^4 + x^3 + x^2 + 1)
-            }
-        }
-
         public static QrCodeEncoderService Instance
         {
             get
@@ -220,7 +203,7 @@ namespace SS_CAM.Services
             int totalModules = modules + (quietZoneModules * 2);
             int reqSize = Math.Max(200, options.PixelSize);
 
-            int modulePixelSize = Math.Max(4, reqSize / totalModules);
+            int modulePixelSize = Math.Max(1, (int)Math.Round((double)reqSize / totalModules));
             int targetSize = totalModules * modulePixelSize;
             int quietZoneOffset = quietZoneModules * modulePixelSize;
 
@@ -372,6 +355,25 @@ namespace SS_CAM.Services
                         }
                     }
                     break;
+
+                case QrBodyShape.Diamond:
+                    PointF[] diamondPts = new PointF[]
+                    {
+                        new PointF(rect.X + rect.Width / 2f, rect.Y),
+                        new PointF(rect.Right, rect.Y + rect.Height / 2f),
+                        new PointF(rect.X + rect.Width / 2f, rect.Bottom),
+                        new PointF(rect.X, rect.Y + rect.Height / 2f)
+                    };
+                    g.FillPolygon(brush, diamondPts);
+                    break;
+
+                case QrBodyShape.Classy:
+                    using (GraphicsPath path = CreateSelectiveRoundedRectPath(rect, moduleSize * 0.45f, true, false, true, false))
+                    {
+                        g.FillPath(brush, path);
+                    }
+                    break;
+
                 default:
                     g.FillRectangle(brush, rect);
                     break;
@@ -398,207 +400,6 @@ namespace SS_CAM.Services
             }
         }
 
-        /// <summary>
-        /// Generates a resolution-independent native WPF vector DrawingImage for WPF Image controls.
-        /// As recommended in StackOverflow & DevExpress WPF BarCodeEdit patterns.
-        /// </summary>
-        public System.Windows.Media.DrawingImage GenerateDrawingImage(QrCodeOptions options)
-        {
-            if (options == null) options = new QrCodeOptions();
-
-            if (string.IsNullOrWhiteSpace(options.Content)) options.Content = QrCodeEncoderService.GetDefaultUrl();
-            bool[,] matrix = GenerateQrMatrix(options.Content, options.ErrorCorrection);
-
-            int modules = matrix.GetLength(0);
-            int quietZoneModules = 4;
-            int totalModules = modules + (quietZoneModules * 2);
-
-            double targetSize = Math.Max(300, options.PixelSize);
-            double moduleSize = targetSize / totalModules;
-            double quietZoneOffset = quietZoneModules * moduleSize;
-
-            System.Windows.Media.DrawingGroup group = new System.Windows.Media.DrawingGroup();
-
-            // 1. Background Geometry
-            System.Windows.Media.Color wpfBgColor = System.Windows.Media.Color.FromArgb(
-                options.BackgroundColor.A, options.BackgroundColor.R, options.BackgroundColor.G, options.BackgroundColor.B);
-            group.Children.Add(new System.Windows.Media.GeometryDrawing(
-                new System.Windows.Media.SolidColorBrush(wpfBgColor),
-                null,
-                new System.Windows.Media.RectangleGeometry(new System.Windows.Rect(0, 0, targetSize, targetSize))));
-
-            // 2. Foreground Geometry
-            System.Windows.Media.Color wpfFg1 = System.Windows.Media.Color.FromArgb(
-                options.ForegroundColor.A, options.ForegroundColor.R, options.ForegroundColor.G, options.ForegroundColor.B);
-            System.Windows.Media.Color wpfFg2 = System.Windows.Media.Color.FromArgb(
-                options.ForegroundColor2.A, options.ForegroundColor2.R, options.ForegroundColor2.G, options.ForegroundColor2.B);
-
-            System.Windows.Media.Brush fgBrush;
-            if (options.UseGradient)
-            {
-                fgBrush = new System.Windows.Media.LinearGradientBrush(
-                    wpfFg1, wpfFg2, new System.Windows.Point(0, 0), new System.Windows.Point(1, 1));
-            }
-            else
-            {
-                fgBrush = new System.Windows.Media.SolidColorBrush(wpfFg1);
-            }
-
-            bool isSquareMode = options.BodyShape == QrBodyShape.Square && options.EyeFrameShape == QrEyeFrameShape.Square && options.EyeDotShape == QrEyeDotShape.Square;
-            bool isSingleLayerMode = isSquareMode && !options.CustomEyeColors;
-
-            System.Windows.Media.StreamGeometry bodyGeometry = new System.Windows.Media.StreamGeometry();
-            using (System.Windows.Media.StreamGeometryContext ctx = bodyGeometry.Open())
-            {
-                for (int r = 0; r < modules; r++)
-                {
-                    for (int c = 0; c < modules; c++)
-                    {
-                        if (!isSingleLayerMode && IsFinderPatternZone(r, c, modules)) continue;
-                        if (!matrix[r, c]) continue;
-
-                        double x = quietZoneOffset + c * moduleSize;
-                        double y = quietZoneOffset + r * moduleSize;
-
-                        if (options.BodyShape == QrBodyShape.Rounded && !isSingleLayerMode)
-                        {
-                            bool hasTop = r > 0 && matrix[r - 1, c];
-                            bool hasBottom = r < modules - 1 && matrix[r + 1, c];
-                            bool hasLeft = c > 0 && matrix[r, c - 1];
-                            bool hasRight = c < modules - 1 && matrix[r, c + 1];
-
-                            bool roundTL = !hasTop && !hasLeft;
-                            bool roundTR = !hasTop && !hasRight;
-                            bool roundBR = !hasBottom && !hasRight;
-                            bool roundBL = !hasBottom && !hasLeft;
-
-                            double rx = moduleSize * 0.45;
-                            if (!roundTL && !roundTR && !roundBR && !roundBL)
-                            {
-                                ctx.BeginFigure(new System.Windows.Point(x, y), true, true);
-                                ctx.LineTo(new System.Windows.Point(x + moduleSize, y), true, false);
-                                ctx.LineTo(new System.Windows.Point(x + moduleSize, y + moduleSize), true, false);
-                                ctx.LineTo(new System.Windows.Point(x, y + moduleSize), true, false);
-                            }
-                            else
-                            {
-                                ctx.BeginFigure(new System.Windows.Point(x + (roundTL ? rx : 0), y), true, true);
-
-                                // Top Edge -> Top-Right Corner
-                                ctx.LineTo(new System.Windows.Point(x + moduleSize - (roundTR ? rx : 0), y), true, false);
-                                if (roundTR) ctx.ArcTo(new System.Windows.Point(x + moduleSize, y + rx), new System.Windows.Size(rx, rx), 0, false, System.Windows.Media.SweepDirection.Clockwise, true, false);
-
-                                // Right Edge -> Bottom-Right Corner
-                                ctx.LineTo(new System.Windows.Point(x + moduleSize, y + moduleSize - (roundBR ? rx : 0)), true, false);
-                                if (roundBR) ctx.ArcTo(new System.Windows.Point(x + moduleSize - rx, y + moduleSize), new System.Windows.Size(rx, rx), 0, false, System.Windows.Media.SweepDirection.Clockwise, true, false);
-
-                                // Bottom Edge -> Bottom-Left Corner
-                                ctx.LineTo(new System.Windows.Point(x + (roundBL ? rx : 0), y + moduleSize), true, false);
-                                if (roundBL) ctx.ArcTo(new System.Windows.Point(x, y + moduleSize - rx), new System.Windows.Size(rx, rx), 0, false, System.Windows.Media.SweepDirection.Clockwise, true, false);
-
-                                // Left Edge -> Top-Left Corner
-                                ctx.LineTo(new System.Windows.Point(x, y + (roundTL ? rx : 0)), true, false);
-                                if (roundTL) ctx.ArcTo(new System.Windows.Point(x + rx, y), new System.Windows.Size(rx, rx), 0, false, System.Windows.Media.SweepDirection.Clockwise, true, false);
-                            }
-                        }
-                        else
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(x, y), true, true);
-                            ctx.LineTo(new System.Windows.Point(x + moduleSize, y), true, false);
-                            ctx.LineTo(new System.Windows.Point(x + moduleSize, y + moduleSize), true, false);
-                            ctx.LineTo(new System.Windows.Point(x, y + moduleSize), true, false);
-                        }
-                    }
-                }
-            }
-            bodyGeometry.Freeze();
-            group.Children.Add(new System.Windows.Media.GeometryDrawing(fgBrush, null, bodyGeometry));
-
-            if (!isSingleLayerMode)
-            {
-                // 3. Vector Finder Eyes
-                System.Windows.Media.Brush frameBrush = options.CustomEyeColors ?
-                    new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(options.EyeFrameColor.A, options.EyeFrameColor.R, options.EyeFrameColor.G, options.EyeFrameColor.B)) : fgBrush;
-                System.Windows.Media.Brush dotBrush = options.CustomEyeColors ?
-                    new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(options.EyeDotColor.A, options.EyeDotColor.R, options.EyeDotColor.G, options.EyeDotColor.B)) : fgBrush;
-                System.Windows.Media.Brush bgBrush = new System.Windows.Media.SolidColorBrush(wpfBgColor);
-
-                AppendWpfFinderEye(group, quietZoneOffset, quietZoneOffset, moduleSize, options.EyeFrameShape, options.EyeDotShape, frameBrush, dotBrush, bgBrush);
-                AppendWpfFinderEye(group, quietZoneOffset + (modules - 7) * moduleSize, quietZoneOffset, moduleSize, options.EyeFrameShape, options.EyeDotShape, frameBrush, dotBrush, bgBrush);
-                AppendWpfFinderEye(group, quietZoneOffset, quietZoneOffset + (modules - 7) * moduleSize, moduleSize, options.EyeFrameShape, options.EyeDotShape, frameBrush, dotBrush, bgBrush);
-            }
-
-            group.Freeze();
-            return new System.Windows.Media.DrawingImage(group);
-        }
-
-        private static void AppendWpfFinderEye(
-            System.Windows.Media.DrawingGroup group,
-            double originX,
-            double originY,
-            double moduleSize,
-            QrEyeFrameShape frameShape,
-            QrEyeDotShape dotShape,
-            System.Windows.Media.Brush frameBrush,
-            System.Windows.Media.Brush dotBrush,
-            System.Windows.Media.Brush bgBrush)
-        {
-            double outerSize = moduleSize * 7.0;
-            double innerMargin = moduleSize * 1.0;
-            double innerSize = moduleSize * 5.0;
-            double centerMargin = moduleSize * 2.0;
-            double centerSize = moduleSize * 3.0;
-
-            System.Windows.Rect outerRect = new System.Windows.Rect(originX, originY, outerSize, outerSize);
-            System.Windows.Rect innerRect = new System.Windows.Rect(originX + innerMargin, originY + innerMargin, innerSize, innerSize);
-            System.Windows.Rect centerRect = new System.Windows.Rect(originX + centerMargin, originY + centerMargin, centerSize, centerSize);
-
-            // 1. Clear 7x7 outer bounds first to erase any underlying matrix pixels
-            group.Children.Add(new System.Windows.Media.GeometryDrawing(bgBrush, null, new System.Windows.Media.RectangleGeometry(outerRect)));
-
-            // 2. Outer Frame & Inner Hole
-            if (frameShape == QrEyeFrameShape.Circle)
-            {
-                group.Children.Add(new System.Windows.Media.GeometryDrawing(frameBrush, null, new System.Windows.Media.EllipseGeometry(outerRect)));
-                group.Children.Add(new System.Windows.Media.GeometryDrawing(bgBrush, null, new System.Windows.Media.EllipseGeometry(innerRect)));
-            }
-            else if (frameShape == QrEyeFrameShape.Rounded)
-            {
-                double rxOuter = moduleSize * 2.5;
-                double rxInner = moduleSize * 1.5;
-                group.Children.Add(new System.Windows.Media.GeometryDrawing(frameBrush, null, new System.Windows.Media.RectangleGeometry(outerRect, rxOuter, rxOuter)));
-                group.Children.Add(new System.Windows.Media.GeometryDrawing(bgBrush, null, new System.Windows.Media.RectangleGeometry(innerRect, rxInner, rxInner)));
-            }
-            else
-            {
-                group.Children.Add(new System.Windows.Media.GeometryDrawing(frameBrush, null, new System.Windows.Media.RectangleGeometry(outerRect)));
-                group.Children.Add(new System.Windows.Media.GeometryDrawing(bgBrush, null, new System.Windows.Media.RectangleGeometry(innerRect)));
-            }
-
-            // 3. Center Dot
-            if (dotShape == QrEyeDotShape.Circle || dotShape == QrEyeDotShape.Dot)
-            {
-                group.Children.Add(new System.Windows.Media.GeometryDrawing(dotBrush, null, new System.Windows.Media.EllipseGeometry(centerRect)));
-            }
-            else if (dotShape == QrEyeDotShape.Diamond)
-            {
-                System.Windows.Media.StreamGeometry diamondGeo = new System.Windows.Media.StreamGeometry();
-                using (var ctx = diamondGeo.Open())
-                {
-                    ctx.BeginFigure(new System.Windows.Point(centerRect.Left + centerRect.Width / 2.0, centerRect.Top), true, true);
-                    ctx.LineTo(new System.Windows.Point(centerRect.Right, centerRect.Top + centerRect.Height / 2.0), true, false);
-                    ctx.LineTo(new System.Windows.Point(centerRect.Left + centerRect.Width / 2.0, centerRect.Bottom), true, false);
-                    ctx.LineTo(new System.Windows.Point(centerRect.Left, centerRect.Top + centerRect.Height / 2.0), true, false);
-                }
-                diamondGeo.Freeze();
-                group.Children.Add(new System.Windows.Media.GeometryDrawing(dotBrush, null, diamondGeo));
-            }
-            else
-            {
-                group.Children.Add(new System.Windows.Media.GeometryDrawing(dotBrush, null, new System.Windows.Media.RectangleGeometry(centerRect)));
-            }
-        }
-
         public string GenerateSvgXml(QrCodeOptions options)
         {
             if (options == null) options = new QrCodeOptions();
@@ -622,8 +423,13 @@ namespace SS_CAM.Services
             
             if (options.UseGradient)
             {
+                double angleRad = (options.GradientAngle % 360) * Math.PI / 180.0;
+                double x1 = 50.0 - 50.0 * Math.Cos(angleRad);
+                double y1 = 50.0 - 50.0 * Math.Sin(angleRad);
+                double x2 = 50.0 + 50.0 * Math.Cos(angleRad);
+                double y2 = 50.0 + 50.0 * Math.Sin(angleRad);
                 svg.AppendLine("  <defs>");
-                svg.AppendLine("    <linearGradient id=\"qrGrad\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">");
+                svg.AppendLine(string.Format("    <linearGradient id=\"qrGrad\" x1=\"{0:F1}%\" y1=\"{1:F1}%\" x2=\"{2:F1}%\" y2=\"{3:F1}%\">", x1, y1, x2, y2));
                 svg.AppendLine(string.Format("      <stop offset=\"0%\" stop-color=\"{0}\"/>", fgHex));
                 svg.AppendLine(string.Format("      <stop offset=\"100%\" stop-color=\"{0}\"/>", fg2Hex));
                 svg.AppendLine("    </linearGradient>");
@@ -673,17 +479,70 @@ namespace SS_CAM.Services
                         float x = quietZoneOffset + c * moduleSize;
                         float y = quietZoneOffset + r * moduleSize;
 
-                        if (options.BodyShape == QrBodyShape.Circle || options.BodyShape == QrBodyShape.Dots)
+                        if (options.BodyShape == QrBodyShape.Circle)
                         {
                             float cx = x + moduleSize / 2f;
                             float cy = y + moduleSize / 2f;
-                            float rRadius = moduleSize / 2.2f;
+                            float rRadius = moduleSize / 2f;
                             svg.AppendLine(string.Format("  <circle cx=\"{0:F2}\" cy=\"{1:F2}\" r=\"{2:F2}\" fill=\"{3}\"/>", cx, cy, rRadius, fillRef));
+                        }
+                        else if (options.BodyShape == QrBodyShape.Dots)
+                        {
+                            float cx = x + moduleSize / 2f;
+                            float cy = y + moduleSize / 2f;
+                            float rRadius = (moduleSize * 0.76f) / 2f;
+                            svg.AppendLine(string.Format("  <circle cx=\"{0:F2}\" cy=\"{1:F2}\" r=\"{2:F2}\" fill=\"{3}\"/>", cx, cy, rRadius, fillRef));
+                        }
+                        else if (options.BodyShape == QrBodyShape.Diamond)
+                        {
+                            float cx = x + moduleSize / 2f;
+                            float cy = y + moduleSize / 2f;
+                            svg.AppendLine(string.Format("  <polygon points=\"{0:F2},{1:F2} {2:F2},{3:F2} {0:F2},{4:F2} {5:F2},{3:F2}\" fill=\"{6}\"/>",
+                                cx, y, x + moduleSize, cy, y + moduleSize, x, fillRef));
+                        }
+                        else if (options.BodyShape == QrBodyShape.Classy)
+                        {
+                            float cr = moduleSize * 0.45f;
+                            svg.AppendLine(string.Format("  <path d=\"M{0:F2},{1:F2} h{2:F2} v{2:F2} a{3:F2},{3:F2} 0 0 1 -{3:F2},{3:F2} h-{2:F2} v-{2:F2} a{3:F2},{3:F2} 0 0 1 {3:F2},-{3:F2} z\" fill=\"{4}\"/>",
+                                x + cr, y, moduleSize - cr, cr, fillRef));
                         }
                         else if (options.BodyShape == QrBodyShape.Rounded)
                         {
-                            float rx = moduleSize * 0.35f;
-                            svg.AppendLine(string.Format("  <rect x=\"{0:F2}\" y=\"{1:F2}\" width=\"{2:F2}\" height=\"{2:F2}\" rx=\"{3:F2}\" ry=\"{3:F2}\" fill=\"{4}\"/>", x, y, moduleSize, rx, fillRef));
+                            bool hasTop = r > 0 && matrix[r - 1, c];
+                            bool hasBottom = r < modules - 1 && matrix[r + 1, c];
+                            bool hasLeft = c > 0 && matrix[r, c - 1];
+                            bool hasRight = c < modules - 1 && matrix[r, c + 1];
+
+                            bool roundTL = !hasTop && !hasLeft;
+                            bool roundTR = !hasTop && !hasRight;
+                            bool roundBR = !hasBottom && !hasRight;
+                            bool roundBL = !hasBottom && !hasLeft;
+
+                            if (!roundTL && !roundTR && !roundBR && !roundBL)
+                            {
+                                svg.AppendLine(string.Format("  <rect x=\"{0:F2}\" y=\"{1:F2}\" width=\"{2:F2}\" height=\"{2:F2}\" fill=\"{3}\"/>", x, y, moduleSize, fillRef));
+                            }
+                            else
+                            {
+                                float cr = moduleSize * 0.45f;
+                                float rTL = roundTL ? cr : 0f;
+                                float rTR = roundTR ? cr : 0f;
+                                float rBR = roundBR ? cr : 0f;
+                                float rBL = roundBL ? cr : 0f;
+
+                                StringBuilder d = new StringBuilder();
+                                d.Append(string.Format("M{0:F2},{1:F2} ", x + rTL, y));
+                                d.Append(string.Format("L{0:F2},{1:F2} ", x + moduleSize - rTR, y));
+                                if (roundTR) d.Append(string.Format("A{0:F2},{0:F2} 0 0 1 {1:F2},{2:F2} ", cr, x + moduleSize, y + cr));
+                                d.Append(string.Format("L{0:F2},{1:F2} ", x + moduleSize, y + moduleSize - rBR));
+                                if (roundBR) d.Append(string.Format("A{0:F2},{0:F2} 0 0 1 {1:F2},{2:F2} ", cr, x + moduleSize - cr, y + moduleSize));
+                                d.Append(string.Format("L{0:F2},{1:F2} ", x + rBL, y + moduleSize));
+                                if (roundBL) d.Append(string.Format("A{0:F2},{0:F2} 0 0 1 {1:F2},{2:F2} ", cr, x, y + moduleSize - cr));
+                                d.Append(string.Format("L{0:F2},{1:F2} ", x, y + rTL));
+                                if (roundTL) d.Append(string.Format("A{0:F2},{0:F2} 0 0 1 {1:F2},{2:F2} ", cr, x + cr, y));
+                                d.Append("Z");
+                                svg.AppendLine(string.Format("  <path d=\"{0}\" fill=\"{1}\"/>", d.ToString(), fillRef));
+                            }
                         }
                         else
                         {
@@ -701,17 +560,35 @@ namespace SS_CAM.Services
                 AppendSvgFinderEye(svg, quietZoneOffset, quietZoneOffset + (modules - 7) * moduleSize, moduleSize, options.EyeFrameShape, options.EyeDotShape, eyeFrameHex, eyeDotHex, bgHex);
             }
 
-            // 3. Render Circular Logo Background Pad if present
-            if (options.LogoImage != null && options.DrawLogoBackground)
+            // 3. Render Central Logo if present
+            if (options.LogoImage != null)
             {
                 float logoSize = size * options.LogoScalePercent;
                 float lx = (size - logoSize) / 2f;
                 float ly = (size - logoSize) / 2f;
-                float bgMargin = logoSize * 0.12f;
-                float cx = lx + logoSize / 2f;
-                float cy = ly + logoSize / 2f;
-                float cr = (logoSize + bgMargin * 2) / 2f;
-                svg.AppendLine(string.Format("  <circle cx=\"{0:F2}\" cy=\"{1:F2}\" r=\"{2:F2}\" fill=\"{3}\"/>", cx, cy, cr, bgHex));
+
+                if (options.DrawLogoBackground)
+                {
+                    float bgMargin = logoSize * 0.12f;
+                    float cx = lx + logoSize / 2f;
+                    float cy = ly + logoSize / 2f;
+                    float cr = (logoSize + bgMargin * 2) / 2f;
+                    svg.AppendLine(string.Format("  <circle cx=\"{0:F2}\" cy=\"{1:F2}\" r=\"{2:F2}\" fill=\"{3}\"/>", cx, cy, cr, bgHex));
+                }
+
+                try
+                {
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        options.LogoImage.Save(ms, ImageFormat.Png);
+                        string base64 = Convert.ToBase64String(ms.ToArray());
+                        svg.AppendLine(string.Format("  <image href=\"data:image/png;base64,{0}\" x=\"{1:F2}\" y=\"{2:F2}\" width=\"{3:F2}\" height=\"{3:F2}\" preserveAspectRatio=\"xMidYMid meet\"/>", base64, lx, ly, logoSize));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    App.LogTrace(string.Format("[QrCodeEncoderService] Failed to embed SVG logo: {0}", ex.Message));
+                }
             }
 
             svg.AppendLine("</svg>");
@@ -735,8 +612,8 @@ namespace SS_CAM.Services
             }
             else if (frameShape == QrEyeFrameShape.Rounded)
             {
-                float rx = moduleSize * 1.8f;
-                float irx = moduleSize * 1.2f;
+                float rx = moduleSize * 2.5f;
+                float irx = moduleSize * 1.5f;
                 svg.AppendLine(string.Format("  <rect x=\"{0:F2}\" y=\"{1:F2}\" width=\"{2:F2}\" height=\"{2:F2}\" rx=\"{3:F2}\" ry=\"{3:F2}\" fill=\"{4}\"/>", originX, originY, outerSize, rx, frameHex));
                 svg.AppendLine(string.Format("  <rect x=\"{0:F2}\" y=\"{1:F2}\" width=\"{2:F2}\" height=\"{2:F2}\" rx=\"{3:F2}\" ry=\"{3:F2}\" fill=\"{4}\"/>", originX + innerMargin, originY + innerMargin, innerSize, irx, bgHex));
             }
@@ -751,6 +628,17 @@ namespace SS_CAM.Services
                 float cx = originX + outerSize / 2f;
                 float cy = originY + outerSize / 2f;
                 svg.AppendLine(string.Format("  <circle cx=\"{0:F2}\" cy=\"{1:F2}\" r=\"{2:F2}\" fill=\"{3}\"/>", cx, cy, centerSize / 2f, dotHex));
+            }
+            else if (dotShape == QrEyeDotShape.Diamond)
+            {
+                float cx = originX + centerMargin + centerSize / 2f;
+                float cy = originY + centerMargin + centerSize / 2f;
+                float top = originY + centerMargin;
+                float bottom = originY + centerMargin + centerSize;
+                float left = originX + centerMargin;
+                float right = originX + centerMargin + centerSize;
+                svg.AppendLine(string.Format("  <polygon points=\"{0:F2},{1:F2} {2:F2},{3:F2} {0:F2},{4:F2} {5:F2},{3:F2}\" fill=\"{6}\"/>",
+                    cx, top, right, cy, bottom, left, dotHex));
             }
             else
             {
@@ -863,33 +751,39 @@ namespace SS_CAM.Services
             bool roundBL)
         {
             GraphicsPath path = new GraphicsPath();
-            float diameter = cornerRadius * 2f;
-            if (diameter > rect.Width) diameter = rect.Width;
-            if (diameter > rect.Height) diameter = rect.Height;
+            float maxR = Math.Min(rect.Width, rect.Height) / 2f;
+            float rTL = roundTL ? Math.Min(cornerRadius, maxR) : 0f;
+            float rTR = roundTR ? Math.Min(cornerRadius, maxR) : 0f;
+            float rBR = roundBR ? Math.Min(cornerRadius, maxR) : 0f;
+            float rBL = roundBL ? Math.Min(cornerRadius, maxR) : 0f;
 
-            // Top-Left Corner
-            if (roundTL && diameter > 0)
-                path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
-            else
-                path.AddLine(rect.X, rect.Y, rect.X + diameter / 2f, rect.Y);
+            // Start at top edge after top-left corner
+            path.AddLine(rect.X + rTL, rect.Y, rect.Right - rTR, rect.Y);
 
             // Top-Right Corner
-            if (roundTR && diameter > 0)
-                path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
-            else
-                path.AddLine(rect.Right, rect.Y, rect.Right, rect.Y + diameter / 2f);
+            if (rTR > 0)
+                path.AddArc(rect.Right - 2 * rTR, rect.Y, 2 * rTR, 2 * rTR, 270, 90);
+
+            // Right edge
+            path.AddLine(rect.Right, rect.Y + rTR, rect.Right, rect.Bottom - rBR);
 
             // Bottom-Right Corner
-            if (roundBR && diameter > 0)
-                path.AddArc(rect.Right - diameter, rect.Bottom - diameter, diameter, diameter, 0, 90);
-            else
-                path.AddLine(rect.Right, rect.Bottom, rect.Right - diameter / 2f, rect.Bottom);
+            if (rBR > 0)
+                path.AddArc(rect.Right - 2 * rBR, rect.Bottom - 2 * rBR, 2 * rBR, 2 * rBR, 0, 90);
+
+            // Bottom edge
+            path.AddLine(rect.Right - rBR, rect.Bottom, rect.X + rBL, rect.Bottom);
 
             // Bottom-Left Corner
-            if (roundBL && diameter > 0)
-                path.AddArc(rect.X, rect.Bottom - diameter, diameter, diameter, 90, 90);
-            else
-                path.AddLine(rect.X, rect.Bottom, rect.X, rect.Bottom - diameter / 2f);
+            if (rBL > 0)
+                path.AddArc(rect.X, rect.Bottom - 2 * rBL, 2 * rBL, 2 * rBL, 90, 90);
+
+            // Left edge
+            path.AddLine(rect.X, rect.Bottom - rBL, rect.X, rect.Y + rTL);
+
+            // Top-Left Corner
+            if (rTL > 0)
+                path.AddArc(rect.X, rect.Y, 2 * rTL, 2 * rTL, 180, 90);
 
             path.CloseFigure();
             return path;
@@ -899,8 +793,6 @@ namespace SS_CAM.Services
         {
             return string.Format("#{0:X2}{1:X2}{2:X2}", c.R, c.G, c.B);
         }
-
-        #region ISO/IEC 18004 Standard QR Code Matrix Generator with Reed-Solomon & Mask 0
 
         private bool[,] GenerateQrMatrix(string text, QrErrorCorrectionLevel ecLevel)
         {
@@ -935,80 +827,9 @@ namespace SS_CAM.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[QrCodeEncoderService] GenerateQrMatrix: " + ex.Message);
-                return new bool[21, 21];
+                App.LogTrace("[QrCodeEncoderService] GenerateQrMatrix: " + ex.Message);
+                throw;
             }
         }
-
-        public struct QrBlockSpec
-        {
-            public int Version;
-            public QrErrorCorrectionLevel EcLevel;
-            public int TotalData;
-            public int TotalEcc;
-            public int Group1Blocks;
-            public int Group1DataPerBlock;
-            public int Group2Blocks;
-            public int Group2DataPerBlock;
-            public int EccPerBlock;
-        }
-
-        private byte[] BuildDataCodewords(byte[] data, int maxCodewords)
-        {
-            List<bool> bits = new List<bool>();
-
-            // Byte Mode = 0100
-            bits.AddRange(ToBits(4, 4));
-
-            // Character count (8 bits)
-            bits.AddRange(ToBits(data.Length, 8));
-
-            // Payload
-            foreach (byte b in data)
-            {
-                bits.AddRange(ToBits(b, 8));
-            }
-
-            // Terminator
-            int totalBits = maxCodewords * 8;
-            int needed = Math.Min(4, totalBits - bits.Count);
-            for (int i = 0; i < needed; i++) bits.Add(false);
-
-            // Byte boundary
-            while (bits.Count % 8 != 0) bits.Add(false);
-
-            // Pad bytes 0xEC, 0x11
-            byte[] padBytes = { 0xEC, 0x11 };
-            int padIdx = 0;
-            while (bits.Count < totalBits)
-            {
-                bits.AddRange(ToBits(padBytes[padIdx % 2], 8));
-                padIdx++;
-            }
-
-            byte[] codewords = new byte[maxCodewords];
-            for (int i = 0; i < maxCodewords; i++)
-            {
-                byte val = 0;
-                for (int b = 0; b < 8; b++)
-                {
-                    if (bits[i * 8 + b]) val |= (byte)(1 << (7 - b));
-                }
-                codewords[i] = val;
-            }
-            return codewords;
-        }
-
-        private static List<bool> ToBits(int value, int bitCount)
-        {
-            List<bool> bits = new List<bool>(bitCount);
-            for (int i = bitCount - 1; i >= 0; i--)
-            {
-                bits.Add(((value >> i) & 1) == 1);
-            }
-            return bits;
-        }
-
-        #endregion
     }
 }

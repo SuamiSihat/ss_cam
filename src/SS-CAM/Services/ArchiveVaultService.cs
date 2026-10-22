@@ -120,6 +120,7 @@ namespace SS_CAM.Services
             {
                 options = new ArchiveBatchOptions();
             }
+            options.CopyOnly = true; // Safety constraint: Copy-only non-destructive archival strictly enforced
 
             if (string.IsNullOrWhiteSpace(options.ArchiveRoot))
             {
@@ -150,7 +151,7 @@ namespace SS_CAM.Services
             catch (Exception ex)
             {
                 result.ErrorMessage = "Cannot create archive directory: " + ex.Message;
-                System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] CreateDir error: " + ex.Message);
+                App.LogTrace("[ArchiveVaultService] CreateDir error: " + ex.Message);
                 return result;
             }
 
@@ -175,7 +176,7 @@ namespace SS_CAM.Services
                     // Validate source
                     if (!Directory.Exists(projectPath))
                     {
-                        System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] Skipping missing: " + projectPath);
+                        App.LogTrace("[ArchiveVaultService] Skipping missing: " + projectPath);
                         result.FailedProjects.Add(Path.GetFileName(projectPath) + " (not found)");
                         result.FailedCount++;
                         processed++;
@@ -225,17 +226,17 @@ namespace SS_CAM.Services
                                     result.ReclaimedBytes += projectSize;
                                     catalogEntry.PrunedCount++;
                                     catalogEntry.ReclaimedBytes += projectSize;
-                                    System.Diagnostics.Debug.WriteLine(string.Format(
+                                    App.LogTrace(string.Format(
                                         "[ArchiveVaultService] Source pruned: {0} ({1} bytes reclaimed)", projectName, projectSize));
                                 }
                                 catch (Exception delEx)
                                 {
-                                    System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] Source prune error: " + delEx.Message);
+                                    App.LogTrace("[ArchiveVaultService] Source prune error: " + delEx.Message);
                                 }
                             }
                         }
 
-                        System.Diagnostics.Debug.WriteLine(string.Format(
+                        App.LogTrace(string.Format(
                             "[ArchiveVaultService] Archived '{0}' → {1} ({2} files, {3} bytes)",
                             projectName, zipPath, packResult.FileCount, packResult.TotalSizeBytes));
                     }
@@ -243,7 +244,7 @@ namespace SS_CAM.Services
                     {
                         result.FailedProjects.Add(projectName + " (" + packResult.ErrorMessage + ")");
                         result.FailedCount++;
-                        System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] PackageFail: " + projectName + " — " + packResult.ErrorMessage);
+                        App.LogTrace("[ArchiveVaultService] PackageFail: " + projectName + " — " + packResult.ErrorMessage);
                     }
                 }
                 catch (Exception ex)
@@ -251,7 +252,7 @@ namespace SS_CAM.Services
                     string projectName = Path.GetFileName(projectPath);
                     result.FailedProjects.Add(projectName + " (exception)");
                     result.FailedCount++;
-                    System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] ArchiveBatch exception for " + projectPath + ": " + ex.Message);
+                    App.LogTrace("[ArchiveVaultService] ArchiveBatch exception for " + projectPath + ": " + ex.Message);
                 }
 
                 processed++;
@@ -275,11 +276,11 @@ namespace SS_CAM.Services
                     string jsonLine = JsonConvert.SerializeObject(catalogEntry, Formatting.None) + "\n";
                     File.AppendAllText(catalogPath, jsonLine, Encoding.UTF8);
 
-                    System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] Catalog appended: " + catalogPath);
+                    App.LogTrace("[ArchiveVaultService] Catalog appended: " + catalogPath);
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] CatalogWrite error: " + ex.Message);
+                    App.LogTrace("[ArchiveVaultService] CatalogWrite error: " + ex.Message);
                     // Catalog write failure is non-fatal; archiving succeeded
                 }
             }
@@ -313,13 +314,13 @@ namespace SS_CAM.Services
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] CatalogParse skip: " + ex.Message);
+                        App.LogTrace("[ArchiveVaultService] CatalogParse skip: " + ex.Message);
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] LoadCatalog error: " + ex.Message);
+                App.LogTrace("[ArchiveVaultService] LoadCatalog error: " + ex.Message);
             }
 
             return entries;
@@ -363,14 +364,14 @@ namespace SS_CAM.Services
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] GetDirectorySize file error: " + ex.Message);
+                        App.LogTrace("[ArchiveVaultService] GetDirectorySize file error: " + ex.Message);
                     }
                 }
                 return total;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[ArchiveVaultService] GetDirectorySize error: " + ex.Message);
+                App.LogTrace("[ArchiveVaultService] GetDirectorySize error: " + ex.Message);
                 return 0;
             }
         }

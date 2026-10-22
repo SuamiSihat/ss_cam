@@ -193,6 +193,15 @@
                                          FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                          HorizontalAlignment="Center" TextAlignment="Center"
                                          TextWrapping="Wrap" MaxWidth="460"/>
+                            <ui:Button x:Name="BtnGoToSettings" Appearance="Primary" Height="36"
+                                       Padding="16,0" Margin="0,16,0,0" HorizontalAlignment="Center"
+                                       Cursor="Hand" Click="OnGoToSettingsClicked" Visibility="Collapsed"
+                                       ToolTip="Open Settings to configure workspace path">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Settings24" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <ui:TextBlock Text="Open Settings &amp; Profile" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ui:Button>
                         </StackPanel>
                     </Border>
 

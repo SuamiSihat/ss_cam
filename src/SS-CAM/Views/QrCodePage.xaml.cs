@@ -50,7 +50,7 @@ namespace SS_CAM.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[QrCodePage] OnPageLoaded: " + ex.Message);
+                App.LogTrace("[QrCodePage] OnPageLoaded: " + ex.Message);
             }
         }
 
@@ -75,7 +75,7 @@ namespace SS_CAM.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[QrCodePage] OnScrollViewerPreviewMouseWheel: " + ex.Message);
+                App.LogTrace("[QrCodePage] OnScrollViewerPreviewMouseWheel: " + ex.Message);
             }
         }
 
@@ -168,10 +168,34 @@ namespace SS_CAM.Views
                 // 7. Generate Bitmap Image for WPF Preview
                 BitmapImage bitmapImage = QrCodeEncoderService.Instance.GenerateBitmapImage(_currentOptions);
                 ImgQrPreview.Source = bitmapImage;
+                HidePreviewError();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[QrCodePage] RebuildQrCode: " + ex.Message);
+                App.LogTrace("[QrCodePage] RebuildQrCode: " + ex);
+                ShowPreviewError(ex.Message);
+            }
+        }
+
+        private void ShowPreviewError(string message)
+        {
+            if (PreviewErrorOverlay != null && TxtPreviewErrorMessage != null)
+            {
+                TxtPreviewErrorMessage.Text = message ?? "Failed to generate QR code";
+                PreviewErrorOverlay.Visibility = Visibility.Visible;
+            }
+            if (BadgeScannability != null && TxtScannabilityStatus != null)
+            {
+                TxtScannabilityStatus.Text = "ERROR";
+                BadgeScannability.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68)); // Critical Red #EF4444
+            }
+        }
+
+        private void HidePreviewError()
+        {
+            if (PreviewErrorOverlay != null)
+            {
+                PreviewErrorOverlay.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -206,7 +230,7 @@ namespace SS_CAM.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[QrCodePage] UpdateScannabilityBadge: " + ex.Message);
+                App.LogTrace("[QrCodePage] UpdateScannabilityBadge: " + ex.Message);
             }
         }
 
@@ -452,7 +476,7 @@ namespace SS_CAM.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[QrCodePage] OnColorHexChanged: " + ex.Message);
+                App.LogTrace("[QrCodePage] OnColorHexChanged: " + ex.Message);
             }
         }
 
@@ -519,10 +543,15 @@ namespace SS_CAM.Views
                 {
                     return new Bitmap(path);
                 }
+                string resPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "ss_icon_light.png");
+                if (File.Exists(resPath))
+                {
+                    return new Bitmap(resPath);
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[QrCodePage] LoadSsIconLogo: " + ex.Message);
+                App.LogTrace("[QrCodePage] LoadSsIconLogo: " + ex.Message);
             }
             return GenerateFallbackSsCrest();
         }
@@ -563,14 +592,25 @@ namespace SS_CAM.Views
 
                 if (dlg.ShowDialog() == true)
                 {
-                    _customLogoBitmap = new Bitmap(dlg.FileName);
-                    _currentOptions.LogoImage = _customLogoBitmap;
-                    ScheduleRebuild();
+                    try
+                    {
+                        using (var temp = new Bitmap(dlg.FileName))
+                        {
+                            _customLogoBitmap = new Bitmap(temp);
+                        }
+                        _currentOptions.LogoImage = _customLogoBitmap;
+                        ScheduleRebuild();
+                    }
+                    catch (Exception imgEx)
+                    {
+                        App.LogTrace(string.Format("[QrCodePage] Invalid image file '{0}': {1}", dlg.FileName, imgEx.Message));
+                        MessageBox.Show("The selected file is not a valid image or could not be opened.\n\nPlease select a valid PNG, JPG, or BMP image file.", "Invalid Image File", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[QrCodePage] OnUploadCustomLogoClicked: " + ex.Message);
+                App.LogTrace("[QrCodePage] OnUploadCustomLogoClicked: " + ex.Message);
             }
         }
 

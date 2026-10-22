@@ -16,19 +16,81 @@ namespace SS_CAM.Views
     // ─── View Models ──────────────────────────────────────────────────────────
 
     /// <summary>Row view model for an archivable project in the selection list.</summary>
-    internal class ArchivableProjectItem
+    internal class ArchivableProjectItem : System.ComponentModel.INotifyPropertyChanged
     {
-        public string Name { get; set; }
-        public string FullPath { get; set; }
-        public string Status { get; set; }
-        public bool IsSelected { get; set; }
-        public long SizeBytes { get; set; }
-        public DateTime LastModified { get; set; }
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string name = null)
+        {
+            var handler = PropertyChanged;
+            if (handler != null)
+            {
+                handler(this, new System.ComponentModel.PropertyChangedEventArgs(name));
+            }
+        }
+
+        private string _name;
+        public string Name
+        {
+            get { return _name; }
+            set { if (_name != value) { _name = value; OnPropertyChanged(); } }
+        }
+
+        private string _fullPath;
+        public string FullPath
+        {
+            get { return _fullPath; }
+            set { if (_fullPath != value) { _fullPath = value; OnPropertyChanged(); } }
+        }
+
+        private string _status;
+        public string Status
+        {
+            get { return _status; }
+            set { if (_status != value) { _status = value; OnPropertyChanged(); } }
+        }
+
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get { return _isSelected; }
+            set { if (_isSelected != value) { _isSelected = value; OnPropertyChanged(); } }
+        }
+
+        private long _sizeBytes = -1;
+        public long SizeBytes
+        {
+            get { return _sizeBytes; }
+            set
+            {
+                if (_sizeBytes != value)
+                {
+                    _sizeBytes = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged("SizeLabel");
+                }
+            }
+        }
+
+        private DateTime _lastModified;
+        public DateTime LastModified
+        {
+            get { return _lastModified; }
+            set
+            {
+                if (_lastModified != value)
+                {
+                    _lastModified = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged("LastModifiedLabel");
+                }
+            }
+        }
 
         public string SizeLabel
         {
             get
             {
+                if (SizeBytes < 0) return "Calculating...";
                 if (SizeBytes < 1024) return SizeBytes + " B";
                 if (SizeBytes < 1024 * 1024) return (SizeBytes / 1024) + " KB";
                 return (SizeBytes / (1024 * 1024)) + " MB";
@@ -115,6 +177,9 @@ namespace SS_CAM.Views
         private string _archiveRoot;
         private List<ArchivableProjectItem> _allProjects = new List<ArchivableProjectItem>();
         private List<ArchivableProjectItem> _filteredProjects = new List<ArchivableProjectItem>();
+        private readonly System.Collections.ObjectModel.ObservableCollection<ArchivableProjectItem> _displayedProjects =
+            new System.Collections.ObjectModel.ObservableCollection<ArchivableProjectItem>();
+        private System.Threading.CancellationTokenSource _sizeCalcCts;
         private bool _isBusy = false;
 
         private void OnScrollViewerPreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
@@ -130,6 +195,7 @@ namespace SS_CAM.Views
         public ArchiveVaultPage()
         {
             InitializeComponent();
+            ProjectItemsControl.ItemsSource = _displayedProjects;
             Loaded   += OnPageLoaded;
             Unloaded += OnPageUnloaded;
         }
@@ -148,12 +214,24 @@ namespace SS_CAM.Views
 
                 RefreshAll();
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] OnPageLoaded: " + ex.Message); }
+            catch (Exception ex) { App.LogTrace("[ArchiveVaultPage] OnPageLoaded: " + ex); }
         }
 
         private void OnPageUnloaded(object sender, RoutedEventArgs e)
         {
-            // No timers to clean up
+            try
+            {
+                if (_sizeCalcCts != null)
+                {
+                    _sizeCalcCts.Cancel();
+                    _sizeCalcCts.Dispose();
+                    _sizeCalcCts = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                App.LogTrace("[ArchiveVaultPage] OnPageUnloaded: " + ex.Message);
+            }
         }
 
         // ── Toolbar ───────────────────────────────────────────────────────────
@@ -182,7 +260,7 @@ namespace SS_CAM.Views
                     RefreshAll();
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] Browse: " + ex.Message); }
+            catch (Exception ex) { App.LogTrace("[ArchiveVaultPage] Browse: " + ex.Message); }
         }
 
         private void OnApplyArchiveRootClicked(object sender, RoutedEventArgs e)
@@ -193,13 +271,18 @@ namespace SS_CAM.Views
 
         // ── Filter & Selection ────────────────────────────────────────────────
 
+        // These events can fire during InitializeComponent (ComboBoxItem IsSelected="True"),
+        // before later-declared controls such as ProjectItemsControl exist. OnPageLoaded
+        // performs the first refresh, so ignore events until the page is loaded.
         private void OnProjectFilterChanged(object sender, TextChangedEventArgs e)
         {
+            if (!IsLoaded) return;
             ApplyProjectFilter();
         }
 
         private void OnStatusFilterChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (!IsLoaded) return;
             ApplyProjectFilter();
         }
 
@@ -208,7 +291,6 @@ namespace SS_CAM.Views
             bool val = ChkSelectAll.IsChecked == true;
             foreach (var item in _filteredProjects)
                 item.IsSelected = val;
-            RebindProjectList();
             UpdateSelectionState();
         }
 
@@ -226,7 +308,7 @@ namespace SS_CAM.Views
                 if (item != null && Directory.Exists(item.FullPath))
                     System.Diagnostics.Process.Start("explorer.exe", item.FullPath);
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] OpenFolder: " + ex.Message); }
+            catch (Exception ex) { App.LogTrace("[ArchiveVaultPage] OpenFolder: " + ex.Message); }
         }
 
         // ── Batch Archive ─────────────────────────────────────────────────────
@@ -280,7 +362,7 @@ namespace SS_CAM.Views
                             ProgressCountLabel.Text = processed + " / " + total;
                             ProgressCurrentProject.Text = currentName;
                         }
-                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] ProgressCallback: " + ex.Message); }
+                        catch (Exception ex) { App.LogTrace("[ArchiveVaultPage] ProgressCallback: " + ex.Message); }
                     }));
                 }
             };
@@ -316,7 +398,7 @@ namespace SS_CAM.Views
             {
                 _isBusy = false;
                 SetBusyState(false, 0);
-                System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] ArchiveBatch: " + ex.Message);
+                App.LogTrace("[ArchiveVaultPage] ArchiveBatch: " + ex.Message);
                 ShowResult(false, "Archive Failed", ex.Message);
             }
         }
@@ -334,7 +416,23 @@ namespace SS_CAM.Views
                 else
                     MessageBox.Show("No archive history yet. Archive a project first.", "Archive", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] OpenCatalog: " + ex.Message); }
+            catch (Exception ex) { App.LogTrace("[ArchiveVaultPage] OpenCatalog: " + ex.Message); }
+        }
+
+        private void OnGoToSettingsClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var mainWindow = Application.Current != null ? Application.Current.MainWindow as MainWindow : null;
+                if (mainWindow != null && mainWindow.RootNavigation != null)
+                {
+                    mainWindow.RootNavigation.Navigate(typeof(SettingsPage));
+                }
+            }
+            catch (Exception ex)
+            {
+                App.LogTrace("[ArchiveVaultPage] OnGoToSettingsClicked: " + ex);
+            }
         }
 
         // ── Data Loading & Binding ────────────────────────────────────────────
@@ -347,8 +445,18 @@ namespace SS_CAM.Views
 
         private void ScanProjects()
         {
+            if (_sizeCalcCts != null)
+            {
+                _sizeCalcCts.Cancel();
+                _sizeCalcCts.Dispose();
+                _sizeCalcCts = null;
+            }
+            _sizeCalcCts = new System.Threading.CancellationTokenSource();
+            var token = _sizeCalcCts.Token;
+
             _allProjects.Clear();
             _filteredProjects.Clear();
+            _displayedProjects.Clear();
 
             try
             {
@@ -356,16 +464,23 @@ namespace SS_CAM.Views
                 string workspaceRoot = (profile != null) ? profile.WorkspaceRoot : null;
                 if (string.IsNullOrWhiteSpace(workspaceRoot) || !Directory.Exists(workspaceRoot))
                 {
-                    EmptyStateText.Text = "Workspace root not configured. Check Settings.";
+                    EmptyStateText.Text = "Workspace root is not configured or does not exist. Check Settings & Profile.";
+                    if (BtnGoToSettings != null) BtnGoToSettings.Visibility = Visibility.Visible;
                     ShowProjectListEmpty();
                     UpdateStats();
                     return;
                 }
 
+                if (BtnGoToSettings != null) BtnGoToSettings.Visibility = Visibility.Collapsed;
+
                 // Scan immediate child directories - each is a potential project
                 string[] projectDirs;
                 try { projectDirs = Directory.GetDirectories(workspaceRoot); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] GetDirectories: " + ex.Message); projectDirs = new string[0]; }
+                catch (Exception ex)
+                {
+                    App.LogTrace("[ArchiveVaultPage] GetDirectories: " + ex.Message);
+                    projectDirs = new string[0];
+                }
 
                 string archiveRootNorm = string.IsNullOrWhiteSpace(_archiveRoot) ? null : Path.GetFullPath(_archiveRoot);
 
@@ -379,7 +494,7 @@ namespace SS_CAM.Views
                             if (string.Equals(Path.GetFullPath(dir), archiveRootNorm, StringComparison.OrdinalIgnoreCase))
                                 continue;
                         }
-                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] GetFullPath: " + ex.Message); }
+                        catch (Exception ex) { App.LogTrace("[ArchiveVaultPage] GetFullPath: " + ex.Message); }
                     }
 
                     string name = new DirectoryInfo(dir).Name;
@@ -388,13 +503,10 @@ namespace SS_CAM.Views
                     // Read project status from frontmatter
                     ProjectStatusItem status = null;
                     try { status = FrontmatterService.ReadStatus(dir); }
-                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] ReadStatus: " + ex.Message); }
+                    catch (Exception ex) { App.LogTrace("[ArchiveVaultPage] ReadStatus: " + ex.Message); }
 
                     string statusLabel = (status != null && !string.IsNullOrWhiteSpace(status.Status))
                         ? status.Status : "Unknown";
-
-                    // Estimate folder size (top-level only for performance)
-                    long sizeBytes = EstimateDirectorySize(dir);
 
                     DateTime lastModified = Directory.GetLastWriteTime(dir);
 
@@ -404,7 +516,7 @@ namespace SS_CAM.Views
                         FullPath     = dir,
                         Status       = statusLabel,
                         IsSelected   = false,
-                        SizeBytes    = sizeBytes,
+                        SizeBytes    = -1, // Calculated asynchronously
                         LastModified = lastModified
                     });
                 }
@@ -414,19 +526,45 @@ namespace SS_CAM.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] ScanProjects: " + ex.Message);
+                App.LogTrace("[ArchiveVaultPage] ScanProjects: " + ex.Message);
+            }
+
+            if (_allProjects.Count == 0 && string.IsNullOrWhiteSpace(EmptyStateText.Text))
+            {
+                EmptyStateText.Text = "No archivable projects found in workspace root. Click Refresh to scan again.";
             }
 
             ApplyProjectFilter();
             UpdateStats();
+
+            // Asynchronously estimate folder sizes off the UI thread
+            var projectsToEstimate = _allProjects.ToList();
+            Task.Run(() =>
+            {
+                foreach (var item in projectsToEstimate)
+                {
+                    if (token.IsCancellationRequested) break;
+                    long size = CalculateDirectorySize(item.FullPath, token);
+                    if (token.IsCancellationRequested) break;
+
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (!token.IsCancellationRequested)
+                        {
+                            item.SizeBytes = size;
+                            UpdateStats();
+                        }
+                    }));
+                }
+            }, token);
         }
 
         private void ApplyProjectFilter()
         {
-            string nameFilter = (TxtProjectFilter.Text ?? "").Trim().ToLowerInvariant();
+            string nameFilter = (TxtProjectFilter != null ? TxtProjectFilter.Text ?? "" : "").Trim().ToLowerInvariant();
             string statusFilter = "";
-            var selectedStatus = CmbStatusFilter.SelectedItem as ComboBoxItem;
-            if (selectedStatus != null && !selectedStatus.Content.ToString().StartsWith("All"))
+            var selectedStatus = CmbStatusFilter != null ? CmbStatusFilter.SelectedItem as ComboBoxItem : null;
+            if (selectedStatus != null && selectedStatus.Content != null && !selectedStatus.Content.ToString().StartsWith("All"))
                 statusFilter = selectedStatus.Content.ToString();
 
             _filteredProjects = _allProjects
@@ -434,21 +572,21 @@ namespace SS_CAM.Views
                          && (string.IsNullOrEmpty(statusFilter) || p.Status.Contains(statusFilter)))
                 .ToList();
 
-            RebindProjectList();
-            UpdateSelectionState();
-        }
+            _displayedProjects.Clear();
+            foreach (var item in _filteredProjects)
+            {
+                _displayedProjects.Add(item);
+            }
 
-        private void RebindProjectList()
-        {
-            ProjectItemsControl.ItemsSource = null;
-            ProjectItemsControl.ItemsSource = _filteredProjects;
-
-            ProjectListCountLabel.Text = _filteredProjects.Count + " project" + (_filteredProjects.Count == 1 ? "" : "s");
+            if (ProjectListCountLabel != null)
+                ProjectListCountLabel.Text = _filteredProjects.Count + " project" + (_filteredProjects.Count == 1 ? "" : "s");
 
             if (_filteredProjects.Count > 0)
                 ShowProjectListFull();
             else
                 ShowProjectListEmpty();
+
+            UpdateSelectionState();
         }
 
         private void LoadCatalog()
@@ -488,7 +626,7 @@ namespace SS_CAM.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] LoadCatalog: " + ex.Message);
+                App.LogTrace("[ArchiveVaultPage] LoadCatalog: " + ex.Message);
             }
         }
 
@@ -508,9 +646,30 @@ namespace SS_CAM.Views
 
         private void UpdateStats()
         {
-            StatProjectCount.Text = _allProjects.Count.ToString();
-            long totalMb = _allProjects.Sum(p => p.SizeBytes) / (1024 * 1024);
-            StatSizeMb.Text = totalMb > 0 ? totalMb.ToString("N0") : "—";
+            if (StatProjectCount != null)
+                StatProjectCount.Text = _allProjects.Count.ToString();
+
+            if (StatSizeMb != null)
+            {
+                if (_allProjects.Count == 0)
+                {
+                    StatSizeMb.Text = "—";
+                }
+                else
+                {
+                    var calculated = _allProjects.Where(p => p.SizeBytes >= 0).ToList();
+                    if (calculated.Count == _allProjects.Count)
+                    {
+                        long totalMb = calculated.Sum(p => p.SizeBytes) / (1024 * 1024);
+                        StatSizeMb.Text = totalMb > 0 ? totalMb.ToString("N0") : "0";
+                    }
+                    else
+                    {
+                        long partialMb = calculated.Sum(p => p.SizeBytes) / (1024 * 1024);
+                        StatSizeMb.Text = partialMb > 0 ? string.Format("~{0:N0} (calc...)", partialMb) : "Calculating...";
+                    }
+                }
+            }
         }
 
         private void SetBusyState(bool busy, int total)
@@ -561,20 +720,31 @@ namespace SS_CAM.Views
             ProjectListScroller.Visibility = Visibility.Visible;
         }
 
-        private static long EstimateDirectorySize(string path)
+        private static long CalculateDirectorySize(string path, System.Threading.CancellationToken token)
         {
             try
             {
+                if (!Directory.Exists(path)) return 0;
                 long total = 0;
-                // Only count files 2 levels deep for performance
                 foreach (string f in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
                 {
-                    try { total += new FileInfo(f).Length; }
-                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] FileInfo: " + ex.Message); }
+                    if (token.IsCancellationRequested) return total;
+                    try
+                    {
+                        total += new FileInfo(f).Length;
+                    }
+                    catch (Exception ex)
+                    {
+                        App.LogTrace("[ArchiveVaultPage] FileInfo: " + ex.Message);
+                    }
                 }
                 return total;
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] EstimateDirectorySize: " + ex.Message); return 0; }
+            catch (Exception ex)
+            {
+                App.LogTrace("[ArchiveVaultPage] CalculateDirectorySize: " + ex.Message);
+                return 0;
+            }
         }
 
         private static string TryGetOperatorName()
@@ -585,7 +755,7 @@ namespace SS_CAM.Views
                 if (profile != null && !string.IsNullOrWhiteSpace(profile.DesignerName))
                     return profile.DesignerName;
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[ArchiveVaultPage] TryGetOperatorName: " + ex.Message); }
+            catch (Exception ex) { App.LogTrace("[ArchiveVaultPage] TryGetOperatorName: " + ex.Message); }
             return Environment.UserName;
         }
     }

@@ -117,7 +117,7 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="1">
                                         <ui:TextBlock Text="Encryption" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                        <ComboBox x:Name="CmbWifiEnc" SelectedIndex="0" Padding="8,6" SelectionChanged="OnOptionChanged">
+                                        <ComboBox x:Name="CmbWifiEnc" SelectedIndex="0" MinHeight="36" Padding="10,0" VerticalContentAlignment="Center" SelectionChanged="OnOptionChanged">
                                             <ComboBoxItem Content="WPA / WPA2"/>
                                             <ComboBoxItem Content="WEP"/>
                                             <ComboBoxItem Content="Unencrypted"/>
@@ -297,7 +297,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                     <ui:TextBlock Text="Eye Outer Frame" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                    <ComboBox x:Name="CmbEyeFrameShape" SelectedIndex="0" Padding="8,6" SelectionChanged="OnOptionChanged">
+                                    <ComboBox x:Name="CmbEyeFrameShape" SelectedIndex="0" MinHeight="36" Padding="10,0" VerticalContentAlignment="Center" SelectionChanged="OnOptionChanged">
                                         <ComboBoxItem Content="Square Outer"/>
                                         <ComboBoxItem Content="Rounded Outer"/>
                                         <ComboBoxItem Content="Circle Outer"/>
@@ -305,7 +305,7 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <ui:TextBlock Text="Eye Inner Ball" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                    <ComboBox x:Name="CmbEyeDotShape" SelectedIndex="0" Padding="8,6" SelectionChanged="OnOptionChanged">
+                                    <ComboBox x:Name="CmbEyeDotShape" SelectedIndex="0" MinHeight="36" Padding="10,0" VerticalContentAlignment="Center" SelectionChanged="OnOptionChanged">
                                         <ComboBoxItem Content="Square Dot"/>
                                         <ComboBoxItem Content="Circle Dot"/>
                                         <ComboBoxItem Content="Diamond Dot"/>
@@ -374,7 +374,16 @@
 
                             <!-- Live Rendered Bitmap Preview Box -->
                             <Border x:Name="PreviewContainerBorder" CornerRadius="12" Background="#FFFFFF" Padding="16" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,16">
-                                <Image x:Name="ImgQrPreview" Width="260" Height="260" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <Grid Width="260" Height="260">
+                                    <Image x:Name="ImgQrPreview" Width="260" Height="260" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <Border x:Name="PreviewErrorOverlay" Background="#FDF2F2" BorderBrush="#EF4444" BorderThickness="1" CornerRadius="8" Padding="16" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="240">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <ui:SymbolIcon Symbol="ErrorCircle24" FontSize="32" Foreground="{DynamicResource SystemFillColorCriticalBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                            <ui:TextBlock Text="QR Generation Error" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource SystemFillColorCriticalBrush}" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                            <ui:TextBlock x:Name="TxtPreviewErrorMessage" Text="Error details" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
                             </Border>
 
                             <!-- Size & Resolution Slider -->
@@ -390,7 +399,7 @@
 
                             <!-- Error Correction Level -->
                             <ui:TextBlock Text="Error Correction Reliability" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                            <ComboBox x:Name="CmbErrorCorrection" SelectedIndex="0" Padding="8,6" Margin="0,0,0,18" SelectionChanged="OnOptionChanged">
+                            <ComboBox x:Name="CmbErrorCorrection" SelectedIndex="0" MinHeight="36" Padding="10,0" VerticalContentAlignment="Center" Margin="0,0,0,18" SelectionChanged="OnOptionChanged">
                                 <ComboBoxItem Content="High (30% Data Recovery - Best for Logos)"/>
                                 <ComboBoxItem Content="Quartile (25% Data Recovery)"/>
                                 <ComboBoxItem Content="Medium (15% Data Recovery)"/>
