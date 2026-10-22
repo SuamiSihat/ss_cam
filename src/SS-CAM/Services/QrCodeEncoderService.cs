@@ -812,14 +812,25 @@ namespace SS_CAM.Services
                 using (QRCoder.QRCodeGenerator qrGen = new QRCoder.QRCodeGenerator())
                 using (QRCoder.QRCodeData qrData = qrGen.CreateQrCode(text, ecc))
                 {
-                    int modules = qrData.ModuleMatrix.Count;
-                    bool[,] matrix = new bool[modules, modules];
-                    for (int r = 0; r < modules; r++)
+                    // QRCoder's ModuleMatrix already includes a quiet-zone border (4 modules per side).
+                    // The renderers add their own quiet zone and expect finder patterns at row/col 0,
+                    // so crop the border to the raw symbol size (17 + 4 * version).
+                    int rawCount = qrData.ModuleMatrix.Count;
+                    int symbolSize = 17 + 4 * qrData.Version;
+                    int border = (rawCount - symbolSize) / 2;
+                    if (border < 0 || symbolSize <= 0 || border * 2 + symbolSize != rawCount)
                     {
-                        System.Collections.BitArray row = qrData.ModuleMatrix[r];
-                        for (int c = 0; c < modules; c++)
+                        border = 0;
+                        symbolSize = rawCount;
+                    }
+
+                    bool[,] matrix = new bool[symbolSize, symbolSize];
+                    for (int r = 0; r < symbolSize; r++)
+                    {
+                        System.Collections.BitArray row = qrData.ModuleMatrix[r + border];
+                        for (int c = 0; c < symbolSize; c++)
                         {
-                            matrix[r, c] = row[c];
+                            matrix[r, c] = row[c + border];
                         }
                     }
                     return matrix;

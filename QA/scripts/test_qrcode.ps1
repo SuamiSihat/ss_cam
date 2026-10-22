@@ -124,6 +124,32 @@ foreach ($sz in $sizes) {
 }
 Assert-Test $sizeOk "PixelSize scaling across 300px to 2000px adheres to requested bounds"
 
+# Test 7: Finder-pattern geometry (regression: QRCoder's built-in quiet zone caused offset/doubled eyes)
+Write-Host "`n7. Finder-pattern geometry:"
+$shapeNames = @("Square", "Rounded", "Circle", "Dots", "Diamond", "Classy")
+foreach ($shapeName in $shapeNames) {
+    $gOpts = New-Object SS_CAM.Services.QrCodeOptions
+    $gOpts.Content = "https://suamisihat.clinic"   # version 4 at ECC H: 33 modules
+    $gOpts.PixelSize = 820
+    $gOpts.UseGradient = $false
+    $gOpts.LogoImage = $null
+    $gOpts.ForegroundColor = [System.Drawing.Color]::Black
+    $gOpts.BackgroundColor = [System.Drawing.Color]::White
+    $gOpts.BodyShape = [Enum]::Parse([SS_CAM.Services.QrBodyShape], $shapeName)
+    $gBmp = $service.GenerateQrCodeBitmap($gOpts)
+    $m = $gBmp.Width / 41.0   # 33 symbol modules + 4-module quiet zone on each side
+    $isDark = { param($mx, $my) $p = $gBmp.GetPixel([int](($mx + 0.5) * $m), [int](($my + 0.5) * $m)); ($p.R + $p.G + $p.B) -lt 384 }
+    $geoOk = $true
+    # Top-left finder row 3 must read D L D D D L D, followed by the light separator
+    $expected = @($true, $false, $true, $true, $true, $false, $true, $false)
+    for ($i = 0; $i -lt 8; $i++) { if ((& $isDark (4 + $i) 7) -ne $expected[$i]) { $geoOk = $false } }
+    for ($i = 0; $i -lt 4; $i++) { if (& $isDark $i 7) { $geoOk = $false } }   # quiet zone stays light
+    if (-not (& $isDark 33 7) -or -not (& $isDark 7 33)) { $geoOk = $false }  # TR and BL finder centres
+    if ((& $isDark 29 7) -or (& $isDark 7 29)) { $geoOk = $false }            # TR and BL separators
+    Assert-Test $geoOk "Finder patterns aligned with a 4-module quiet zone ($shapeName)"
+    $gBmp.Dispose()
+}
+
 Write-Host "=========================================="
 Write-Host "  RESULTS: $passCount PASSED, $failCount FAILED"
 Write-Host "=========================================="

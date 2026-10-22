@@ -1468,3 +1468,26 @@ Migrated default radio stream URLs across Windows, Linux, and Android platforms 
 - Dual-Track Governance (`QA/verify-dual-track.ps1 -Fix`): PASS (14/14 checks).
 - Source Guardian (`QA/verify-sscam.ps1 -Fix`): PASS (14/14 checks).
 
+
+---
+
+## P3: QR Code Studio rendering misaligned (2026-10-22)
+
+**Symptom:** The QR Studio preview showed doubled and offset finder eyes, blobs around the eyes, and an oversized margin (reported by the owner from a screenshot).
+
+**Root cause:** QRCoder 1.4.3 `QRCodeData.ModuleMatrix` already includes a 4-module quiet zone. In this case it was 41x41 for a 33x33 version-4 symbol. `GenerateQrMatrix` copied it unchanged, but both renderers expect the finder patterns at row/col 0 and add their own quiet zone. As a result:
+- the custom eyes were drawn 4 modules up and left of the real finders
+- the real finder modules were drawn again as body shapes
+- each eye's 7x7 background clear erased real data modules
+- the margin was doubled to 8 modules
+
+**Fix:** `Services/QrCodeEncoderService.cs` `GenerateQrMatrix` now crops the border to `17 + 4 * version` modules. If the size doesn't match that, it falls back to the full matrix. Bitmap and SVG both use this matrix.
+
+**Test gap:** `QA/scripts/test_qrcode.ps1` only checked that output was non-null, so it passed while the code was broken. I added Test 7, finder-pattern geometry, which checks pixels for all 6 body shapes.
+
+**Verification**
+- `test_qrcode.ps1`: PASS, 30/30 (adds 6 geometry checks).
+- Rendered 12 PNGs (6 body shapes, each with and without a logo, at 800px): all 12 decoded to `https://suamisihat.clinic` with OpenCV `QRCodeDetector`. The logo was a stand-in image, not `ss_icon_light`.
+- Visual check of the Rounded+logo and Dots renders: three clean finder eyes and a 4-module quiet zone.
+- Release build: PASS. Source Guardian: 14/14 PASS.
+- Not verified: SVG export was not machine-decoded, a phone scan was not done, and the live in-app preview was not re-checked (the app was not launched).
