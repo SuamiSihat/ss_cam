@@ -779,10 +779,10 @@ namespace SS_CAM.Services
                 // Purge removed station presets
                 AllStations.RemoveAll(s => s.Id == "preset_corporate" || s.Id == "preset_fm988" || s.Id == "preset_aifm" || s.Id == "preset_cityplus" || s.Name.Contains("988 FM") || s.Name.Contains("Ai FM") || s.Name.Contains("CITYPlus"));
 
-                // Migrate saved SuamiSihat stations from the retired /listen and /live endpoints
+                // Migrate saved SuamiSihat stations from the retired /listen, /live, and /stream endpoints
                 foreach (var legacy in AllStations)
                 {
-                    if (legacy.StreamUrl == "https://radio.suamisihat.myds.me/listen" || legacy.StreamUrl == "https://radio.suamisihat.myds.me/live")
+                    if (legacy.StreamUrl == "https://radio.suamisihat.myds.me/listen" || legacy.StreamUrl == "https://radio.suamisihat.myds.me/live" || legacy.StreamUrl == "https://radio.suamisihat.myds.me/stream")
                         legacy.StreamUrl = "https://radio.suamisihat.myds.me/live.mp3";
                 }
 
