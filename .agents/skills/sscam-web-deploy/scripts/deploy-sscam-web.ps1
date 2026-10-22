@@ -108,8 +108,8 @@ Write-Host "# 0. Back up the current app files first (the password store in data
 Write-Host "cd $NasDockerDir && sudo tar --exclude=node_modules -czf ../ss-cam-web-backup-`$(date +%Y%m%d-%H%M).tar.gz ." -ForegroundColor White
 Write-Host "if [ ! -d .git ]; then git init && git remote add origin https://github.com/SuamiSihat/ss_cam.git; fi" -ForegroundColor White
 Write-Host "git fetch origin && git checkout -f -B SS-Master origin/SS-Master" -ForegroundColor White
-Write-Host "if [ -d 'src/SS-CAM.Web' ]; then cp -rf src/SS-CAM.Web/* .; fi" -ForegroundColor White
-Write-Host "sudo docker restart ss-cam-web-portal || sudo docker-compose restart" -ForegroundColor White
+Write-Host "if [ -d 'src/SS-CAM.Web' ]; then sudo cp -rf src/SS-CAM.Web/* .; fi" -ForegroundColor White
+Write-Host "sudo docker restart `$(sudo docker ps -q --filter 'name=ss-cam') || sudo docker restart ss-cam-web-portal || sudo docker compose restart" -ForegroundColor White
 Write-Host "# Then, back on this PC, check the live portal:" -ForegroundColor Gray
 Write-Host "#   .\.agents\skills\sscam-web-deploy\scripts\deploy-sscam-web.ps1 -VerifyOnly" -ForegroundColor Gray
 Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
