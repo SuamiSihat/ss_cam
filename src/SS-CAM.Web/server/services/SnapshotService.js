@@ -14,6 +14,8 @@ function formatBytes(bytes) {
 
 const DESIGN_EXTENSIONS = ['.afdesign', '.afphoto', '.afpub', '.psd', '.psb', '.ai', '.eps', '.pdf', '.svg', '.indd'];
 
+let _snapshotSeq = 0;
+
 class SnapshotService {
   getSnapshotsDir(projectFullPath) {
     const dir = path.join(projectFullPath, '.snapshots');
@@ -29,7 +31,7 @@ class SnapshotService {
     if (!fs.existsSync(projectFullPath)) return null;
 
     const snapshotsDir = this.getSnapshotsDir(projectFullPath);
-    const snapId = `snap_${Date.now()}`;
+    const snapId = `snap_${Date.now()}_${++_snapshotSeq}`;
     const snapDir = path.join(snapshotsDir, snapId);
     fs.mkdirSync(snapDir, { recursive: true });
 
@@ -127,7 +129,7 @@ class SnapshotService {
       console.debug('[SnapshotService] Read snapshots directory error:', e.message);
     }
 
-    return list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp) || (b.id || '').localeCompare(a.id || ''));
   }
 
   listSnapshots(projectFullPath) {

@@ -29,7 +29,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Restore NuGet Packages
-        run: nuget restore SS-CAM.sln
+        run: nuget restore SS-CAM.sln -PackagesDirectory src/SS-CAM/packages
 
       - name: Run SS-CAM Source Guardian Gatekeeper
         shell: pwsh
@@ -111,8 +111,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses || true
+
       - name: Make Gradlew Executable
-        run: chmod +x gradlew
+        run: |
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
 
       - name: Assemble Android Debug APK
         run: ./gradlew assembleDebug --no-daemon
