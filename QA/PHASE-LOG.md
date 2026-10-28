@@ -44,3 +44,5 @@ Execution log for tasks in `QA/ANTIGRAVITY-EXECUTION-PLAN.md`.
 
 | **Phase 1** | Desktop HTTPS Certificate Validation & Radio Offline Resilience | App.xaml.cs, PortalAuthService.cs, RadioStreamService.cs, SettingsPage.xaml.cs, RadioPage.xaml.cs, MainWindow.xaml.cs | erify-sscam.ps1, erify-dual-track.ps1, un-sscam-qa.ps1 -Build, 	est_t6.ps1 | **PASS** | Blanket SSL bypasses eliminated; scoped to tenant NAS hosts only; offline stream detection & UX verified; 14/14 guardian, 91/91 radio tests, release build passed. |
 
+| **Phase 2** | Windows Automated Unit-Test Suite (SS-CAM.Tests) | tests/SS-CAM.Tests/*, SS-CAM.sln, run-sscam-qa.ps1, AssetNamingService.cs | SS-CAM.Tests.exe, run-sscam-qa.ps1 -Build, verify-sscam.ps1 | **PASS** | 18/18 unit tests passing (Frontmatter, Auth, Naming, Radio, Tenant); duplicate scan bug fixed; solution & QA runner integrated. |
+

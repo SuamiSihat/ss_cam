@@ -50,11 +50,15 @@ namespace SS_CAM.Services
                 : projectFolderName;
 
             string[] targetSubDirs = new[] { "05_DELIVERABLES", "05_Deliverables", "04_Production", "04_Export_Packages", "Export_Packages", "04_WORK_IN_PROGRESS", "04_WIP" };
+            HashSet<string> scannedDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (string subName in targetSubDirs)
             {
                 string dirPath = Path.Combine(projectFullPath, subName);
                 if (!Directory.Exists(dirPath)) continue;
+
+                string fullDir = Path.GetFullPath(dirPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (!scannedDirectories.Add(fullDir)) continue;
 
                 foreach (string file in Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories))
                 {

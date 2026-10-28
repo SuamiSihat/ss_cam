@@ -4,6 +4,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS-CAM", "src\SS-CAM\SS-CAM.csproj", "{A3D4E708-2A21-4965-A672-12C12D4C824E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS-CAM.Tests", "tests\SS-CAM.Tests\SS-CAM.Tests.csproj", "{B9C2E351-4E68-45F2-81D2-7E7C35B91142}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,6 +16,10 @@ Global
 		{A3D4E708-2A21-4965-A672-12C12D4C824E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A3D4E708-2A21-4965-A672-12C12D4C824E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A3D4E708-2A21-4965-A672-12C12D4C824E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9C2E351-4E68-45F2-81D2-7E7C35B91142}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9C2E351-4E68-45F2-81D2-7E7C35B91142}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9C2E351-4E68-45F2-81D2-7E7C35B91142}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9C2E351-4E68-45F2-81D2-7E7C35B91142}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -62,6 +62,24 @@ if ($Build) {
             Write-Result 'FAIL' 'Build' "$Configuration build failed."
         } else {
             Write-Result 'PASS' 'Build' "$Configuration build completed."
+
+            $testProject = Join-Path $repoRoot 'tests\SS-CAM.Tests\SS-CAM.Tests.csproj'
+            $testExe = Join-Path $repoRoot "tests\SS-CAM.Tests\bin\$Configuration\SS-CAM.Tests.exe"
+            if (Test-Path -LiteralPath $testProject) {
+                & $msbuild $testProject "/p:Configuration=$Configuration" /m /t:Build /v:minimal
+                if ($LASTEXITCODE -ne 0) {
+                    $failures.Add("SS-CAM.Tests compilation failed.")
+                    Write-Result 'FAIL' 'Test compile' "SS-CAM.Tests build failed."
+                } elseif (Test-Path -LiteralPath $testExe) {
+                    & $testExe
+                    if ($LASTEXITCODE -ne 0) {
+                        $failures.Add("One or more automated unit tests failed.")
+                        Write-Result 'FAIL' 'Unit Tests' "SS-CAM.Tests reported test failures."
+                    } else {
+                        Write-Result 'PASS' 'Unit Tests' "All automated unit tests passed."
+                    }
+                }
+            }
         }
     }
 } else {
