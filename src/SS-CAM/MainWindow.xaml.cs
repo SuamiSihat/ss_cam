@@ -275,6 +275,8 @@ namespace SS_CAM
                         StatusRadioText.Text = "Connecting...";
                     else if (isPaused)
                         StatusRadioText.Text = "Paused";
+                    else if (radio.State == RadioPlaybackState.Error)
+                        StatusRadioText.Text = "Station Offline";
                     else
                         StatusRadioText.Text = "Ready";
                 }
@@ -287,6 +289,10 @@ namespace SS_CAM
                             FooterRadioPanel.ToolTip = "Now Playing: " + streamTitle.Trim() + "\nStation: " + stationName + "\nClick to open audio controls";
                         else
                             FooterRadioPanel.ToolTip = "Now Playing: " + stationName + "\nClick to open audio controls";
+                    }
+                    else if (radio.State == RadioPlaybackState.Error)
+                    {
+                        FooterRadioPanel.ToolTip = "Station Broadcast Offline (" + stationName + ") - Click to open audio controls";
                     }
                     else
                     {
@@ -307,6 +313,12 @@ namespace SS_CAM
                         StatusRadioIcon.Text = "\uE823";
                         var secBrush = TryFindResource("TextFillColorSecondaryBrush") as Brush;
                         if (secBrush != null) StatusRadioIcon.Foreground = secBrush;
+                    }
+                    else if (radio.State == RadioPlaybackState.Error)
+                    {
+                        StatusRadioIcon.Text = "\uEA39";
+                        var critBrush = TryFindResource("SystemFillColorCriticalBrush") as Brush;
+                        if (critBrush != null) StatusRadioIcon.Foreground = critBrush;
                     }
                     else
                     {
@@ -334,6 +346,10 @@ namespace SS_CAM
                     else if (isPaused)
                     {
                         TxtFlyoutStatus.Text = "Playback paused";
+                    }
+                    else if (radio.State == RadioPlaybackState.Error)
+                    {
+                        TxtFlyoutStatus.Text = "Broadcast offline (unreachable)";
                     }
                     else
                     {

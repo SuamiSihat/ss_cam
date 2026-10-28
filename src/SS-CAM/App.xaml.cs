@@ -28,6 +28,16 @@ namespace SS_CAM
                 args.Handled = true;
             };
 
+            try
+            {
+                System.Net.ServicePointManager.SecurityProtocol |= System.Net.SecurityProtocolType.Tls12;
+                System.Net.ServicePointManager.ServerCertificateValidationCallback = PortalAuthService.ServicePointCertificateCallback;
+            }
+            catch (Exception ex)
+            {
+                LogTrace("App.OnStartup TLS setup: " + ex.Message);
+            }
+
             base.OnStartup(e);
 
             Views.SplashWindow splash = new Views.SplashWindow();

@@ -689,7 +689,7 @@ namespace SS_CAM.Views
                     try
                     {
                         string fallbackUrl = (TenantConfigService.Current != null && !string.IsNullOrWhiteSpace(TenantConfigService.Current.PortalUrl)) ? TenantConfigService.Current.PortalUrl.TrimEnd('/') + "/ss-cam/version.json" : "https://corporate.myds.me/ss-cam/version.json";
-                        System.Net.ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, er) => true;
+                        System.Net.ServicePointManager.ServerCertificateValidationCallback = PortalAuthService.ServicePointCertificateCallback;
                         System.Net.HttpWebRequest req2 = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(fallbackUrl);
                         req2.Timeout = 5000;
                         req2.Method = "GET";

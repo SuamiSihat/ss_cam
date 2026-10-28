@@ -863,8 +863,14 @@ namespace SS_CAM.Views
                 case RadioPlaybackState.Error:
                     HeroPlayBtnText.Text = "\uE768"; // Play
                     HeroStatusDot.Text = "\uEA39"; // Error/Cancel
-                    HeroStatusText.Text = "Stream Connection Error (Try Editing / Testing Stream URL)";
-                    HeroStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
+                    HeroStatusText.Text = "Station Broadcast Offline (Stream Unreachable)";
+                    var critBrush = (Brush)Application.Current.FindResource("SystemFillColorCriticalBrush");
+                    HeroStatusText.Foreground = critBrush ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
+                    if (HeroStreamTitleText != null)
+                    {
+                        HeroStreamTitleText.Text = "Stream server is currently silent or unreachable. Click to retry or choose another station.";
+                        HeroStreamTitleText.Visibility = Visibility.Visible;
+                    }
                     break;
 
                 case RadioPlaybackState.Stopped:

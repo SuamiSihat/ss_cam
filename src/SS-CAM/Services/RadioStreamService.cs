@@ -64,7 +64,7 @@ namespace SS_CAM.Services
 
             try
             {
-                ServicePointManager.ServerCertificateValidationCallback = (s, cert, chain, sslPolicyErrors) => true;
+                ServicePointManager.ServerCertificateValidationCallback = PortalAuthService.ServicePointCertificateCallback;
                 HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
                 req.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) SS-CAM/4.6.3";
                 req.Timeout = 5000;
@@ -314,6 +314,7 @@ namespace SS_CAM.Services
         public double CurrentPeakAmplitude { get; private set; }
 
         public event Action<string> StreamTitleChanged;
+        public event Action<string> StreamConnectionFailed;
         public string CurrentStreamTitle { get; private set; }
 
         public LocalAudioProxy()
@@ -405,14 +406,14 @@ namespace SS_CAM.Services
                 response.Headers.Add("Access-Control-Allow-Origin", "*");
                 response.Headers.Add("Cache-Control", "no-cache, no-store");
 
-                ServicePointManager.ServerCertificateValidationCallback = (s, cert, chain, sslPolicyErrors) => true;
+                ServicePointManager.ServerCertificateValidationCallback = PortalAuthService.ServicePointCertificateCallback;
 
                 string activeUrl = PlaylistHelper.ResolveStreamUrl(_targetStreamUrl);
 
                 remoteReq = (HttpWebRequest)WebRequest.Create(activeUrl);
                 remoteReq.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
-                remoteReq.Timeout = 8000;
-                remoteReq.ReadWriteTimeout = 8000;
+                remoteReq.Timeout = 6000;
+                remoteReq.ReadWriteTimeout = 6000;
                 remoteReq.AllowAutoRedirect = true;
                 remoteReq.Headers.Add("Icy-MetaData", "1"); // Request ICY Metadata
 
@@ -509,9 +510,14 @@ namespace SS_CAM.Services
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                try { response.StatusCode = 500; } catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+                App.LogTrace("[LocalAudioProxy] ProcessRequest error: " + ex.Message);
+                try { response.StatusCode = 502; } catch (Exception scEx) { System.Diagnostics.Debug.WriteLine(scEx); }
+                if (StreamConnectionFailed != null)
+                {
+                    StreamConnectionFailed(ex.Message);
+                }
             }
             finally
             {
@@ -712,11 +718,29 @@ namespace SS_CAM.Services
             AllStations = new List<RadioStation>();
             _localProxy = new LocalAudioProxy();
             _localProxy.StreamTitleChanged += (title) => { if (StreamTitleChanged != null) StreamTitleChanged(title); };
+            _localProxy.StreamConnectionFailed += OnProxyStreamConnectionFailed;
 
             string ssDir = AppPaths.AppDataFolder;
             _configFilePath = Path.Combine(ssDir, "radio_config.json");
 
             LoadStations();
+        }
+
+        private void OnProxyStreamConnectionFailed(string reason)
+        {
+            EnsureUI(() =>
+            {
+                SetState(RadioPlaybackState.Error);
+                string errMsg = "Station broadcast offline or stream unreachable";
+                if (!string.IsNullOrWhiteSpace(reason))
+                {
+                    errMsg += " (" + reason + ")";
+                }
+                if (ErrorOccurred != null)
+                {
+                    ErrorOccurred(errMsg);
+                }
+            });
         }
 
         private void EnsureUI(Action action)
@@ -1313,7 +1337,7 @@ namespace SS_CAM.Services
 
             try
             {
-                ServicePointManager.ServerCertificateValidationCallback = (s, cert, chain, sslPolicyErrors) => true;
+                ServicePointManager.ServerCertificateValidationCallback = PortalAuthService.ServicePointCertificateCallback;
                 HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url.Trim());
                 req.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SS-CAM/4.6.3";
                 req.Timeout = 8000;
@@ -1398,7 +1422,7 @@ namespace SS_CAM.Services
 
             try
             {
-                ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+                ServicePointManager.ServerCertificateValidationCallback = PortalAuthService.ServicePointCertificateCallback;
 
                 string resolvedUrl = PlaylistHelper.ResolveStreamUrl(url.Trim());
                 bool wasM3u = !resolvedUrl.Equals(url.Trim(), StringComparison.OrdinalIgnoreCase);

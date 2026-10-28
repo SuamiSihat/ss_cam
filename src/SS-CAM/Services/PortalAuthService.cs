@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SS_CAM.Models;
 using SS_CAM.Utilities;
 
 namespace SS_CAM.Services
@@ -123,27 +124,80 @@ namespace SS_CAM.Services
         }
 
         /// <summary>
-        /// Certificate policy for portal traffic: accept a valid certificate for any host, and accept a
-        /// certificate with errors ONLY for the configured portal host (the NAS portal may use a self-signed
-        /// certificate). Every other host keeps normal certificate validation.
+        /// Certificate policy for all outbound HTTPS traffic:
+        /// 1. Accept any certificate where SslPolicyErrors == None (valid cert signed by a trusted root CA).
+        /// 2. If certificate has errors (e.g. self-signed or internal CA), ONLY permit if the target host
+        ///    strictly matches a configured tenant NAS endpoint (PortalUrl, AssetPortalUrl, DashboardUrl, or pinned radio).
+        /// 3. All public third-party endpoints MUST have valid certificates, blocking MITM and forged certs.
         /// </summary>
         public static bool IsCertificateAcceptable(Uri requestUri, SslPolicyErrors sslPolicyErrors)
         {
             if (sslPolicyErrors == SslPolicyErrors.None) return true;
             if (requestUri == null) return false;
+
             string portalHost = PortalHost;
-            return !string.IsNullOrEmpty(portalHost) &&
-                   string.Equals(requestUri.Host, portalHost, StringComparison.OrdinalIgnoreCase);
+            if (!string.IsNullOrEmpty(portalHost) &&
+                string.Equals(requestUri.Host, portalHost, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            try
+            {
+                TenantConfig tenant = TenantConfigService.Current;
+                if (tenant != null)
+                {
+                    if (IsHostMatchingUrl(requestUri.Host, tenant.AssetPortalUrl)) return true;
+                    if (IsHostMatchingUrl(requestUri.Host, tenant.BrandKitsUrl)) return true;
+                    if (IsHostMatchingUrl(requestUri.Host, tenant.CompanyUrl)) return true;
+                    if (IsHostMatchingUrl(requestUri.Host, tenant.PortalUrl)) return true;
+
+                    PluginConfig radioConfig;
+                    if (tenant.Plugins != null && tenant.Plugins.TryGetValue("radio-player", out radioConfig) && radioConfig.PinnedStations != null)
+                    {
+                        for (int i = 0; i < radioConfig.PinnedStations.Count; i++)
+                        {
+                            if (IsHostMatchingUrl(requestUri.Host, radioConfig.PinnedStations[i].StreamUrl)) return true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                App.LogTrace("[PortalAuthService] IsCertificateAcceptable tenant check: " + ex.Message);
+            }
+
+            return false;
+        }
+
+        private static bool IsHostMatchingUrl(string host, string url)
+        {
+            if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(url)) return false;
+            Uri u;
+            if (Uri.TryCreate(url, UriKind.Absolute, out u))
+            {
+                return string.Equals(host, u.Host, StringComparison.OrdinalIgnoreCase);
+            }
+            return false;
         }
 
         /// <summary>
-        /// Callback suitable for ServicePointManager.ServerCertificateValidationCallback (scoped to the portal host).
+        /// Callback suitable for ServicePointManager.ServerCertificateValidationCallback (scoped to tenant NAS hosts).
         /// </summary>
         public static bool ServicePointCertificateCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             if (sslPolicyErrors == SslPolicyErrors.None) return true;
             HttpWebRequest webRequest = sender as HttpWebRequest;
-            return webRequest != null && IsCertificateAcceptable(webRequest.RequestUri, sslPolicyErrors);
+            if (webRequest != null)
+            {
+                return IsCertificateAcceptable(webRequest.RequestUri, sslPolicyErrors);
+            }
+            HttpRequestMessage reqMsg = sender as HttpRequestMessage;
+            if (reqMsg != null)
+            {
+                return IsCertificateAcceptable(reqMsg.RequestUri, sslPolicyErrors);
+            }
+            return false;
         }
 
         /// <summary>
