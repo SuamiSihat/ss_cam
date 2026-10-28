@@ -1,6 +1,6 @@
 # SS-CAM Project Roadmap
 
-> **Living document.** Updated with every release. Last updated: 2026-10-22.
+> **Living document.** Updated with every release. Last updated: 2026-10-28.
 
 ---
 
@@ -67,6 +67,18 @@
 | **v5.2.0** | 2026-10-12 | **Enterprise Intelligence, Asset Versioning & Collision Guard**: Automated non-destructive asset revision snapshot caching and rollback engine across WPF Desktop and Web Portal (`SnapshotDesktopService.cs`, `ProjectSnapshotsDialog.xaml`, `SnapshotService.js`); real-time project lock leasing and multi-designer collision guard (`FileCollisionGuardService.cs`, `_lock.json`); Web DeliverablesView overhaul with Production Vault Telemetry Ribbon, 1-click fast sign-off, and theme tokenization; TasksView 2-tier toolbar with executive bottleneck radar and inline non-blocking confirmations; Client Review Portal visual pin annotations, video proxy streaming, and 1-click batch ZIP download; and Native Linux Desktop Client updated to .NET 10 with 0 warnings, single-file packaging, and 76/76 smoke test passes. |
 | **v5.2.1** | 2026-10-15 | **Enterprise Web Portal Overhaul, Security Hardening & Desktop Alignment**: Full 5-phase Web Management Portal remediation (strict route authorization, sanitized JWT cookies, safe preview MIME gating, bcrypt credential store, and Docker multi-stage sync); Desktop Windows (.NET 4.8 / WPF) parity with encrypted DPAPI portal credentials and Source Guardian compliance; and live Approvals View rune bug fix with verified 520-deliverable telemetry. |
 | **v5.3.0** | 2026-10-21 | **Evidence-Based Consultation Suite Redesign, Touch-First Studio Display & Ecosystem Sync**: 6 dynamic SVG clinical anatomy simulations, bilingual BM/EN clinical dictionary, fullscreen presentation mode, peer-reviewed medical reference panel, touch-first Studio Display TV kiosk (`#signage`) and queue management admin console (`#studio-display`), per-branch queue isolation, banner/video media upload pipeline, and Windows Desktop v5.3.0 single-file release |
+| **v5.3.1** | 2026-10-28 | **Technical Debt Remediation, Automated CI/CD & Cross-Platform Parity**: Scoped production HTTPS trust policy & offline radio resilience; Windows C# automated unit test project (`SS-CAM.Tests`); automated 4-platform GitHub Actions CI matrix (Windows WPF, Web Portal, Android Compose, Linux Avalonia); and complete cross-platform parity across Web (Brand Assets, Quick Notes, Archive Vault, Wellbeing) and Android (Project Catalog, Copywriting Studio) |
+
+---
+
+## v5.3.1 (2026-10-28 — Technical Debt Remediation, Automated CI/CD & Cross-Platform Parity)
+
+| Area | Summary |
+|---|---|
+| **HTTPS Certificate Trust Policy** | Scoped Windows client SSL validation strictly to configured tenant NAS / portal hosts; public HTTPS endpoints enforce full operating system CA trust chain. Added offline stream connectivity probes & empty-state fallback banners. |
+| **Windows Automated Unit Testing** | Added `tests/SS-CAM.Tests/` C# unit-test suite with 18 automated tests covering Frontmatter parsing, SSL/Auth validation, Asset Naming rules, Radio Stream playlist parsing, and Tenant Configuration. |
+| **Automated Multi-Platform CI/CD** | Full GitHub Actions pipeline (`.github/workflows/ci.yml`) compiling and validating all 4 platforms on every push: Windows Desktop (WPF 4.8), Web Portal (Node 20 / Svelte), Android Companion (Compose / Java 17), and Linux Desktop (Avalonia / .NET 10). |
+| **Cross-Platform Feature Parity** | Implemented missing views in Web Portal (`BrandAssetsView`, `QuickNotesView`, `ArchiveVaultView`, `WellbeingView`) and Android Companion (`ProjectCatalogScreen`, `CopywritingStudioScreen`), achieving 100% ecosystem feature parity. |
 
 ---
 
@@ -93,14 +105,14 @@
 ## ⚠️ Known Gaps
 
 - ~~**Desktop cannot sign in to the Web portal with a password.**~~ Resolved 2026-10-14: Windows sign-in in Settings (credentials encrypted with DPAPI); orders and Quick Notes sync now authenticate.
-- **Feature differences between apps.** The Web portal has no Brand Assets, Quick Notes, Archive or Wellbeing pages; the Android app has no Project Catalog or Copywriting.
-- **Windows app turns off HTTPS certificate checks** for its web requests. Needs a decision before wider distribution.
-- **No unit-test project for the Windows app.**
-- **No CI** (no automated build or test on push; the gate `QA/verify-dual-track.ps1` is run by hand).
+- ~~**Feature differences between apps.**~~ Resolved 2026-10-28 (v5.3.1): Added Brand Assets Vault, Quick Notes, Archive Vault, and Wellbeing to Web Portal (`src/SS-CAM.Web`); added Project Catalog and Copywriting Studio to Android Companion (`src/SS-CAM.Android`).
+- ~~**Windows app turns off HTTPS certificate checks.**~~ Resolved 2026-10-28 (v5.3.1): Replaced blanket bypass with strict scoped trust policy in `PortalAuthService.cs` allowing custom certificates only for configured tenant NAS/portal hosts while enforcing OS trust chain for public endpoints.
+- ~~**No unit-test project for the Windows app.**~~ Resolved 2026-10-28 (v5.3.1): Created `tests/SS-CAM.Tests/` executable suite with 18 unit tests across Frontmatter, Auth, Naming, Radio, and Tenant modules.
+- ~~**No CI.**~~ Resolved 2026-10-28 (v5.3.1): Created `.github/workflows/ci.yml` running multi-platform builds and automated test suites on every push for Windows Desktop, Web Portal, Android Companion, and Linux Desktop.
 
 ---
 
-## 🎯 Active Milestone — v5.3.0: Autonomous Campaign Orchestration & Multi-Region Sync (Target: Q1 2027)
+## 🎯 Active Milestone — v5.4.0: Autonomous Campaign Orchestration & Multi-Region Sync (Target: Q1 2027)
 
 | Feature / Module | Target Platform | Description & Operational Impact |
 |---|---|---|
@@ -110,7 +122,7 @@
 
 ---
 
-## 🔮 Future Exploration — v5.4.0: Predictive Analytics & Omnichannel Publishing (Target: Q2 2027)
+## 🔮 Future Exploration — v5.5.0: Predictive Analytics & Omnichannel Publishing (Target: Q2 2027)
 
 | Area | Idea |
 |------|------|
