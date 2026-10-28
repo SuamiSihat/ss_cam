@@ -280,6 +280,8 @@ object ProjectCacheManager {
 enum class CompanionScreen(val title: String, val icon: ImageVector) {
     Dashboard("Dashboard", Icons.Default.Home),
     Tasks("Tasks", Icons.AutoMirrored.Filled.Assignment),
+    Catalog("Projects", Icons.Default.FolderOpen),
+    Copy("Copy", Icons.Default.EditNote),
     Team("Team", Icons.Default.Group),
     Wellbeing("Wellbeing", Icons.Default.Spa)
 }
@@ -848,7 +850,7 @@ fun CompanionAppScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .navigationBarsPadding()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
                             horizontalArrangement = Arrangement.SpaceAround,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -868,21 +870,21 @@ fun CompanionAppScreen(
                                                     stiffness = Spring.StiffnessMediumLow
                                                 )
                                             )
-                                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                                            .padding(horizontal = 12.dp, vertical = 7.dp)
                                     ) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                                         ) {
                                             Icon(
                                                 screen.icon,
                                                 contentDescription = screen.title,
                                                 tint = colors.activePillTint,
-                                                modifier = Modifier.size(18.dp)
+                                                modifier = Modifier.size(17.dp)
                                             )
                                             Text(
                                                 text = screen.title,
-                                                fontSize = 12.sp,
+                                                fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colors.activePillTint
                                             )
@@ -898,14 +900,14 @@ fun CompanionAppScreen(
                                                 isSettingsOpen = false
                                                 selectedScreen = screen
                                             }
-                                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                                            .padding(horizontal = 8.dp, vertical = 8.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             screen.icon,
                                             contentDescription = screen.title,
                                             tint = if (colors.isDark) Color(0xFF94A3B8) else Color(0xFF0F172A),
-                                            modifier = Modifier.size(22.dp)
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 }
@@ -1164,6 +1166,11 @@ fun CompanionAppScreen(
                                     }
                                 }
                             )
+                            CompanionScreen.Catalog -> ProjectCatalogScreen(
+                                projects = projects,
+                                onSelectProject = { /* inspected */ }
+                            )
+                            CompanionScreen.Copy -> CopywritingStudioScreen()
                             CompanionScreen.Team -> TeamHubScreen(
                                 staffList = staffList,
                                 projects = projects,

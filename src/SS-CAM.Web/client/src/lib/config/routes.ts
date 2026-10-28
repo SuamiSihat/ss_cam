@@ -32,7 +32,11 @@ export const ROUTE_ICONS = {
   team: `<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>`,
   display: `<path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>`,
   admin: `<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/>`,
-  profile: `<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>`
+  profile: `<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>`,
+  brandAssets: `<path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.28 19.64 10.59 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-5 9c-.83 0-1.5-.67-1.5-1.5S6.17 9 7 9s1.5.67 1.5 1.5S7.83 12 7 12zm3-4c-.83 0-1.5-.67-1.5-1.5S9.17 5 10 5s1.5.67 1.5 1.5S10.83 8 10 8zm4 0c-.83 0-1.5-.67-1.5-1.5S13.17 5 14 5s1.5.67 1.5 1.5S14.83 8 14 8zm3 4c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>`,
+  quickNotes: `<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>`,
+  archiveVault: `<path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM6.24 5h11.52l.83 1H5.42l.82-1zM5 19V8h14v11H5zm11-5.5h-4v-3H9v3H5l7 7 7-7z"/>`,
+  wellbeing: `<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>`
 };
 
 export const ROUTES: RouteDefinition[] = [
@@ -86,6 +90,39 @@ export const ROUTES: RouteDefinition[] = [
     layout: 'layout-full',
     parent: 'projects'
   },
+  {
+    id: 'quick-notes',
+    hash: 'quick-notes',
+    label: 'Quick notes',
+    shortLabel: 'Notes',
+    icon: ROUTE_ICONS.quickNotes,
+    group: 'Work',
+    mobileDock: false,
+    paletteKeywords: ['quick notes', 'notes', 'scratchpad', 'memo', 'ideas', 'briefs', 'drafts', 'markdown'],
+    layout: 'layout-page'
+  },
+  {
+    id: 'archive-vault',
+    hash: 'archive-vault',
+    label: 'Archive vault',
+    shortLabel: 'Archive',
+    icon: ROUTE_ICONS.archiveVault,
+    group: 'Work',
+    mobileDock: false,
+    paletteKeywords: ['archive vault', 'archive', 'cold storage', 'history', 'completed projects', 'backup'],
+    layout: 'layout-page'
+  },
+  {
+    id: 'wellbeing',
+    hash: 'wellbeing',
+    label: 'Wellbeing',
+    shortLabel: 'Wellbeing',
+    icon: ROUTE_ICONS.wellbeing,
+    group: 'Work',
+    mobileDock: false,
+    paletteKeywords: ['wellbeing', 'focus timer', 'hydration', 'ergonomics', 'breaks', 'energy', 'health', 'radio'],
+    layout: 'layout-page'
+  },
 
   // ── Create ──────────────────────────────────────────────────────────
   {
@@ -110,6 +147,17 @@ export const ROUTES: RouteDefinition[] = [
     roles: ['admin', 'manager', 'designer', 'copywriter'],
     mobileDock: false,
     paletteKeywords: ['copy studio', 'copywriting', 'scripts', 'angles', 'hooks', 'ai', 'gemini'],
+    layout: 'layout-page'
+  },
+  {
+    id: 'brand-assets',
+    hash: 'brand-assets',
+    label: 'Brand assets',
+    shortLabel: 'Brand',
+    icon: ROUTE_ICONS.brandAssets,
+    group: 'Create',
+    mobileDock: false,
+    paletteKeywords: ['brand assets', 'brand identity', 'colors', 'tokens', 'palettes', 'logos', 'typography', 'brand kits'],
     layout: 'layout-page'
   },
 

@@ -23,6 +23,10 @@
   import SignageView from '$lib/views/SignageView.svelte';
   import StudioDisplayView from '$lib/views/StudioDisplayView.svelte';
   import ConsultationSuiteView from '$lib/views/ConsultationSuiteView.svelte';
+  import BrandAssetsView from '$lib/views/BrandAssetsView.svelte';
+  import QuickNotesView from '$lib/views/QuickNotesView.svelte';
+  import ArchiveVaultView from '$lib/views/ArchiveVaultView.svelte';
+  import WellbeingView from '$lib/views/WellbeingView.svelte';
   import NotificationDrawer from '$lib/components/features/NotificationDrawer.svelte';
   import CommandPaletteModal from '$lib/components/features/CommandPaletteModal.svelte';
   import { ROUTES, PAGE_CONFIG, getNavGroups, getMobileDockRoutes, isRouteAllowed, getRouteById, getRouteByHash, type RouteDefinition } from '$lib/config/routes';
@@ -637,6 +641,14 @@
             <AdminView />
           {:else if appState.currentRoute === 'studio-display'}
             <StudioDisplayView />
+          {:else if appState.currentRoute === 'brand-assets'}
+            <BrandAssetsView />
+          {:else if appState.currentRoute === 'quick-notes'}
+            <QuickNotesView />
+          {:else if appState.currentRoute === 'archive-vault'}
+            <ArchiveVaultView />
+          {:else if appState.currentRoute === 'wellbeing'}
+            <WellbeingView />
           {:else if appState.currentRoute === 'profile'}
             <ProfileView />
           {:else}
