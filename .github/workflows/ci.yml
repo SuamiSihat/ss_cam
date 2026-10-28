@@ -86,7 +86,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ss-cam-web-dist
-          path: src/SS-CAM.Web/dist
+          path: src/SS-CAM.Web/client/dist
           if-no-files-found: error
 
   # =========================================================================
