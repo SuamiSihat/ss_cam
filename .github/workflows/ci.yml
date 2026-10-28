@@ -1,0 +1,151 @@
+name: SS-CAM Continuous Integration
+
+on:
+  push:
+    branches: [ "SS-Master", "main" ]
+  pull_request:
+    branches: [ "SS-Master", "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =========================================================================
+  # 1. WINDOWS DESKTOP (WPF .NET Framework 4.8)
+  # =========================================================================
+  windows-desktop:
+    name: Windows Desktop (WPF 4.8)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet Packages
+        run: nuget restore SS-CAM.sln
+
+      - name: Run SS-CAM Source Guardian Gatekeeper
+        shell: pwsh
+        run: ./QA/verify-sscam.ps1
+
+      - name: Run SS-CAM Dual-Track Governance Gatekeeper
+        shell: pwsh
+        run: ./QA/verify-dual-track.ps1
+
+      - name: Build Solution (Release)
+        run: msbuild SS-CAM.sln /p:Configuration=Release /p:Platform="Any CPU" /v:m
+
+      - name: Run Windows Automated Unit-Test Suite (SS-CAM.Tests)
+        shell: pwsh
+        run: .\tests\SS-CAM.Tests\bin\Release\SS-CAM.Tests.exe
+
+      - name: Upload Windows Desktop Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ss-cam-windows-desktop
+          path: src/SS-CAM/bin/Release/SS-CAM.exe
+          if-no-files-found: error
+
+  # =========================================================================
+  # 2. WEB PORTAL (Node.js 20 + SvelteKit / Vite + Express)
+  # =========================================================================
+  web-portal:
+    name: Web Portal (Node 20 / Svelte)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/SS-CAM.Web
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/SS-CAM.Web/package-lock.json
+
+      - name: Install Web Dependencies
+        run: npm ci
+
+      - name: Run Web Automated Tests (DOM, RBAC, JWT, Rate Limiting)
+        run: npm test
+
+      - name: Build Web Client Bundle
+        run: npm run build:client
+
+      - name: Upload Web Client Distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: ss-cam-web-dist
+          path: src/SS-CAM.Web/dist
+          if-no-files-found: error
+
+  # =========================================================================
+  # 3. ANDROID COMPANION (Kotlin 2.0 / Jetpack Compose / AGP 8.8)
+  # =========================================================================
+  android-companion:
+    name: Android Companion (Compose / Java 17)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/SS-CAM.Android
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradlew Executable
+        run: chmod +x gradlew
+
+      - name: Assemble Android Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload Android Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ss-cam-android-debug
+          path: src/SS-CAM.Android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  # =========================================================================
+  # 4. LINUX DESKTOP (Avalonia UI / .NET 10)
+  # =========================================================================
+  linux-desktop:
+    name: Linux Desktop (Avalonia / .NET 10)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          include-prerelease: true
+
+      - name: Build Linux Desktop (Release)
+        run: dotnet build src/SS-CAM.Linux/SS-CAM.Linux.csproj -c Release
+
+      - name: Upload Linux Desktop Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ss-cam-linux-desktop
+          path: src/SS-CAM.Linux/bin/Release/net10.0/
+          if-no-files-found: error
